@@ -1,0 +1,85 @@
+from datetime import date
+from typing import Optional
+
+from sqlalchemy import Date, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.db.base import Base
+
+
+class Athlete(Base):
+    __tablename__ = "athletes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), index=True)
+    date_of_birth: Mapped[date] = mapped_column(Date)
+    sex: Mapped[str] = mapped_column(String(20))
+    weight: Mapped[float] = mapped_column(Float)
+    height: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    primary_discipline: Mapped[str] = mapped_column(String(50), index=True)
+    goal_category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    training_goal: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[date] = mapped_column(Date)
+    coach_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    coach = relationship("User", back_populates="athletes", foreign_keys=[coach_id])
+    weights = relationship("AthleteWeightHistory", back_populates="athlete", cascade="all, delete-orphan")
+    sessions = relationship("Session", back_populates="athlete", cascade="all, delete-orphan")
+    snapshots = relationship("PhysiologicalSnapshot", back_populates="athlete", cascade="all, delete-orphan")
+    estimates = relationship("PerformanceEstimate", back_populates="athlete", cascade="all, delete-orphan")
+    metrics = relationship("DerivedMetric", back_populates="athlete", cascade="all, delete-orphan")
+    focus_blocks = relationship("AthleteFocusBlock", back_populates="athlete", cascade="all, delete-orphan", order_by="AthleteFocusBlock.start_date.desc()")
+    targets = relationship("AthleteTarget", back_populates="athlete", cascade="all, delete-orphan", order_by="AthleteTarget.target_date.desc()")
+
+
+class AthleteWeightHistory(Base):
+    __tablename__ = "athlete_weight_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    athlete_id: Mapped[int] = mapped_column(ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
+    recorded_at: Mapped[date] = mapped_column(Date)
+    weight: Mapped[float] = mapped_column(Float)
+    source: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    athlete = relationship("Athlete", back_populates="weights")
+
+
+class AthleteFocusBlock(Base):
+    __tablename__ = "athlete_focus_blocks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    athlete_id: Mapped[int] = mapped_column(ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
+    start_date: Mapped[date] = mapped_column(Date, index=True)
+    end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)
+    energy_system_focus: Mapped[str] = mapped_column(String(100), index=True)
+    block_objective: Mapped[str] = mapped_column(String(100), index=True)
+    block_intent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    priority_discipline: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    phase: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    target_event: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    target_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), index=True, default="planned")
+    coach_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    athlete = relationship("Athlete", back_populates="focus_blocks")
+
+
+class AthleteTarget(Base):
+    __tablename__ = "athlete_targets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    athlete_id: Mapped[int] = mapped_column(ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
+    target_date: Mapped[date] = mapped_column(Date, index=True)
+    discipline: Mapped[str] = mapped_column(String(50), index=True)
+    objective: Mapped[str] = mapped_column(String(255))
+    distance_label: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    priority_level: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    target_pace_label: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    target_power_watts: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    target_running_pace_label: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    target_swim_pace_label: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    target_cycling_power_watts: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    athlete = relationship("Athlete", back_populates="targets")
