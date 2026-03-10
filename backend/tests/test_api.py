@@ -210,6 +210,49 @@ def test_coach_can_fetch_strava_activities_for_selected_athlete(client, db_sessi
                 "kilojoules": None,
                 "trainer": False,
                 "commute": False,
+                "description": "Bloque controlado",
+                "total_elevation_gain_m": 42.0,
+                "calories": 780.0,
+                "average_cadence": 84.2,
+                "weighted_average_watts": None,
+                "max_watts": None,
+                "device_watts": None,
+                "suffer_score": None,
+                "perceived_exertion": None,
+                "has_heartrate": True,
+                "laps": [
+                    {
+                        "lap_index": 1,
+                        "name": "Lap 1",
+                        "distance_m": 4000.0,
+                        "elapsed_time_seconds": 1000,
+                        "moving_time_seconds": 980,
+                        "average_speed_m_s": 4.08,
+                        "average_heartrate": 150.0,
+                        "max_heartrate": 161.0,
+                        "average_watts": None,
+                        "start_date": "2026-03-08T09:15:00Z",
+                    }
+                ],
+                "zones": [
+                    {
+                        "type": "heartrate",
+                        "score": 87,
+                        "sensor_based": True,
+                        "points": 42,
+                        "buckets": [{"min_value": 120.0, "max_value": 140.0, "time_seconds": 300}],
+                    }
+                ],
+                "streams": {
+                    "heartrate": {
+                        "original_size": 3,
+                        "resolution": "medium",
+                        "series_type": "time",
+                        "data": [130, 145, 152],
+                    }
+                },
+                "raw_detail": {"id": 444, "name": "Rodaje controlado"},
+                "enrichment_error": None,
             }
         ],
     )
@@ -227,6 +270,9 @@ def test_coach_can_fetch_strava_activities_for_selected_athlete(client, db_sessi
     assert payload["imported_count"] == 1
     assert payload["activities"][0]["provider_activity_id"] == 444
     assert payload["activities"][0]["sport_type"] == "Run"
+    assert payload["activities"][0]["laps"][0]["lap_index"] == 1
+    assert payload["activities"][0]["zones"][0]["type"] == "heartrate"
+    assert payload["activities"][0]["streams"]["heartrate"]["original_size"] == 3
 
 
 def test_create_athlete_and_session_analysis(client, db_session):

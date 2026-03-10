@@ -17,6 +17,22 @@ from app.models.athlete import Athlete
 STRAVA_AUTHORIZE_URL = "https://www.strava.com/oauth/authorize"
 STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
 STRAVA_ACTIVITIES_URL = "https://www.strava.com/api/v3/athlete/activities"
+STRAVA_ACTIVITY_DETAIL_URL = "https://www.strava.com/api/v3/activities/{activity_id}"
+STRAVA_ACTIVITY_LAPS_URL = "https://www.strava.com/api/v3/activities/{activity_id}/laps"
+STRAVA_ACTIVITY_ZONES_URL = "https://www.strava.com/api/v3/activities/{activity_id}/zones"
+STRAVA_ACTIVITY_STREAMS_URL = "https://www.strava.com/api/v3/activities/{activity_id}/streams"
+DEFAULT_STREAM_KEYS = [
+    "time",
+    "distance",
+    "latlng",
+    "altitude",
+    "velocity_smooth",
+    "heartrate",
+    "cadence",
+    "watts",
+    "moving",
+    "grade_smooth",
+]
 
 
 @dataclass
@@ -142,7 +158,7 @@ def list_strava_activities(db: Session, athlete: Athlete, start_date: date, end_
             break
         page += 1
 
-    return activities
+    return [_enrich_activity(access_token, activity) for activity in activities]
 
 
 def persist_strava_connection(db: Session, athlete_id: int, token_payload: dict[str, Any]) -> Athlete:
@@ -240,4 +256,138 @@ def _normalize_activity(payload: dict[str, Any]) -> dict[str, Any]:
         "kilojoules": float(payload["kilojoules"]) if payload.get("kilojoules") is not None else None,
         "trainer": bool(payload.get("trainer")),
         "commute": bool(payload.get("commute")),
+        "description": payload.get("description"),
+        "total_elevation_gain_m": float(payload["total_elevation_gain"]) if payload.get("total_elevation_gain") is not None else None,
+        "calories": float(payload["calories"]) if payload.get("calories") is not None else None,
+        "average_cadence": float(payload["average_cadence"]) if payload.get("average_cadence") is not None else None,
+        "weighted_average_watts": float(payload["weighted_average_watts"]) if payload.get("weighted_average_watts") is not None else None,
+        "max_watts": float(payload["max_watts"]) if payload.get("max_watts") is not None else None,
+        "device_watts": bool(payload["device_watts"]) if payload.get("device_watts") is not None else None,
+        "suffer_score": float(payload["suffer_score"]) if payload.get("suffer_score") is not None else None,
+        "perceived_exertion": float(payload["perceived_exertion"]) if payload.get("perceived_exertion") is not None else None,
+        "has_heartrate": bool(payload["has_heartrate"]) if payload.get("has_heartrate") is not None else None,
+        "laps": [],
+        "zones": [],
+        "streams": {},
+        "raw_detail": {},
+        "enrichment_error": None,
     }
+
+
+def _enrich_activity(access_token: str, activity: dict[str, Any]) -> dict[str, Any]:
+    activity_id = activity["provider_activity_id"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+    enriched = dict(activity)
+
+    try:
+        detail = _request_json(
+            STRAVA_ACTIVITY_DETAIL_URL.format(activity_id=activity_id),
+            headers=headers,
+            params={"include_all_efforts": "false"},
+        )
+        enriched.update(_normalize_activity(detail))
+        enriched["raw_detail"] = detail
+        enriched["laps"] = [_normalize_lap(item, index) for index, item in enumerate(_request_json(STRAVA_ACTIVITY_LAPS_URL.format(activity_id=activity_id), headers=headers), start=1)]
+        enriched["zones"] = [_normalize_zone(item) for item in _request_optional_list(STRAVA_ACTIVITY_ZONES_URL.format(activity_id=activity_id), headers=headers)]
+        enriched["streams"] = _normalize_streams(
+            _request_optional_json(
+                STRAVA_ACTIVITY_STREAMS_URL.format(activity_id=activity_id),
+                headers=headers,
+                params={"keys": ",".join(DEFAULT_STREAM_KEYS), "key_by_type": "true"},
+            )
+        )
+    except ValueError as exc:
+        enriched["enrichment_error"] = str(exc)
+
+    return enriched
+
+
+def _normalize_lap(payload: dict[str, Any], lap_index: int) -> dict[str, Any]:
+    return {
+        "lap_index": lap_index,
+        "name": payload.get("name") or f"Lap {lap_index}",
+        "distance_m": float(payload.get("distance") or 0),
+        "elapsed_time_seconds": int(payload.get("elapsed_time") or 0),
+        "moving_time_seconds": int(payload.get("moving_time") or 0),
+        "average_speed_m_s": float(payload["average_speed"]) if payload.get("average_speed") is not None else None,
+        "average_heartrate": float(payload["average_heartrate"]) if payload.get("average_heartrate") is not None else None,
+        "max_heartrate": float(payload["max_heartrate"]) if payload.get("max_heartrate") is not None else None,
+        "average_watts": float(payload["average_watts"]) if payload.get("average_watts") is not None else None,
+        "start_date": payload.get("start_date"),
+    }
+
+
+def _normalize_zone(payload: dict[str, Any]) -> dict[str, Any]:
+    buckets = []
+    for bucket in payload.get("distribution_buckets") or []:
+        if not isinstance(bucket, dict):
+            continue
+        buckets.append(
+            {
+                "min_value": float(bucket["min"]) if bucket.get("min") is not None else None,
+                "max_value": float(bucket["max"]) if bucket.get("max") is not None else None,
+                "time_seconds": int(bucket.get("time") or 0),
+            }
+        )
+
+    return {
+        "type": payload.get("type") or "unknown",
+        "score": int(payload["score"]) if payload.get("score") is not None else None,
+        "sensor_based": bool(payload["sensor_based"]) if payload.get("sensor_based") is not None else None,
+        "points": int(payload["points"]) if payload.get("points") is not None else None,
+        "buckets": buckets,
+    }
+
+
+def _normalize_streams(payload: Any) -> dict[str, dict[str, Any]]:
+    if isinstance(payload, dict):
+        items = payload.items()
+    elif isinstance(payload, list):
+        items = ((item.get("type"), item) for item in payload if isinstance(item, dict))
+    else:
+        return {}
+
+    streams: dict[str, dict[str, Any]] = {}
+    for key, stream in items:
+        if not key or not isinstance(stream, dict):
+            continue
+        streams[str(key)] = {
+            "original_size": int(stream.get("original_size") or 0),
+            "resolution": stream.get("resolution"),
+            "series_type": stream.get("series_type"),
+            "data": stream.get("data") or [],
+        }
+    return streams
+
+
+def _request_json(url: str, headers: dict[str, str], params: dict[str, str] | None = None) -> Any:
+    response = httpx.get(url, headers=headers, params=params, timeout=20.0)
+    if response.status_code >= 400:
+        detail = response.json().get("message", "Strava request failed") if response.headers.get("content-type", "").startswith("application/json") else "Strava request failed"
+        raise ValueError(detail)
+    return response.json()
+
+
+def _request_optional_list(url: str, headers: dict[str, str], params: dict[str, str] | None = None) -> list[Any]:
+    response = httpx.get(url, headers=headers, params=params, timeout=20.0)
+    if response.status_code in {401, 403, 404}:
+        return []
+    if response.status_code >= 400:
+        detail = response.json().get("message", "Strava request failed") if response.headers.get("content-type", "").startswith("application/json") else "Strava request failed"
+        raise ValueError(detail)
+    payload = response.json()
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict):
+        return [payload]
+    return []
+
+
+def _request_optional_json(url: str, headers: dict[str, str], params: dict[str, str] | None = None) -> Any:
+    response = httpx.get(url, headers=headers, params=params, timeout=20.0)
+    if response.status_code in {401, 403, 404}:
+        return {}
+    if response.status_code >= 400:
+        detail = response.json().get("message", "Strava request failed") if response.headers.get("content-type", "").startswith("application/json") else "Strava request failed"
+        raise ValueError(detail)
+    return response.json()
