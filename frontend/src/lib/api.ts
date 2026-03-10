@@ -253,6 +253,11 @@ export const api = {
         ...(payload.athleteId ? { athlete_id: payload.athleteId } : {}),
       }),
     }),
+  stravaActivities: (token: string, athleteId: number, startDate: string, endDate: string) =>
+    request<{ athlete_id: number; athlete_name: string; start_date: string; end_date: string; imported_count: number; activities: Array<Record<string, unknown>> }>(
+      `/strava/athletes/${athleteId}/activities?${new URLSearchParams({ start_date: startDate, end_date: endDate }).toString()}`,
+      { token },
+    ),
   dashboard: (token: string) => request("/analytics/dashboard", { token }),
   athletes: (token: string) => request("/athletes", { token }),
   createAthlete: (token: string, payload: unknown) =>

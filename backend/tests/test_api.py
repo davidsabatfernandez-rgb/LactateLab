@@ -165,6 +165,70 @@ def test_coach_can_complete_manual_strava_test_connect(client, db_session, monke
     assert payload["connected"] is True
 
 
+def test_coach_can_fetch_strava_activities_for_selected_athlete(client, db_session, monkeypatch):
+    coach = User(
+        email="coach-strava-activities@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="coach",
+        full_name="Coach Strava Activities",
+    )
+    athlete = Athlete(
+        name="Atleta Actividades Strava",
+        date_of_birth=date(1991, 8, 5),
+        sex="male",
+        weight=67,
+        height=176,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+        coach=coach,
+        strava_athlete_id=123456,
+        strava_access_token="encrypted-access",
+        strava_refresh_token="encrypted-refresh",
+        strava_token_expires_at=datetime(2026, 12, 31, 0, 0),
+        strava_connected_at=datetime(2026, 3, 10, 8, 0),
+    )
+    db_session.add_all([coach, athlete])
+    db_session.commit()
+
+    monkeypatch.setattr(
+        "app.api.routes.strava.list_strava_activities",
+        lambda db, athlete, start_date, end_date: [
+            {
+                "provider_activity_id": 444,
+                "name": "Rodaje controlado",
+                "sport_type": "Run",
+                "started_at": "2026-03-08T09:15:00Z",
+                "timezone": "(GMT+01:00) Europe/Madrid",
+                "distance_m": 12600.0,
+                "moving_time_seconds": 3120,
+                "elapsed_time_seconds": 3250,
+                "average_speed_m_s": 4.03,
+                "max_speed_m_s": 5.4,
+                "average_heartrate": 152.0,
+                "max_heartrate": 167.0,
+                "average_watts": None,
+                "kilojoules": None,
+                "trainer": False,
+                "commute": False,
+            }
+        ],
+    )
+
+    login_response = client.post("/api/auth/login", json={"email": "coach-strava-activities@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.get(
+        f"/api/strava/athletes/{athlete.id}/activities?start_date=2026-03-01&end_date=2026-03-10",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["athlete_id"] == athlete.id
+    assert payload["imported_count"] == 1
+    assert payload["activities"][0]["provider_activity_id"] == 444
+    assert payload["activities"][0]["sport_type"] == "Run"
+
+
 def test_create_athlete_and_session_analysis(client, db_session):
     headers = auth_headers(client, db_session)
 

@@ -30,6 +30,34 @@ export type AuthUser = {
   athlete_id?: number | null;
 };
 
+export type StravaActivity = {
+  provider_activity_id: number;
+  name: string;
+  sport_type: string;
+  started_at: string;
+  timezone?: string | null;
+  distance_m: number;
+  moving_time_seconds: number;
+  elapsed_time_seconds: number;
+  average_speed_m_s?: number | null;
+  max_speed_m_s?: number | null;
+  average_heartrate?: number | null;
+  max_heartrate?: number | null;
+  average_watts?: number | null;
+  kilojoules?: number | null;
+  trainer: boolean;
+  commute: boolean;
+};
+
+export type StravaActivitiesImportResponse = {
+  athlete_id: number;
+  athlete_name: string;
+  start_date: string;
+  end_date: string;
+  imported_count: number;
+  activities: StravaActivity[];
+};
+
 export type AthleteFocusBlock = {
   id: number;
   start_date: string;

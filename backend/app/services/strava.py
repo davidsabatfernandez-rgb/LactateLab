@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Any
 from urllib.parse import urlencode
 
@@ -11,11 +11,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
-from app.core.security import encrypt_secret
+from app.core.security import decrypt_secret, encrypt_secret
 from app.models.athlete import Athlete
 
 STRAVA_AUTHORIZE_URL = "https://www.strava.com/oauth/authorize"
 STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token"
+STRAVA_ACTIVITIES_URL = "https://www.strava.com/api/v3/athlete/activities"
 
 
 @dataclass
@@ -102,6 +103,48 @@ def exchange_code_for_token(code: str) -> dict[str, Any]:
     return payload
 
 
+def list_strava_activities(db: Session, athlete: Athlete, start_date: date, end_date: date) -> list[dict[str, Any]]:
+    if not athlete.strava_connected:
+        raise ValueError("Athlete does not have Strava connected")
+    if end_date < start_date:
+        raise ValueError("end_date must be on or after start_date")
+
+    access_token = _ensure_access_token(db, athlete)
+    after = int(datetime.combine(start_date, time.min, tzinfo=timezone.utc).timestamp())
+    before = int(datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=timezone.utc).timestamp())
+    page = 1
+    activities: list[dict[str, Any]] = []
+
+    while True:
+        response = httpx.get(
+            STRAVA_ACTIVITIES_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={
+                "after": after,
+                "before": before,
+                "page": page,
+                "per_page": 100,
+            },
+            timeout=20.0,
+        )
+        if response.status_code >= 400:
+            detail = response.json().get("message", "Failed to fetch Strava activities") if response.headers.get("content-type", "").startswith("application/json") else "Failed to fetch Strava activities"
+            raise ValueError(detail)
+
+        payload = response.json()
+        if not isinstance(payload, list):
+            raise ValueError("Unexpected Strava activities payload")
+        if not payload:
+            break
+
+        activities.extend(_normalize_activity(item) for item in payload if isinstance(item, dict))
+        if len(payload) < 100:
+            break
+        page += 1
+
+    return activities
+
+
 def persist_strava_connection(db: Session, athlete_id: int, token_payload: dict[str, Any]) -> Athlete:
     athlete = db.scalar(select(Athlete).where(Athlete.id == athlete_id))
     if athlete is None:
@@ -137,3 +180,64 @@ def build_callback_redirect(status: str, reason: str | None = None, return_path:
 def _validate_strava_configuration(settings: Settings) -> None:
     if not settings.strava_client_id or not settings.strava_client_secret:
         raise ValueError("Strava is not configured")
+
+
+def _ensure_access_token(db: Session, athlete: Athlete) -> str:
+    if not athlete.strava_access_token or not athlete.strava_refresh_token or athlete.strava_token_expires_at is None:
+        raise ValueError("Athlete does not have valid Strava tokens")
+
+    now = datetime.now(timezone.utc)
+    expires_at = athlete.strava_token_expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if expires_at > now + timedelta(minutes=5):
+        return decrypt_secret(athlete.strava_access_token)
+
+    settings = get_settings()
+    response = httpx.post(
+        STRAVA_TOKEN_URL,
+        data={
+            "client_id": settings.strava_client_id,
+            "client_secret": settings.strava_client_secret,
+            "grant_type": "refresh_token",
+            "refresh_token": decrypt_secret(athlete.strava_refresh_token),
+        },
+        timeout=15.0,
+    )
+    if response.status_code >= 400:
+        detail = response.json().get("message", "Strava token refresh failed") if response.headers.get("content-type", "").startswith("application/json") else "Strava token refresh failed"
+        raise ValueError(detail)
+
+    payload = response.json()
+    if not payload.get("access_token") or not payload.get("refresh_token") or not payload.get("expires_at"):
+        raise ValueError("Incomplete Strava refresh payload")
+
+    athlete.strava_access_token = encrypt_secret(payload["access_token"])
+    athlete.strava_refresh_token = encrypt_secret(payload["refresh_token"])
+    athlete.strava_token_expires_at = datetime.fromtimestamp(int(payload["expires_at"]), tz=timezone.utc)
+    db.add(athlete)
+    db.commit()
+    db.refresh(athlete)
+    return payload["access_token"]
+
+
+def _normalize_activity(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "provider_activity_id": int(payload["id"]),
+        "name": payload.get("name") or "Actividad Strava",
+        "sport_type": payload.get("sport_type") or payload.get("type") or "Unknown",
+        "started_at": payload["start_date"],
+        "timezone": payload.get("timezone"),
+        "distance_m": float(payload.get("distance") or 0),
+        "moving_time_seconds": int(payload.get("moving_time") or 0),
+        "elapsed_time_seconds": int(payload.get("elapsed_time") or 0),
+        "average_speed_m_s": float(payload["average_speed"]) if payload.get("average_speed") is not None else None,
+        "max_speed_m_s": float(payload["max_speed"]) if payload.get("max_speed") is not None else None,
+        "average_heartrate": float(payload["average_heartrate"]) if payload.get("average_heartrate") is not None else None,
+        "max_heartrate": float(payload["max_heartrate"]) if payload.get("max_heartrate") is not None else None,
+        "average_watts": float(payload["average_watts"]) if payload.get("average_watts") is not None else None,
+        "kilojoules": float(payload["kilojoules"]) if payload.get("kilojoules") is not None else None,
+        "trainer": bool(payload.get("trainer")),
+        "commute": bool(payload.get("commute")),
+    }

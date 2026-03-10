@@ -260,7 +260,7 @@ export default function App() {
         <Route path="/nutrition" element={<NutritionPage />} />
         <Route path="/library" element={<LibraryPage token={token} />} />
         <Route path="/library-generator" element={<LibraryGeneratorPage />} />
-        <Route path="/strava-information" element={<StravaInformationPage athletes={athletes} />} />
+        <Route path="/strava-information" element={<StravaInformationPage token={token} athletes={athletes} />} />
         <Route path="/athletes" element={<AthletesPage athletes={athletes} token={token} onRefresh={() => refreshData(token)} />} />
         <Route path="/athletes/:athleteId" element={<AthleteDetailRoute token={token} onDataChanged={() => refreshData(token)} />} />
         <Route path="/athletes/:athleteId/targets" element={<AthleteTargetsRoute token={token} onDataChanged={() => refreshData(token)} />} />

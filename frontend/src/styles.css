@@ -6973,6 +6973,55 @@ textarea {
   background: rgba(255, 255, 255, 0.96);
 }
 
+.strava-import-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px)) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.strava-import-action {
+  display: flex;
+  align-items: end;
+}
+
+.strava-preview-stack {
+  margin-top: 22px;
+  display: grid;
+  gap: 14px;
+}
+
+.strava-preview-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+}
+
+.strava-preview-header h3 {
+  margin: 6px 0 0;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+
+.strava-preview-header strong {
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+.strava-preview-empty {
+  margin-top: 22px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: rgba(248, 245, 239, 0.72);
+}
+
+.strava-preview-empty p {
+  margin: 8px 0 0;
+}
+
 .library-toolbar-summary {
   display: flex;
   gap: 10px;
@@ -7946,6 +7995,10 @@ textarea {
 
   .library-toolbar-summary {
     justify-content: flex-start;
+  }
+
+  .strava-import-grid {
+    grid-template-columns: 1fr;
   }
 }
 
