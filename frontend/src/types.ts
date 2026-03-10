@@ -47,6 +47,50 @@ export type StravaActivity = {
   kilojoules?: number | null;
   trainer: boolean;
   commute: boolean;
+  description?: string | null;
+  total_elevation_gain_m?: number | null;
+  calories?: number | null;
+  average_cadence?: number | null;
+  weighted_average_watts?: number | null;
+  max_watts?: number | null;
+  device_watts?: boolean | null;
+  suffer_score?: number | null;
+  perceived_exertion?: number | null;
+  has_heartrate?: boolean | null;
+  laps: Array<{
+    lap_index: number;
+    name: string;
+    distance_m: number;
+    elapsed_time_seconds: number;
+    moving_time_seconds: number;
+    average_speed_m_s?: number | null;
+    average_heartrate?: number | null;
+    max_heartrate?: number | null;
+    average_watts?: number | null;
+    start_date?: string | null;
+  }>;
+  zones: Array<{
+    type: string;
+    score?: number | null;
+    sensor_based?: boolean | null;
+    points?: number | null;
+    buckets: Array<{
+      min_value?: number | null;
+      max_value?: number | null;
+      time_seconds: number;
+    }>;
+  }>;
+  streams: Record<
+    string,
+    {
+      original_size: number;
+      resolution?: string | null;
+      series_type?: string | null;
+      data: unknown[];
+    }
+  >;
+  raw_detail: Record<string, unknown>;
+  enrichment_error?: string | null;
 };
 
 export type StravaActivitiesImportResponse = {

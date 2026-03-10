@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { api } from "../lib/api";
-import { Athlete, StravaActivitiesImportResponse } from "../types";
+import { Athlete, StravaActivitiesImportResponse, StravaActivity } from "../types";
 
 type StravaInformationPageProps = {
   token: string;
@@ -30,8 +30,10 @@ function formatDistance(distanceM: number) {
 function formatDuration(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
   if (hours > 0) return `${hours}h ${minutes}min`;
-  return `${minutes} min`;
+  if (minutes > 0) return `${minutes}min ${seconds}s`;
+  return `${seconds}s`;
 }
 
 function formatPace(speed?: number | null) {
@@ -52,6 +54,20 @@ function formatDateTime(value: string) {
   });
 }
 
+function formatNumber(value?: number | null, suffix = "", digits = 0) {
+  if (value === undefined || value === null) return "n/d";
+  return `${value.toFixed(digits)}${suffix}`;
+}
+
+function streamSummary(activity: StravaActivity) {
+  return Object.entries(activity.streams).map(([key, value]) => ({
+    key,
+    points: Array.isArray(value.data) ? value.data.length : 0,
+    resolution: value.resolution ?? "n/d",
+    seriesType: value.series_type ?? "n/d",
+  }));
+}
+
 export function StravaInformationPage({ token, athletes }: StravaInformationPageProps) {
   const [selectedAthleteId, setSelectedAthleteId] = useState<number | null>(athletes[0]?.id ?? null);
   const [startDate, setStartDate] = useState(() => isoDateOffset(-14));
@@ -59,6 +75,7 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<StravaActivitiesImportResponse | null>(null);
+  const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!athletes.length) {
@@ -71,15 +88,22 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
   useEffect(() => {
     setImportError(null);
     setImportResult(null);
+    setSelectedActivityId(null);
   }, [selectedAthleteId]);
 
   const selectedAthlete = useMemo(
     () => athletes.find((athlete) => athlete.id === selectedAthleteId) ?? null,
     [athletes, selectedAthleteId],
   );
-  const rawJsonPreview = useMemo(
-    () => (importResult ? JSON.stringify(importResult, null, 2) : null),
-    [importResult],
+
+  const selectedActivity = useMemo(
+    () => importResult?.activities.find((activity) => activity.provider_activity_id === selectedActivityId) ?? importResult?.activities[0] ?? null,
+    [importResult, selectedActivityId],
+  );
+
+  const selectedActivityJson = useMemo(
+    () => (selectedActivity ? JSON.stringify(selectedActivity, null, 2) : null),
+    [selectedActivity],
   );
 
   async function handleImport() {
@@ -89,9 +113,11 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
     try {
       const payload = (await api.stravaActivities(token, selectedAthleteId, startDate, endDate)) as StravaActivitiesImportResponse;
       setImportResult(payload);
+      setSelectedActivityId(payload.activities[0]?.provider_activity_id ?? null);
     } catch (error) {
       setImportResult(null);
-      setImportError(error instanceof Error ? error.message : "No se pudieron importar las actividades de Strava.");
+      setSelectedActivityId(null);
+      setImportError(error instanceof Error ? error.message : "No se pudieron cargar las actividades de Strava.");
     } finally {
       setImporting(false);
     }
@@ -104,7 +130,7 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
           <span className="eyebrow">Coach view</span>
           <h1>Strava Information</h1>
           <p>
-            Pantalla base para revisar un atleta cada vez. La conexión se sigue haciendo desde el portal del atleta; aquí iremos construyendo la lectura y gestión de su información Strava.
+            Carga actividades completas del atleta, revisa su resumen visual y entra al detalle de cada sesión con laps, zonas, streams y JSON crudo.
           </p>
         </div>
       </section>
@@ -164,7 +190,7 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
       <section className="card section-card">
         <div className="section-heading compact">
           <span className="eyebrow">Importación manual</span>
-          <h2 className="section-title">Volcado de actividades</h2>
+          <h2 className="section-title">Carga actividades completas</h2>
         </div>
         <div className="session-debug-list">
           <div>
@@ -185,57 +211,53 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
                   onClick={handleImport}
                   disabled={!selectedAthleteId || !selectedAthlete?.strava_connected || importing || endDate < startDate}
                 >
-                  {importing ? "Cargando..." : "Cargar actividades"}
+                  {importing ? "Cargando detalle..." : "Cargar actividades"}
                 </button>
               </div>
             </div>
-            {!selectedAthlete?.strava_connected ? (
-              <span>Este atleta todavía no tiene Strava conectado desde su portal.</span>
-            ) : null}
+            {!selectedAthlete?.strava_connected ? <span>Este atleta todavía no tiene Strava conectado desde su portal.</span> : null}
             {endDate < startDate ? <span>La fecha final debe ser igual o posterior a la inicial.</span> : null}
           </div>
         </div>
         {importError ? <p className="error">{importError}</p> : null}
+      </section>
+
+      <section className="card section-card">
+        <div className="section-heading compact">
+          <span className="eyebrow">Actividades</span>
+          <h2 className="section-title">Vista visual de sesiones</h2>
+        </div>
         {importResult ? (
           importResult.activities.length ? (
-            <div className="strava-preview-stack">
-              <div className="strava-preview-header">
-                <div>
-                  <span className="eyebrow">Vista previa</span>
-                  <h3>Actividades encontradas</h3>
-                </div>
-                <strong>{importResult.imported_count} actividades</strong>
-              </div>
-              <div className="table-shell">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Actividad</th>
-                    <th>Tipo</th>
-                    <th>Duración</th>
-                    <th>Distancia</th>
-                    <th>Ritmo</th>
-                    <th>FC media</th>
-                    <th>Potencia</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {importResult.activities.map((activity) => (
-                    <tr key={activity.provider_activity_id}>
-                      <td>{formatDateTime(activity.started_at)}</td>
-                      <td>{activity.name}</td>
-                      <td>{activity.sport_type}</td>
-                      <td>{formatDuration(activity.moving_time_seconds)}</td>
-                      <td>{formatDistance(activity.distance_m)}</td>
-                      <td>{formatPace(activity.average_speed_m_s)}</td>
-                      <td>{activity.average_heartrate ? `${Math.round(activity.average_heartrate)} bpm` : "n/d"}</td>
-                      <td>{activity.average_watts ? `${Math.round(activity.average_watts)} W` : "n/d"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <div className="strava-activity-grid">
+              {importResult.activities.map((activity) => {
+                const isSelected = selectedActivity?.provider_activity_id === activity.provider_activity_id;
+                return (
+                  <button
+                    key={activity.provider_activity_id}
+                    type="button"
+                    className={`strava-activity-card${isSelected ? " selected" : ""}`}
+                    onClick={() => setSelectedActivityId(activity.provider_activity_id)}
+                  >
+                    <div className="strava-activity-card-top">
+                      <span className="eyebrow">{activity.sport_type}</span>
+                      <strong>{formatDateTime(activity.started_at)}</strong>
+                    </div>
+                    <h3>{activity.name}</h3>
+                    <div className="strava-activity-card-metrics">
+                      <span>{formatDuration(activity.moving_time_seconds)}</span>
+                      <span>{formatDistance(activity.distance_m)}</span>
+                      <span>{formatPace(activity.average_speed_m_s)}</span>
+                    </div>
+                    <div className="strava-activity-card-flags">
+                      {activity.trainer ? <span>Indoor</span> : null}
+                      {activity.average_heartrate ? <span>{Math.round(activity.average_heartrate)} bpm</span> : null}
+                      {activity.average_watts ? <span>{Math.round(activity.average_watts)} W</span> : null}
+                    </div>
+                    {activity.enrichment_error ? <p className="error">Detalle incompleto: {activity.enrichment_error}</p> : null}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <div className="strava-preview-empty">
@@ -249,18 +271,140 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
             <p>Todavía no has cargado actividades para este atleta.</p>
           </div>
         )}
-        {rawJsonPreview ? (
-          <div className="strava-raw-json">
+      </section>
+
+      {selectedActivity ? (
+        <section className="card section-card">
+          <div className="section-heading compact">
+            <span className="eyebrow">Detalle de sesión</span>
+            <h2 className="section-title">{selectedActivity.name}</h2>
+            <p>{formatDateTime(selectedActivity.started_at)} · {selectedActivity.sport_type}</p>
+          </div>
+
+          <div className="strava-detail-metrics">
+            <div><strong>Duración útil</strong><span>{formatDuration(selectedActivity.moving_time_seconds)}</span></div>
+            <div><strong>Duración total</strong><span>{formatDuration(selectedActivity.elapsed_time_seconds)}</span></div>
+            <div><strong>Distancia</strong><span>{formatDistance(selectedActivity.distance_m)}</span></div>
+            <div><strong>Ritmo/velocidad</strong><span>{formatPace(selectedActivity.average_speed_m_s)}</span></div>
+            <div><strong>FC media</strong><span>{selectedActivity.average_heartrate ? `${Math.round(selectedActivity.average_heartrate)} bpm` : "n/d"}</span></div>
+            <div><strong>FC máx</strong><span>{selectedActivity.max_heartrate ? `${Math.round(selectedActivity.max_heartrate)} bpm` : "n/d"}</span></div>
+            <div><strong>Potencia media</strong><span>{selectedActivity.average_watts ? `${Math.round(selectedActivity.average_watts)} W` : "n/d"}</span></div>
+            <div><strong>Potencia máx</strong><span>{selectedActivity.max_watts ? `${Math.round(selectedActivity.max_watts)} W` : "n/d"}</span></div>
+            <div><strong>Elevación</strong><span>{formatNumber(selectedActivity.total_elevation_gain_m, " m", 0)}</span></div>
+            <div><strong>Calorías</strong><span>{formatNumber(selectedActivity.calories, "", 0)}</span></div>
+            <div><strong>Cadencia media</strong><span>{formatNumber(selectedActivity.average_cadence, "", 1)}</span></div>
+            <div><strong>Weighted avg watts</strong><span>{formatNumber(selectedActivity.weighted_average_watts, " W", 0)}</span></div>
+          </div>
+
+          {selectedActivity.description ? (
+            <div className="strava-detail-note">
+              <span className="eyebrow">Descripción</span>
+              <p>{selectedActivity.description}</p>
+            </div>
+          ) : null}
+
+          <div className="strava-detail-columns">
+            <div className="strava-detail-panel">
+              <div className="strava-preview-header">
+                <div>
+                  <span className="eyebrow">Laps</span>
+                  <h3>Contenido de la sesión</h3>
+                </div>
+                <strong>{selectedActivity.laps.length}</strong>
+              </div>
+              {selectedActivity.laps.length ? (
+                <div className="strava-lap-list">
+                  {selectedActivity.laps.map((lap) => (
+                    <article key={`${selectedActivity.provider_activity_id}-${lap.lap_index}`} className="strava-lap-card">
+                      <div className="strava-lap-header">
+                        <strong>{lap.name}</strong>
+                        <span>#{lap.lap_index}</span>
+                      </div>
+                      <div className="strava-lap-metrics">
+                        <span>{formatDuration(lap.moving_time_seconds)}</span>
+                        <span>{formatDistance(lap.distance_m)}</span>
+                        <span>{formatPace(lap.average_speed_m_s)}</span>
+                        <span>{lap.average_heartrate ? `${Math.round(lap.average_heartrate)} bpm` : "n/d"}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p>No hay laps disponibles para esta actividad.</p>
+              )}
+            </div>
+
+            <div className="strava-detail-panel">
+              <div className="strava-preview-header">
+                <div>
+                  <span className="eyebrow">Streams</span>
+                  <h3>Series disponibles</h3>
+                </div>
+                <strong>{Object.keys(selectedActivity.streams).length}</strong>
+              </div>
+              {Object.keys(selectedActivity.streams).length ? (
+                <div className="strava-stream-list">
+                  {streamSummary(selectedActivity).map((stream) => (
+                    <article key={stream.key} className="strava-stream-card">
+                      <strong>{stream.key}</strong>
+                      <span>{stream.points} puntos</span>
+                      <span>{stream.resolution}</span>
+                      <span>{stream.seriesType}</span>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p>No hay streams disponibles para esta actividad.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="strava-detail-panel">
             <div className="strava-preview-header">
               <div>
-                <span className="eyebrow">Debug</span>
-                <h3>JSON crudo</h3>
+                <span className="eyebrow">Zonas</span>
+                <h3>Distribución de intensidad</h3>
               </div>
+              <strong>{selectedActivity.zones.length}</strong>
             </div>
-            <pre>{rawJsonPreview}</pre>
+            {selectedActivity.zones.length ? (
+              <div className="strava-zone-grid">
+                {selectedActivity.zones.map((zone) => (
+                  <article key={zone.type} className="strava-zone-card">
+                    <strong>{zone.type}</strong>
+                    <span>score: {zone.score ?? "n/d"}</span>
+                    <span>puntos: {zone.points ?? "n/d"}</span>
+                    <div className="strava-zone-buckets">
+                      {zone.buckets.map((bucket, index) => (
+                        <div key={`${zone.type}-${index}`}>
+                          <strong>{bucket.time_seconds}s</strong>
+                          <span>
+                            {bucket.min_value ?? "?"} - {bucket.max_value ?? "?"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p>No hay zonas disponibles para esta actividad.</p>
+            )}
           </div>
-        ) : null}
-      </section>
+
+          {selectedActivityJson ? (
+            <div className="strava-raw-json">
+              <div className="strava-preview-header">
+                <div>
+                  <span className="eyebrow">Debug</span>
+                  <h3>JSON crudo de la actividad seleccionada</h3>
+                </div>
+              </div>
+              <pre>{selectedActivityJson}</pre>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
     </div>
   );
 }
