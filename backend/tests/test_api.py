@@ -64,6 +64,46 @@ def test_athlete_can_start_strava_oauth(client, db_session, monkeypatch):
     assert "client_id=12345" in payload["authorize_url"]
 
 
+def test_coach_can_start_strava_oauth_for_selected_athlete(client, db_session, monkeypatch):
+    coach = User(
+        email="coach-strava@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="coach",
+        full_name="Coach Strava",
+    )
+    athlete = Athlete(
+        name="Atleta Coach Strava",
+        date_of_birth=date(1994, 3, 9),
+        sex="male",
+        weight=68,
+        height=178,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+        coach=coach,
+    )
+    db_session.add_all([coach, athlete])
+    db_session.commit()
+
+    class StubSettings:
+        jwt_secret = "change-me"
+        access_token_algorithm = "HS256"
+        strava_client_id = "12345"
+        strava_client_secret = "secret"
+        strava_redirect_uri = "http://localhost:8000/api/auth/strava/callback"
+        strava_scopes = "read,activity:read_all"
+
+    monkeypatch.setattr("app.services.strava.get_settings", lambda: StubSettings)
+
+    login_response = client.post("/api/auth/login", json={"email": "coach-strava@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.get(f"/api/auth/strava/start?athlete_id={athlete.id}&return_path=%2Fstrava-test", headers=headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["athlete_id"] == athlete.id
+    assert "state=" in payload["authorize_url"]
+
+
 def test_create_athlete_and_session_analysis(client, db_session):
     headers = auth_headers(client, db_session)
 

@@ -235,8 +235,15 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
   me: (token: string) => request<{ id: number; email: string; role: string; full_name: string; athlete_id?: number | null }>("/auth/me", { token }),
-  stravaConnectStart: (token: string) =>
-    request<{ authorize_url: string; athlete_id: number; already_connected: boolean }>("/auth/strava/start", { token }),
+  stravaConnectStart: (token: string, options?: { athleteId?: number; returnPath?: string }) => {
+    const params = new URLSearchParams();
+    if (options?.athleteId) params.set("athlete_id", String(options.athleteId));
+    if (options?.returnPath) params.set("return_path", options.returnPath);
+    return request<{ authorize_url: string; athlete_id: number; already_connected: boolean }>(
+      `/auth/strava/start${params.size ? `?${params.toString()}` : ""}`,
+      { token },
+    );
+  },
   dashboard: (token: string) => request("/analytics/dashboard", { token }),
   athletes: (token: string) => request("/athletes", { token }),
   createAthlete: (token: string, payload: unknown) =>

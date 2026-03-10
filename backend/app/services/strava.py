@@ -25,21 +25,33 @@ class StravaStartPayload:
     already_connected: bool
 
 
-def _state_token(user_id: int, athlete_id: int, settings: Settings) -> str:
+def _normalized_return_path(value: str | None) -> str:
+    if not value or not value.startswith("/"):
+        return "/strava-test"
+    return value
+
+
+def _state_token(user_id: int, athlete_id: int, return_path: str, settings: Settings) -> str:
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
     payload = {
         "sub": "strava_oauth",
         "user_id": user_id,
         "athlete_id": athlete_id,
+        "return_path": _normalized_return_path(return_path),
         "exp": expires_at,
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.access_token_algorithm)
 
 
-def build_strava_start_payload(user_id: int, athlete: Athlete) -> StravaStartPayload:
+def build_strava_start_payload(user_id: int, athlete: Athlete, return_path: str | None = None) -> StravaStartPayload:
     settings = get_settings()
     _validate_strava_configuration(settings)
-    state = _state_token(user_id=user_id, athlete_id=athlete.id, settings=settings)
+    state = _state_token(
+        user_id=user_id,
+        athlete_id=athlete.id,
+        return_path=_normalized_return_path(return_path),
+        settings=settings,
+    )
     query = urlencode(
         {
             "client_id": settings.strava_client_id,
@@ -112,12 +124,12 @@ def persist_strava_connection(db: Session, athlete_id: int, token_payload: dict[
     return athlete
 
 
-def build_callback_redirect(status: str, reason: str | None = None) -> str:
+def build_callback_redirect(status: str, reason: str | None = None, return_path: str | None = None) -> str:
     settings = get_settings()
     query = {"strava": status}
     if reason:
         query["reason"] = reason
-    return f"{settings.frontend_base_url.rstrip('/')}/athlete?{urlencode(query)}"
+    return f"{settings.frontend_base_url.rstrip('/')}{_normalized_return_path(return_path)}?{urlencode(query)}"
 
 
 def _validate_strava_configuration(settings: Settings) -> None:

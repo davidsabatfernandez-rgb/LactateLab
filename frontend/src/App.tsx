@@ -16,6 +16,7 @@ import { NutritionPage } from "./pages/NutritionPage";
 import { PlanningPage } from "./pages/PlanningPage";
 import { SessionDetailPage } from "./pages/SessionDetailPage";
 import { SessionsPage } from "./pages/SessionsPage";
+import { StravaTestPage } from "./pages/StravaTestPage";
 import { Athlete, AthleteAnalysis, AuthUser, DashboardData, SessionAnalysis, SessionSummary } from "./types";
 
 function AthleteDetailRoute({ token, onDataChanged }: { token: string; onDataChanged: () => Promise<void> }) {
@@ -259,6 +260,7 @@ export default function App() {
         <Route path="/nutrition" element={<NutritionPage />} />
         <Route path="/library" element={<LibraryPage token={token} />} />
         <Route path="/library-generator" element={<LibraryGeneratorPage />} />
+        <Route path="/strava-test" element={<StravaTestPage token={token} athletes={athletes} />} />
         <Route path="/athletes" element={<AthletesPage athletes={athletes} token={token} onRefresh={() => refreshData(token)} />} />
         <Route path="/athletes/:athleteId" element={<AthleteDetailRoute token={token} onDataChanged={() => refreshData(token)} />} />
         <Route path="/athletes/:athleteId/targets" element={<AthleteTargetsRoute token={token} onDataChanged={() => refreshData(token)} />} />
