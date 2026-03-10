@@ -4,7 +4,7 @@ import { Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { AthleteLayout } from "./components/AthleteLayout";
 import { Layout } from "./components/Layout";
 import { LoginForm } from "./components/LoginForm";
-import { api } from "./lib/api";
+import { api, getApiDebugInfo } from "./lib/api";
 import { AthleteDetailPage } from "./pages/AthleteDetailPage";
 import { AthletePortalPage } from "./pages/AthletePortalPage";
 import { AthleteTargetsPage } from "./pages/AthleteTargetsPage";
@@ -104,13 +104,18 @@ export default function App() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [dataLoadError, setDataLoadError] = useState<string | null>(null);
+  const [sessionInitError, setSessionInitError] = useState<string | null>(null);
+  const [authCheckInFlight, setAuthCheckInFlight] = useState(false);
+  const apiDebug = getApiDebugInfo();
 
   async function refreshData(activeToken: string) {
+    setAuthCheckInFlight(true);
     return api
       .me(activeToken)
       .then(async (meResult) => {
         setAuthUser(meResult as AuthUser);
         setDataLoadError(null);
+        setSessionInitError(null);
         const [dashboardResult, athletesResult, sessionsResult] = await Promise.allSettled([
           api.dashboard(activeToken),
           api.athletes(activeToken),
@@ -137,16 +142,28 @@ export default function App() {
           setDataLoadError(`No se pudieron cargar algunos datos: ${loadErrors.join(" · ")}`);
         }
       })
-      .catch(() => {
-        setToken(null);
+      .catch((error) => {
+        const message =
+          error instanceof Error ? error.message : "No se pudo validar la sesion actual contra la API.";
+        console.error("[app] Error cargando la sesion", {
+          error: message,
+          apiDebug,
+        });
         setAuthUser(null);
+        setDashboard(null);
+        setAthletes([]);
+        setSessions([]);
         setDataLoadError(null);
-        localStorage.removeItem("lactate-token");
+        setSessionInitError(message);
+      })
+      .finally(() => {
+        setAuthCheckInFlight(false);
       });
   }
 
   useEffect(() => {
     if (!token) return;
+    setSessionInitError(null);
     refreshData(token);
   }, [token]);
 
@@ -169,11 +186,53 @@ export default function App() {
     setToken(null);
     setAuthUser(null);
     setDataLoadError(null);
+    setSessionInitError(null);
     localStorage.removeItem("lactate-token");
   }
 
   if (!token) {
     return <LoginForm onLogin={handleLogin} />;
+  }
+
+  if (!authUser && authCheckInFlight) {
+    return <div className="loading">Cargando acceso...</div>;
+  }
+
+  if (!authUser && sessionInitError) {
+    return (
+      <div className="loading">
+        <div className="card session-debug-card">
+          <span className="eyebrow">Diagnostico de acceso</span>
+          <h2>No se pudo validar la sesion</h2>
+          <p className="error">{sessionInitError}</p>
+          <div className="session-debug-list">
+            <div>
+              <strong>Origen app</strong>
+              <span>{apiDebug.appOrigin ?? "desconocido"}</span>
+            </div>
+            <div>
+              <strong>VITE_API_URL</strong>
+              <span>{apiDebug.environmentApiUrl ?? "no definida"}</span>
+            </div>
+            <div>
+              <strong>API probadas</strong>
+              <span>{apiDebug.configuredApiUrls.join(" · ")}</span>
+            </div>
+          </div>
+          <p className="session-debug-hint">
+            Si esto ocurre en Vercel, casi seguro falta configurar <code>VITE_API_URL</code> con la URL publica del backend.
+          </p>
+          <div className="session-debug-actions">
+            <button type="button" className="primary-button" onClick={() => refreshData(token)}>
+              Reintentar
+            </button>
+            <button type="button" className="ghost-button" onClick={handleLogout}>
+              Cerrar sesion
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!authUser) {

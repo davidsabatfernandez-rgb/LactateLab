@@ -13,9 +13,72 @@ function defaultApiUrls() {
   return [...new Set(candidates)];
 }
 
-const API_URLS = import.meta.env.VITE_API_URL ? [import.meta.env.VITE_API_URL] : defaultApiUrls();
+function normalizeApiUrl(url: string) {
+  return url.replace(/\/+$/, "");
+}
+
+const API_URLS = (
+  import.meta.env.VITE_API_URL ? [import.meta.env.VITE_API_URL] : defaultApiUrls()
+).map((url) => normalizeApiUrl(url));
 
 type FetchOptions = RequestInit & { token?: string | null };
+
+type ApiDebugInfo = {
+  configuredApiUrls: string[];
+  environmentApiUrl: string | null;
+  appOrigin: string | null;
+};
+
+function getRequestMethod(options: FetchOptions) {
+  return options.method ?? "GET";
+}
+
+function formatErrorDetail(detail: unknown) {
+  if (detail == null) return null;
+  if (typeof detail === "string") return detail;
+  try {
+    return JSON.stringify(detail);
+  } catch {
+    return String(detail);
+  }
+}
+
+async function parseErrorPayload(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    const body = await response.json().catch(() => ({}));
+    return body?.detail ?? body?.message ?? body;
+  }
+
+  const text = await response.text().catch(() => "");
+  return text.trim() || null;
+}
+
+function buildHttpError(url: string, path: string, options: FetchOptions, response: Response, detail: unknown) {
+  const method = getRequestMethod(options);
+  const detailText = formatErrorDetail(detail);
+  const summary = `API ${method} ${path} fallo en ${url} (${response.status} ${response.statusText})`;
+  return new Error(detailText ? `${summary}. ${detailText}` : summary);
+}
+
+function logApiFailure(url: string, path: string, options: FetchOptions, error: unknown) {
+  const method = getRequestMethod(options);
+  console.error("[api]", {
+    method,
+    path,
+    url,
+    error: error instanceof Error ? error.message : error,
+    configuredApiUrls: API_URLS,
+  });
+}
+
+export function getApiDebugInfo(): ApiDebugInfo {
+  return {
+    configuredApiUrls: API_URLS,
+    environmentApiUrl: import.meta.env.VITE_API_URL ?? null,
+    appOrigin: typeof window === "undefined" ? null : window.location.origin,
+  };
+}
 
 async function request<T>(path: string, options: FetchOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
@@ -26,11 +89,14 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
 
   let lastError: unknown = null;
   for (const apiUrl of API_URLS) {
+    const requestUrl = `${apiUrl}${path}`;
     try {
-      const response = await fetch(`${apiUrl}${path}`, { ...options, headers });
+      const response = await fetch(requestUrl, { ...options, headers });
       if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.detail ?? "Request failed");
+        const detail = await parseErrorPayload(response);
+        const httpError = buildHttpError(requestUrl, path, options, response, detail);
+        logApiFailure(requestUrl, path, options, httpError);
+        throw httpError;
       }
       if (response.status === 204) {
         return undefined as T;
@@ -38,6 +104,7 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
       return response.json();
     } catch (error) {
       lastError = error;
+      logApiFailure(requestUrl, path, options, error);
       if (!(error instanceof TypeError)) {
         throw error;
       }
@@ -45,7 +112,9 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
   }
 
   if (lastError instanceof TypeError) {
-    throw new Error(`No se pudo conectar con la API (${API_URLS.join(" o ")}). Comprueba que el backend esté levantado y accesible.`);
+    throw new Error(
+      `No se pudo conectar con la API usando ${API_URLS.join(" o ")}. Comprueba VITE_API_URL y que el backend esté accesible.`,
+    );
   }
   throw lastError;
 }
@@ -55,15 +124,19 @@ async function requestForm<T>(path: string, body: FormData, token: string): Prom
   headers.set("Authorization", `Bearer ${token}`);
   let lastError: unknown = null;
   for (const apiUrl of API_URLS) {
+    const requestUrl = `${apiUrl}${path}`;
     try {
-      const response = await fetch(`${apiUrl}${path}`, { method: "POST", headers, body });
+      const response = await fetch(requestUrl, { method: "POST", headers, body });
       if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.detail ?? "Request failed");
+        const detail = await parseErrorPayload(response);
+        const httpError = buildHttpError(requestUrl, path, { method: "POST" }, response, detail);
+        logApiFailure(requestUrl, path, { method: "POST" }, httpError);
+        throw httpError;
       }
       return response.json();
     } catch (error) {
       lastError = error;
+      logApiFailure(requestUrl, path, { method: "POST" }, error);
       if (!(error instanceof TypeError)) {
         throw error;
       }
@@ -71,7 +144,9 @@ async function requestForm<T>(path: string, body: FormData, token: string): Prom
   }
 
   if (lastError instanceof TypeError) {
-    throw new Error(`No se pudo conectar con la API (${API_URLS.join(" o ")}). Comprueba que el backend esté levantado y accesible.`);
+    throw new Error(
+      `No se pudo conectar con la API usando ${API_URLS.join(" o ")}. Comprueba VITE_API_URL y que el backend esté accesible.`,
+    );
   }
   throw lastError;
 }
@@ -83,15 +158,19 @@ async function requestBlob(path: string, options: FetchOptions = {}): Promise<Bl
   }
   let lastError: unknown = null;
   for (const apiUrl of API_URLS) {
+    const requestUrl = `${apiUrl}${path}`;
     try {
-      const response = await fetch(`${apiUrl}${path}`, { ...options, headers });
+      const response = await fetch(requestUrl, { ...options, headers });
       if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.detail ?? "Request failed");
+        const detail = await parseErrorPayload(response);
+        const httpError = buildHttpError(requestUrl, path, options, response, detail);
+        logApiFailure(requestUrl, path, options, httpError);
+        throw httpError;
       }
       return response.blob();
     } catch (error) {
       lastError = error;
+      logApiFailure(requestUrl, path, options, error);
       if (!(error instanceof TypeError)) {
         throw error;
       }
@@ -99,7 +178,9 @@ async function requestBlob(path: string, options: FetchOptions = {}): Promise<Bl
   }
 
   if (lastError instanceof TypeError) {
-    throw new Error(`No se pudo conectar con la API (${API_URLS.join(" o ")}). Comprueba que el backend esté levantado y accesible.`);
+    throw new Error(
+      `No se pudo conectar con la API usando ${API_URLS.join(" o ")}. Comprueba VITE_API_URL y que el backend esté accesible.`,
+    );
   }
   throw lastError;
 }

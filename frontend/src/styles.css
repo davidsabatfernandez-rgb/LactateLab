@@ -4562,6 +4562,57 @@ textarea {
   color: var(--muted);
 }
 
+.session-debug-card {
+  max-width: 760px;
+  margin: 48px auto;
+  padding: 28px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(210, 106, 54, 0.14), transparent 24%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(247, 243, 237, 0.98));
+  box-shadow: 0 28px 80px rgba(28, 49, 58, 0.14);
+}
+
+.session-debug-card h2 {
+  margin: 10px 0 12px;
+  color: var(--ink);
+}
+
+.session-debug-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.session-debug-list div {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(246, 241, 234, 0.88);
+  border: 1px solid rgba(28, 49, 58, 0.08);
+}
+
+.session-debug-list strong {
+  color: var(--ink);
+}
+
+.session-debug-list span {
+  color: var(--muted);
+  word-break: break-word;
+}
+
+.session-debug-hint {
+  margin-top: 18px;
+  color: var(--muted);
+}
+
+.session-debug-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
 .athlete-portal-grid {
   gap: 18px;
 }
