@@ -22,7 +22,7 @@ export function Layout({ onLogout, children }: LayoutProps) {
           <NavLink to="/nutrition">Nutrición</NavLink>
           <NavLink to="/library">Librería</NavLink>
           <NavLink to="/library-generator">Librería Generator</NavLink>
-          <NavLink to="/strava-test">Strava test</NavLink>
+          <NavLink to="/strava-information">Strava Information</NavLink>
           <NavLink to="/athletes">Atletas</NavLink>
           <NavLink to="/sessions">Sesiones</NavLink>
         </nav>
