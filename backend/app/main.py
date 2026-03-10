@@ -27,3 +27,8 @@ app.include_router(reports.router, prefix=settings.api_prefix)
 @app.get("/")
 def root():
     return {"name": settings.app_name, "docs": "/docs"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}

@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -36,6 +37,18 @@ class Settings(BaseSettings):
     strava_redirect_uri: str = "http://localhost:8000/api/auth/strava/callback"
     strava_scopes: str = "read,activity:read_all"
     strava_token_encryption_key: str = ""
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value: object) -> object:
+        if isinstance(value, str):
+            normalized = value.strip()
+            if not normalized:
+                return []
+            if normalized.startswith("["):
+                return normalized
+            return [item.strip() for item in normalized.split(",") if item.strip()]
+        return value
 
 
 @lru_cache

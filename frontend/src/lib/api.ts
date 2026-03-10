@@ -22,6 +22,7 @@ const API_URLS = (
 ).map((url) => normalizeApiUrl(url));
 
 type FetchOptions = RequestInit & { token?: string | null };
+const API_REQUEST_TIMEOUT_MS = 12000;
 
 type ApiDebugInfo = {
   configuredApiUrls: string[];
@@ -72,6 +73,48 @@ function logApiFailure(url: string, path: string, options: FetchOptions, error: 
   });
 }
 
+function mergeAbortSignals(...signals: Array<AbortSignal | null | undefined>) {
+  const availableSignals = signals.filter(Boolean) as AbortSignal[];
+  if (!availableSignals.length) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const onAbort = () => {
+    controller.abort();
+    availableSignals.forEach((signal) => signal.removeEventListener("abort", onAbort));
+  };
+
+  availableSignals.forEach((signal) => {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+  });
+
+  return controller.signal;
+}
+
+async function fetchWithTimeout(url: string, options: FetchOptions) {
+  const timeoutController = new AbortController();
+  const timeoutId = window.setTimeout(() => timeoutController.abort(), API_REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: mergeAbortSignals(options.signal, timeoutController.signal) ?? timeoutController.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(`Timeout al conectar con ${url} tras ${Math.round(API_REQUEST_TIMEOUT_MS / 1000)}s`);
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 export function getApiDebugInfo(): ApiDebugInfo {
   return {
     configuredApiUrls: API_URLS,
@@ -91,7 +134,7 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
   for (const apiUrl of API_URLS) {
     const requestUrl = `${apiUrl}${path}`;
     try {
-      const response = await fetch(requestUrl, { ...options, headers });
+      const response = await fetchWithTimeout(requestUrl, { ...options, headers });
       if (!response.ok) {
         const detail = await parseErrorPayload(response);
         const httpError = buildHttpError(requestUrl, path, options, response, detail);
@@ -126,7 +169,7 @@ async function requestForm<T>(path: string, body: FormData, token: string): Prom
   for (const apiUrl of API_URLS) {
     const requestUrl = `${apiUrl}${path}`;
     try {
-      const response = await fetch(requestUrl, { method: "POST", headers, body });
+      const response = await fetchWithTimeout(requestUrl, { method: "POST", headers, body });
       if (!response.ok) {
         const detail = await parseErrorPayload(response);
         const httpError = buildHttpError(requestUrl, path, { method: "POST" }, response, detail);
@@ -160,7 +203,7 @@ async function requestBlob(path: string, options: FetchOptions = {}): Promise<Bl
   for (const apiUrl of API_URLS) {
     const requestUrl = `${apiUrl}${path}`;
     try {
-      const response = await fetch(requestUrl, { ...options, headers });
+      const response = await fetchWithTimeout(requestUrl, { ...options, headers });
       if (!response.ok) {
         const detail = await parseErrorPayload(response);
         const httpError = buildHttpError(requestUrl, path, options, response, detail);
