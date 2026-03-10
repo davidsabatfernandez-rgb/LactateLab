@@ -124,11 +124,13 @@ def persist_strava_connection(db: Session, athlete_id: int, token_payload: dict[
     return athlete
 
 
-def build_callback_redirect(status: str, reason: str | None = None, return_path: str | None = None) -> str:
+def build_callback_redirect(status: str, reason: str | None = None, return_path: str | None = None, code: str | None = None) -> str:
     settings = get_settings()
     query = {"strava": status}
     if reason:
         query["reason"] = reason
+    if code:
+        query["code"] = code
     return f"{settings.frontend_base_url.rstrip('/')}{_normalized_return_path(return_path)}?{urlencode(query)}"
 
 

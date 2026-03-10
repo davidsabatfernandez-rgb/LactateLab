@@ -27,3 +27,14 @@ class StravaConnectStartResponse(BaseModel):
     authorize_url: str
     athlete_id: int
     already_connected: bool
+
+
+class StravaTestConnectRequest(BaseModel):
+    code: str
+    athlete_id: Optional[int] = None
+
+
+class StravaTestConnectResponse(BaseModel):
+    athlete_id: int
+    strava_athlete_id: int
+    connected: bool

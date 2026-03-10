@@ -244,6 +244,15 @@ export const api = {
       { token },
     );
   },
+  stravaTestConnect: (token: string, payload: { code: string; athleteId?: number }) =>
+    request<{ athlete_id: number; strava_athlete_id: number; connected: boolean }>("/auth/strava/test-connect", {
+      token,
+      method: "POST",
+      body: JSON.stringify({
+        code: payload.code,
+        ...(payload.athleteId ? { athlete_id: payload.athleteId } : {}),
+      }),
+    }),
   dashboard: (token: string) => request("/analytics/dashboard", { token }),
   athletes: (token: string) => request("/athletes", { token }),
   createAthlete: (token: string, payload: unknown) =>

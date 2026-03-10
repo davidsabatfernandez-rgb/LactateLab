@@ -104,6 +104,67 @@ def test_coach_can_start_strava_oauth_for_selected_athlete(client, db_session, m
     assert "state=" in payload["authorize_url"]
 
 
+def test_strava_callback_invalid_state_redirects_with_code(client, monkeypatch):
+    class StubSettings:
+        frontend_base_url = "http://localhost:5173"
+        jwt_secret = "change-me"
+        access_token_algorithm = "HS256"
+
+    monkeypatch.setattr("app.services.strava.get_settings", lambda: StubSettings)
+
+    response = client.get("/api/auth/strava/callback?code=test-code&state=invalid-state", follow_redirects=False)
+    assert response.status_code == 302
+    location = response.headers["location"]
+    assert "strava=error" in location
+    assert "reason=Invalid+Strava+OAuth+state" in location
+    assert "code=test-code" in location
+
+
+def test_coach_can_complete_manual_strava_test_connect(client, db_session, monkeypatch):
+    coach = User(
+        email="coach-manual-strava@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="coach",
+        full_name="Coach Manual Strava",
+    )
+    athlete = Athlete(
+        name="Atleta Manual Strava",
+        date_of_birth=date(1992, 7, 1),
+        sex="female",
+        weight=57,
+        height=165,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+        coach=coach,
+    )
+    db_session.add_all([coach, athlete])
+    db_session.commit()
+
+    monkeypatch.setattr(
+        "app.api.routes.auth.exchange_code_for_token",
+        lambda code: {
+            "access_token": "access-token",
+            "refresh_token": "refresh-token",
+            "expires_at": 1_800_000_000,
+            "athlete": {"id": 987654},
+        },
+    )
+
+    login_response = client.post("/api/auth/login", json={"email": "coach-manual-strava@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.post(
+        "/api/auth/strava/test-connect",
+        headers=headers,
+        json={"code": "manual-code", "athlete_id": athlete.id},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["athlete_id"] == athlete.id
+    assert payload["strava_athlete_id"] == 987654
+    assert payload["connected"] is True
+
+
 def test_create_athlete_and_session_analysis(client, db_session):
     headers = auth_headers(client, db_session)
 

@@ -10,7 +10,14 @@ from app.core.security import create_access_token, verify_password
 from app.db.session import get_db
 from app.models.athlete import Athlete
 from app.models.user import User
-from app.schemas.auth import LoginRequest, StravaConnectStartResponse, TokenResponse, UserRead
+from app.schemas.auth import (
+    LoginRequest,
+    StravaConnectStartResponse,
+    StravaTestConnectRequest,
+    StravaTestConnectResponse,
+    TokenResponse,
+    UserRead,
+)
 from app.services.strava import (
     build_callback_redirect,
     build_strava_start_payload,
@@ -85,9 +92,43 @@ def strava_callback(
         token_payload = exchange_code_for_token(code)
         persist_strava_connection(db, athlete_id=int(state_payload["athlete_id"]), token_payload=token_payload)
     except ValueError as exc:
-        return RedirectResponse(build_callback_redirect("error", str(exc), "/strava-test"), status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(build_callback_redirect("error", str(exc), "/strava-test", code=code), status_code=status.HTTP_302_FOUND)
 
     return RedirectResponse(
         build_callback_redirect("connected", return_path=state_payload.get("return_path")),
         status_code=status.HTTP_302_FOUND,
+    )
+
+
+@router.post("/strava/test-connect", response_model=StravaTestConnectResponse)
+def strava_test_connect(
+    payload: StravaTestConnectRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> StravaTestConnectResponse:
+    if user.role == "athlete":
+        if not user.athlete_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Athlete user is not linked to an athlete profile")
+        target_athlete_id = user.athlete_id
+    elif user.role == "coach":
+        if payload.athlete_id is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Coach must specify athlete_id for manual Strava test connection")
+        target_athlete_id = payload.athlete_id
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Strava test connection is not available for this role")
+
+    athlete = db.scalar(select(Athlete).where(Athlete.id == target_athlete_id))
+    if athlete is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Athlete not found")
+
+    try:
+        token_payload = exchange_code_for_token(payload.code)
+        athlete = persist_strava_connection(db, athlete_id=target_athlete_id, token_payload=token_payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    return StravaTestConnectResponse(
+        athlete_id=athlete.id,
+        strava_athlete_id=athlete.strava_athlete_id or 0,
+        connected=athlete.strava_connected,
     )
