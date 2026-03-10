@@ -60,12 +60,22 @@ function formatNumber(value?: number | null, suffix = "", digits = 0) {
 }
 
 function streamSummary(activity: StravaActivity) {
-  return Object.entries(activity.streams).map(([key, value]) => ({
+  return Object.entries(activity.streams ?? {}).map(([key, value]) => ({
     key,
     points: Array.isArray(value.data) ? value.data.length : 0,
     resolution: value.resolution ?? "n/d",
     seriesType: value.series_type ?? "n/d",
   }));
+}
+
+function normalizeActivity(activity: StravaActivity): StravaActivity {
+  return {
+    ...activity,
+    laps: Array.isArray(activity.laps) ? activity.laps : [],
+    zones: Array.isArray(activity.zones) ? activity.zones : [],
+    streams: activity.streams && typeof activity.streams === "object" ? activity.streams : {},
+    raw_detail: activity.raw_detail && typeof activity.raw_detail === "object" ? activity.raw_detail : {},
+  };
 }
 
 export function StravaInformationPage({ token, athletes }: StravaInformationPageProps) {
@@ -105,6 +115,9 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
     () => (selectedActivity ? JSON.stringify(selectedActivity, null, 2) : null),
     [selectedActivity],
   );
+  const selectedActivityLaps = selectedActivity?.laps ?? [];
+  const selectedActivityZones = selectedActivity?.zones ?? [];
+  const selectedActivityStreams = selectedActivity?.streams ?? {};
 
   async function handleImport() {
     if (!selectedAthleteId) return;
@@ -112,8 +125,12 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
     setImportError(null);
     try {
       const payload = (await api.stravaActivities(token, selectedAthleteId, startDate, endDate)) as StravaActivitiesImportResponse;
-      setImportResult(payload);
-      setSelectedActivityId(payload.activities[0]?.provider_activity_id ?? null);
+      const normalizedPayload: StravaActivitiesImportResponse = {
+        ...payload,
+        activities: Array.isArray(payload.activities) ? payload.activities.map((activity) => normalizeActivity(activity as StravaActivity)) : [],
+      };
+      setImportResult(normalizedPayload);
+      setSelectedActivityId(normalizedPayload.activities[0]?.provider_activity_id ?? null);
     } catch (error) {
       setImportResult(null);
       setSelectedActivityId(null);
@@ -310,11 +327,11 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
                   <span className="eyebrow">Laps</span>
                   <h3>Contenido de la sesión</h3>
                 </div>
-                <strong>{selectedActivity.laps.length}</strong>
+                <strong>{selectedActivityLaps.length}</strong>
               </div>
-              {selectedActivity.laps.length ? (
+              {selectedActivityLaps.length ? (
                 <div className="strava-lap-list">
-                  {selectedActivity.laps.map((lap) => (
+                  {selectedActivityLaps.map((lap) => (
                     <article key={`${selectedActivity.provider_activity_id}-${lap.lap_index}`} className="strava-lap-card">
                       <div className="strava-lap-header">
                         <strong>{lap.name}</strong>
@@ -340,9 +357,9 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
                   <span className="eyebrow">Streams</span>
                   <h3>Series disponibles</h3>
                 </div>
-                <strong>{Object.keys(selectedActivity.streams).length}</strong>
+                <strong>{Object.keys(selectedActivityStreams).length}</strong>
               </div>
-              {Object.keys(selectedActivity.streams).length ? (
+              {Object.keys(selectedActivityStreams).length ? (
                 <div className="strava-stream-list">
                   {streamSummary(selectedActivity).map((stream) => (
                     <article key={stream.key} className="strava-stream-card">
@@ -365,17 +382,17 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
                 <span className="eyebrow">Zonas</span>
                 <h3>Distribución de intensidad</h3>
               </div>
-              <strong>{selectedActivity.zones.length}</strong>
+              <strong>{selectedActivityZones.length}</strong>
             </div>
-            {selectedActivity.zones.length ? (
+            {selectedActivityZones.length ? (
               <div className="strava-zone-grid">
-                {selectedActivity.zones.map((zone) => (
+                {selectedActivityZones.map((zone) => (
                   <article key={zone.type} className="strava-zone-card">
                     <strong>{zone.type}</strong>
                     <span>score: {zone.score ?? "n/d"}</span>
                     <span>puntos: {zone.points ?? "n/d"}</span>
                     <div className="strava-zone-buckets">
-                      {zone.buckets.map((bucket, index) => (
+                      {(zone.buckets ?? []).map((bucket, index) => (
                         <div key={`${zone.type}-${index}`}>
                           <strong>{bucket.time_seconds}s</strong>
                           <span>
