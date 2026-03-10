@@ -19,6 +19,9 @@ export function Layout({ onLogout, children }: LayoutProps) {
         <nav className="nav">
           <NavLink to="/lab">Lab</NavLink>
           <NavLink to="/planning">Planificación</NavLink>
+          <NavLink to="/nutrition">Nutrición</NavLink>
+          <NavLink to="/library">Librería</NavLink>
+          <NavLink to="/library-generator">Librería Generator</NavLink>
           <NavLink to="/athletes">Atletas</NavLink>
           <NavLink to="/sessions">Sesiones</NavLink>
         </nav>

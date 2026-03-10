@@ -76,7 +76,8 @@ function formatMetricValue(point?: HistoricalPoint | null, discipline?: string) 
 
 function latestPoint(points?: HistoricalPoint[]) {
   if (!points?.length) return null;
-  return [...points].sort((a, b) => String(a.date).localeCompare(String(b.date))).at(-1) ?? null;
+  const sorted = [...points].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  return sorted[sorted.length - 1] ?? null;
 }
 
 function seriesDelta(points?: HistoricalPoint[]) {

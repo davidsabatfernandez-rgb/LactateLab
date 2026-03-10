@@ -1,7 +1,7 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import Date, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -20,6 +20,11 @@ class Athlete(Base):
     goal_category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     training_goal: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    strava_athlete_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
+    strava_access_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    strava_refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    strava_token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    strava_connected_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[date] = mapped_column(Date)
     coach_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
 
@@ -30,7 +35,17 @@ class Athlete(Base):
     estimates = relationship("PerformanceEstimate", back_populates="athlete", cascade="all, delete-orphan")
     metrics = relationship("DerivedMetric", back_populates="athlete", cascade="all, delete-orphan")
     focus_blocks = relationship("AthleteFocusBlock", back_populates="athlete", cascade="all, delete-orphan", order_by="AthleteFocusBlock.start_date.desc()")
+    planned_sessions = relationship("PlannedSession", back_populates="athlete", cascade="all, delete-orphan", order_by="PlannedSession.scheduled_date.asc()")
     targets = relationship("AthleteTarget", back_populates="athlete", cascade="all, delete-orphan", order_by="AthleteTarget.target_date.desc()")
+
+    @property
+    def strava_connected(self) -> bool:
+        return bool(
+            self.strava_athlete_id is not None
+            and self.strava_access_token
+            and self.strava_refresh_token
+            and self.strava_token_expires_at is not None
+        )
 
 
 class AthleteWeightHistory(Base):
@@ -52,6 +67,7 @@ class AthleteFocusBlock(Base):
     athlete_id: Mapped[int] = mapped_column(ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
     start_date: Mapped[date] = mapped_column(Date, index=True)
     end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)
+    template_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     energy_system_focus: Mapped[str] = mapped_column(String(100), index=True)
     block_objective: Mapped[str] = mapped_column(String(100), index=True)
     block_intent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -63,6 +79,7 @@ class AthleteFocusBlock(Base):
     coach_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     athlete = relationship("Athlete", back_populates="focus_blocks")
+    planned_sessions = relationship("PlannedSession", back_populates="focus_block", cascade="all, delete-orphan", order_by="PlannedSession.scheduled_date.asc()")
 
 
 class AthleteTarget(Base):

@@ -10,6 +10,9 @@ import { AthletePortalPage } from "./pages/AthletePortalPage";
 import { AthleteTargetsPage } from "./pages/AthleteTargetsPage";
 import { AthletesPage } from "./pages/AthletesPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { LibraryGeneratorPage } from "./pages/LibraryGeneratorPage";
+import { LibraryPage } from "./pages/LibraryPage";
+import { NutritionPage } from "./pages/NutritionPage";
 import { PlanningPage } from "./pages/PlanningPage";
 import { SessionDetailPage } from "./pages/SessionDetailPage";
 import { SessionsPage } from "./pages/SessionsPage";
@@ -100,12 +103,14 @@ export default function App() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [dataLoadError, setDataLoadError] = useState<string | null>(null);
 
   async function refreshData(activeToken: string) {
     return api
       .me(activeToken)
       .then(async (meResult) => {
         setAuthUser(meResult as AuthUser);
+        setDataLoadError(null);
         const [dashboardResult, athletesResult, sessionsResult] = await Promise.allSettled([
           api.dashboard(activeToken),
           api.athletes(activeToken),
@@ -121,10 +126,21 @@ export default function App() {
         if (sessionsResult.status === "fulfilled") {
           setSessions(sessionsResult.value as SessionSummary[]);
         }
+
+        const loadErrors = [
+          dashboardResult.status === "rejected" ? `dashboard: ${dashboardResult.reason instanceof Error ? dashboardResult.reason.message : "error desconocido"}` : null,
+          athletesResult.status === "rejected" ? `athletes: ${athletesResult.reason instanceof Error ? athletesResult.reason.message : "error desconocido"}` : null,
+          sessionsResult.status === "rejected" ? `sessions: ${sessionsResult.reason instanceof Error ? sessionsResult.reason.message : "error desconocido"}` : null,
+        ].filter(Boolean) as string[];
+
+        if (loadErrors.length) {
+          setDataLoadError(`No se pudieron cargar algunos datos: ${loadErrors.join(" · ")}`);
+        }
       })
       .catch(() => {
         setToken(null);
         setAuthUser(null);
+        setDataLoadError(null);
         localStorage.removeItem("lactate-token");
       });
   }
@@ -152,6 +168,7 @@ export default function App() {
   function handleLogout() {
     setToken(null);
     setAuthUser(null);
+    setDataLoadError(null);
     localStorage.removeItem("lactate-token");
   }
 
@@ -175,10 +192,14 @@ export default function App() {
 
   return (
     <Layout onLogout={handleLogout}>
+      {dataLoadError ? <div className="error">{dataLoadError}</div> : null}
       <Routes>
         <Route path="/" element={<DashboardPage athletes={athletes} token={token} />} />
         <Route path="/lab" element={<DashboardPage athletes={athletes} token={token} />} />
-        <Route path="/planning" element={<PlanningPage />} />
+        <Route path="/planning" element={<PlanningPage token={token} />} />
+        <Route path="/nutrition" element={<NutritionPage />} />
+        <Route path="/library" element={<LibraryPage token={token} />} />
+        <Route path="/library-generator" element={<LibraryGeneratorPage />} />
         <Route path="/athletes" element={<AthletesPage athletes={athletes} token={token} onRefresh={() => refreshData(token)} />} />
         <Route path="/athletes/:athleteId" element={<AthleteDetailRoute token={token} onDataChanged={() => refreshData(token)} />} />
         <Route path="/athletes/:athleteId/targets" element={<AthleteTargetsRoute token={token} onDataChanged={() => refreshData(token)} />} />

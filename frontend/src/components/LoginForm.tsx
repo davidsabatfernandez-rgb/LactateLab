@@ -50,6 +50,10 @@ export function LoginForm({ onLogin }: LoginFormProps) {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!mode) {
+      setError('Elige "Entrenador" o "Atleta" para continuar.');
+      return;
+    }
     setError(null);
     setLoading(true);
     try {

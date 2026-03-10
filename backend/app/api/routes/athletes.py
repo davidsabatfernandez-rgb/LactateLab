@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -26,16 +27,28 @@ from app.schemas.athlete import (
     AthleteWeightHistoryRead,
 )
 from app.schemas.analytics import AthleteAnalysisRead
+from app.schemas.report import PhysiologyReportRead
 from app.services.analytics import athlete_analysis_payload, recalculate_athlete
 from app.services.ai_interpreter import build_athlete_prompt, generate_reasoning_interpretation
 from app.services.book_advisor import build_book_advisor_response
 from app.services.demo_generator import create_chim_demo_athlete, create_demo_athlete
+from app.services.mesocycle_prescription import create_planned_sessions_for_block
+from app.services.physiology_report import build_physiology_report_payload, build_physiology_report_pdf
 
 router = APIRouter(prefix="/athletes", tags=["athletes"])
 
 
 def _effective_block_discipline(block: AthleteFocusBlock, athlete: Athlete) -> str:
     return block.priority_discipline or athlete.primary_discipline
+
+
+def _next_target_for_discipline(athlete: Athlete, discipline: str):
+    relevant = [
+        target
+        for target in athlete.targets
+        if target.discipline in {discipline, athlete.primary_discipline, "triatlón"}
+    ]
+    return sorted(relevant, key=lambda item: item.target_date)[0] if relevant else None
 
 
 @router.get("", response_model=list[AthleteRead])
@@ -123,7 +136,11 @@ def add_focus_block(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
-    athlete = db.scalar(select(Athlete).options(joinedload(Athlete.focus_blocks)).where(Athlete.id == athlete_id))
+    athlete = db.scalar(
+        select(Athlete)
+        .options(joinedload(Athlete.focus_blocks), joinedload(Athlete.sessions), joinedload(Athlete.targets))
+        .where(Athlete.id == athlete_id)
+    )
     if athlete is None:
         raise HTTPException(status_code=404, detail="Athlete not found")
 
@@ -137,6 +154,16 @@ def add_focus_block(
 
     block = AthleteFocusBlock(athlete_id=athlete_id, **payload.model_dump())
     db.add(block)
+    db.flush()
+
+    if block.status == "active":
+        create_planned_sessions_for_block(
+            db,
+            athlete,
+            block,
+            target=_next_target_for_discipline(athlete, target_discipline),
+        )
+
     db.commit()
     db.refresh(block)
     return block
@@ -150,7 +177,11 @@ def update_focus_block(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
-    athlete = db.scalar(select(Athlete).options(joinedload(Athlete.focus_blocks)).where(Athlete.id == athlete_id))
+    athlete = db.scalar(
+        select(Athlete)
+        .options(joinedload(Athlete.focus_blocks), joinedload(Athlete.sessions), joinedload(Athlete.targets))
+        .where(Athlete.id == athlete_id)
+    )
     if athlete is None:
         raise HTTPException(status_code=404, detail="Athlete not found")
     block = next((item for item in athlete.focus_blocks if item.id == block_id), None)
@@ -170,6 +201,15 @@ def update_focus_block(
 
     for field, value in updates.items():
         setattr(block, field, value)
+
+    if block.status == "active":
+        create_planned_sessions_for_block(
+            db,
+            athlete,
+            block,
+            target=_next_target_for_discipline(athlete, _effective_block_discipline(block, athlete)),
+        )
+
     db.commit()
     db.refresh(block)
     return block
@@ -261,11 +301,48 @@ def athlete_analysis(athlete_id: int, db: Session = Depends(get_db), _: User = D
         athlete = db.scalar(select(Athlete).where(Athlete.id == athlete_id))
         if athlete is None:
             raise HTTPException(status_code=404, detail="Athlete not found")
-        if athlete.sessions:
-            recalculate_athlete(db, athlete_id)
         return athlete_analysis_payload(db, athlete_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/{athlete_id}/physiology-report", response_model=PhysiologyReportRead)
+def athlete_physiology_report(
+    athlete_id: int,
+    discipline: str = None,
+    power_source: str = None,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    try:
+        return build_physiology_report_payload(db, athlete_id, discipline=discipline, power_source=power_source)
+    except ValueError as exc:
+        detail = str(exc)
+        if detail == "Athlete not found":
+            raise HTTPException(status_code=404, detail=detail) from exc
+        raise HTTPException(status_code=400, detail=detail) from exc
+
+
+@router.get("/{athlete_id}/physiology-report/pdf")
+def athlete_physiology_report_pdf(
+    athlete_id: int,
+    discipline: str = None,
+    power_source: str = None,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    try:
+        pdf_bytes, filename = build_physiology_report_pdf(db, athlete_id, discipline=discipline, power_source=power_source)
+    except ValueError as exc:
+        detail = str(exc)
+        if detail == "Athlete not found":
+            raise HTTPException(status_code=404, detail=detail) from exc
+        raise HTTPException(status_code=400, detail=detail) from exc
+    return StreamingResponse(
+        iter([pdf_bytes]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.post("/{athlete_id}/ai-interpretation", response_model=AthleteAIInterpretationResponse)
@@ -307,8 +384,6 @@ def athlete_reasoning_interpretation(
     athlete = db.scalar(select(Athlete).where(Athlete.id == athlete_id))
     if athlete is None:
         raise HTTPException(status_code=404, detail="Athlete not found")
-    if athlete.sessions:
-        recalculate_athlete(db, athlete_id)
 
     analysis = athlete_analysis_payload(db, athlete_id)
     goal_used = payload.custom_goal or athlete.training_goal or "Sin objetivo definido"

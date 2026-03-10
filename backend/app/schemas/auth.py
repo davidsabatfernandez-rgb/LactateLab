@@ -21,3 +21,9 @@ class UserRead(BaseModel):
     athlete_id: Optional[int] = None
 
     model_config = {"from_attributes": True}
+
+
+class StravaConnectStartResponse(BaseModel):
+    authorize_url: str
+    athlete_id: int
+    already_connected: bool

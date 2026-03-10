@@ -55,6 +55,7 @@ export function AthleteTargetsPage({ analysis, token, onSaved }: AthleteTargetsP
   }
 
   async function handleSave() {
+    if (!analysis) return;
     setSubmitting(true);
     setError(null);
     setMessage(null);

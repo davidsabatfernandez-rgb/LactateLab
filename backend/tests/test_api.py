@@ -1,6 +1,7 @@
 from datetime import date, datetime
 
 from app.core.security import get_password_hash
+from app.models.athlete import Athlete
 from app.models.user import User
 
 
@@ -16,6 +17,51 @@ def auth_headers(client, db_session):
     response = client.post("/api/auth/login", json={"email": "coach@test.dev", "password": "secret123"})
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+def test_athlete_can_start_strava_oauth(client, db_session, monkeypatch):
+    athlete = Athlete(
+        name="Atleta Strava",
+        date_of_birth=date(1993, 5, 14),
+        sex="female",
+        weight=58,
+        height=168,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+    )
+    db_session.add(athlete)
+    db_session.flush()
+
+    user = User(
+        email="athlete@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="athlete",
+        full_name="Athlete Test",
+        athlete_id=athlete.id,
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    class StubSettings:
+        jwt_secret = "change-me"
+        access_token_algorithm = "HS256"
+        strava_client_id = "12345"
+        strava_client_secret = "secret"
+        strava_redirect_uri = "http://localhost:8000/api/auth/strava/callback"
+        strava_scopes = "read,activity:read_all"
+
+    monkeypatch.setattr("app.services.strava.get_settings", lambda: StubSettings)
+
+    login_response = client.post("/api/auth/login", json={"email": "athlete@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.get("/api/auth/strava/start", headers=headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["athlete_id"] == athlete.id
+    assert payload["already_connected"] is False
+    assert "www.strava.com/oauth/authorize" in payload["authorize_url"]
+    assert "client_id=12345" in payload["authorize_url"]
 
 
 def test_create_athlete_and_session_analysis(client, db_session):
@@ -37,7 +83,11 @@ def test_create_athlete_and_session_analysis(client, db_session):
         },
     )
     assert athlete_response.status_code == 201
-    athlete_id = athlete_response.json()["id"]
+    athlete_payload = athlete_response.json()
+    assert athlete_payload["strava_connected"] is False
+    assert athlete_payload["strava_athlete_id"] is None
+    assert "strava_access_token" not in athlete_payload
+    athlete_id = athlete_payload["id"]
 
     session_response = client.post(
         "/api/sessions",
@@ -104,8 +154,16 @@ def test_create_athlete_and_session_analysis(client, db_session):
     assert "interpretation" in data
     assert "confidence_summary" in data
     assert "historical_evolution" in data
+    assert "dynamic_thresholds" in data
+    assert data["dynamic_thresholds"]["acute"]["reference_2mmol"] is not None
+    assert data["dynamic_thresholds"]["chronic"]["practical_lt2"] is not None
     assert data["thresholds"][0]["methods_compared"]
     assert "variables_used" in data["estimates"][0]
+    vo2max_estimate = next(estimate for estimate in data["estimates"] if estimate["estimate_type"] == "VO2max")
+    assert vo2max_estimate["value"] > 35
+    assert vo2max_estimate["method_used"] == "lt2_to_vvo2_proxy_v2"
+    assert vo2max_estimate["calculation_steps"]
+    assert vo2max_estimate["anchors"]
 
 
 def test_dashboard_endpoint(client, db_session):
@@ -113,6 +171,791 @@ def test_dashboard_endpoint(client, db_session):
     response = client.get("/api/analytics/dashboard", headers=headers)
     assert response.status_code == 200
     assert "athletes_count" in response.json()
+
+
+def test_physiology_report_preview_and_pdf(client, db_session):
+    headers = auth_headers(client, db_session)
+
+    athlete_response = client.post(
+        "/api/athletes",
+        headers=headers,
+        json={
+            "name": "Atleta Informe",
+            "date_of_birth": "1992-04-12",
+            "sex": "female",
+            "weight": 61,
+            "height": 170,
+            "primary_discipline": "running",
+            "training_goal": "Bajar de 50' en 10K",
+            "notes": "Atleta consistente con buen volumen extensivo.",
+            "created_at": "2026-01-01",
+            "weights": [{"recorded_at": "2026-01-01", "weight": 61, "source": "baseline"}],
+        },
+    )
+    assert athlete_response.status_code == 201
+    athlete_id = athlete_response.json()["id"]
+
+    target_response = client.post(
+        f"/api/athletes/{athlete_id}/targets",
+        headers=headers,
+        json={
+            "target_date": "2026-05-10",
+            "discipline": "running",
+            "objective": "Sub 1h25 en media maratón",
+            "distance_label": "21K",
+            "priority_level": "alta",
+            "target_pace_label": "4:02/km",
+        },
+    )
+    assert target_response.status_code == 201
+
+    session_response = client.post(
+        "/api/sessions",
+        headers=headers,
+        json={
+            "athlete_id": athlete_id,
+            "performed_at": datetime(2026, 3, 1, 9, 0).isoformat(),
+            "discipline": "running",
+            "session_type": "test incremental",
+            "goal": "test lactato incremental",
+            "surface": "track",
+            "temperature_c": 14,
+            "comments": "protocolo 4x4'",
+            "intervals": [
+                {
+                    "order_index": 1,
+                    "duration_seconds": 240,
+                    "rest_seconds": 60,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 142,
+                    "heart_rate_max": 148,
+                    "pace_seconds_per_km": 355,
+                    "cadence": 174,
+                    "rpe": 2.5,
+                    "purpose": "LT1",
+                    "lactate_sample": {"lactate_mmol": 1.3, "sample_delay_seconds": 20, "sample_timing_label": "tras 20s"},
+                },
+                {
+                    "order_index": 2,
+                    "duration_seconds": 240,
+                    "rest_seconds": 60,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 151,
+                    "heart_rate_max": 158,
+                    "pace_seconds_per_km": 340,
+                    "cadence": 176,
+                    "rpe": 4,
+                    "purpose": "LT1",
+                    "lactate_sample": {"lactate_mmol": 2.0, "sample_delay_seconds": 20, "sample_timing_label": "tras 20s"},
+                },
+                {
+                    "order_index": 3,
+                    "duration_seconds": 240,
+                    "rest_seconds": 60,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 162,
+                    "heart_rate_max": 169,
+                    "pace_seconds_per_km": 322,
+                    "cadence": 178,
+                    "rpe": 6.5,
+                    "purpose": "LT2",
+                    "lactate_sample": {"lactate_mmol": 3.1, "sample_delay_seconds": 20, "sample_timing_label": "tras 20s"},
+                },
+                {
+                    "order_index": 4,
+                    "duration_seconds": 240,
+                    "rest_seconds": 60,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 171,
+                    "heart_rate_max": 178,
+                    "pace_seconds_per_km": 306,
+                    "cadence": 180,
+                    "rpe": 8,
+                    "purpose": "LT2",
+                    "lactate_sample": {"lactate_mmol": 4.0, "sample_delay_seconds": 20, "sample_timing_label": "tras 20s"},
+                },
+                {
+                    "order_index": 5,
+                    "duration_seconds": 240,
+                    "rest_seconds": 60,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 178,
+                    "heart_rate_max": 184,
+                    "pace_seconds_per_km": 294,
+                    "cadence": 182,
+                    "rpe": 9,
+                    "purpose": "VO2max",
+                    "lactate_sample": {"lactate_mmol": 5.6, "sample_delay_seconds": 20, "sample_timing_label": "tras 20s"},
+                },
+            ],
+        },
+    )
+    assert session_response.status_code == 201
+
+    preview_response = client.post(
+        f"/api/athletes/{athlete_id}/physiology-report?discipline=running",
+        headers=headers,
+    )
+    assert preview_response.status_code == 200
+    payload = preview_response.json()
+    assert payload["athlete_id"] == athlete_id
+    assert payload["thresholds"][0]["anchor_mmol"] == 2.0
+    assert payload["thresholds"][1]["anchor_mmol"] == 4.0
+    assert payload["thresholds"][0]["name"] == "LT1 fisiológico"
+    assert payload["thresholds"][1]["name"] == "LT2 fisiológico"
+    assert payload["individual_thresholds"] == []
+    assert payload["individual_threshold_min_samples"] == 15
+    assert payload["individual_threshold_sample_count"] == 5
+    assert "LT Individual" in payload["individual_threshold_note"]
+    assert payload["profile"]["performance_goal"] == "Sub 1h25 en media maratón"
+    assert payload["profile"]["performance_goal"] != "Bajar de 50' en 10K"
+    assert payload["profile"]["target_competition"] == "2026-05-10 · 21K · 4:02/km · alta"
+    assert "Bajar de 50' en 10K" not in payload["sections"][0]["body"][0]
+    assert len(payload["zones"]) == 6
+    assert payload["stages"][0]["heart_rate_bpm"] == 142
+    assert "Advertencia científica" not in payload["disclaimer"]
+
+    pdf_response = client.get(
+        f"/api/athletes/{athlete_id}/physiology-report/pdf?discipline=running",
+        headers=headers,
+    )
+    assert pdf_response.status_code == 200
+    assert pdf_response.headers["content-type"] == "application/pdf"
+    assert pdf_response.content.startswith(b"%PDF")
+
+
+def test_delete_lactate_sample_from_interval(client, db_session):
+    headers = auth_headers(client, db_session)
+
+    athlete_response = client.post(
+        "/api/athletes",
+        headers=headers,
+        json={
+            "name": "Atleta Borrado Muestra",
+            "date_of_birth": "1990-05-12",
+            "sex": "male",
+            "weight": 70,
+            "height": 178,
+            "primary_discipline": "running",
+            "created_at": "2026-01-01",
+            "weights": [{"recorded_at": "2026-01-01", "weight": 70, "source": "baseline"}],
+        },
+    )
+    assert athlete_response.status_code == 201
+    athlete_id = athlete_response.json()["id"]
+
+    session_response = client.post(
+        "/api/sessions",
+        headers=headers,
+        json={
+            "athlete_id": athlete_id,
+            "performed_at": datetime(2026, 3, 2, 9, 0).isoformat(),
+            "discipline": "running",
+            "session_type": "test incremental",
+            "goal": "validar borrado de muestra",
+            "surface": "track",
+            "temperature_c": 12,
+            "comments": "dos muestras para borrar una",
+            "intervals": [
+                {
+                    "order_index": 1,
+                    "duration_seconds": 240,
+                    "rest_seconds": 60,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 145,
+                    "heart_rate_max": 150,
+                    "pace_seconds_per_km": 350,
+                    "cadence": 176,
+                    "rpe": 3,
+                    "purpose": "LT1",
+                    "lactate_sample": {"lactate_mmol": 1.8, "sample_delay_seconds": 30, "sample_timing_label": "tras 30s"},
+                },
+                {
+                    "order_index": 2,
+                    "duration_seconds": 240,
+                    "rest_seconds": 60,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 155,
+                    "heart_rate_max": 161,
+                    "pace_seconds_per_km": 332,
+                    "cadence": 178,
+                    "rpe": 5,
+                    "purpose": "LT2",
+                    "lactate_sample": {"lactate_mmol": 3.4, "sample_delay_seconds": 30, "sample_timing_label": "tras 30s"},
+                },
+            ],
+        },
+    )
+    assert session_response.status_code == 201
+    created_session = session_response.json()
+    interval_id = created_session["intervals"][0]["id"]
+
+    analysis_before = client.get(f"/api/athletes/{athlete_id}/analysis", headers=headers)
+    assert analysis_before.status_code == 200
+    before_log = analysis_before.json()["discipline_views"]["running"]["measurement_log"]
+    assert len(before_log) == 2
+    assert any(entry["interval_id"] == interval_id for entry in before_log)
+
+    delete_response = client.delete(f"/api/sessions/intervals/{interval_id}/lactate-sample", headers=headers)
+    assert delete_response.status_code == 204
+
+    analysis_after = client.get(f"/api/athletes/{athlete_id}/analysis", headers=headers)
+    assert analysis_after.status_code == 200
+    after_log = analysis_after.json()["discipline_views"]["running"]["measurement_log"]
+    assert len(after_log) == 1
+    assert all(entry["interval_id"] != interval_id for entry in after_log)
+
+
+def test_real_thresholds_require_adequate_interval_duration_and_rest(client, db_session):
+    headers = auth_headers(client, db_session)
+
+    athlete_response = client.post(
+        "/api/athletes",
+        headers=headers,
+        json={
+            "name": "Atleta Protocolo Corto",
+            "date_of_birth": "1994-09-18",
+            "sex": "female",
+            "weight": 58,
+            "height": 167,
+            "primary_discipline": "running",
+            "created_at": "2026-01-01",
+            "weights": [{"recorded_at": "2026-01-01", "weight": 58, "source": "baseline"}],
+        },
+    )
+    assert athlete_response.status_code == 201
+    athlete_id = athlete_response.json()["id"]
+
+    session_response = client.post(
+        "/api/sessions",
+        headers=headers,
+        json={
+            "athlete_id": athlete_id,
+            "performed_at": datetime(2026, 3, 4, 9, 0).isoformat(),
+            "discipline": "running",
+            "session_type": "test incremental",
+            "goal": "protocolo corto con mucho descanso",
+            "surface": "track",
+            "temperature_c": 13,
+            "comments": "debe penalizar LT real",
+            "intervals": [
+                {
+                    "order_index": 1,
+                    "duration_seconds": 90,
+                    "rest_seconds": 120,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 138,
+                    "heart_rate_max": 145,
+                    "pace_seconds_per_km": 360,
+                    "cadence": 174,
+                    "rpe": 2,
+                    "purpose": "aeróbico",
+                    "lactate_sample": {"lactate_mmol": 1.4, "sample_delay_seconds": 20, "sample_timing_label": "tras 20s"},
+                },
+                {
+                    "order_index": 2,
+                    "duration_seconds": 90,
+                    "rest_seconds": 120,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 146,
+                    "heart_rate_max": 153,
+                    "pace_seconds_per_km": 345,
+                    "cadence": 176,
+                    "rpe": 3,
+                    "purpose": "LT1",
+                    "lactate_sample": {"lactate_mmol": 2.0, "sample_delay_seconds": 20, "sample_timing_label": "tras 20s"},
+                },
+                {
+                    "order_index": 3,
+                    "duration_seconds": 90,
+                    "rest_seconds": 120,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 154,
+                    "heart_rate_max": 161,
+                    "pace_seconds_per_km": 330,
+                    "cadence": 178,
+                    "rpe": 4,
+                    "purpose": "LT1",
+                    "lactate_sample": {"lactate_mmol": 2.8, "sample_delay_seconds": 20, "sample_timing_label": "tras 20s"},
+                },
+                {
+                    "order_index": 4,
+                    "duration_seconds": 90,
+                    "rest_seconds": 120,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 162,
+                    "heart_rate_max": 170,
+                    "pace_seconds_per_km": 315,
+                    "cadence": 180,
+                    "rpe": 6,
+                    "purpose": "LT2",
+                    "lactate_sample": {"lactate_mmol": 3.9, "sample_delay_seconds": 20, "sample_timing_label": "tras 20s"},
+                },
+                {
+                    "order_index": 5,
+                    "duration_seconds": 90,
+                    "rest_seconds": 120,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 170,
+                    "heart_rate_max": 178,
+                    "pace_seconds_per_km": 300,
+                    "cadence": 182,
+                    "rpe": 8,
+                    "purpose": "LT2",
+                    "lactate_sample": {"lactate_mmol": 5.1, "sample_delay_seconds": 20, "sample_timing_label": "tras 20s"},
+                },
+            ],
+        },
+    )
+    assert session_response.status_code == 201
+    session_id = session_response.json()["id"]
+
+    session_analysis = client.get(f"/api/sessions/{session_id}/analysis", headers=headers)
+    assert session_analysis.status_code == 200
+    real_thresholds = session_analysis.json()["real_thresholds"]
+    assert real_thresholds["lt1_real"] is None
+    assert real_thresholds["lt2_real"] is None
+    assert real_thresholds["data_quality"]["sufficient"] is False
+    assert "Protocolo poco adecuado" in real_thresholds["data_quality"]["reason"]
+
+
+def test_athlete_analysis_exposes_individual_thresholds_from_comparable_tests(client, db_session):
+    headers = auth_headers(client, db_session)
+
+    athlete_response = client.post(
+        "/api/athletes",
+        headers=headers,
+        json={
+            "name": "Atleta Individual",
+            "date_of_birth": "1992-04-12",
+            "sex": "male",
+            "weight": 70,
+            "height": 178,
+            "primary_discipline": "running",
+            "created_at": "2026-01-01",
+            "weights": [{"recorded_at": "2026-01-01", "weight": 70, "source": "baseline"}],
+        },
+    )
+    assert athlete_response.status_code == 201
+    athlete_id = athlete_response.json()["id"]
+
+    sessions = [
+        ("2026-02-10T09:00:00", [360, 345, 330, 315, 300], [1.2, 1.7, 2.3, 3.6, 5.1], [138, 146, 154, 164, 174]),
+        ("2026-03-05T09:00:00", [358, 343, 328, 313, 298], [1.3, 1.8, 2.4, 3.7, 5.2], [140, 148, 156, 166, 176]),
+    ]
+    for performed_at, paces, lactates, hrs in sessions:
+        response = client.post(
+            "/api/sessions",
+            headers=headers,
+            json={
+                "athlete_id": athlete_id,
+                "performed_at": performed_at,
+                "discipline": "running",
+                "session_type": "test incremental",
+                "goal": "pool individual",
+                "surface": "track",
+                "temperature_c": 15,
+                "comments": "sesión comparable para individual thresholds",
+                "intervals": [
+                    {
+                        "order_index": index + 1,
+                        "duration_seconds": 240,
+                        "rest_seconds": 45,
+                        "rest_type": "walk",
+                        "heart_rate_avg": hrs[index],
+                        "heart_rate_max": hrs[index] + 8,
+                        "pace_seconds_per_km": paces[index],
+                        "cadence": 176 + index,
+                        "rpe": 3 + index,
+                        "purpose": "LT1" if index < 3 else "LT2",
+                        "lactate_sample": {
+                            "lactate_mmol": lactates[index],
+                            "baseline_lactate": 1.0 if index == 0 else None,
+                            "sample_delay_seconds": 20,
+                            "sample_timing_label": "tras 20s",
+                        },
+                    }
+                    for index in range(5)
+                ],
+            },
+        )
+        assert response.status_code == 201
+
+    analysis_response = client.get(f"/api/athletes/{athlete_id}/analysis", headers=headers)
+    assert analysis_response.status_code == 200
+    running_view = analysis_response.json()["discipline_views"]["running"]
+    individual_thresholds = running_view["individual_thresholds"]
+    assert individual_thresholds["lt1_individual"] is not None
+    assert individual_thresholds["lt2_individual"] is not None
+    assert individual_thresholds["data_quality"]["sufficient"] is True
+    assert individual_thresholds["data_quality"]["session_count"] >= 2
+
+
+def test_physiology_report_pdf_available_without_reliable_real_thresholds(client, db_session):
+    headers = auth_headers(client, db_session)
+
+    athlete_response = client.post(
+        "/api/athletes",
+        headers=headers,
+        json={
+            "name": "Atleta Curva Ruidosa",
+            "date_of_birth": "1991-02-03",
+            "sex": "male",
+            "weight": 68,
+            "height": 177,
+            "primary_discipline": "running",
+            "training_goal": "10K sub 36",
+            "created_at": "2026-01-01",
+            "weights": [{"recorded_at": "2026-01-01", "weight": 68, "source": "baseline"}],
+        },
+    )
+    assert athlete_response.status_code == 201
+    athlete_id = athlete_response.json()["id"]
+
+    session_response = client.post(
+        "/api/sessions",
+        headers=headers,
+        json={
+            "athlete_id": athlete_id,
+            "performed_at": datetime(2026, 3, 9, 9, 0).isoformat(),
+            "discipline": "running",
+            "session_type": "test incremental",
+            "goal": "test incremental con alta variabilidad",
+            "surface": "track",
+            "temperature_c": 16,
+            "comments": "curva deliberadamente ruidosa para validar fallback del informe",
+            "intervals": [
+                {
+                    "order_index": 1,
+                    "duration_seconds": 357,
+                    "rest_seconds": 90,
+                    "rest_type": "standing",
+                    "heart_rate_avg": 132,
+                    "heart_rate_max": 142,
+                    "pace_seconds_per_km": 357,
+                    "cadence": 157,
+                    "rpe": 3,
+                    "purpose": "aeróbico",
+                    "lactate_sample": {"lactate_mmol": 5.1, "sample_delay_seconds": 90, "sample_timing_label": "durante descanso 90 s"},
+                },
+                {
+                    "order_index": 2,
+                    "duration_seconds": 349,
+                    "rest_seconds": 90,
+                    "rest_type": "standing",
+                    "heart_rate_avg": 136,
+                    "heart_rate_max": 145,
+                    "pace_seconds_per_km": 349,
+                    "cadence": 155,
+                    "rpe": 4,
+                    "purpose": "aeróbico",
+                    "lactate_sample": {"lactate_mmol": 4.3, "sample_delay_seconds": 90, "sample_timing_label": "durante descanso 90 s"},
+                },
+                {
+                    "order_index": 3,
+                    "duration_seconds": 335,
+                    "rest_seconds": 90,
+                    "rest_type": "standing",
+                    "heart_rate_avg": 140,
+                    "heart_rate_max": 150,
+                    "pace_seconds_per_km": 335,
+                    "cadence": 156,
+                    "rpe": 4,
+                    "purpose": "LT1",
+                    "lactate_sample": {"lactate_mmol": 2.1, "sample_delay_seconds": 90, "sample_timing_label": "durante descanso 90 s"},
+                },
+                {
+                    "order_index": 4,
+                    "duration_seconds": 329,
+                    "rest_seconds": 90,
+                    "rest_type": "standing",
+                    "heart_rate_avg": 142,
+                    "heart_rate_max": 151,
+                    "pace_seconds_per_km": 329,
+                    "cadence": 157,
+                    "rpe": 5,
+                    "purpose": "LT2",
+                    "lactate_sample": {"lactate_mmol": 6.3, "sample_delay_seconds": 90, "sample_timing_label": "durante descanso 90 s"},
+                },
+                {
+                    "order_index": 5,
+                    "duration_seconds": 313,
+                    "rest_seconds": 90,
+                    "rest_type": "standing",
+                    "heart_rate_avg": 149,
+                    "heart_rate_max": 164,
+                    "pace_seconds_per_km": 313,
+                    "cadence": 158,
+                    "rpe": 5,
+                    "purpose": "LT2",
+                    "lactate_sample": {"lactate_mmol": 4.0, "sample_delay_seconds": 90, "sample_timing_label": "durante descanso 90 s"},
+                },
+                {
+                    "order_index": 6,
+                    "duration_seconds": 290,
+                    "rest_seconds": 90,
+                    "rest_type": "standing",
+                    "heart_rate_avg": 157,
+                    "heart_rate_max": 167,
+                    "pace_seconds_per_km": 290,
+                    "cadence": 161,
+                    "rpe": 6,
+                    "purpose": "LT2",
+                    "lactate_sample": {"lactate_mmol": 3.7, "sample_delay_seconds": 90, "sample_timing_label": "durante descanso 90 s"},
+                },
+                {
+                    "order_index": 7,
+                    "duration_seconds": 210,
+                    "rest_seconds": 90,
+                    "rest_type": "standing",
+                    "heart_rate_avg": 170,
+                    "heart_rate_max": 187,
+                    "pace_seconds_per_km": 210,
+                    "cadence": 177,
+                    "rpe": 10,
+                    "purpose": "VO2max",
+                    "lactate_sample": {"lactate_mmol": 8.1, "sample_delay_seconds": 90, "sample_timing_label": "durante descanso 90 s"},
+                },
+            ],
+        },
+    )
+    assert session_response.status_code == 201
+
+    preview_response = client.post(
+        f"/api/athletes/{athlete_id}/physiology-report?discipline=running",
+        headers=headers,
+    )
+    assert preview_response.status_code == 200
+    payload = preview_response.json()
+    assert payload["thresholds"][0]["anchor_mmol"] == 2.0
+    assert payload["thresholds"][1]["anchor_mmol"] == 4.0
+    assert payload["individual_thresholds"] == []
+    assert payload["individual_threshold_min_samples"] == 15
+    assert payload["individual_threshold_sample_count"] == 7
+
+    pdf_response = client.get(
+        f"/api/athletes/{athlete_id}/physiology-report/pdf?discipline=running",
+        headers=headers,
+    )
+    assert pdf_response.status_code == 200
+    assert pdf_response.headers["content-type"] == "application/pdf"
+    assert pdf_response.content.startswith(b"%PDF")
+
+
+def test_dynamic_threshold_endpoints(client, db_session):
+    headers = auth_headers(client, db_session)
+
+    athlete_response = client.post(
+        "/api/athletes",
+        headers=headers,
+        json={
+            "name": "Atleta Dinamico",
+            "date_of_birth": "1990-01-01",
+            "sex": "male",
+            "weight": 72,
+            "height": 181,
+            "primary_discipline": "running",
+            "training_goal": "Consolidar LT1 y LT2",
+            "notes": "",
+            "created_at": "2026-01-01",
+            "weights": [{"recorded_at": "2026-01-01", "weight": 72, "source": "baseline"}],
+        },
+    )
+    athlete_id = athlete_response.json()["id"]
+
+    sessions = [
+        ("2026-01-15T09:00:00", [(350, 142, 1.2), (330, 154, 2.0), (310, 168, 3.8)]),
+        ("2026-02-01T09:00:00", [(348, 144, 1.4), (326, 156, 2.2), (304, 170, 4.2)]),
+        ("2026-03-01T09:00:00", [(344, 146, 1.5), (322, 159, 2.4), (298, 173, 4.5)]),
+    ]
+    for performed_at, intervals in sessions:
+        response = client.post(
+            "/api/sessions",
+            headers=headers,
+            json={
+                "athlete_id": athlete_id,
+                "performed_at": performed_at,
+                "discipline": "running",
+                "session_type": "test incremental",
+                "goal": "LT test",
+                "surface": "track",
+                "temperature_c": 12,
+                "comments": "dynamic references",
+                "intervals": [
+                    {
+                        "order_index": index,
+                        "duration_seconds": 240,
+                        "rest_seconds": 60,
+                        "rest_type": "walk",
+                        "heart_rate_avg": hr,
+                        "heart_rate_max": hr + 6,
+                        "pace_seconds_per_km": pace,
+                        "cadence": 178,
+                        "rpe": 3 + index,
+                        "purpose": "LT1" if index < 3 else "LT2",
+                        "lactate_sample": {
+                            "lactate_mmol": lactate,
+                            "baseline_lactate": 1.0 if index == 1 else None,
+                            "sample_delay_seconds": 20,
+                            "sample_timing_label": "tras 20s",
+                        },
+                    }
+                    for index, (pace, hr, lactate) in enumerate(intervals, start=1)
+                ],
+            },
+        )
+        assert response.status_code == 201
+
+    response = client.get(f"/api/analytics/athletes/{athlete_id}/dynamic-thresholds?discipline=running", headers=headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["acute"]["reference_2mmol"] is not None
+    assert payload["chronic"]["reference_4mmol"] is not None
+    assert payload["current_baseline_source"] in {"measured", "estimated_recent", "estimated_historical", "fallback_default"}
+    assert payload["current_baseline_state"] in {"normal", "alto", "bajo", "sin_referencia"}
+    assert "baseline_state_score" in payload["acute"]
+    assert "warnings" in payload
+
+    acute_response = client.get(f"/api/analytics/athletes/{athlete_id}/dynamic-thresholds/acute?discipline=running", headers=headers)
+    assert acute_response.status_code == 200
+    assert acute_response.json()["model_type"] == "acute"
+
+    history_response = client.get(f"/api/analytics/athletes/{athlete_id}/dynamic-thresholds/history?discipline=running", headers=headers)
+    assert history_response.status_code == 200
+    assert "acute_practical_lt2" in history_response.json()["history"]
+
+
+def test_planning_endpoints_return_mesocycles_and_recommendation(client, db_session):
+    headers = auth_headers(client, db_session)
+
+    athlete_response = client.post(
+        "/api/athletes",
+        headers=headers,
+        json={
+            "name": "Atleta Planning",
+            "date_of_birth": "1991-02-01",
+            "sex": "male",
+            "weight": 68,
+            "height": 176,
+            "primary_discipline": "ciclismo",
+            "training_goal": "Mejorar FTP y consolidar LT2",
+            "notes": "",
+            "created_at": "2026-01-01",
+            "weights": [{"recorded_at": "2026-01-01", "weight": 68, "source": "baseline"}],
+        },
+    )
+    assert athlete_response.status_code == 201
+    athlete_id = athlete_response.json()["id"]
+
+    block_response = client.post(
+        f"/api/athletes/{athlete_id}/focus-blocks",
+        headers=headers,
+        json={
+            "start_date": "2026-02-10",
+            "end_date": "2026-03-03",
+            "energy_system_focus": "Aerobic Capacity",
+            "block_objective": "LT1",
+            "block_intent": "Consolidar potencia subumbral con bloques largos comparables.",
+            "priority_discipline": "ciclismo",
+            "phase": "base",
+            "status": "active",
+        },
+    )
+    assert block_response.status_code == 201
+
+    target_response = client.post(
+        f"/api/athletes/{athlete_id}/targets",
+        headers=headers,
+        json={
+            "target_date": "2026-04-12",
+            "discipline": "ciclismo",
+            "objective": "Gran fondo objetivo",
+            "distance_label": "Gran fondo",
+            "priority_level": "A",
+            "target_cycling_power_watts": 320,
+        },
+    )
+    assert target_response.status_code == 201
+
+    sessions = [
+        ("2026-01-12T09:00:00", "Aerobic.profile EVAL", [(240, 220, 138, 1.4), (240, 255, 150, 2.1), (240, 300, 166, 4.0)]),
+        ("2026-01-19T09:00:00", "3h AR", [(3600, 190, 132, 1.2)]),
+        ("2026-01-26T09:00:00", "15' D2 + 3 x 20' LT1", [(1200, 270, 148, 2.0), (1200, 274, 150, 2.2)]),
+        ("2026-02-02T09:00:00", "15' D2 + 3 x 25' LT1", [(1500, 278, 151, 2.3), (1500, 282, 153, 2.5)]),
+        ("2026-02-16T09:00:00", "3 x 30' LT2 (half pace)", [(1800, 308, 162, 3.4), (1800, 314, 166, 3.8)]),
+        ("2026-02-23T09:00:00", "4 x 20' LT2 (half pace)", [(1200, 312, 164, 3.6), (1200, 318, 168, 4.0)]),
+    ]
+
+    for performed_at, session_type, intervals in sessions:
+        response = client.post(
+            "/api/sessions",
+            headers=headers,
+            json={
+                "athlete_id": athlete_id,
+                "performed_at": performed_at,
+                "discipline": "ciclismo",
+                "power_source": "outdoor",
+                "session_type": session_type,
+                "goal": session_type,
+                "surface": "road",
+                "temperature_c": 12,
+                "comments": "planning engine",
+                "intervals": [
+                    {
+                        "order_index": index,
+                        "duration_seconds": duration,
+                        "rest_seconds": 120 if len(intervals) > 1 else 0,
+                        "rest_type": "easy spin",
+                        "heart_rate_avg": hr,
+                        "heart_rate_max": hr + 6,
+                        "power_watts": power,
+                        "cadence": 88,
+                        "rpe": 4 + index,
+                        "purpose": "LT1" if lactate < 3 else "LT2",
+                        "lactate_sample": {
+                            "lactate_mmol": lactate,
+                            "sample_delay_seconds": 20,
+                            "sample_timing_label": "tras 20s",
+                        },
+                    }
+                    for index, (duration, power, hr, lactate) in enumerate(intervals, start=1)
+                ],
+            },
+        )
+        assert response.status_code == 201
+
+    overview_response = client.get(f"/api/planning/athletes/{athlete_id}/overview?discipline=ciclismo", headers=headers)
+    assert overview_response.status_code == 200
+    overview = overview_response.json()
+    assert overview["discipline"] == "ciclismo"
+    assert overview["foundations"]
+    assert len(overview["foundations"]) == 4
+    assert overview["template_library"]
+    assert overview["planned_blocks"]
+    assert overview["detected_mesocycles"]
+    assert any(template["block_type"] == "threshold_development_block" for template in overview["template_library"])
+    assert all(template["discipline"] in {"ciclismo", "all"} for template in overview["template_library"])
+    assert overview["next_recommendation"]["recommended_block_type"] in {
+        "threshold_development_block",
+        "aerobic_power_block",
+        "competition_specific_block",
+        "aerobic_capacity_block",
+        "recovery_consolidation_block",
+    }
+    assert overview["next_recommendation"]["structure"] in {"1+1", "2+1", "3+1"}
+    assert overview["next_recommendation"]["template_id"]
+    assert overview["next_recommendation"]["key_session_families"]
+
+    mesocycles_response = client.get(f"/api/planning/athletes/{athlete_id}/mesocycles?discipline=ciclismo", headers=headers)
+    assert mesocycles_response.status_code == 200
+    assert len(mesocycles_response.json()) >= 1
+
+    recommendation_response = client.get(f"/api/planning/athletes/{athlete_id}/recommendation?discipline=ciclismo", headers=headers)
+    assert recommendation_response.status_code == 200
+    recommendation = recommendation_response.json()
+    assert recommendation["target_discipline"] == "ciclismo"
+    assert recommendation["reasoning"]
+    assert recommendation["template_summary"]
 
 
 def test_reasoning_interpretation_preview(client, db_session):

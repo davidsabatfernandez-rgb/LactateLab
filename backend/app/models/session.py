@@ -67,6 +67,7 @@ class LactateSample(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     interval_id: Mapped[int] = mapped_column(ForeignKey("session_intervals.id", ondelete="CASCADE"), index=True)
     lactate_mmol: Mapped[float] = mapped_column(Float)
+    baseline_lactate: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     sample_delay_seconds: Mapped[int] = mapped_column(Integer)
     sample_timing_label: Mapped[str] = mapped_column(String(50))
     sampling_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

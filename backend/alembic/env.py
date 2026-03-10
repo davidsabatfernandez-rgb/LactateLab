@@ -7,7 +7,7 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import get_settings
 from app.db.base import Base
-from app.models import athlete, metrics, session, user  # noqa: F401
+from app.models import athlete, metrics, planned_session, session, user  # noqa: F401
 
 config = context.config
 settings = get_settings()
@@ -46,4 +46,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-

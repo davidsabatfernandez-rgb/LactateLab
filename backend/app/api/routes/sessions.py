@@ -91,6 +91,21 @@ def update_interval(interval_id: int, payload: SessionIntervalUpdate, db: Sessio
     return refreshed
 
 
+@router.delete("/intervals/{interval_id}/lactate-sample", status_code=status.HTTP_204_NO_CONTENT)
+def delete_interval_lactate_sample(interval_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    interval = db.scalar(select(SessionInterval).options(joinedload(SessionInterval.lactate_sample), joinedload(SessionInterval.session)).where(SessionInterval.id == interval_id))
+    if interval is None or interval.session is None:
+        raise HTTPException(status_code=404, detail="Interval not found")
+    if interval.lactate_sample is None:
+        raise HTTPException(status_code=404, detail="Lactate sample not found")
+
+    athlete_id = interval.session.athlete_id
+    db.delete(interval.lactate_sample)
+    db.commit()
+    recalculate_athlete(db, athlete_id)
+    db.commit()
+
+
 @router.patch("/{session_id}", response_model=SessionRead)
 def update_session(session_id: int, payload: SessionUpdate, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     session = db.scalar(_session_query().where(AthleteSession.id == session_id))

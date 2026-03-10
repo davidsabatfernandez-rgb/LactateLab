@@ -46,9 +46,9 @@ export function SessionDetailPage({ analysis }: SessionDetailPageProps) {
         </div>
       </section>
       <section className="charts-grid">
-        <CurveChart title="Lactato vs ritmo" data={analysis.curve_by_pace} xLabel="Ritmo" overlays={chartOverlays} />
-        <CurveChart title="Lactato vs potencia" data={analysis.curve_by_power} xLabel="Potencia" overlays={chartOverlays} />
-        <CurveChart title="Lactato vs FC" data={analysis.curve_by_hr} xLabel="FC" overlays={chartOverlays} />
+        <CurveChart title="Lactato vs ritmo" data={analysis.curve_by_pace} xLabel="Ritmo" overlays={chartOverlays} peakLactate={analysis.peak_lactate?.lactate_mmol} />
+        <CurveChart title="Lactato vs potencia" data={analysis.curve_by_power} xLabel="Potencia" overlays={chartOverlays} peakLactate={analysis.peak_lactate?.lactate_mmol} />
+        <CurveChart title="Lactato vs FC" data={analysis.curve_by_hr} xLabel="FC" overlays={chartOverlays} peakLactate={analysis.peak_lactate?.lactate_mmol} />
       </section>
       <section className="card split-card">
         <div>

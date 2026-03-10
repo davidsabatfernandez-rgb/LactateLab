@@ -9,6 +9,8 @@ export type Athlete = {
   goal_category?: string | null;
   training_goal?: string | null;
   notes?: string | null;
+  strava_athlete_id?: number | null;
+  strava_connected: boolean;
   created_at: string;
   weights?: Array<{
     id: number;
@@ -32,6 +34,7 @@ export type AthleteFocusBlock = {
   id: number;
   start_date: string;
   end_date?: string | null;
+  template_id?: string | null;
   energy_system_focus: string;
   block_objective: string;
   block_intent?: string | null;
@@ -96,6 +99,7 @@ export type SessionSummary = {
 export type LactateSample = {
   id?: number;
   lactate_mmol: number;
+  baseline_lactate?: number | null;
   sample_delay_seconds: number;
   sample_timing_label: string;
   sampling_notes?: string | null;
@@ -151,6 +155,7 @@ export type CurvePoint = {
   label: string;
   session_date: string;
   power_source?: string | null;
+  is_peak?: boolean;
 };
 
 export type Estimate = {
@@ -168,6 +173,24 @@ export type Estimate = {
   variables_used: string[];
   evidence_points: number;
   low_evidence: boolean;
+  method_used?: string | null;
+  primary_anchor?: string | null;
+  agreement_score?: number | null;
+  range_summary?: string | null;
+  calculation_steps?: string[];
+  cautions?: string[];
+  anchors?: Array<{
+    label: string;
+    value: number;
+    unit: string;
+    confidence: number;
+  }>;
+  confidence_factors?: Array<{
+    label: string;
+    score: number;
+    weight: number;
+    explanation: string;
+  }>;
 };
 
 export type Zone = {
@@ -208,6 +231,7 @@ export type PowerBest = {
 };
 
 export type MeasurementLog = {
+  interval_id: number;
   session_id: number;
   session_date: string;
   session_type: string;
@@ -222,6 +246,65 @@ export type MeasurementLog = {
   power_source?: string | null;
 };
 
+export type RealThresholdItem = {
+  name: string;
+  lactate: number;
+  pace_seconds_per_km?: number | null;
+  power_watts?: number | null;
+  heart_rate?: number | null;
+  confidence?: number | null;
+  agreement_score?: number | null;
+  method?: string | null;
+  evidence_level?: string | null;
+  rationale?: string | null;
+  derived_from?: string | null;
+};
+
+export type RealThresholds = {
+  lt1_real?: RealThresholdItem | null;
+  lt2_real?: RealThresholdItem | null;
+  lt1_practical_real?: RealThresholdItem | null;
+  lt2_practical_real?: RealThresholdItem | null;
+  data_quality?: {
+    stage_count: number;
+    monotonicity: number;
+    protocol_score?: number;
+    signal_score?: number;
+    sufficient: boolean;
+    reason: string;
+  } | null;
+};
+
+export type IndividualThresholdItem = {
+  name: string;
+  lactate: number;
+  pace_seconds_per_km?: number | null;
+  power_watts?: number | null;
+  heart_rate?: number | null;
+  confidence?: number | null;
+  agreement_score?: number | null;
+  method?: string | null;
+  evidence_level?: string | null;
+  rationale?: string | null;
+  supporting_sessions?: Array<Record<string, unknown>>;
+  protocol_score?: number | null;
+  signal_score?: number | null;
+};
+
+export type IndividualThresholds = {
+  lt1_individual?: IndividualThresholdItem | null;
+  lt2_individual?: IndividualThresholdItem | null;
+  data_quality?: {
+    session_count?: number;
+    stage_count?: number;
+    monotonicity?: number;
+    protocol_score?: number;
+    signal_score?: number;
+    sufficient: boolean;
+    reason: string;
+  } | null;
+};
+
 export type DisciplineView = {
   discipline: string;
   power_source?: string | null;
@@ -234,7 +317,10 @@ export type DisciplineView = {
   historical_evolution: Record<string, HistoricalPoint[]>;
   power_bests: PowerBest[];
   measurement_log: MeasurementLog[];
+  dynamic_thresholds?: DynamicThresholds | null;
   power_source_views?: Record<string, DisciplineView> | null;
+  real_thresholds?: RealThresholds | null;
+  individual_thresholds?: IndividualThresholds | null;
 };
 
 export type AthleteAnalysis = {
@@ -250,9 +336,433 @@ export type AthleteAnalysis = {
   interpretation: string[];
   confidence_summary: ConfidenceItem[];
   historical_evolution: Record<string, HistoricalPoint[]>;
+  dynamic_thresholds?: DynamicThresholds | null;
+  real_thresholds?: RealThresholds | null;
+  individual_thresholds?: IndividualThresholds | null;
   discipline_views: Record<string, DisciplineView>;
   active_focus_block?: (AthleteFocusBlock & { evaluation?: AthleteFocusBlockEvaluation }) | null;
   focus_block_evaluations: AthleteFocusBlockEvaluation[];
+};
+
+export type PhysiologyReportProfile = {
+  full_name: string;
+  age?: number | null;
+  sex?: string | null;
+  weight_kg?: number | null;
+  discipline: string;
+  performance_goal?: string | null;
+  target_competition?: string | null;
+  training_background?: string | null;
+  coach_notes?: string | null;
+};
+
+export type PhysiologyReportStage = {
+  stage_number: number;
+  duration_seconds: number;
+  load_value: number;
+  load_label: string;
+  heart_rate_bpm?: number | null;
+  lactate_mmol: number;
+  cadence?: number | null;
+};
+
+export type PhysiologyReportThreshold = {
+  name: string;
+  anchor_mmol: number;
+  metric_value?: number | null;
+  metric_label: string;
+  heart_rate_bpm?: number | null;
+  interpretation: string;
+  confidence?: number | null;
+  agreement_score?: number | null;
+  evidence_level?: string | null;
+  supporting_sessions?: number | null;
+};
+
+export type PhysiologyReportZone = {
+  zone: string;
+  objective: string;
+  primary_label: string;
+  heart_rate_label?: string | null;
+};
+
+export type PhysiologyReportSection = {
+  key: string;
+  title: string;
+  body: string[];
+};
+
+export type PhysiologyReportTestSummary = {
+  session_id: number;
+  performed_at: string;
+  power_source?: string | null;
+  stage_count: number;
+  total_duration_seconds: number;
+  average_stage_duration_seconds: number;
+  peak_lactate_mmol: number;
+  load_start_label: string;
+  load_end_label: string;
+};
+
+export type PhysiologyReport = {
+  athlete_id: number;
+  athlete_name: string;
+  generated_on: string;
+  discipline: string;
+  power_source?: string | null;
+  profile_tag: string;
+  profile: PhysiologyReportProfile;
+  test_summary: PhysiologyReportTestSummary;
+  stages: PhysiologyReportStage[];
+  thresholds: PhysiologyReportThreshold[];
+  individual_thresholds: PhysiologyReportThreshold[];
+  individual_threshold_sample_count: number;
+  individual_threshold_min_samples: number;
+  individual_threshold_note?: string | null;
+  zones: PhysiologyReportZone[];
+  sections: PhysiologyReportSection[];
+  limitations: string[];
+  disclaimer: string;
+  final_coach_summary: string[];
+  report_title: string;
+  report_subtitle: string;
+};
+
+export type PlanningCurrentBlock = {
+  id?: number | null;
+  status: string;
+  energy_system_focus?: string | null;
+  block_objective?: string | null;
+  block_intent?: string | null;
+  phase?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  target_date?: string | null;
+  evaluation_summary?: string | null;
+  evaluation_direction?: string | null;
+  evaluation_confidence?: number | null;
+  recommendation?: string | null;
+};
+
+export type PlanningDetectedMesocycle = {
+  start_date: string;
+  end_date: string;
+  discipline: string;
+  block_type: string;
+  block_label: string;
+  weeks_count: number;
+  session_count: number;
+  work_weeks: number;
+  recovery_weeks: number;
+  testing_weeks: number;
+  support_modules: string[];
+  dominant_session_types: string[];
+  confidence: number;
+  explanation: string[];
+  week_starts: string[];
+};
+
+export type PlanningTargetSummary = {
+  objective?: string | null;
+  discipline?: string | null;
+  target_date?: string | null;
+  distance_label?: string | null;
+  priority_level?: string | null;
+  target_metric?: string | null;
+};
+
+export type PlanningFoundation = {
+  foundation_id: string;
+  title: string;
+  summary: string;
+  anchor: string;
+};
+
+export type PlanningMesocycleTemplate = {
+  template_id: string;
+  discipline: string;
+  block_type: string;
+  public_label: string;
+  summary: string;
+  primary_focus: string;
+  secondary_focus?: string | null;
+  typical_structure: string;
+  typical_duration_weeks_min: number;
+  typical_duration_weeks_max: number;
+  key_session_families: string[];
+  control_points: string[];
+  progression_rules: string[];
+  entry_checks: string[];
+  exit_checks: string[];
+  csv_rationale: string;
+  evidence_rationale: string;
+};
+
+export type PlanningEvidenceSource = {
+  source_id: string;
+  citation: string;
+  source_type: string;
+  athlete_level: string;
+  url: string;
+  key_takeaway: string;
+};
+
+export type PlanningWorkoutVariant = {
+  label: string;
+  format_type: string;
+  dose_example: string;
+  use_case: string;
+};
+
+export type PlanningWorkoutVariable = {
+  name: string;
+  options: string[];
+};
+
+export type DoseStepItem = {
+  step: number;
+  label: string;
+  total_useful_time_min: number;
+  rest_min: number;
+  intensity_zone: string;
+  readiness_required: string;
+  notes: string;
+  total_duration_min: number;
+};
+
+export type PlanningWorkoutTemplate = {
+  template_id: string;
+  discipline: string;
+  compatible_block_types: string[];
+  session_role: string;
+  session_family: string;
+  public_label: string;
+  summary: string;
+  objective: string;
+  dose_guidance: string;
+  progression_axes: string[];
+  control_points: string[];
+  expected_adaptations: string[];
+  cautions: string[];
+  confidence: number;
+  evidence: PlanningEvidenceSource[];
+  variants: PlanningWorkoutVariant[];
+  builder_variables: PlanningWorkoutVariable[];
+  csv_examples: string[];
+  fatigue_cost: number;
+  calentamiento_min: number;
+  calentamiento_template: string;
+  enfriamiento_min: number;
+  enfriamiento_template: string;
+  coach_tips: string[];
+  dose_ladder: DoseStepItem[];
+};
+
+export type PlanningMesocycleDraftSession = {
+  session_id: string;
+  scheduled_date?: string | null;
+  week_index: number;
+  day_offset: number;
+  template_id?: string | null;
+  session_role: string;
+  session_family: string;
+  public_label: string;
+  objective: string;
+  dose_prescription?: string | null;
+  dose_guidance: string;
+  progression_note: string;
+  expected_signal: string;
+  coach_note: string;
+  confidence: number;
+  evidence_source_ids: string[];
+  csv_examples: string[];
+  selection_reason?: string[];
+  payload?: Record<string, unknown>;
+};
+
+export type PlanningMesocycleDraftWeek = {
+  week_index: number;
+  theme: string;
+  load_type: string;
+  objective: string;
+  rationale: string;
+  sessions: PlanningMesocycleDraftSession[];
+  control_points: string[];
+  spacing_warnings?: string[];
+};
+
+export type PlanningMesocycleDraft = {
+  discipline: string;
+  block_type: string;
+  block_label: string;
+  structure: string;
+  duration_weeks: number;
+  primary_focus: string;
+  secondary_focus?: string | null;
+  foundations: string[];
+  progression_rules: string[];
+  state_summary?: string | null;
+  curve_direction?: string | null;
+  weeks: PlanningMesocycleDraftWeek[];
+};
+
+export type PlanningPlannedSession = {
+  id: number;
+  focus_block_id: number;
+  scheduled_date: string;
+  discipline: string;
+  week_index: number;
+  day_offset: number;
+  session_role: string;
+  session_family: string;
+  workout_template_id?: string | null;
+  public_label: string;
+  objective: string;
+  dose_prescription: string;
+  dose_guidance?: string | null;
+  progression_note?: string | null;
+  expected_signal?: string | null;
+  coach_note?: string | null;
+  confidence: number;
+  status: string;
+  bla_check: boolean;
+  payload?: Record<string, unknown>;
+};
+
+export type BlockCandidate = {
+  block_type: string;
+  score: number;
+  reasons: string[];
+  contraindications: string[];
+};
+
+export type MesocycleRecommendation = {
+  target_discipline: string;
+  recommended_block_type: string;
+  recommended_block_label: string;
+  template_id?: string | null;
+  template_summary?: string | null;
+  structure: string;
+  duration_weeks: number;
+  work_weeks: number;
+  recovery_weeks: number;
+  primary_focus: string;
+  secondary_focus?: string | null;
+  confidence: number;
+  reasoning: string[];
+  key_session_families: string[];
+  control_points: string[];
+  progression_rules: string[];
+  entry_checks: string[];
+  exit_checks: string[];
+  risk_flags: string[];
+  next_target?: PlanningTargetSummary | null;
+  candidates_scored?: BlockCandidate[];
+  scoring_context?: {
+    robustness: string;
+    evaluation_signal: string;
+    previous_major: string | null;
+    days_to_target: number | null;
+  };
+};
+
+export type PlanningOverview = {
+  athlete_id: number;
+  athlete_name: string;
+  athlete_primary_discipline: string;
+  discipline: string;
+  generated_on: string;
+  foundations: PlanningFoundation[];
+  template_library: PlanningMesocycleTemplate[];
+  current_block: PlanningCurrentBlock;
+  planned_blocks: AthleteFocusBlock[];
+  planned_sessions: PlanningPlannedSession[];
+  detected_mesocycles: PlanningDetectedMesocycle[];
+  next_recommendation: MesocycleRecommendation;
+  recommended_workouts: PlanningWorkoutTemplate[];
+  mesocycle_draft?: PlanningMesocycleDraft | null;
+  warnings: string[];
+  explanation: string[];
+};
+
+export type DynamicReference = {
+  target_lactate: number;
+  estimated_pace_seconds_per_km?: number | null;
+  estimated_speed_kph?: number | null;
+  estimated_power_watts?: number | null;
+  estimated_hr_at_target?: number | null;
+  confidence_interval: Record<string, unknown>;
+  number_of_points_used: number;
+  interpolation_method_used: string;
+  confidence_score: number;
+  reliability_score: number;
+  validity_score: number;
+  sample_size_effect: number;
+  point_influence_score: number;
+  protocol_score?: number | null;
+  signal_score?: number | null;
+  baseline_state_score?: number | null;
+  warnings: string[];
+  explanation: string[];
+  relative_target_from_baseline?: number | null;
+};
+
+export type DynamicThresholdModel = {
+  model_type: string;
+  based_on_days: number;
+  sessions_considered: number;
+  reference_2mmol?: DynamicReference | null;
+  reference_4mmol?: DynamicReference | null;
+  practical_lt1?: DynamicReference | null;
+  practical_lt2?: DynamicReference | null;
+  confidence_score: number;
+  reliability_score: number;
+  validity_score: number;
+  sample_size_effect: number;
+  point_influence_score: number;
+  signal_score?: number | null;
+  warnings: string[];
+  explanation: string[];
+  points_used: Array<Record<string, unknown>>;
+  baseline_lactate?: number | null;
+  baseline_source: string;
+  baseline_state?: string | null;
+  baseline_delta_from_history?: number | null;
+  baseline_state_score?: number | null;
+  lt1_relative_target_lactate?: number | null;
+};
+
+export type DynamicThresholdComparison = {
+  summary: string;
+  warnings: string[];
+  metrics: Record<string, unknown>;
+};
+
+export type DynamicThresholds = {
+  discipline: string;
+  power_source?: string | null;
+  generated_on: string;
+  config: Record<string, unknown>;
+  current_baseline_lactate?: number | null;
+  current_baseline_source: string;
+  current_baseline_state?: string | null;
+  current_baseline_delta_from_history?: number | null;
+  current_baseline_state_score?: number | null;
+  lt1_relative_target_lactate?: number | null;
+  acute: DynamicThresholdModel;
+  chronic: DynamicThresholdModel;
+  comparison: DynamicThresholdComparison;
+  history: Record<string, HistoricalPoint[]>;
+  warnings: string[];
+  explanation: string[];
+};
+
+export type PeakLactate = {
+  lactate_mmol: number;
+  pace_seconds_per_km?: number | null;
+  power_watts?: number | null;
+  heart_rate?: number | null;
+  order_index: number;
 };
 
 export type SessionAnalysis = {
@@ -273,7 +783,10 @@ export type SessionAnalysis = {
     comment: string;
     rules: Record<string, number>;
   }>;
+  peak_lactate?: PeakLactate | null;
   historical_evolution: Record<string, HistoricalPoint[]>;
+  real_thresholds?: RealThresholds | null;
+  individual_thresholds?: IndividualThresholds | null;
 };
 
 export type DashboardData = {

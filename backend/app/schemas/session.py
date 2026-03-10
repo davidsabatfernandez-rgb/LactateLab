@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 class LactateSampleBase(BaseModel):
     lactate_mmol: float = Field(gt=0)
+    baseline_lactate: Optional[float] = Field(default=None, gt=0)
     sample_delay_seconds: int = Field(ge=0)
     sample_timing_label: str
     sampling_notes: Optional[str] = None
@@ -17,6 +18,7 @@ class LactateSampleCreate(LactateSampleBase):
 
 class LactateSampleUpdate(BaseModel):
     lactate_mmol: Optional[float] = Field(default=None, gt=0)
+    baseline_lactate: Optional[float] = Field(default=None, gt=0)
     sample_delay_seconds: Optional[int] = Field(default=None, ge=0)
     sample_timing_label: Optional[str] = None
     sampling_notes: Optional[str] = None

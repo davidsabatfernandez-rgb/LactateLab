@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useState } from "react";
 import {
   CartesianGrid,
   ComposedChart,
@@ -16,19 +16,104 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Link } from "react-router-dom";
 
 import { CurveChart } from "../components/CurveChart";
+import { GeneratePhysiologyReportButton } from "../components/GeneratePhysiologyReportButton";
+import { PhysiologyReportPreview } from "../components/PhysiologyReportPreview";
 import { api } from "../lib/api";
-import { AthleteAnalysis, AthleteFocusBlock, AthleteFocusBlockEvaluation, AthleteTarget, DisciplineView, Estimate, HistoricalPoint, Threshold } from "../types";
+import {
+  AthleteAnalysis,
+  AthleteFocusBlock,
+  AthleteFocusBlockEvaluation,
+  AthleteTarget,
+  DisciplineView,
+  DynamicReference,
+  DynamicThresholds,
+  Estimate,
+  HistoricalPoint,
+  IndividualThresholds,
+  PhysiologyReport,
+  RealThresholds,
+  Threshold,
+} from "../types";
 
-const ENERGY_SYSTEM_OPTIONS = {
-  "Aerobic Capacity": ["Base aeróbica", "LT1", "Recuperación", "Readaptación", "Estabilidad subumbral"],
-  "Aerobic Power": ["LT2", "VO2max", "Potencia aeróbica específica", "Ritmo competición"],
-  "Anaerobic Capacity": ["Tolerancia lactato", "Capacidad glucolítica", "Repeatability"],
-  "Anaerobic Power": ["Sprint", "Peak power", "Neuromuscular"],
-} as const;
+type PracticalChartReference = {
+  label: string;
+  value: number;
+  color: string;
+};
 
-const PHASE_OPTIONS = ["acumulación", "transformación", "específico", "taper", "recuperación"];
+type ThresholdDisplay = {
+  name: string;
+  lactate?: number | null;
+  pace_seconds_per_km?: number | null;
+  power_watts?: number | null;
+  heart_rate?: number | null;
+  power_source?: string | null;
+  method: string;
+  confidence: number;
+  rationale: string;
+  evidence_level: string;
+  provisional?: boolean;
+};
+
+type PlotSupportPoint = {
+  sessionDate?: string | null;
+  session_date?: string | null;
+  heartRate?: number | null;
+  heart_rate_avg?: number | null;
+  intervalLabel?: string | null;
+  interval_label?: string | null;
+  powerSource?: string | null;
+  power_source?: string | null;
+};
+
+type GoalMovementTone = "positive" | "neutral" | "negative";
+
+type GoalMovementFocus = {
+  label: string;
+  current: string;
+  target?: string | null;
+  delta?: string | null;
+  tone: GoalMovementTone;
+  description: string;
+};
+
+type GoalScenarioPoint = {
+  label: string;
+  series: "Actual" | "Objetivo";
+  x: number;
+  lactate: number;
+};
+
+type GoalMovementScenario = {
+  title: string;
+  description: string;
+  xLabel: string;
+  reversed: boolean;
+  points: GoalScenarioPoint[];
+};
+
+type GoalMovementInsight = {
+  target: AthleteTarget;
+  contextLabel: string;
+  targetValue: string;
+  currentValue: string;
+  gapLabel: string;
+  tone: GoalMovementTone;
+  summary: string;
+  movementHeadline: string;
+  focuses: GoalMovementFocus[];
+  notes: string[];
+  scenario?: GoalMovementScenario | null;
+};
+
+type AthleteDetailSectionLink = {
+  id: string;
+  label: string;
+  shortLabel: string;
+};
 
 function formatPace(seconds?: number | null) {
   if (!seconds) return "-";
@@ -59,10 +144,259 @@ function formatSwimPacePer100m(totalSecondsPer100m?: number | null) {
   return `${mins}:${secs}/100m`;
 }
 
+function formatDate(value?: string | null) {
+  if (!value) return "-";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+}
+
 function formatValue(value?: number | null, unit?: string) {
   if (value === null || value === undefined) return "-";
   if (unit === "s/km") return formatPace(value);
   return `${Math.round(value * 10) / 10} ${unit ?? ""}`.trim();
+}
+
+function formatBaselineSource(source?: string | null) {
+  if (source === "measured") return "medido";
+  if (source === "estimated_recent") return "estimado reciente";
+  if (source === "estimated_historical") return "estimado histórico";
+  if (source === "fallback_default") return "fallback";
+  return source ?? "-";
+}
+
+function formatBaselineState(state?: string | null) {
+  if (state === "normal") return "en línea";
+  if (state === "alto") return "alto";
+  if (state === "bajo") return "bajo";
+  if (state === "sin_referencia") return "sin referencia";
+  return state ?? "-";
+}
+
+function mapLegacyRealThresholdsToIndividual(realThresholds?: RealThresholds | null): IndividualThresholds | null {
+  if (!realThresholds?.lt1_real && !realThresholds?.lt2_real) return null;
+  return {
+    lt1_individual: realThresholds.lt1_real
+      ? {
+          ...realThresholds.lt1_real,
+          name: "LT1 Individual",
+          protocol_score: realThresholds.data_quality?.protocol_score ?? null,
+          signal_score: realThresholds.data_quality?.signal_score ?? null,
+        }
+      : null,
+    lt2_individual: realThresholds.lt2_real
+      ? {
+          ...realThresholds.lt2_real,
+          name: "LT2 Individual",
+          protocol_score: realThresholds.data_quality?.protocol_score ?? null,
+          signal_score: realThresholds.data_quality?.signal_score ?? null,
+        }
+      : null,
+    data_quality: realThresholds.data_quality
+      ? {
+          session_count: 1,
+          stage_count: realThresholds.data_quality.stage_count,
+          monotonicity: realThresholds.data_quality.monotonicity,
+          protocol_score: realThresholds.data_quality.protocol_score,
+          signal_score: realThresholds.data_quality.signal_score,
+          sufficient: realThresholds.data_quality.sufficient,
+          reason: realThresholds.data_quality.reason,
+        }
+      : null,
+  };
+}
+
+function confidenceToEvidenceLevel(confidence?: number | null) {
+  if (confidence === null || confidence === undefined) return "low";
+  if (confidence >= 0.75) return "high";
+  if (confidence >= 0.5) return "medium";
+  return "low";
+}
+
+function thresholdToDisplay(threshold?: Threshold | null): ThresholdDisplay | undefined {
+  if (!threshold) return undefined;
+  return {
+    name: threshold.name,
+    lactate: threshold.lactate ?? null,
+    pace_seconds_per_km: threshold.pace_seconds_per_km ?? null,
+    power_watts: threshold.power_watts ?? null,
+    heart_rate: threshold.heart_rate ?? null,
+    power_source: threshold.power_source ?? null,
+    method: threshold.method,
+    confidence: threshold.confidence,
+    rationale: threshold.rationale,
+    evidence_level: threshold.evidence_level,
+    provisional: false,
+  };
+}
+
+function dynamicReferenceToDisplay(
+  name: string,
+  reference?: DynamicReference | null,
+  powerSource?: string | null,
+): ThresholdDisplay | undefined {
+  if (!reference) return undefined;
+  return {
+    name,
+    lactate: reference.target_lactate ?? null,
+    pace_seconds_per_km: reference.estimated_pace_seconds_per_km ?? null,
+    power_watts: reference.estimated_power_watts ?? null,
+    heart_rate: reference.estimated_hr_at_target ?? null,
+    power_source: powerSource ?? null,
+    method: reference.interpolation_method_used,
+    confidence: reference.confidence_score,
+    rationale: reference.explanation?.[0] ?? "Referencia dinámica derivada del histórico comparable del atleta.",
+    evidence_level: confidenceToEvidenceLevel(reference.confidence_score),
+    provisional: false,
+  };
+}
+
+function dynamicReferencePrimaryValue(reference?: DynamicReference | null, discipline?: string | null) {
+  if (!reference) return "-";
+  if (discipline === "ciclismo" && reference.estimated_power_watts !== null && reference.estimated_power_watts !== undefined) {
+    return `${Math.round(reference.estimated_power_watts)} W`;
+  }
+  if (reference.estimated_pace_seconds_per_km !== null && reference.estimated_pace_seconds_per_km !== undefined) {
+    return formatPace(reference.estimated_pace_seconds_per_km);
+  }
+  if (reference.estimated_speed_kph !== null && reference.estimated_speed_kph !== undefined) {
+    return `${reference.estimated_speed_kph.toFixed(1)} km/h`;
+  }
+  if (reference.estimated_power_watts !== null && reference.estimated_power_watts !== undefined) {
+    return `${Math.round(reference.estimated_power_watts)} W`;
+  }
+  return "-";
+}
+
+function dynamicReferenceSecondaryValue(reference?: DynamicReference | null) {
+  if (!reference) return "-";
+  const parts = [];
+  if (reference.estimated_hr_at_target !== null && reference.estimated_hr_at_target !== undefined) {
+    parts.push(`${Math.round(reference.estimated_hr_at_target)} bpm`);
+  }
+  if (reference.relative_target_from_baseline !== null && reference.relative_target_from_baseline !== undefined) {
+    parts.push(`relativo ${reference.relative_target_from_baseline.toFixed(2)} mmol`);
+  }
+  return parts.join(" · ") || "-";
+}
+
+function emptyCurveHistory(): DisciplineView["curve_history"] {
+  return {
+    pace: [],
+    power: [],
+  };
+}
+
+function emptyHistoricalEvolution(): DisciplineView["historical_evolution"] {
+  return {
+    LT1: [],
+    LT2: [],
+    lactate_anchor: [],
+    peak_lactate: [],
+  };
+}
+
+function buildEmptyDisciplineView(discipline: string, powerSource: string | null = null): DisciplineView {
+  return {
+    discipline,
+    power_source: powerSource,
+    latest_snapshot_date: null,
+    thresholds: [],
+    zones: [],
+    estimates: [],
+    recent_sessions: [],
+    curve_history: emptyCurveHistory(),
+    historical_evolution: emptyHistoricalEvolution(),
+    power_bests: [],
+    measurement_log: [],
+    dynamic_thresholds: null,
+    power_source_views: null,
+    real_thresholds: null,
+    individual_thresholds: null,
+  };
+}
+
+function describeDynamicWarning(warning: string) {
+  if (warning.includes("Basal no medido")) {
+    return {
+      tone: "warning",
+      eyebrow: "Basal estimado",
+      title: "La referencia del día no parte de un basal medido",
+      body: "El sistema ha usado un basal estimado. La lectura sigue siendo útil como orientación, pero conviene confirmarla con una toma basal real.",
+    };
+  }
+  if (warning.includes("umbral definitivo")) {
+    return {
+      tone: "neutral",
+      eyebrow: "Lectura prudente",
+      title: "No lo tomes como un umbral fisiológico definitivo",
+      body: "Estas referencias son anclas operativas para decidir zonas y comparar sesiones, no una verdad cerrada sobre LT1 o LT2.",
+    };
+  }
+  if (warning.includes("Muy pocos datos")) {
+    return {
+      tone: "warning",
+      eyebrow: "Muestra corta",
+      title: "Todavía hay pocos puntos para una lectura robusta",
+      body: "Cada dato pesa mucho y una sesión nueva puede mover bastante el resultado. Úsalo con cautela hasta consolidar más repeticiones comparables.",
+    };
+  }
+  if (warning.includes("alto impacto")) {
+    return {
+      tone: "negative",
+      eyebrow: "Alta sensibilidad",
+      title: "Un punto nuevo podría cambiar bastante la estimación",
+      body: "El modelo sigue siendo sensible a la entrada de una sola muestra. La estabilidad aumentará cuando el histórico sea más denso.",
+    };
+  }
+  if (warning.includes("Cambio agudo excesivo")) {
+    return {
+      tone: "negative",
+      eyebrow: "Desajuste temporal",
+      title: "El modelo agudo se ha separado demasiado del crónico",
+      body: "Puede ser una mejora puntual, una fatiga reciente o un protocolo poco comparable. Antes de ajustar zonas, conviene revisar contexto y repetir.",
+    };
+  }
+  if (warning.includes("fisiológicamente dudosa")) {
+    return {
+      tone: "negative",
+      eyebrow: "Validez dudosa",
+      title: "La matemática es estable, pero la fisiología no termina de cuadrar",
+      body: "Hay coherencia interna del modelo, pero la relación entre lactato, FC y carga externa no es todo lo convincente que debería.",
+    };
+  }
+  return {
+    tone: "neutral",
+    eyebrow: "Atención",
+    title: warning,
+    body: "Interprétalo dentro del contexto de la sesión, la calidad de la muestra y el histórico reciente del atleta.",
+  };
+}
+
+function explainTechnicalItem(item: string) {
+  const normalized = item.toLowerCase();
+  if (normalized.includes("regresión ponderada local")) {
+    return "Combina los puntos cercanos dando más peso a los más recientes, comparables y de mejor calidad, en vez de tratar todas las muestras como iguales.";
+  }
+  if (normalized.includes("efecto muestral")) {
+    return "Indica cuánto soporte real tiene la estimación por número de puntos. Más cerca de 1 implica una base más estable; más cerca de 0 implica mucha sensibilidad a pocos datos.";
+  }
+  if (normalized.includes("influencia potencial")) {
+    return "Mide cuánto podría moverse la referencia si entra una muestra nueva. Valores altos significan que el modelo aún es sensible a pequeños cambios del histórico.";
+  }
+  if (normalized.includes("basal")) {
+    return "El basal es el punto de partida del día. Si no está medido, el modelo usa una estimación conservadora y baja la seguridad de la lectura.";
+  }
+  return "Resume una parte del cálculo para que puedas seguir qué datos han pesado más y por qué la confianza sube o baja.";
+}
+
+function InfoHint({ label }: { label: string }) {
+  return (
+    <span className="info-hint" tabIndex={0}>
+      ?
+      <span className="info-tooltip">{label}</span>
+    </span>
+  );
 }
 
 function formatSignedDelta(value?: number | null, unit?: string) {
@@ -99,6 +433,15 @@ function formatDuration(seconds?: number | null) {
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
+function csvCell(value: unknown) {
+  if (value === null || value === undefined) return "";
+  const text = String(value);
+  if (text.includes(",") || text.includes('"') || text.includes("\n")) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
 function formatIntervalDuration(seconds?: number | null) {
   if (seconds === null || seconds === undefined) return "-";
   if (seconds >= 60) {
@@ -130,16 +473,75 @@ function racePredictionSummary(estimate: Estimate) {
   };
 }
 
-function goalCategoryLabel(value?: string | null) {
-  if (value === "larga_distancia") return "Larga distancia";
-  if (value === "corta_distancia") return "Corta distancia";
-  return "Media distancia";
+function relevantEstimateRank(type: string) {
+  const order = ["Maratón", "HM", "10K", "5K", "FTP", "VO2max"];
+  const index = order.indexOf(type);
+  return index === -1 ? order.length : index;
 }
 
-function selectFocusedEstimateTypes(goalCategory?: string | null) {
-  if (goalCategory === "larga_distancia") return ["HM", "Maratón"];
-  if (goalCategory === "corta_distancia") return ["5K"];
-  return ["10K", "HM"];
+function estimateTypesForDiscipline(discipline: string) {
+  if (discipline === "ciclismo") return ["FTP", "VO2max"];
+  if (discipline === "natación") return ["VO2max"];
+  return ["Maratón", "HM", "10K", "5K", "VO2max"];
+}
+
+function estimateVisualRange(estimate: Estimate, athleteWeight?: number | null) {
+  const raceSummary = racePredictionSummary(estimate);
+  const distanceKm = raceDistanceKm(estimate.estimate_type);
+  if (raceSummary && distanceKm) {
+    const bestSeconds = estimate.lower_bound ? estimate.lower_bound * distanceKm : estimate.value * distanceKm;
+    const conservativeSeconds = estimate.upper_bound ? estimate.upper_bound * distanceKm : estimate.value * distanceKm;
+    const currentSeconds = estimate.value * distanceKm;
+    const span = Math.max(1, conservativeSeconds - bestSeconds);
+    const position = ((conservativeSeconds - currentSeconds) / span) * 100;
+    return {
+      primary: raceSummary.totalTime,
+      secondary: raceSummary.pace,
+      conservativeLabel: raceSummary.upperTime,
+      bestLabel: raceSummary.lowerTime,
+      markerLabel: "Estimado",
+      position,
+    };
+  }
+
+  const lower = estimate.lower_bound ?? estimate.value;
+  const upper = estimate.upper_bound ?? estimate.value;
+  const best = Math.max(lower, upper);
+  const conservative = Math.min(lower, upper);
+  const span = Math.max(1e-6, best - conservative);
+  const position = ((estimate.value - conservative) / span) * 100;
+
+  let primary = formatValue(estimate.value, estimate.unit);
+  if (estimate.estimate_type === "FTP" && estimate.unit === "W") {
+    primary = formatPowerWithWeight(estimate.value, athleteWeight);
+  }
+
+  return {
+    primary,
+    secondary: estimate.unit,
+    conservativeLabel: formatValue(conservative, estimate.unit),
+    bestLabel: formatValue(best, estimate.unit),
+    markerLabel: estimate.estimate_type === "FTP" || estimate.estimate_type === "VO2max" ? "Actual" : "Estimado",
+    position: Math.max(0, Math.min(100, position)),
+  };
+}
+
+function estimateMethodLabel(method?: string | null) {
+  if (!method) return "Modelo explicable";
+  if (method === "blended_lt2_endurance_profile_v2") return "LT2 + perfil de resistencia";
+  if (method === "lt2_to_vvo2_proxy_v2") return "LT2 -> vVO2 -> VO2max";
+  if (method === "blended_lt2_ftp_proxy_v2") return "LT2 combinado -> FTP";
+  if (method === "lt2_wkg_vo2_proxy_v2") return "LT2 W/kg -> VO2max";
+  if (method === "lt_gap_glycolytic_proxy_v1") return "Proxy glucolítico";
+  return method.replace(/_/g, " ");
+}
+
+function estimateAnchorLabel(anchor?: string | null) {
+  if (!anchor) return "Ancla principal";
+  if (anchor === "lt2_blended_reference") return "LT2 combinado";
+  if (anchor === "lt1_lt2_gap") return "Separación LT1-LT2";
+  if (anchor === "lt1_lt2_power_gap") return "Separación LT1-LT2 en potencia";
+  return anchor.replace(/_/g, " ");
 }
 
 function disciplineLabel(value: string) {
@@ -543,6 +945,610 @@ function targetSummaryForDiscipline(
   return target.target_pace_label || "Sin ritmo objetivo";
 }
 
+const RUNNING_LT2_TARGET_FACTORS: Record<"5K" | "10K" | "HM" | "Maratón", number> = {
+  "5K": 1.03,
+  "10K": 1.0,
+  HM: 0.94,
+  "Maratón": 0.89,
+};
+
+function targetPriorityRank(priority?: string | null) {
+  const normalized = (priority ?? "").toLowerCase();
+  if (normalized.startsWith("a") || normalized.includes("alta")) return 0;
+  if (normalized.startsWith("b") || normalized.includes("baja")) return 2;
+  return 1;
+}
+
+function selectRelevantTarget(targets: AthleteTarget[], activeDiscipline: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  const primaryPool = targets.filter((target) => target.discipline === activeDiscipline);
+  const fallbackPool = activeDiscipline !== "triatlón" ? targets.filter((target) => target.discipline === "triatlón") : [];
+  const pool = primaryPool.length ? primaryPool : fallbackPool;
+  return (
+    pool
+      .slice()
+      .sort((a, b) => {
+        const aFuture = a.target_date >= today ? 0 : 1;
+        const bFuture = b.target_date >= today ? 0 : 1;
+        if (aFuture !== bFuture) return aFuture - bFuture;
+        const priorityDiff = targetPriorityRank(a.priority_level) - targetPriorityRank(b.priority_level);
+        if (priorityDiff !== 0) return priorityDiff;
+        return a.target_date.localeCompare(b.target_date);
+      })[0] ?? null
+  );
+}
+
+function runningEstimateTypeFromDistance(distanceKm?: number | null) {
+  if (distanceKm === null || distanceKm === undefined) return null;
+  if (distanceKm <= 7.5) return "5K";
+  if (distanceKm <= 15) return "10K";
+  if (distanceKm <= 30) return "HM";
+  return "Maratón";
+}
+
+function formatPaceGapLabel(current?: number | null, target?: number | null) {
+  if (current === null || current === undefined || target === null || target === undefined) return "n/d";
+  const delta = Math.round(current - target);
+  if (delta <= 0) return "Ya entra en zona objetivo";
+  return `Faltan ${formatClock(delta)}/km`;
+}
+
+function formatRaceGapLabel(current?: number | null, target?: number | null) {
+  if (current === null || current === undefined || target === null || target === undefined) return "n/d";
+  const delta = Math.round(current - target);
+  if (delta === 0) return "En objetivo";
+  if (delta < 0) return `${formatClock(Math.abs(delta))} por debajo del objetivo`;
+  return `Faltan ${formatClock(delta)}`;
+}
+
+function formatPowerGapLabel(current?: number | null, target?: number | null) {
+  if (current === null || current === undefined || target === null || target === undefined) return "n/d";
+  const delta = Math.round(target - current);
+  if (delta <= 0) return "Ya entra en zona objetivo";
+  return `Faltan ${delta} W`;
+}
+
+function interpolateMetric(start?: number | null, end?: number | null, ratio = 0.5) {
+  if (start === null || start === undefined || end === null || end === undefined) return null;
+  return start + (end - start) * ratio;
+}
+
+function goalScenarioPoint(
+  label: string,
+  series: "Actual" | "Objetivo",
+  x?: number | null,
+  lactate = 0,
+): GoalScenarioPoint | null {
+  if (x === null || x === undefined || !Number.isFinite(x)) return null;
+  return { label, series, x, lactate };
+}
+
+function buildGoalScenario(
+  title: string,
+  description: string,
+  xLabel: string,
+  reversed: boolean,
+  points: Array<GoalScenarioPoint | null | undefined>,
+): GoalMovementScenario | null {
+  const usable = points
+    .filter((point): point is GoalScenarioPoint => Boolean(point))
+    .sort((a, b) => a.lactate - b.lactate || a.x - b.x);
+  const actualCount = usable.filter((point) => point.series === "Actual").length;
+  const targetCount = usable.filter((point) => point.series === "Objetivo").length;
+  if (actualCount < 2 || targetCount < 2) return null;
+  return { title, description, xLabel, reversed, points: usable };
+}
+
+function cyclingEnduranceFactor(target: AthleteTarget) {
+  const normalized = `${target.distance_label ?? ""} ${target.objective}`.toLowerCase();
+  if (normalized.includes("ironman") || normalized.includes("140.6")) return 0.72;
+  if (normalized.includes("70.3") || normalized.includes("medio ironman") || normalized.includes("media distancia")) return 0.82;
+  if (normalized.includes("olímp") || normalized.includes("olimp")) return 0.88;
+  if (normalized.includes("gran fondo") || normalized.includes("fondo")) return 0.8;
+  return 0.86;
+}
+
+function isEnduranceBikeTarget(target: AthleteTarget) {
+  if (target.discipline === "triatlón") return true;
+  const normalized = `${target.distance_label ?? ""} ${target.objective}`.toLowerCase();
+  return normalized.includes("gran fondo") || normalized.includes("fondo") || normalized.includes("ultra");
+}
+
+function buildRunningTargetInsight(params: {
+  target: AthleteTarget;
+  estimatesByType: Map<string, Estimate>;
+  lt1?: ThresholdDisplay;
+  lt2?: ThresholdDisplay;
+  dynamicThresholds: DynamicThresholds | null;
+  vo2maxEstimate?: Estimate;
+}): GoalMovementInsight {
+  const { target, estimatesByType, lt1, lt2, dynamicThresholds, vo2maxEstimate } = params;
+  const triathlonRace = target.discipline === "triatlón" ? parseTriathlonDistanceLabel(target.distance_label) : null;
+  const distanceKm = triathlonRace?.runKm ?? parseDistanceKm(target.distance_label || target.objective);
+  const explicitTargetPace =
+    target.discipline === "triatlón"
+      ? parseRunningPaceLabel(target.target_running_pace_label)
+      : parseRunningPaceLabel(target.target_pace_label);
+  const derivedTargetSeconds =
+    !explicitTargetPace && distanceKm
+      ? parseSubTargetSeconds(target.objective, { distanceKm, discipline: target.discipline })
+      : null;
+  const targetPace = explicitTargetPace ?? (derivedTargetSeconds && distanceKm ? derivedTargetSeconds / distanceKm : null);
+  const estimateType = runningEstimateTypeFromDistance(distanceKm);
+  const raceEstimate = estimateType ? estimatesByType.get(estimateType) : undefined;
+  const raceSummary = raceEstimate ? racePredictionSummary(raceEstimate) : null;
+  const currentPace =
+    raceEstimate?.unit === "s/km"
+      ? raceEstimate.value
+      : dynamicThresholds?.chronic.practical_lt2?.estimated_pace_seconds_per_km ?? lt2?.pace_seconds_per_km ?? null;
+  const currentSeconds = raceEstimate && distanceKm ? raceEstimate.value * distanceKm : null;
+  const targetSeconds = targetPace && distanceKm ? targetPace * distanceKm : null;
+  const paceGap = currentPace !== null && targetPace !== null ? currentPace - targetPace : null;
+  const longEvent = target.discipline === "triatlón" || (distanceKm ?? 0) >= 21;
+  const tone: GoalMovementTone =
+    paceGap === null ? "neutral" : paceGap <= 0 ? "positive" : paceGap <= (longEvent ? 8 : 6) ? "neutral" : "negative";
+
+  if (!targetPace) {
+    return {
+      target,
+      contextLabel: target.discipline === "triatlón" ? "Segmento run del triatlón" : "Objetivo running",
+      targetValue: target.objective,
+      currentValue: raceSummary ? `${raceSummary.totalTime} · ${raceSummary.pace}` : currentPace ? formatPace(currentPace) : "Sin referencia actual",
+      gapLabel: "Falta ritmo objetivo específico",
+      tone: "negative" as GoalMovementTone,
+      movementHeadline: "Primero hay que definir el ritmo objetivo del segmento de carrera.",
+      summary:
+        "Sin un ritmo objetivo concreto de carrera a pie, la plataforma no puede decir con precisión si el cuello de botella está en LT1, LT2 o en el techo aeróbico.",
+      focuses: [
+        {
+          label: "Ritmo objetivo",
+          current: targetSummaryForDiscipline(target, "running"),
+          tone: "negative",
+          description: "Añade un ritmo objetivo o un objetivo temporal claro para que el sistema traduzca la meta a palancas fisiológicas concretas.",
+        },
+      ],
+      notes: target.notes ? [target.notes] : [],
+    };
+  }
+
+  const targetLt2Pace = estimateType ? targetPace * RUNNING_LT2_TARGET_FACTORS[estimateType] : targetPace;
+  const currentLt2Pace = lt2?.pace_seconds_per_km ?? dynamicThresholds?.chronic.practical_lt2?.estimated_pace_seconds_per_km ?? null;
+  const currentLt1Pace = lt1?.pace_seconds_per_km ?? dynamicThresholds?.chronic.practical_lt1?.estimated_pace_seconds_per_km ?? null;
+  const targetLt1Pace = targetLt2Pace * (longEvent ? ((distanceKm ?? 0) >= 40 ? 1.15 : 1.11) : 1.08);
+  const mediumEvent = !longEvent && (distanceKm ?? 0) >= 8;
+  const currentSupportRatio = currentLt1Pace !== null && currentLt2Pace !== null ? currentLt1Pace / currentLt2Pace : null;
+  const targetSupportRatio = targetLt1Pace / targetLt2Pace;
+  const lt1Gap = currentLt1Pace !== null ? currentLt1Pace - targetLt1Pace : null;
+  const lt2Gap = currentLt2Pace !== null ? currentLt2Pace - targetLt2Pace : null;
+  const lt1NearTarget = lt1Gap !== null && lt1Gap <= (longEvent ? 4 : 3);
+  const lt1LaggingRelative = currentSupportRatio !== null && currentSupportRatio > targetSupportRatio + (longEvent ? 0.015 : 0.025);
+  const prioritizeLt1 =
+    paceGap !== null && paceGap > 0
+      ? longEvent
+        ? currentLt1Pace === null || lt1LaggingRelative || !lt1NearTarget
+        : mediumEvent && (currentLt1Pace === null || lt1LaggingRelative) && (lt1Gap ?? 0) >= 6
+      : false;
+
+  const lt1Focus: GoalMovementFocus = {
+    label: "LT1 y durabilidad",
+    current: currentLt1Pace ? formatPace(currentLt1Pace) : "Sin LT1 actual",
+    target: formatPace(targetLt1Pace),
+    delta: currentLt1Pace ? formatPaceGapLabel(currentLt1Pace, targetLt1Pace) : "Falta ancla LT1",
+    tone:
+      currentLt1Pace === null
+        ? "negative"
+        : currentLt1Pace <= targetLt1Pace
+          ? "positive"
+          : currentLt1Pace - targetLt1Pace <= (longEvent ? 8 : 6)
+            ? "neutral"
+            : "negative",
+    description: longEvent
+      ? prioritizeLt1
+        ? "En HM, maratón y triatlón, la primera palanca suele ser subir la carga sostenible a baja lactatemia y la durabilidad. Eso reduce la deriva y suele facilitar la siguiente subida de LT2."
+        : "LT1 ya acompaña razonablemente al objetivo. Hay que mantener esa base mientras LT2 termina de acercarse."
+      : prioritizeLt1
+        ? "Aquí LT1 está demasiado retrasado respecto a LT2. Antes de apretar más el umbral alto, conviene cerrar esa base para que el bloque siguiente transfiera mejor."
+        : "LT1 no es el primer cuello ahora mismo, pero tiene que seguir acompañando para que LT2 se consolide.",
+  };
+
+  const lt2Focus: GoalMovementFocus = {
+    label: "LT2",
+    current: currentLt2Pace ? formatPace(currentLt2Pace) : "Sin LT2 actual",
+    target: formatPace(targetLt2Pace),
+    delta: formatPaceGapLabel(currentLt2Pace, targetLt2Pace),
+    tone:
+      currentLt2Pace === null
+        ? "negative"
+        : currentLt2Pace <= targetLt2Pace
+          ? "positive"
+          : currentLt2Pace - targetLt2Pace <= 8
+            ? "neutral"
+            : "negative",
+    description: prioritizeLt1
+      ? "Después de mover la base, LT2 tiene que acercarse para que el ritmo competitivo deje de quedar por encima del umbral sostenible."
+      : longEvent
+        ? "LT1 ya acompaña bastante; ahora el salto principal está en LT2 para que el objetivo sea defendible de verdad."
+        : "En 5K y 10K, si LT2 no se acerca al ritmo pedido, la marca objetivo no sale de forma defendible.",
+  };
+
+  const focuses: GoalMovementFocus[] = prioritizeLt1 ? [lt1Focus, lt2Focus] : [lt2Focus, lt1Focus];
+
+  if (!longEvent && vo2maxEstimate) {
+    focuses.push({
+      label: "VO2max",
+      current: `${Math.round(vo2maxEstimate.value * 10) / 10} ml/kg/min`,
+      tone: paceGap !== null && paceGap <= 4 ? "neutral" : "negative",
+      description: "En objetivos más cortos, el techo aeróbico también tiene que acompañar. No sustituye a LT2, pero sí ayuda a empujarlo hacia arriba.",
+    });
+  }
+
+  const actualPracticalPace =
+    dynamicThresholds?.chronic.practical_lt2?.estimated_pace_seconds_per_km ?? interpolateMetric(currentLt1Pace, currentLt2Pace, 0.55);
+  const targetPracticalPace = interpolateMetric(targetLt1Pace, targetLt2Pace, 0.55);
+  const scenario = buildGoalScenario(
+    "Escenario objetivo de lactato",
+    "Proyección conservadora con anclas LT1, transición subumbral y LT2. La línea objetivo es una referencia de trabajo, no un test medido.",
+    "Ritmo",
+    true,
+    [
+      goalScenarioPoint("LT1 actual", "Actual", currentLt1Pace, lt1?.lactate ?? 2.0),
+      goalScenarioPoint("Transición actual", "Actual", actualPracticalPace, 3.1),
+      goalScenarioPoint("LT2 actual", "Actual", currentLt2Pace, lt2?.lactate ?? 4.0),
+      goalScenarioPoint("LT1 objetivo", "Objetivo", targetLt1Pace, 2.0),
+      goalScenarioPoint("Transición objetivo", "Objetivo", targetPracticalPace, 3.1),
+      goalScenarioPoint("LT2 objetivo", "Objetivo", targetLt2Pace, 4.0),
+    ],
+  );
+
+  const notes = [
+    "La prioridad cambia con la distancia: cuanto más larga la prueba, más pesa la carga sostenible a lactatos bajos y la durabilidad; cuanto más corta, más manda LT2 y el techo aeróbico.",
+    ...(target.discipline === "triatlón" ? ["Lectura aplicada solo al segmento de carrera a pie del triatlón objetivo."] : []),
+    ...(raceEstimate?.low_evidence ? ["La estimación específica de esta distancia todavía tiene evidencia limitada."] : []),
+    ...(target.notes ? [target.notes] : []),
+  ];
+
+  return {
+    target,
+    contextLabel: target.discipline === "triatlón" ? "Segmento run del triatlón" : "Objetivo running",
+    targetValue: targetSeconds ? `${formatDuration(targetSeconds)} · ${formatPace(targetPace)}` : formatPace(targetPace),
+    currentValue: raceSummary ? `${raceSummary.totalTime} · ${raceSummary.pace}` : currentPace ? formatPace(currentPace) : "Sin referencia actual",
+    gapLabel:
+      currentSeconds !== null && targetSeconds !== null
+        ? formatRaceGapLabel(currentSeconds, targetSeconds)
+        : formatPaceGapLabel(currentPace, targetPace),
+    tone,
+    movementHeadline:
+      paceGap !== null && paceGap <= 0
+        ? "La referencia actual ya entra dentro del objetivo."
+        : prioritizeLt1
+          ? longEvent
+            ? "Primero tiene que moverse LT1 y la durabilidad; después LT2."
+            : "Antes de apretar LT2, falta acercar LT1."
+          : longEvent
+            ? "LT1 ya acompaña bastante; ahora el cuello de botella principal es LT2."
+            : "Lo primero que tiene que moverse es LT2; después debe acompañar el techo aeróbico.",
+    summary:
+      paceGap === null
+        ? "Hay objetivo definido, pero todavía no hay suficiente ancla comparable para medir la distancia real hasta esa marca."
+        : paceGap <= 0
+          ? "Con las referencias actuales, la marca ya queda dentro de lo plausible. El trabajo es consolidarla y hacerla repetible."
+          : prioritizeLt1
+            ? longEvent
+              ? "Ahora mismo el objetivo queda por encima de la referencia específica. Antes de exprimir el umbral alto, hace falta desplazar LT1 y la durabilidad para que el ritmo objetivo se pueda sostener sin tanta deriva."
+              : "Aunque el objetivo no es largo, LT1 está más retrasado de lo deseable respecto a LT2. Compensa cerrar primero esa base y luego volver a empujar LT2."
+            : longEvent
+              ? "LT1 ya está relativamente cerca; la limitación visible ahora está más en LT2, aunque la durabilidad sigue siendo obligatoria para sostenerlo en competición."
+              : "Ahora mismo el objetivo queda por encima de la referencia específica. El primer cuello de botella es LT2; si no sube, la marca no sale de forma estable.",
+    focuses,
+    notes,
+    scenario,
+  };
+}
+
+function buildCyclingTargetInsight(params: {
+  target: AthleteTarget;
+  estimatesByType: Map<string, Estimate>;
+  lt1?: ThresholdDisplay;
+  lt2?: ThresholdDisplay;
+  dynamicThresholds: DynamicThresholds | null;
+  vo2maxEstimate?: Estimate;
+  athleteWeight?: number | null;
+}): GoalMovementInsight {
+  const { target, estimatesByType, lt1, lt2, dynamicThresholds, vo2maxEstimate, athleteWeight } = params;
+  const targetPower =
+    target.discipline === "triatlón"
+      ? target.target_cycling_power_watts ?? extractFtpWatts(target.objective)
+      : target.target_power_watts ?? extractFtpWatts(target.objective);
+  const ftpEstimate = estimatesByType.get("FTP");
+  const currentFtpPower = ftpEstimate?.value ?? null;
+  const currentReferencePower = currentFtpPower ?? dynamicThresholds?.chronic.practical_lt2?.estimated_power_watts ?? lt2?.power_watts ?? null;
+  const powerGap = currentReferencePower !== null && targetPower !== null ? targetPower - currentReferencePower : null;
+  const tone: GoalMovementTone =
+    powerGap === null ? "neutral" : powerGap <= 0 ? "positive" : powerGap <= 15 ? "neutral" : "negative";
+
+  if (!targetPower) {
+    return {
+      target,
+      contextLabel: target.discipline === "triatlón" ? "Segmento bike del triatlón" : "Objetivo ciclismo",
+      targetValue: target.objective,
+      currentValue: currentReferencePower ? formatPowerWithWeight(currentReferencePower, athleteWeight) : "Sin referencia actual",
+      gapLabel: "Falta potencia objetivo",
+      tone: "negative" as GoalMovementTone,
+      movementHeadline: "Primero hay que fijar la potencia objetivo que quieres sostener.",
+      summary:
+        "Sin una potencia objetivo clara, la plataforma no puede decidir si el cuello de botella está en FTP, en LT2 práctico o en la durabilidad subumbral.",
+      focuses: [
+        {
+          label: "Potencia objetivo",
+          current: targetSummaryForDiscipline(target, "ciclismo"),
+          tone: "negative",
+          description: "Añade FTP o potencia objetivo concreta para que el sistema pueda decir qué debe subir y cuánto.",
+        },
+      ],
+      notes: target.notes ? [target.notes] : [],
+    };
+  }
+
+  const targetLt2Power = targetPower / 0.94;
+  const currentLt2Power = lt2?.power_watts ?? dynamicThresholds?.chronic.practical_lt2?.estimated_power_watts ?? null;
+  const currentLt1Power = lt1?.power_watts ?? dynamicThresholds?.chronic.practical_lt1?.estimated_power_watts ?? null;
+  const enduranceTarget = isEnduranceBikeTarget(target);
+  const targetSupportPower = enduranceTarget ? targetPower * cyclingEnduranceFactor(target) : targetLt2Power * 0.84;
+  const currentSupportRatio = currentLt1Power !== null && currentLt2Power !== null ? currentLt1Power / currentLt2Power : null;
+  const targetSupportRatio = targetSupportPower / targetLt2Power;
+  const lt1Gap = currentLt1Power !== null ? targetSupportPower - currentLt1Power : null;
+  const lt2Gap = currentLt2Power !== null ? targetLt2Power - currentLt2Power : null;
+  const lt1NearTarget = lt1Gap !== null && lt1Gap <= (enduranceTarget ? 12 : 10);
+  const lt1LaggingRelative = currentSupportRatio !== null && currentSupportRatio < targetSupportRatio - (enduranceTarget ? 0.04 : 0.06);
+  const prioritizeLt1 =
+    powerGap !== null && powerGap > 0
+      ? enduranceTarget
+        ? currentLt1Power === null || lt1LaggingRelative || !lt1NearTarget
+        : currentLt1Power !== null && lt1LaggingRelative && (lt1Gap ?? 0) >= 15
+      : false;
+
+  const lt1Focus: GoalMovementFocus = {
+    label: "LT1 y durabilidad",
+    current: currentLt1Power ? formatPowerWithWeight(currentLt1Power, athleteWeight) : "Sin LT1 actual",
+    target: formatPowerWithWeight(targetSupportPower, athleteWeight),
+    delta: formatPowerGapLabel(currentLt1Power, targetSupportPower),
+    tone:
+      currentLt1Power === null
+        ? "negative"
+        : currentLt1Power >= targetSupportPower
+          ? "positive"
+          : targetSupportPower - currentLt1Power <= 18
+            ? "neutral"
+            : "negative",
+    description: enduranceTarget
+      ? prioritizeLt1
+        ? "En triatlón y fondo, la primera palanca suele ser elevar la potencia sostenible por debajo del umbral alto y aguantarla durante más tiempo. Esa base suele facilitar después la subida de LT2 y FTP."
+        : "La base subumbral ya acompaña bastante. Hay que sostenerla mientras LT2 y la potencia objetivo terminan de subir."
+      : prioritizeLt1
+        ? "Aunque el objetivo sea más corto, aquí la base está retrasada respecto a LT2. Cerrar ese hueco hará que el siguiente bloque de FTP/LT2 transfiera mejor."
+        : "No es la primera palanca ahora mismo, pero sigue siendo el soporte que estabiliza las mejoras de potencia.",
+  };
+
+  const lt2Focus: GoalMovementFocus = {
+    label: "LT2",
+    current: currentLt2Power ? formatPowerWithWeight(currentLt2Power, athleteWeight) : "Sin LT2 actual",
+    target: formatPowerWithWeight(targetLt2Power, athleteWeight),
+    delta: formatPowerGapLabel(currentLt2Power, targetLt2Power),
+    tone:
+      currentLt2Power === null
+        ? "negative"
+        : currentLt2Power >= targetLt2Power
+          ? "positive"
+          : targetLt2Power - currentLt2Power <= 18
+            ? "neutral"
+            : "negative",
+    description: prioritizeLt1
+      ? "Después de mover la base, LT2 tiene que acercarse para que la potencia objetivo deje de quedar por encima del nivel sostenible."
+      : enduranceTarget
+        ? "LT1 ya acompaña bastante; ahora el salto principal está en LT2 para que la potencia de carrera sea defendible."
+        : "Si LT2 no acompaña, el FTP objetivo no se consolida. Es la ancla fisiológica que más tiene que acercarse al objetivo.",
+  };
+
+  const ftpFocus: GoalMovementFocus = {
+    label: "FTP",
+    current: currentFtpPower ? formatPowerWithWeight(currentFtpPower, athleteWeight) : "Sin FTP actual",
+    target: formatPowerWithWeight(targetPower, athleteWeight),
+    delta: formatPowerGapLabel(currentFtpPower ?? currentReferencePower, targetPower),
+    tone:
+      currentReferencePower === null
+        ? "negative"
+        : targetPower <= (currentFtpPower ?? currentReferencePower)
+          ? "positive"
+          : targetPower - (currentFtpPower ?? currentReferencePower) <= 15
+            ? "neutral"
+            : "negative",
+    description: enduranceTarget
+      ? "Es una referencia operativa útil, pero en objetivos largos rara vez es la primera palanca si la base subumbral todavía no acompaña."
+      : "Es la referencia más directa para saber si el objetivo de potencia ya es defendible o si sigue por encima del nivel actual.",
+  };
+
+  const focuses: GoalMovementFocus[] = prioritizeLt1 ? [lt1Focus, lt2Focus, ftpFocus] : [ftpFocus, lt2Focus, lt1Focus];
+
+  if (!enduranceTarget && vo2maxEstimate) {
+    focuses.push({
+      label: "VO2max",
+      current: `${Math.round(vo2maxEstimate.value * 10) / 10} ml/kg/min`,
+      tone: powerGap !== null && powerGap <= 10 ? "neutral" : "negative",
+      description: "Cuando el salto de potencia es amplio, el techo aeróbico también tiene que acompañar para que FTP y LT2 puedan subir con solidez.",
+    });
+  }
+
+  const actualPracticalPower =
+    dynamicThresholds?.chronic.practical_lt2?.estimated_power_watts ?? interpolateMetric(currentLt1Power, currentLt2Power, 0.55);
+  const targetPracticalPower = interpolateMetric(targetSupportPower, targetLt2Power, 0.55);
+  const scenario = buildGoalScenario(
+    "Escenario objetivo de lactato",
+    "Proyección conservadora con LT1, transición subumbral y LT2 para ver qué carga externa debería desplazarse al mismo lactato.",
+    "Potencia",
+    false,
+    [
+      goalScenarioPoint("LT1 actual", "Actual", currentLt1Power, lt1?.lactate ?? 2.0),
+      goalScenarioPoint("Transición actual", "Actual", actualPracticalPower, 3.1),
+      goalScenarioPoint("LT2 actual", "Actual", currentLt2Power, lt2?.lactate ?? 4.0),
+      goalScenarioPoint("LT1 objetivo", "Objetivo", targetSupportPower, 2.0),
+      goalScenarioPoint("Transición objetivo", "Objetivo", targetPracticalPower, 3.1),
+      goalScenarioPoint("LT2 objetivo", "Objetivo", targetLt2Power, 4.0),
+    ],
+  );
+
+  const notes = [
+    "La prioridad cambia con la duración: en bike de fondo o triatlón pesa más la potencia sostenible y la durabilidad; en objetivos cortos o de FTP puro manda más LT2/FTP.",
+    ...(target.discipline === "triatlón" ? ["Lectura aplicada al segmento de ciclismo del triatlón objetivo."] : []),
+    ...(ftpEstimate?.low_evidence ? ["La estimación actual de FTP todavía tiene evidencia limitada."] : []),
+    ...(target.notes ? [target.notes] : []),
+  ];
+
+  return {
+    target,
+    contextLabel: target.discipline === "triatlón" ? "Segmento bike del triatlón" : "Objetivo ciclismo",
+    targetValue: formatPowerWithWeight(targetPower, athleteWeight),
+    currentValue: currentReferencePower ? formatPowerWithWeight(currentReferencePower, athleteWeight) : "Sin referencia actual",
+    gapLabel: formatPowerGapLabel(currentReferencePower, targetPower),
+    tone,
+    movementHeadline:
+      powerGap !== null && powerGap <= 0
+        ? "La referencia actual ya entra dentro del objetivo."
+        : prioritizeLt1
+          ? enduranceTarget
+            ? "Primero tiene que moverse LT1 y la durabilidad; después LT2/FTP."
+            : "Antes de apretar FTP, falta acercar LT1."
+          : enduranceTarget
+            ? "LT1 ya acompaña bastante; ahora el cuello de botella principal es LT2/FTP."
+            : "Lo primero que tiene que moverse es FTP, sostenido por LT2.",
+    summary:
+      powerGap === null
+        ? "Hay objetivo de ciclismo, pero todavía no hay una referencia comparable suficiente para medir el gap real."
+        : powerGap <= 0
+          ? "Con las referencias actuales, la potencia objetivo ya queda dentro de lo plausible. El foco pasa a consolidarla y hacerla repetible."
+          : prioritizeLt1
+            ? enduranceTarget
+              ? "Ahora mismo el objetivo queda por encima de la referencia actual. Antes de exprimir LT2 o FTP, hace falta desplazar la base subumbral y la durabilidad para que la potencia de carrera sea sostenible."
+              : "Aunque el objetivo no sea de fondo, LT1 está demasiado retrasado respecto a LT2. Conviene cerrar primero esa base y luego volver a empujar FTP."
+            : enduranceTarget
+              ? "LT1 ya está relativamente cerca; la limitación visible ahora está más en LT2/FTP, aunque la durabilidad sigue siendo obligatoria para sostenerlo el día de carrera."
+              : "Ahora mismo el objetivo queda por encima de la referencia actual. El primer cuello de botella es la combinación FTP-LT2.",
+    focuses,
+    notes,
+    scenario,
+  };
+}
+
+function buildSwimmingTargetInsight(params: {
+  target: AthleteTarget;
+  displayView: DisciplineView;
+}): GoalMovementInsight {
+  const { target, displayView } = params;
+  const targetPace =
+    target.discipline === "triatlón"
+      ? parseSwimPaceLabel(target.target_swim_pace_label)
+      : parseSwimPaceLabel(target.target_pace_label);
+  const sampleCount = displayView.measurement_log.length;
+  const notes = [
+    ...(target.discipline === "triatlón" ? ["Lectura aplicada solo al segmento de natación del triatlón objetivo."] : []),
+    ...(target.notes ? [target.notes] : []),
+  ];
+
+  if (!targetPace) {
+    return {
+      target,
+      contextLabel: target.discipline === "triatlón" ? "Segmento swim del triatlón" : "Objetivo natación",
+      targetValue: target.objective,
+      currentValue: sampleCount ? `${sampleCount} muestras con lactato` : "Sin base actual",
+      gapLabel: "Falta ritmo objetivo",
+      tone: "negative" as GoalMovementTone,
+      movementHeadline: "Primero hay que fijar el ritmo objetivo de natación.",
+      summary:
+        "Sin un ritmo objetivo específico de agua, la plataforma no puede traducir la meta a una palanca fisiológica concreta dentro de natación.",
+      focuses: [
+        {
+          label: "Ritmo objetivo",
+          current: targetSummaryForDiscipline(target, "natación"),
+          tone: "negative",
+          description: "Añade el ritmo objetivo de natación para poder relacionarlo con las futuras anclas de lactato de ese segmento.",
+        },
+      ],
+      notes,
+      scenario: null,
+    };
+  }
+
+  return {
+    target,
+    contextLabel: target.discipline === "triatlón" ? "Segmento swim del triatlón" : "Objetivo natación",
+    targetValue: formatSwimPacePer100m(targetPace),
+    currentValue: sampleCount ? `${sampleCount} muestras con lactato` : "Sin predictor específico",
+    gapLabel: sampleCount >= 4 ? "Base parcial disponible" : "Faltan tests específicos",
+    tone: sampleCount >= 4 ? "neutral" : "negative",
+    movementHeadline: "En natación, antes de decir qué umbral mover, falta más ancla específica.",
+    summary:
+      "La plataforma aún no convierte con suficiente solidez el lactato de natación en una predicción específica de marca. El siguiente paso útil es acumular más tests comparables con ritmo y lactato.",
+    focuses: [
+      {
+        label: "Ritmo objetivo",
+        current: formatSwimPacePer100m(targetPace),
+        tone: "neutral",
+        description: "Esta es la referencia que luego tendremos que contrastar contra umbrales específicos de natación.",
+      },
+      {
+        label: "Base fisiológica",
+        current: sampleCount ? `${sampleCount} muestras con lactato` : "Sin muestras útiles",
+        target: "4-6 tests comparables",
+        delta: sampleCount >= 4 ? "Base mínima ya construida" : `Faltan ${Math.max(0, 4 - sampleCount)} cortes comparables`,
+        tone: sampleCount >= 4 ? "neutral" : "negative",
+        description: "Antes de decidir si el cuello está en LT1, LT2 o tolerancia al ritmo, necesitamos más histórico específico de natación.",
+      },
+    ],
+    notes,
+    scenario: null,
+  };
+}
+
+function buildTargetMovementInsight(params: {
+  targets: AthleteTarget[];
+  activeDiscipline: string;
+  displayView: DisciplineView;
+  estimatesByType: Map<string, Estimate>;
+  lt1?: ThresholdDisplay;
+  lt2?: ThresholdDisplay;
+  dynamicThresholds: DynamicThresholds | null;
+  vo2maxEstimate?: Estimate;
+  athleteWeight?: number | null;
+}): GoalMovementInsight | null {
+  const { targets, activeDiscipline, displayView, estimatesByType, lt1, lt2, dynamicThresholds, vo2maxEstimate, athleteWeight } = params;
+  const target = selectRelevantTarget(targets, activeDiscipline);
+  if (!target) return null;
+
+  if (activeDiscipline === "running") {
+    return buildRunningTargetInsight({
+      target,
+      estimatesByType,
+      lt1,
+      lt2,
+      dynamicThresholds,
+      vo2maxEstimate,
+    });
+  }
+
+  if (activeDiscipline === "ciclismo") {
+    return buildCyclingTargetInsight({
+      target,
+      estimatesByType,
+      lt1,
+      lt2,
+      dynamicThresholds,
+      vo2maxEstimate,
+      athleteWeight,
+    });
+  }
+
+  return buildSwimmingTargetInsight({ target, displayView });
+}
+
 function blockMatchesDiscipline(block: AthleteFocusBlock, discipline: string, athletePrimaryDiscipline: string) {
   const blockDiscipline = block.priority_discipline || athletePrimaryDiscipline;
   return blockDiscipline === discipline;
@@ -562,12 +1568,6 @@ function focusDirectionLabel(direction?: string) {
   return "Por revisar";
 }
 
-function selectFocusedEstimateTypesByDiscipline(goalCategory?: string | null, discipline?: string) {
-  if (discipline === "ciclismo") return ["FTP"];
-  if (discipline === "natación") return [];
-  return selectFocusedEstimateTypes(goalCategory);
-}
-
 function latestEstimateByType(estimates: Estimate[]) {
   const grouped = new Map<string, Estimate>();
   for (const estimate of estimates) {
@@ -583,28 +1583,173 @@ function isDefined<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
 }
 
-function thresholdPrimaryValue(threshold: Threshold, discipline: string, athleteWeight?: number | null) {
+function thresholdPrimaryValue(threshold: ThresholdDisplay, discipline: string, athleteWeight?: number | null) {
   if (discipline === "ciclismo" && threshold.power_watts) {
     return formatPowerWithWeight(threshold.power_watts, athleteWeight);
   }
   return formatPace(threshold.pace_seconds_per_km);
 }
 
-function thresholdSecondaryValue(threshold: Threshold, discipline: string) {
+function thresholdSecondaryValue(threshold: ThresholdDisplay, discipline: string) {
   if (discipline === "ciclismo") {
     return `${threshold.lactate?.toFixed(1) ?? "-"} mmol/L · ${threshold.heart_rate ?? "-"} bpm`;
   }
   return `${threshold.lactate?.toFixed(1) ?? "-"} mmol/L · ${threshold.heart_rate ?? "-"} bpm`;
 }
 
-function thresholdDetailLine(threshold: Threshold, discipline: string, athleteWeight?: number | null) {
+function thresholdDetailLine(threshold: ThresholdDisplay, discipline: string, athleteWeight?: number | null) {
   if (discipline === "ciclismo") {
     return `Potencia ${formatPowerWithWeight(threshold.power_watts, athleteWeight)} · FC ${threshold.heart_rate ?? "-"} bpm · Lactato ${threshold.lactate?.toFixed(1) ?? "-"} mmol/L`;
   }
   return `Ritmo ${formatPace(threshold.pace_seconds_per_km)} · FC ${threshold.heart_rate ?? "-"} bpm · Lactato ${threshold.lactate?.toFixed(1) ?? "-"} mmol/L`;
 }
 
-function anaerobicSummary(threshold: Threshold | undefined, discipline: string) {
+function thresholdHoverLabel(
+  threshold: ThresholdDisplay | undefined,
+  discipline: string,
+  athleteWeight?: number | null,
+  support?: PlotSupportPoint | null,
+) {
+  if (!threshold) return "Sin referencia visible.";
+  const supportDate = support?.sessionDate ?? support?.session_date;
+  const supportInterval = support?.intervalLabel ?? support?.interval_label;
+  const parts = [];
+  if (supportDate) {
+    parts.push(`Fecha ${formatDate(supportDate)}`);
+  }
+  parts.push(thresholdDetailLine(threshold, discipline, athleteWeight));
+  if (supportInterval) {
+    parts.push(`Intervalo ${supportInterval}`);
+  }
+  return parts.join(" · ");
+}
+
+function dynamicReferenceHoverLabel(
+  reference: DynamicReference | null | undefined,
+  discipline: string,
+  athleteWeight?: number | null,
+  support?: PlotSupportPoint | null,
+) {
+  if (!reference) return "Sin referencia operativa visible.";
+  const supportDate = support?.sessionDate ?? support?.session_date;
+  const supportInterval = support?.intervalLabel ?? support?.interval_label;
+  const parts: string[] = [];
+  if (supportDate) {
+    parts.push(`Fecha ${formatDate(supportDate)}`);
+  }
+  if (discipline === "ciclismo" && reference.estimated_power_watts !== null && reference.estimated_power_watts !== undefined) {
+    parts.push(`Potencia ${formatPowerWithWeight(reference.estimated_power_watts, athleteWeight)}`);
+  } else if (reference.estimated_pace_seconds_per_km !== null && reference.estimated_pace_seconds_per_km !== undefined) {
+    parts.push(`Ritmo ${formatPace(reference.estimated_pace_seconds_per_km)}`);
+  }
+  if (reference.estimated_hr_at_target !== null && reference.estimated_hr_at_target !== undefined) {
+    parts.push(`FC ${Math.round(reference.estimated_hr_at_target)} bpm`);
+  }
+  if (reference.target_lactate !== null && reference.target_lactate !== undefined) {
+    parts.push(`Lactato ${reference.target_lactate.toFixed(1)} mmol/L`);
+  }
+  if (supportInterval) {
+    parts.push(`Intervalo ${supportInterval}`);
+  }
+  return parts.join(" · ") || "Sin referencia operativa visible.";
+}
+
+function customThresholdTooltip(
+  active: boolean | undefined,
+  payload: Array<{ payload?: Record<string, unknown> }> | undefined,
+  discipline: string,
+  athleteWeight?: number | null,
+) {
+  if (!active || !payload?.length) return null;
+  const point = payload[0]?.payload as
+    | {
+        name?: string;
+        label?: string;
+        x?: number;
+        lactate?: number;
+        heartRate?: number | null;
+        sessionDate?: string | null;
+        intervalLabel?: string | null;
+        powerSource?: string | null;
+      }
+    | undefined;
+  if (!point) return null;
+
+  const title = point.name ?? point.label ?? "Referencia";
+  const primaryMetric =
+    discipline === "ciclismo"
+      ? `Potencia ${typeof point.x === "number" ? formatPowerWithWeight(point.x, athleteWeight) : "-"}`
+      : `Ritmo ${typeof point.x === "number" ? formatPace(point.x) : "-"}`;
+
+  return (
+    <div className="threshold-chart-tooltip">
+      <strong>{title}</strong>
+      {point.sessionDate ? <span>Fecha {formatDate(point.sessionDate)}</span> : null}
+      <span>{primaryMetric}</span>
+      {typeof point.heartRate === "number" ? <span>FC {Math.round(point.heartRate)} bpm</span> : null}
+      {typeof point.lactate === "number" ? <span>Lactato {point.lactate.toFixed(1)} mmol/L</span> : null}
+      {point.powerSource ? <span>Fuente {powerSourceLabel(point.powerSource)}</span> : null}
+      {point.intervalLabel ? <span>Intervalo {point.intervalLabel}</span> : null}
+    </div>
+  );
+}
+
+function customGoalScenarioTooltip(
+  active: boolean | undefined,
+  payload: Array<{ payload?: Record<string, unknown> }> | undefined,
+  discipline: string,
+  athleteWeight?: number | null,
+) {
+  if (!active || !payload?.length) return null;
+  const point = payload[0]?.payload as GoalScenarioPoint | undefined;
+  if (!point) return null;
+
+  const primaryMetric =
+    discipline === "ciclismo"
+      ? `Potencia ${formatPowerWithWeight(point.x, athleteWeight)}`
+      : `Ritmo ${formatPace(point.x)}`;
+
+  return (
+    <div className="threshold-chart-tooltip goal-scenario-tooltip">
+      <strong>{point.label}</strong>
+      <span>{point.series}</span>
+      <span>{primaryMetric}</span>
+      <span>Lactato {point.lactate.toFixed(1)} mmol/L</span>
+    </div>
+  );
+}
+
+function HoverMetaPill({
+  className,
+  tooltip,
+  children,
+  onClick,
+  pressed,
+}: {
+  className: string;
+  tooltip: string;
+  children: ReactNode;
+  onClick?: () => void;
+  pressed?: boolean;
+}) {
+  if (onClick) {
+    return (
+      <button type="button" className={className} aria-pressed={pressed} onClick={onClick}>
+        {children}
+        <span className="threshold-meta-tooltip">{tooltip}</span>
+      </button>
+    );
+  }
+
+  return (
+    <span className={className}>
+      {children}
+      <span className="threshold-meta-tooltip">{tooltip}</span>
+    </span>
+  );
+}
+
+function anaerobicSummary(threshold: ThresholdDisplay | undefined, discipline: string) {
   if (!threshold) return "n/d";
   if (discipline === "ciclismo") {
     return `${threshold.power_watts ? `${Math.round(threshold.power_watts)} W` : "-"} · ${threshold.heart_rate ?? "-"} bpm`;
@@ -612,12 +1757,18 @@ function anaerobicSummary(threshold: Threshold | undefined, discipline: string) 
   return `${formatPace(threshold.pace_seconds_per_km)} · ${threshold.heart_rate ?? "-"} bpm`;
 }
 
-function thresholdSummary(threshold: Threshold | undefined, discipline: string) {
+function thresholdSummary(threshold: ThresholdDisplay | undefined, discipline: string) {
   if (!threshold) return "n/d";
   if (discipline === "ciclismo") {
     return `${threshold.power_watts ? `${Math.round(threshold.power_watts)} W` : "-"} · ${threshold.heart_rate ?? "-"} bpm`;
   }
   return `${formatPace(threshold.pace_seconds_per_km)} · ${threshold.heart_rate ?? "-"} bpm`;
+}
+
+function hasRenderableThreshold(threshold: ThresholdDisplay | undefined, discipline: string) {
+  if (!threshold) return false;
+  const hasPrimaryMetric = discipline === "ciclismo" ? threshold.power_watts !== null && threshold.power_watts !== undefined : threshold.pace_seconds_per_km !== null && threshold.pace_seconds_per_km !== undefined;
+  return hasPrimaryMetric && threshold.lactate !== null && threshold.lactate !== undefined;
 }
 
 function cyclingThresholdRelation(power?: number | null, lt1Power?: number | null, lt2Power?: number | null) {
@@ -642,6 +1793,26 @@ function estimateLabelValue(estimate?: Estimate) {
 function latestHistorical(points: HistoricalPoint[] | undefined) {
   if (!points?.length) return null;
   return points[points.length - 1];
+}
+
+function historicalMetricLabel(key: string) {
+  if (key === "LT1") return "LT1";
+  if (key === "LT2") return "LT2";
+  if (key === "lactate_anchor") return "Ancla de lactato";
+  return key;
+}
+
+function trendMetricLabel(metric: string) {
+  if (metric === "trend_LT1") return "Tendencia LT1";
+  if (metric === "trend_LT2") return "Tendencia LT2";
+  if (metric === "lactate_anchor_progression") return "Progresión del ancla de lactato";
+  return metric.replace(/_/g, " ");
+}
+
+function trendDirectionLabel(direction?: string) {
+  if (direction === "improving") return "Mejora";
+  if (direction === "degrading") return "Descenso";
+  return "Estable";
 }
 
 function shortenText(value: string, maxLength = 90) {
@@ -749,6 +1920,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const [activeDiscipline, setActiveDiscipline] = useState("running");
   const [performedAt, setPerformedAt] = useState(new Date().toISOString().slice(0, 16));
   const [discipline, setDiscipline] = useState("running");
+  const [sessionBaselineLactate, setSessionBaselineLactate] = useState("");
   const [sessionPowerSource, setSessionPowerSource] = useState("outdoor");
   const [sessionType, setSessionType] = useState("test incremental");
   const [goal, setGoal] = useState("Registro manual de lactato");
@@ -765,26 +1937,31 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const [cyclingPowerSourceMode, setCyclingPowerSourceMode] = useState<"outdoor" | "indoor" | "compare">("outdoor");
   const [cyclingPowerTarget, setCyclingPowerTarget] = useState("");
   const [cyclingPowerTolerance, setCyclingPowerTolerance] = useState("15");
+  const [selectedEstimateType, setSelectedEstimateType] = useState<string | null>(null);
+  const [thresholdReferenceVisibility, setThresholdReferenceVisibility] = useState({
+    lt1: true,
+    lt2: true,
+    practicalLt1: true,
+    practicalLt2: true,
+    lt1Real: false,
+    lt2Real: false,
+    lt1PracticalReal: false,
+    lt2PracticalReal: true,
+  });
   const [weightValue, setWeightValue] = useState("");
   const [weightDate, setWeightDate] = useState(new Date().toISOString().slice(0, 10));
-  const [focusSubmitting, setFocusSubmitting] = useState(false);
+  const [lactateOverlayOpen, setLactateOverlayOpen] = useState(false);
   const [targetsOverlayOpen, setTargetsOverlayOpen] = useState(false);
+  const [physiologyReportOpen, setPhysiologyReportOpen] = useState(false);
+  const [physiologyReport, setPhysiologyReport] = useState<PhysiologyReport | null>(null);
+  const [physiologyReportLoading, setPhysiologyReportLoading] = useState(false);
+  const [physiologyReportPdfLoading, setPhysiologyReportPdfLoading] = useState(false);
+  const [physiologyReportError, setPhysiologyReportError] = useState<string | null>(null);
+  const [deletingMeasurementId, setDeletingMeasurementId] = useState<number | null>(null);
+  const [expandedCyclingPanel, setExpandedCyclingPanel] = useState<"cadence" | "history" | "threshold" | null>(null);
   const [targetSubmitting, setTargetSubmitting] = useState(false);
   const [editingTargetId, setEditingTargetId] = useState<number | null>(null);
   const [triathlonDistancePreset, setTriathlonDistancePreset] = useState("manual");
-  const [focusForm, setFocusForm] = useState({
-    start_date: new Date().toISOString().slice(0, 10),
-    end_date: "",
-    energy_system_focus: "Aerobic Capacity",
-    block_objective: "LT1",
-    block_intent: "",
-    priority_discipline: "running",
-    phase: "acumulación",
-    target_event: "",
-    target_date: "",
-    status: "planned",
-    coach_notes: "",
-  });
   const [targetForm, setTargetForm] = useState({
     target_date: new Date().toISOString().slice(0, 10),
     discipline: "running",
@@ -816,11 +1993,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
 
   useEffect(() => {
     if (!analysis) return;
-    setFocusForm((current) => ({
-      ...current,
-      priority_discipline:
-        analysis.athlete.primary_discipline === "triatlón" ? activeDiscipline : analysis.athlete.primary_discipline,
-    }));
     setTargetForm((current) => ({
       ...current,
       discipline:
@@ -858,12 +2030,18 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       return;
     }
     if (analysis.athlete.primary_discipline === "triatlón") {
-      if (available.includes(activeDiscipline)) return;
-      setActiveDiscipline(available.includes("running") ? "running" : available[0]);
+      if (["natación", "ciclismo", "running"].includes(activeDiscipline)) return;
+      setActiveDiscipline("running");
       return;
     }
     setActiveDiscipline(available.includes(analysis.athlete.primary_discipline) ? analysis.athlete.primary_discipline : available[0]);
   }, [analysis, activeDiscipline]);
+
+  useEffect(() => {
+    setPhysiologyReport(null);
+    setPhysiologyReportOpen(false);
+    setPhysiologyReportError(null);
+  }, [analysis?.athlete.id, activeDiscipline, cyclingPowerSourceMode]);
 
   useEffect(() => {
     if (!analysis || activeDiscipline !== "ciclismo") return;
@@ -904,6 +2082,35 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     }
   }, [analysis, activeDiscipline, cyclingPowerTarget, cyclingPowerSourceMode]);
 
+  const estimatedTypeOptions = Array.from(
+    latestEstimateByType(
+      analysis
+        ? [
+            ...(analysis.estimates ?? []),
+            ...Object.values(analysis.discipline_views ?? {}).flatMap((view) => [
+              ...(view.estimates ?? []),
+              ...Object.values(view.power_source_views ?? {}).flatMap((sourceView) => sourceView.estimates ?? []),
+            ]),
+          ]
+        : [],
+    ).values(),
+  )
+    .filter((estimate) => ["Maratón", "HM", "10K", "5K", "FTP", "VO2max"].includes(estimate.estimate_type))
+    .sort((a, b) => relevantEstimateRank(a.estimate_type) - relevantEstimateRank(b.estimate_type))
+    .map((estimate) => estimate.estimate_type);
+
+  useEffect(() => {
+    if (!estimatedTypeOptions.length) {
+      setSelectedEstimateType(null);
+      return;
+    }
+    setSelectedEstimateType((current) =>
+      current && estimatedTypeOptions.includes(current)
+        ? current
+        : estimatedTypeOptions[0],
+    );
+  }, [activeDiscipline, estimatedTypeOptions]);
+
   if (!analysis) {
     return <div className="loading">Cargando análisis...</div>;
   }
@@ -920,9 +2127,22 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     historical_evolution: analysis.historical_evolution,
     power_bests: [],
     measurement_log: [],
+    dynamic_thresholds: analysis.dynamic_thresholds ?? null,
     power_source_views: null,
   };
-  const currentView = analysis.discipline_views?.[activeDiscipline] ?? fallbackView;
+  const resolveDisciplineView = (disciplineKey: string) => {
+    const directView = analysis.discipline_views?.[disciplineKey];
+    const hasAnyDisciplineViews = Object.keys(analysis.discipline_views ?? {}).length > 0;
+    if (directView) return directView;
+    if (analysis.athlete.primary_discipline === disciplineKey) {
+      return fallbackView;
+    }
+    if (!hasAnyDisciplineViews && analysis.athlete.primary_discipline !== "triatlón") {
+      return fallbackView;
+    }
+    return buildEmptyDisciplineView(disciplineKey);
+  };
+  const currentView = resolveDisciplineView(activeDiscipline);
   const availableCyclingSourceViews = currentView.power_source_views ?? {};
   const preferredCyclingSource =
     cyclingPowerSourceMode === "compare"
@@ -975,14 +2195,40 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   }
   const triathlonPlannerSummary = buildTriathlonPlannerSummary(targetForm);
   const displayView = activeDiscipline === "ciclismo" ? selectedCyclingView : currentView;
+  const dynamicThresholds: DynamicThresholds | null = displayView.dynamic_thresholds ?? currentView.dynamic_thresholds ?? null;
   const estimatesByType = latestEstimateByType(displayView.estimates);
-  const focusedEstimates = selectFocusedEstimateTypesByDiscipline(goalCategory, activeDiscipline)
-    .map((type) => estimatesByType.get(type))
-    .filter((estimate): estimate is Estimate => Boolean(estimate));
   const vo2maxEstimate = estimatesByType.get("VO2max");
   const vlamaxEstimate = estimatesByType.get("VLAMAX");
-  const lt1 = displayView.thresholds.find((threshold) => threshold.name === "LT1");
-  const lt2 = displayView.thresholds.find((threshold) => threshold.name === "LT2");
+  const hasHistoricalEvolution = ["LT1", "LT2", "lactate_anchor"].some(
+    (key) => (displayView.historical_evolution[key] ?? []).length > 0,
+  );
+  function resolveViewThreshold(
+    sourceView: DisciplineView,
+    thresholdName: "LT1" | "LT2",
+    disciplineKey: string,
+  ) {
+    if (thresholdName === "LT1") {
+      const dynamicLt1 = dynamicReferenceToDisplay(
+        "LT1",
+        sourceView.dynamic_thresholds?.chronic.reference_2mmol,
+        sourceView.power_source,
+      );
+      if (hasRenderableThreshold(dynamicLt1, disciplineKey)) return dynamicLt1;
+    }
+    if (thresholdName === "LT2") {
+      const dynamicLt2 = dynamicReferenceToDisplay(
+        "LT2",
+        sourceView.dynamic_thresholds?.chronic.reference_4mmol,
+        sourceView.power_source,
+      );
+      if (hasRenderableThreshold(dynamicLt2, disciplineKey)) return dynamicLt2;
+    }
+    return thresholdToDisplay(sourceView.thresholds.find((threshold) => threshold.name === thresholdName));
+  }
+
+  const lt1 = resolveViewThreshold(displayView, "LT1", activeDiscipline);
+  const lt2 = resolveViewThreshold(displayView, "LT2", activeDiscipline);
+  const visibleThresholdCards = [lt1, lt2].filter(isDefined);
   const cyclingEntries = displayView.measurement_log.filter(
     (entry) => entry.power_watts !== null && entry.power_watts !== undefined && entry.cadence !== null && entry.cadence !== undefined,
   );
@@ -1034,6 +2280,116 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const cyclingCadenceTrendData = Array.from(trendDateMap.values()).sort((a, b) =>
     String(a.date).localeCompare(String(b.date)),
   );
+  const dynamicHistoryMetricKey = activeDiscipline === "ciclismo" ? "estimated_power_watts" : "estimated_pace_seconds_per_km";
+  const dynamicHistoryUnit = activeDiscipline === "ciclismo" ? "W" : "s/km";
+  const acuteHistory = dynamicThresholds?.history?.acute_practical_lt2 ?? [];
+  const chronicHistory = dynamicThresholds?.history?.chronic_practical_lt2 ?? [];
+  const dynamicHistoryMap = new Map<string, { date: string; acute?: number | null; chronic?: number | null }>();
+  acuteHistory.forEach((point) => {
+    dynamicHistoryMap.set(point.date, { ...(dynamicHistoryMap.get(point.date) ?? { date: point.date }), acute: point.value });
+  });
+  chronicHistory.forEach((point) => {
+    dynamicHistoryMap.set(point.date, { ...(dynamicHistoryMap.get(point.date) ?? { date: point.date }), chronic: point.value });
+  });
+  const dynamicHistoryData = Array.from(dynamicHistoryMap.values()).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const chronicDynamicReferenceRows: Array<{ label: string; reference: DynamicReference | null | undefined }> = [
+    { label: "2 mmol", reference: dynamicThresholds?.chronic.reference_2mmol },
+    { label: "4 mmol", reference: dynamicThresholds?.chronic.reference_4mmol },
+    { label: "LT1 práctico", reference: dynamicThresholds?.chronic.practical_lt1 },
+    { label: "LT2 práctico", reference: dynamicThresholds?.chronic.practical_lt2 },
+  ];
+  const practicalChartReferences = {
+    pace: [
+      dynamicThresholds?.chronic.practical_lt1?.estimated_pace_seconds_per_km !== undefined && dynamicThresholds?.chronic.practical_lt1?.estimated_pace_seconds_per_km !== null
+        ? { label: "LT1 práctico", value: dynamicThresholds.chronic.practical_lt1.estimated_pace_seconds_per_km, color: "#2d8f5b" }
+        : null,
+      dynamicThresholds?.chronic.practical_lt2?.estimated_pace_seconds_per_km !== undefined && dynamicThresholds?.chronic.practical_lt2?.estimated_pace_seconds_per_km !== null
+        ? { label: "LT2 práctico", value: dynamicThresholds.chronic.practical_lt2.estimated_pace_seconds_per_km, color: "#d26a36" }
+        : null,
+    ].filter((item): item is PracticalChartReference => Boolean(item)),
+    power: [
+      dynamicThresholds?.chronic.practical_lt1?.estimated_power_watts !== undefined && dynamicThresholds?.chronic.practical_lt1?.estimated_power_watts !== null
+        ? { label: "LT1 práctico", value: dynamicThresholds.chronic.practical_lt1.estimated_power_watts, color: "#2d8f5b" }
+        : null,
+      dynamicThresholds?.chronic.practical_lt2?.estimated_power_watts !== undefined && dynamicThresholds?.chronic.practical_lt2?.estimated_power_watts !== null
+        ? { label: "LT2 práctico", value: dynamicThresholds.chronic.practical_lt2.estimated_power_watts, color: "#d26a36" }
+        : null,
+    ].filter((item): item is PracticalChartReference => Boolean(item)),
+    heartRate: [
+      dynamicThresholds?.chronic.practical_lt1?.estimated_hr_at_target !== undefined && dynamicThresholds?.chronic.practical_lt1?.estimated_hr_at_target !== null
+        ? { label: "LT1 práctico", value: dynamicThresholds.chronic.practical_lt1.estimated_hr_at_target, color: "#2d8f5b" }
+        : null,
+      dynamicThresholds?.chronic.practical_lt2?.estimated_hr_at_target !== undefined && dynamicThresholds?.chronic.practical_lt2?.estimated_hr_at_target !== null
+        ? { label: "LT2 práctico", value: dynamicThresholds.chronic.practical_lt2.estimated_hr_at_target, color: "#d26a36" }
+        : null,
+    ].filter((item): item is PracticalChartReference => Boolean(item)),
+  };
+  const dynamicWarningCards = (dynamicThresholds?.warnings ?? []).map(describeDynamicWarning);
+  const practicalThresholdPlotReferences = {
+    lt1:
+      activeDiscipline === "ciclismo"
+        ? dynamicThresholds?.chronic.practical_lt1?.estimated_power_watts
+        : dynamicThresholds?.chronic.practical_lt1?.estimated_pace_seconds_per_km,
+    lt2:
+      activeDiscipline === "ciclismo"
+        ? dynamicThresholds?.chronic.practical_lt2?.estimated_power_watts
+        : dynamicThresholds?.chronic.practical_lt2?.estimated_pace_seconds_per_km,
+  };
+  const targetMovementInsight = buildTargetMovementInsight({
+    targets: analysis.athlete.targets ?? [],
+    activeDiscipline,
+    displayView,
+    estimatesByType,
+    lt1,
+    lt2,
+    dynamicThresholds,
+    vo2maxEstimate,
+    athleteWeight,
+  });
+  const latestSnapshotLabel = displayView.latest_snapshot_date ? formatDate(displayView.latest_snapshot_date) : "Sin snapshot";
+  const activeTarget = targetMovementInsight?.target ?? selectRelevantTarget(analysis.athlete.targets ?? [], activeDiscipline);
+  const nextTargetLabel = activeTarget ? formatDate(activeTarget.target_date) : "Sin objetivo";
+  const nextTargetValue = activeTarget ? targetSummaryForDiscipline(activeTarget, activeDiscipline) : "Define una meta";
+  const sectionLinks: AthleteDetailSectionLink[] = [
+    { id: "thresholds", label: "Mapa de umbrales", shortLabel: "Umbrales" },
+    ...(targetMovementInsight ? [{ id: "goal-gap", label: "Qué mover para el objetivo", shortLabel: "Objetivo" }] : []),
+    ...(activeDiscipline === "ciclismo" && displayView.measurement_log.length ? [{ id: "cycling-insights", label: "Insights de ciclismo", shortLabel: "Ciclismo" }] : []),
+    ...(dynamicThresholds ? [{ id: "dynamic-references", label: "Referencias dinámicas", shortLabel: "Dinámicas" }] : []),
+    { id: "estimates", label: "Referencias estimadas", shortLabel: "Estimadas" },
+    { id: "history", label: "Evolución histórica", shortLabel: "Histórico" },
+    { id: "measurements", label: "Histórico de muestras", shortLabel: "Muestras" },
+  ];
+  const summaryCards = [
+    {
+      label: "Disciplina activa",
+      value: disciplineLabel(activeDiscipline),
+      detail: displayView.power_source ? powerSourceLabel(displayView.power_source) : "Vista principal",
+      tone: "neutral",
+    },
+    {
+      label: "Último snapshot",
+      value: latestSnapshotLabel,
+      detail: hasHistoricalEvolution ? "Con evolución longitudinal" : "Todavía sin serie robusta",
+      tone: hasHistoricalEvolution ? "positive" : "warning",
+    },
+    {
+      label: "Objetivo activo",
+      value: nextTargetValue,
+      detail: nextTargetLabel,
+      tone: activeTarget ? "neutral" : "warning",
+    },
+    {
+      label: "Muestras visibles",
+      value: `${displayView.measurement_log.length}`,
+      detail: activeDiscipline === "ciclismo" ? "con potencia y lactato" : "muestras de lactato filtradas",
+      tone: displayView.measurement_log.length >= 6 ? "positive" : "warning",
+    },
+  ];
+  function scrollToSection(sectionId: string) {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
   const cyclingCadenceBandSummaries = CYCLING_CADENCE_BANDS.map((band) => {
     const raw = cadenceBandTrendMap.get(band.label);
     const orderedBandValues = cyclingCadenceTrendData
@@ -1114,9 +2470,42 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const chartOverlays = [
     { label: "LT1", value: thresholdSummary(lt1, activeDiscipline), tone: "positive" as const },
     { label: "LT2", value: thresholdSummary(lt2, activeDiscipline), tone: "negative" as const },
+    {
+      label: "LT1 práctico",
+      value: dynamicThresholds ? dynamicReferencePrimaryValue(dynamicThresholds.chronic.practical_lt1, activeDiscipline) : "n/d",
+      tone: "positive" as const,
+    },
+    {
+      label: "LT2 práctico",
+      value: dynamicThresholds ? dynamicReferencePrimaryValue(dynamicThresholds.chronic.practical_lt2, activeDiscipline) : "n/d",
+      tone: "warning" as const,
+    },
     { label: "VO2max", value: vo2maxEstimate ? `${Math.round(vo2maxEstimate.value * 10) / 10} ml/kg/min` : "n/d", tone: "neutral" as const },
     { label: "VLAMAX", value: vlamaxEstimate ? `${Math.round(vlamaxEstimate.value * 100) / 100} mmol/L/s` : "n/d", tone: "warning" as const },
   ];
+  const athleteEstimatePool = [
+    ...(currentView.estimates ?? []),
+    ...Object.values(currentView.power_source_views ?? {}).flatMap((sourceView) => sourceView.estimates ?? []),
+  ];
+  const allowedEstimateTypes = estimateTypesForDiscipline(activeDiscipline);
+  const relevantEstimates = Array.from(latestEstimateByType(athleteEstimatePool).values())
+    .filter((estimate) => allowedEstimateTypes.includes(estimate.estimate_type))
+    .filter((estimate) => estimate.discipline === activeDiscipline)
+    .sort((a, b) => relevantEstimateRank(a.estimate_type) - relevantEstimateRank(b.estimate_type));
+  const selectedRelevantEstimate =
+    relevantEstimates.find((estimate) => estimate.estimate_type === selectedEstimateType) ?? relevantEstimates[0] ?? null;
+  function openLactateEntryForm() {
+    setSaveError(null);
+    setSaveMessage(null);
+    setLactateOverlayOpen(true);
+  }
+
+  function toggleThresholdReference(key: keyof typeof thresholdReferenceVisibility) {
+    setThresholdReferenceVisibility((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }
   const focusEvaluationsById = new Map((analysis.focus_block_evaluations ?? []).map((item) => [item.block_id, item]));
   const disciplineFocusBlocks = (analysis.athlete.focus_blocks ?? []).filter((block) =>
     blockMatchesDiscipline(block, activeDiscipline, analysis.athlete.primary_discipline),
@@ -1125,14 +2514,8 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const activeFocusBlockWithEvaluation = activeFocusBlock
     ? { ...activeFocusBlock, evaluation: focusEvaluationsById.get(activeFocusBlock.id) }
     : null;
-  const disciplineTargets = (analysis.athlete.targets ?? []).filter(
-    (target) =>
-      target.discipline === activeDiscipline ||
-      (analysis.athlete.primary_discipline === "triatlón" && target.discipline === "triatlón"),
-  );
-
   function buildPlotView(disciplineKey: string) {
-    const baseView = analysis.discipline_views?.[disciplineKey] ?? fallbackView;
+    const baseView = resolveDisciplineView(disciplineKey);
     const availableSourceViews = baseView.power_source_views ?? {};
     const resolvedView =
       disciplineKey === "ciclismo"
@@ -1145,16 +2528,68 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
             .filter(({ sourceView }) => sourceView.thresholds.length || sourceView.measurement_log.length)
         : [];
     const disciplineEstimates = latestEstimateByType(resolvedView.estimates);
-    const disciplineLt1 = resolvedView.thresholds.find((threshold) => threshold.name === "LT1");
-    const disciplineLt2 = resolvedView.thresholds.find((threshold) => threshold.name === "LT2");
-    const disciplinePlotData = resolvedView.thresholds
-      .filter((threshold) => (disciplineKey === "ciclismo" ? threshold.power_watts : threshold.pace_seconds_per_km) && threshold.lactate)
-      .map((threshold) => ({
-        name: threshold.name,
-        x: disciplineKey === "ciclismo" ? (threshold.power_watts as number) : (threshold.pace_seconds_per_km as number),
-        lactate: threshold.lactate as number,
-        power_source: resolvedView.power_source,
-      }));
+    const disciplineLt1 = resolveViewThreshold(resolvedView, "LT1", disciplineKey);
+    const disciplineLt2 = resolveViewThreshold(resolvedView, "LT2", disciplineKey);
+    const practicalLt1Reference = resolvedView.dynamic_thresholds?.chronic.practical_lt1 ?? null;
+    const practicalLt2Reference = resolvedView.dynamic_thresholds?.chronic.practical_lt2 ?? null;
+    const realThresholds: RealThresholds | null = resolvedView.real_thresholds ?? null;
+    const individualThresholds: IndividualThresholds | null = resolvedView.individual_thresholds ?? mapLegacyRealThresholdsToIndividual(realThresholds);
+    const visibleMeasurements = (resolvedView.measurement_log ?? []).filter((entry) => {
+      if (historyFrom && entry.session_date < historyFrom) return false;
+      if (historyTo && entry.session_date > historyTo) return false;
+      if (disciplineKey === "ciclismo" && resolvedView.power_source && entry.power_source && entry.power_source !== resolvedView.power_source) {
+        return false;
+      }
+      return true;
+    });
+    function resolveMeasurementMatch(x?: number | null, lactate?: number | null) {
+      if (typeof x !== "number" || !Number.isFinite(x) || typeof lactate !== "number" || !Number.isFinite(lactate)) {
+        return null;
+      }
+      const candidates = visibleMeasurements
+        .map((entry) => {
+          const entryX = disciplineKey === "ciclismo" ? entry.power_watts : entry.pace_seconds_per_km;
+          if (typeof entryX !== "number" || !Number.isFinite(entryX)) return null;
+          const xDelta = Math.abs(entryX - x);
+          const lactateDelta = Math.abs(entry.lactate_mmol - lactate);
+          const score = xDelta + lactateDelta * (disciplineKey === "ciclismo" ? 18 : 12);
+          return { entry, score };
+        })
+        .filter(isDefined)
+        .sort((left, right) => left.score - right.score);
+      return candidates[0]?.entry ?? null;
+    }
+    const lt1Support = resolveMeasurementMatch(
+      disciplineKey === "ciclismo" ? disciplineLt1?.power_watts : disciplineLt1?.pace_seconds_per_km,
+      disciplineLt1?.lactate,
+    );
+    const lt2Support = resolveMeasurementMatch(
+      disciplineKey === "ciclismo" ? disciplineLt2?.power_watts : disciplineLt2?.pace_seconds_per_km,
+      disciplineLt2?.lactate,
+    );
+    const practicalLt1Support = resolveMeasurementMatch(
+      disciplineKey === "ciclismo" ? practicalLt1Reference?.estimated_power_watts : practicalLt1Reference?.estimated_pace_seconds_per_km,
+      practicalLt1Reference?.target_lactate,
+    );
+    const practicalLt2Support = resolveMeasurementMatch(
+      disciplineKey === "ciclismo" ? practicalLt2Reference?.estimated_power_watts : practicalLt2Reference?.estimated_pace_seconds_per_km,
+      practicalLt2Reference?.target_lactate,
+    );
+    const disciplinePlotData = [disciplineLt1, disciplineLt2]
+      .filter((threshold): threshold is ThresholdDisplay => hasRenderableThreshold(threshold, disciplineKey))
+      .map((threshold) => {
+        const support = threshold.name === "LT1" ? lt1Support : lt2Support;
+        return {
+          name: threshold.name,
+          x: disciplineKey === "ciclismo" ? (threshold.power_watts as number) : (threshold.pace_seconds_per_km as number),
+          lactate: threshold.lactate as number,
+          power_source: threshold.power_source ?? resolvedView.power_source,
+          sessionDate: support?.session_date ?? null,
+          heartRate: threshold.heart_rate ?? support?.heart_rate_avg ?? null,
+          intervalLabel: support?.interval_label ?? null,
+          powerSource: support?.power_source ?? threshold.power_source ?? resolvedView.power_source,
+        };
+      });
     const source = disciplineKey === "ciclismo" ? (resolvedView.curve_history.power ?? []) : (resolvedView.curve_history.pace ?? []);
     const pool = source
       .filter((point) => point.x && point.lactate)
@@ -1165,12 +2600,88 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         label: point.label,
         sessionDate: point.session_date,
         powerSource: point.power_source,
+        heartRate: resolveMeasurementMatch(point.x, point.lactate)?.heart_rate_avg ?? null,
+        intervalLabel: resolveMeasurementMatch(point.x, point.lactate)?.interval_label ?? null,
       }))
       .filter((point) => {
         if (historyFrom && point.sessionDate < historyFrom) return false;
         if (historyTo && point.sessionDate > historyTo) return false;
         return true;
       });
+    const orderedPool = [...pool].sort((left, right) =>
+      disciplineKey === "ciclismo" ? left.x - right.x : right.x - left.x,
+    );
+    const baselinePoint = orderedPool[0] ?? null;
+    const provisionalLt1Point =
+      !disciplineLt1 && orderedPool.length >= 2
+        ? orderedPool.find((point, index) => index > 0 && point.lactate >= (baselinePoint?.lactate ?? 0) + 0.3) ?? orderedPool[1]
+        : null;
+    const provisionalLt2Point =
+      !disciplineLt2 && orderedPool.length >= 3
+        ? orderedPool.find((point, index) => index > 1 && point.lactate >= (baselinePoint?.lactate ?? 0) + 0.9) ??
+          orderedPool[orderedPool.length - 1]
+        : null;
+    const provisionalPlotData = [
+      provisionalLt1Point
+        ? {
+            name: "LT1 provisional",
+            x: provisionalLt1Point.x,
+            lactate: provisionalLt1Point.lactate,
+            label: provisionalLt1Point.label,
+          }
+        : null,
+      provisionalLt2Point
+        ? {
+            name: "LT2 provisional",
+            x: provisionalLt2Point.x,
+            lactate: provisionalLt2Point.lactate,
+            label: provisionalLt2Point.label,
+          }
+        : null,
+    ].filter(
+      (
+        point,
+      ): point is {
+        name: string;
+        x: number;
+        lactate: number;
+        label: string;
+      } => point !== null,
+    );
+    const practicalPlotData = [
+      practicalLt1Reference &&
+      (disciplineKey === "ciclismo" ? practicalLt1Reference.estimated_power_watts : practicalLt1Reference.estimated_pace_seconds_per_km) !== undefined &&
+      (disciplineKey === "ciclismo" ? practicalLt1Reference.estimated_power_watts : practicalLt1Reference.estimated_pace_seconds_per_km) !== null
+        ? {
+            name: "LT1 práctico",
+            x:
+              disciplineKey === "ciclismo"
+                ? (practicalLt1Reference.estimated_power_watts as number)
+                : (practicalLt1Reference.estimated_pace_seconds_per_km as number),
+            lactate: practicalLt1Reference.target_lactate ?? 0.16,
+            sessionDate: practicalLt1Support?.session_date ?? null,
+            heartRate: practicalLt1Reference.estimated_hr_at_target ?? practicalLt1Support?.heart_rate_avg ?? null,
+            intervalLabel: practicalLt1Support?.interval_label ?? null,
+            powerSource: practicalLt1Support?.power_source ?? resolvedView.power_source,
+          }
+        : null,
+      practicalLt2Reference &&
+      (disciplineKey === "ciclismo" ? practicalLt2Reference.estimated_power_watts : practicalLt2Reference.estimated_pace_seconds_per_km) !== undefined &&
+      (disciplineKey === "ciclismo" ? practicalLt2Reference.estimated_power_watts : practicalLt2Reference.estimated_pace_seconds_per_km) !== null
+        ? {
+            name: "LT2 práctico",
+            x:
+              disciplineKey === "ciclismo"
+                ? (practicalLt2Reference.estimated_power_watts as number)
+                : (practicalLt2Reference.estimated_pace_seconds_per_km as number),
+            lactate: practicalLt2Reference.target_lactate ?? 0.32,
+            sessionDate: practicalLt2Support?.session_date ?? null,
+            heartRate: practicalLt2Reference.estimated_hr_at_target ?? practicalLt2Support?.heart_rate_avg ?? null,
+            intervalLabel: practicalLt2Support?.interval_label ?? null,
+            powerSource: practicalLt2Support?.power_source ?? resolvedView.power_source,
+          }
+        : null,
+    ].filter(isDefined);
     const comparePools = compareViews.map(({ sourceKey, sourceView }) => ({
       sourceKey,
       color: sourceKey === "indoor" ? "#2f7de1" : "#c45b2f",
@@ -1191,19 +2702,33 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
           return true;
         }),
       thresholds: sourceView.thresholds,
-      lt1: sourceView.thresholds.find((threshold) => threshold.name === "LT1"),
-      lt2: sourceView.thresholds.find((threshold) => threshold.name === "LT2"),
+      lt1: resolveViewThreshold(sourceView, "LT1", disciplineKey),
+      lt2: resolveViewThreshold(sourceView, "LT2", disciplineKey),
     }));
+    const peakPoint = pool.length
+      ? pool.reduce((best, point) => (!best || point.lactate > best.lactate ? point : best), null as (typeof pool)[number] | null)
+      : null;
     return {
       view: resolvedView,
       lt1: disciplineLt1,
       lt2: disciplineLt2,
+      lt1Support,
+      lt2Support,
+      practicalLt1Support,
+      practicalLt2Support,
+      provisionalLt1: provisionalLt1Point,
+      provisionalLt2: provisionalLt2Point,
       plotData: disciplinePlotData,
+      practicalPlotData,
+      provisionalPlotData,
       pool,
       comparePools,
       plotLabel: disciplineKey === "ciclismo" ? "Potencia" : "Ritmo en min/km",
       vo2max: disciplineEstimates.get("VO2max"),
       vlamax: disciplineEstimates.get("VLAMAX"),
+      peakPoint,
+      realThresholds,
+      individualThresholds,
     };
   }
 
@@ -1229,7 +2754,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     setSaveMessage(null);
     try {
       await api.createSession(token, {
-        athlete_id: analysis.athlete.id,
+        athlete_id: analysis!.athlete.id,
         performed_at: performedAt,
         discipline,
         power_source: discipline === "ciclismo" ? sessionPowerSource : null,
@@ -1255,6 +2780,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
           lactate_sample: interval.sampled && interval.lactate_mmol
             ? {
                 lactate_mmol: Number(interval.lactate_mmol),
+                baseline_lactate: sessionBaselineLactate ? Number(sessionBaselineLactate) : null,
                 sample_delay_seconds: interval.sample_delay_seconds ? Number(interval.sample_delay_seconds) : 0,
                 sample_timing_label: interval.sample_delay_seconds ? `tras ${interval.sample_delay_seconds}s` : "sin registrar",
                 sampling_notes: null,
@@ -1269,6 +2795,8 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       setComments("");
       setSurface("");
       setTemperature("");
+      setSessionBaselineLactate("");
+      setLactateOverlayOpen(false);
       await onSaved();
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "No se pudo guardar la sesión.");
@@ -1339,7 +2867,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   async function saveGoal() {
     setSaveError(null);
     try {
-      await api.updateAthlete(token, analysis.athlete.id, {
+      await api.updateAthlete(token, analysis!.athlete.id, {
         training_goal: trainingGoal,
         goal_category: goalCategory,
       });
@@ -1353,7 +2881,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     setSaveError(null);
     setSaveMessage(null);
     try {
-      await api.addAthleteWeight(token, analysis.athlete.id, {
+      await api.addAthleteWeight(token, analysis!.athlete.id, {
         recorded_at: weightDate,
         weight: Number(weightValue),
         source: "manual",
@@ -1363,48 +2891,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       await onSaved();
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "No se pudo guardar el peso.");
-    }
-  }
-
-  async function saveFocusBlock() {
-    setSaveError(null);
-    setSaveMessage(null);
-    setFocusSubmitting(true);
-    try {
-      await api.addFocusBlock(token, analysis.athlete.id, {
-        ...focusForm,
-        end_date: focusForm.end_date || null,
-        target_date: focusForm.target_date || null,
-        target_event: focusForm.target_event || null,
-        block_intent: focusForm.block_intent || null,
-        coach_notes: focusForm.coach_notes || null,
-      });
-      setSaveMessage("Bloque de trabajo guardado.");
-      setFocusForm((current) => ({
-        ...current,
-        start_date: new Date().toISOString().slice(0, 10),
-        end_date: "",
-        block_intent: "",
-        target_event: "",
-        target_date: "",
-        coach_notes: "",
-        status: "planned",
-      }));
-      await onSaved();
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "No se pudo guardar el bloque.");
-    } finally {
-      setFocusSubmitting(false);
-    }
-  }
-
-  async function activatePlannedBlock(blockId: number) {
-    setSaveError(null);
-    try {
-      await api.updateFocusBlock(token, analysis.athlete.id, blockId, { status: "active" });
-      await onSaved();
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "No se pudo activar el bloque.");
     }
   }
 
@@ -1432,9 +2918,9 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         notes: targetForm.notes || null,
       };
       if (editingTargetId) {
-        await api.updateAthleteTarget(token, analysis.athlete.id, editingTargetId, payload);
+        await api.updateAthleteTarget(token, analysis!.athlete.id, editingTargetId, payload);
       } else {
-        await api.addAthleteTarget(token, analysis.athlete.id, payload);
+        await api.addAthleteTarget(token, analysis!.athlete.id, payload);
       }
       setSaveMessage(editingTargetId ? "Objetivo actualizado." : "Objetivo guardado.");
       setTargetsOverlayOpen(false);
@@ -1489,7 +2975,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     setSaveError(null);
     if (!window.confirm("¿Quieres eliminar este objetivo/competición?")) return;
     try {
-      await api.deleteAthleteTarget(token, analysis.athlete.id, targetId);
+      await api.deleteAthleteTarget(token, analysis!.athlete.id, targetId);
       if (editingTargetId === targetId) {
         setEditingTargetId(null);
       }
@@ -1500,8 +2986,762 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     }
   }
 
+  function downloadLactateHistoryCsv() {
+    const rows = displayView.measurement_log.map((entry) => ({
+      fecha: entry.session_date,
+      sesion: entry.session_type,
+      intervalo: entry.interval_label,
+      duracion_segundos: entry.duration_seconds,
+      descanso_segundos: entry.rest_seconds ?? "",
+      lactato_mmol_l: entry.lactate_mmol,
+      ritmo_seg_km: entry.pace_seconds_per_km ?? "",
+      potencia_w: entry.power_watts ?? "",
+      fc_bpm: entry.heart_rate_avg ?? "",
+      cadencia: entry.cadence ?? "",
+      disciplina: activeDiscipline,
+    }));
+    const headers = Object.keys(rows[0] ?? {
+      fecha: "",
+      sesion: "",
+      intervalo: "",
+      duracion_segundos: "",
+      descanso_segundos: "",
+      lactato_mmol_l: "",
+      ritmo_seg_km: "",
+      potencia_w: "",
+      fc_bpm: "",
+      cadencia: "",
+      disciplina: "",
+    });
+    const csv = [headers.join(","), ...rows.map((row) => headers.map((header) => csvCell(row[header as keyof typeof row])).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${analysis!.athlete.name.toLowerCase().replace(/\s+/g, "-")}-${activeDiscipline}-historico-lactato.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function generatePhysiologyReport() {
+    if (!analysis) return;
+    setPhysiologyReportLoading(true);
+    setPhysiologyReportError(null);
+    try {
+      const powerSource =
+        activeDiscipline === "ciclismo" && cyclingPowerSourceMode !== "compare" ? cyclingPowerSourceMode : undefined;
+      const report = (await api.generatePhysiologyReport(
+        token,
+        analysis.athlete.id,
+        activeDiscipline,
+        powerSource,
+      )) as PhysiologyReport;
+      setPhysiologyReport(report);
+      setPhysiologyReportOpen(true);
+    } catch (error) {
+      setPhysiologyReport(null);
+      setPhysiologyReportOpen(true);
+      setPhysiologyReportError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo generar el informe fisiológico.",
+      );
+    } finally {
+      setPhysiologyReportLoading(false);
+    }
+  }
+
+  async function downloadPhysiologyReportPdf() {
+    if (!analysis) return;
+    setPhysiologyReportPdfLoading(true);
+    setPhysiologyReportError(null);
+    try {
+      const powerSource =
+        activeDiscipline === "ciclismo" && cyclingPowerSourceMode !== "compare" ? cyclingPowerSourceMode : undefined;
+      const blob = await api.downloadPhysiologyReportPdf(
+        token,
+        analysis.athlete.id,
+        activeDiscipline,
+        powerSource,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `informe-fisiologico-${analysis.athlete.name.toLowerCase().replace(/\s+/g, "-")}-${activeDiscipline}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setPhysiologyReportError(
+        error instanceof Error ? error.message : "No se pudo descargar el PDF del informe fisiológico.",
+      );
+    } finally {
+      setPhysiologyReportPdfLoading(false);
+    }
+  }
+
+  async function deleteMeasurement(intervalId: number, label: string) {
+    const confirmed = window.confirm(`¿Eliminar la muestra de lactato de ${label}?`);
+    if (!confirmed) return;
+    setDeletingMeasurementId(intervalId);
+    setSaveError(null);
+    setSaveMessage(null);
+    try {
+      await api.deleteLactateSample(token, intervalId);
+      setSaveMessage(`Muestra eliminada de ${label}.`);
+      await onSaved();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "No se pudo eliminar la muestra.");
+    } finally {
+      setDeletingMeasurementId(null);
+    }
+  }
+
+  function renderCyclingCadenceEvolution(expanded = false) {
+    return (
+      <div className="cycling-cadence-body">
+        {expanded ? (
+          <>
+            <div className="card-header">
+              <div>
+                <p className="muted">
+                  Compara cómo cambia el lactato en cada franja de cadencia cuando ruedas a una potencia parecida.
+                </p>
+              </div>
+              <div className="cycling-controls">
+                <label>
+                  Potencia comparable
+                  <input
+                    type="number"
+                    min="0"
+                    step="5"
+                    value={comparableCyclingTarget}
+                    onChange={(event) => setCyclingPowerTarget(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Tolerancia
+                  <input
+                    type="number"
+                    min="5"
+                    step="5"
+                    value={cyclingPowerTolerance}
+                    onChange={(event) => setCyclingPowerTolerance(event.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="cycling-cadence-summary">
+              {cyclingCadenceBandSummaries.length ? (
+                cyclingCadenceBandSummaries.map((band) => (
+                  <article key={band.label} className="cycling-band-card" style={{ borderColor: `${band.color}55` }}>
+                    <span className="cycling-band-chip" style={{ backgroundColor: `${band.color}22`, color: band.color }}>
+                      {band.label} rpm
+                    </span>
+                    <strong>{band.average !== null ? `${band.average.toFixed(1)} mmol/L` : "-"}</strong>
+                    <p>{band.count} muestras comparables</p>
+                    <small>
+                      {band.averagePower !== null
+                        ? `Potencia media ${Math.round(band.averagePower)} W (${formatWattsPerKg(band.averagePower, athleteWeight)}) · rango ${Math.round(band.minPower ?? band.averagePower)}-${Math.round(band.maxPower ?? band.averagePower)} W`
+                        : "Sin potencia comparable suficiente"}
+                    </small>
+                    <small>
+                      {band.delta === null
+                        ? "Aún sin evolución suficiente"
+                        : band.delta < 0
+                          ? `${Math.abs(band.delta).toFixed(1)} mmol/L menos que al inicio`
+                          : `${band.delta.toFixed(1)} mmol/L más que al inicio`}
+                    </small>
+                  </article>
+                ))
+              ) : (
+                <p className="muted">Aún no hay suficientes muestras ciclistas con potencia y cadencia comparables.</p>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="cycling-preview-strip">
+            <p className="muted">Lectura rápida por bandas de cadencia a potencia comparable.</p>
+            <div className="cycling-preview-metrics">
+              <span>{comparableCyclingTarget || "300"} W objetivo</span>
+              <span>±{cyclingPowerTolerance || "15"} W</span>
+              <span>{cyclingCadenceBandSummaries.reduce((total, band) => total + band.count, 0)} muestras</span>
+            </div>
+          </div>
+        )}
+        {cyclingCadenceTrendData.length ? (
+          <div className="cycling-chart-stack">
+            <ResponsiveContainer width="100%" height={expanded ? 380 : 220}>
+              <LineChart data={cyclingCadenceTrendData} margin={{ top: 10, right: 20, left: 4, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
+                <XAxis dataKey="date" />
+                <YAxis unit=" mmol/L" domain={[0, "auto"]} />
+                <Tooltip
+                  formatter={(value: number, name: string, item) => {
+                    const payload = item?.payload as Record<string, number | string | null> | undefined;
+                    const power = payload?.[`${name}__power`];
+                    if (typeof value !== "number") return value;
+                    if (typeof power === "number") {
+                      return [`${Math.round(value * 10) / 10} mmol/L · ${Math.round(power)} W`, name];
+                    }
+                    return [`${Math.round(value * 10) / 10} mmol/L`, name];
+                  }}
+                />
+                {expanded ? <Legend /> : null}
+                {CYCLING_CADENCE_BANDS.map((band) => (
+                  <Line
+                    key={band.label}
+                    type="monotone"
+                    dataKey={band.label}
+                    name={`${band.label} rpm`}
+                    stroke={band.color}
+                    strokeWidth={2.4}
+                    dot={{ r: 3 }}
+                    connectNulls
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+            {expanded ? (
+              <ResponsiveContainer width="100%" height={340}>
+                <ScatterChart margin={{ top: 10, right: 20, left: 4, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
+                  <XAxis type="number" dataKey="cadence" name="Cadencia" unit=" rpm" domain={[60, "auto"]} />
+                  <YAxis type="number" dataKey="lactate" name="Lactato" unit=" mmol/L" domain={[0, "auto"]} />
+                  <Tooltip
+                    formatter={(value: number, name: string) => {
+                      if (name === "Cadencia") return `${Math.round(value)} rpm`;
+                      if (name === "Lactato") return `${Math.round(value * 10) / 10} mmol/L`;
+                      return `${value}`;
+                    }}
+                    labelFormatter={(_, payload) => {
+                      const point = payload?.[0]?.payload;
+                      return point ? `${point.date} · ${Math.round(point.power)} W · ${point.band} rpm` : "Muestra";
+                    }}
+                  />
+                  {CYCLING_CADENCE_BANDS.map((band) => (
+                    <Scatter
+                      key={band.label}
+                      name={band.label}
+                      data={cyclingScatterData.filter((point) => point.band === band.label)}
+                      fill={band.color}
+                      fillOpacity={0.65}
+                    >
+                      {expanded ? (
+                        <LabelList
+                          dataKey="power"
+                          position="top"
+                          formatter={(value: number) => `${Math.round(value)}W`}
+                          style={{ fontSize: "0.7rem", fill: band.color, fontWeight: 700 }}
+                        />
+                      ) : null}
+                    </Scatter>
+                  ))}
+                </ScatterChart>
+              </ResponsiveContainer>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  function renderCyclingCadenceHistory(expanded = false) {
+    if (!cyclingEfficiencyHistoryData.length) {
+      return <p className="muted">Aún no hay suficientes muestras entre 80 y 95 rpm con lactato y potencia para esta vista.</p>;
+    }
+    return (
+      <div className="cycling-cadence-body">
+        {!expanded ? (
+          <div className="cycling-preview-strip">
+            <p className="muted">Coste fisiológico reciente entre 80 y 95 rpm.</p>
+            <div className="cycling-preview-metrics">
+              <span>{cyclingEfficiencyHistoryData.length} registros</span>
+              <span>Lactato + FC</span>
+            </div>
+          </div>
+        ) : null}
+        <ResponsiveContainer width="100%" height={expanded ? 520 : 230}>
+          <ComposedChart data={cyclingEfficiencyHistoryData} margin={{ top: 12, right: 24, left: 4, bottom: 12 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
+            <XAxis dataKey="sessionDate" />
+            <YAxis yAxisId="lactate" unit=" mmol/L" domain={[0, "auto"]} />
+            <YAxis yAxisId="fc" orientation="right" unit=" bpm" domain={["auto", "auto"]} />
+            <Tooltip
+              formatter={(value: number, name: string) => {
+                if (name === "Lactato") return `${Math.round(value * 10) / 10} mmol/L`;
+                if (name === "FC") return `${Math.round(value)} bpm`;
+                return `${value}`;
+              }}
+              labelFormatter={(_, payload) => {
+                const point = payload?.[0]?.payload as typeof cyclingEfficiencyHistoryData[number] | undefined;
+                return point
+                  ? `${point.sessionDate} · ${point.intervalLabel} · ${point.cadence ? `${Math.round(point.cadence)} rpm` : "cadencia n/d"} · ${point.wattsPerKg} W/kg`
+                  : "Muestra";
+              }}
+            />
+            {expanded ? <Legend /> : null}
+            <Line yAxisId="lactate" type="monotone" dataKey="lactate" name="Lactato" stroke="#c07a18" strokeWidth={2.4} dot={false} connectNulls />
+            <Line yAxisId="fc" type="monotone" dataKey="heartRate" name="FC" stroke="#1d5c63" strokeWidth={2.2} dot={false} connectNulls />
+            {CYCLING_HISTORY_CADENCE_BANDS.map((band) => (
+              <Scatter
+                key={band.label}
+                yAxisId="lactate"
+                name={`${band.label} rpm`}
+                data={cyclingEfficiencyHistoryData.filter((point) => point.cadenceBand === band.label)}
+                fill={band.color}
+                fillOpacity={0.75}
+              >
+                {expanded ? (
+                  <LabelList
+                    dataKey="wattsPerKg"
+                    position="top"
+                    formatter={(value: number | null) => (value ? `${value}` : "")}
+                    style={{ fontSize: "0.68rem", fill: band.color, fontWeight: 700 }}
+                  />
+                ) : null}
+              </Scatter>
+            ))}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
+
+  function renderCyclingThresholdRelation(expanded = false) {
+    return (
+      <div className="cycling-cadence-body">
+        {expanded ? (
+          <div className="threshold-overview">
+            <article className="threshold-legend-card lt1">
+              <span className="threshold-dot lt1" />
+              <div>
+                <strong>Referencia LT1</strong>
+                <small>{lt1 ? thresholdDetailLine(lt1, "ciclismo", athleteWeight) : "Sin LT1 ciclista"}</small>
+              </div>
+            </article>
+            <article className="threshold-legend-card lt2">
+              <span className="threshold-dot lt2" />
+              <div>
+                <strong>Referencia LT2</strong>
+                <small>{lt2 ? thresholdDetailLine(lt2, "ciclismo", athleteWeight) : "Sin LT2 ciclista"}</small>
+              </div>
+            </article>
+          </div>
+        ) : (
+          <div className="cycling-preview-strip">
+            <p className="muted">Cómo se reparten las muestras respecto a LT1 y LT2.</p>
+            <div className="cycling-preview-metrics">
+              <span>{lt1?.power_watts ? `LT1 ${Math.round(lt1.power_watts)} W` : "LT1 n/d"}</span>
+              <span>{lt2?.power_watts ? `LT2 ${Math.round(lt2.power_watts)} W` : "LT2 n/d"}</span>
+            </div>
+          </div>
+        )}
+        {cyclingThresholdPlotData.length ? (
+          <div className="cycling-threshold-visual">
+            {expanded && cyclingThresholdLt1FocusData.length ? (
+              <div className="cycling-threshold-focus">
+                <div className="card-header">
+                  <div>
+                    <span className="eyebrow">Zoom LT1</span>
+                    <h3>Zona cercana a LT1</h3>
+                    <p className="muted">
+                      Vista ampliada de las muestras dentro de {lt1FocusWindow} W alrededor de LT1 para distinguir mejor esa zona.
+                    </p>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={expanded ? 300 : 220}>
+                  <ScatterChart margin={{ top: 12, right: 24, left: 4, bottom: 12 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
+                    <XAxis
+                      type="number"
+                      dataKey="power"
+                      name="Potencia"
+                      unit=" W"
+                      domain={
+                        lt1FocusPowerMin !== null && lt1FocusPowerMax !== null
+                          ? [Math.max(0, lt1FocusPowerMin - 5), lt1FocusPowerMax + 5]
+                          : ["auto", "auto"]
+                      }
+                    />
+                    <YAxis
+                      type="number"
+                      dataKey="lactate"
+                      name="Lactato"
+                      unit=" mmol/L"
+                      domain={
+                        lt1FocusLactateMin !== null && lt1FocusLactateMax !== null
+                          ? [Math.max(0, lt1FocusLactateMin - 0.25), lt1FocusLactateMax + 0.25]
+                          : [0, "auto"]
+                      }
+                    />
+                    {lt1?.power_watts ? (
+                      <ReferenceLine
+                        x={lt1.power_watts}
+                        stroke="#257a4d"
+                        strokeDasharray="6 6"
+                        label={expanded ? { value: `LT1 ${Math.round(lt1.power_watts)} W`, position: "insideTopLeft", fill: "#257a4d" } : undefined}
+                      />
+                    ) : null}
+                    <Tooltip
+                      formatter={(value: number, name: string, payload) => {
+                        const point = payload?.payload as typeof cyclingThresholdPlotData[number] | undefined;
+                        if (name === "Potencia") {
+                          return point ? `${Math.round(value)} W · ${point.wattsPerKg ?? "-"} W/kg` : `${Math.round(value)} W`;
+                        }
+                        return `${Math.round(value * 10) / 10} mmol/L`;
+                      }}
+                      labelFormatter={(_, payload) => {
+                        const point = payload?.[0]?.payload as typeof cyclingThresholdPlotData[number] | undefined;
+                        return point
+                          ? `${point.sessionDate} · ${point.intervalLabel} · ${Math.round(point.power)} W · ${point.wattsPerKg ?? "-"} W/kg · ${point.lactate.toFixed(1)} mmol/L · ${point.cadence ? `${Math.round(point.cadence)} rpm` : "cadencia n/d"}`
+                          : "Muestra";
+                      }}
+                    />
+                    <Scatter data={cyclingThresholdLt1FocusData} fill="#257a4d" fillOpacity={0.85} />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+            ) : null}
+            <ResponsiveContainer width="100%" height={expanded ? 380 : 220}>
+              <ScatterChart margin={{ top: 12, right: 24, left: 4, bottom: 12 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
+                <XAxis
+                  type="number"
+                  dataKey="power"
+                  name="Potencia"
+                  unit=" W"
+                  domain={
+                    thresholdPowerMin !== null && thresholdPowerMax !== null
+                      ? [Math.max(0, thresholdPowerMin - 10), thresholdPowerMax + 10]
+                      : ["auto", "auto"]
+                  }
+                />
+                <YAxis
+                  type="number"
+                  dataKey="lactate"
+                  name="Lactato"
+                  unit=" mmol/L"
+                  domain={
+                    thresholdLactateMin !== null && thresholdLactateMax !== null
+                      ? [Math.max(0, thresholdLactateMin - 0.4), thresholdLactateMax + 0.4]
+                      : [0, "auto"]
+                  }
+                />
+                {lt1?.power_watts ? (
+                  <ReferenceLine
+                    x={lt1.power_watts}
+                    stroke="#257a4d"
+                    strokeDasharray="6 6"
+                    label={expanded ? { value: `LT1 ${Math.round(lt1.power_watts)} W`, position: "insideTopLeft", fill: "#257a4d" } : undefined}
+                  />
+                ) : null}
+                {lt2?.power_watts ? (
+                  <ReferenceLine
+                    x={lt2.power_watts}
+                    stroke="#d26a36"
+                    strokeDasharray="6 6"
+                    label={expanded ? { value: `LT2 ${Math.round(lt2.power_watts)} W`, position: "insideTopRight", fill: "#d26a36" } : undefined}
+                  />
+                ) : null}
+                <Tooltip
+                  formatter={(value: number, name: string, payload) => {
+                    const point = payload?.payload as typeof cyclingThresholdPlotData[number] | undefined;
+                    if (name === "Potencia") {
+                      return point ? `${Math.round(value)} W · ${point.wattsPerKg ?? "-"} W/kg` : `${Math.round(value)} W`;
+                    }
+                    return `${Math.round(value * 10) / 10} mmol/L`;
+                  }}
+                  labelFormatter={(_, payload) => {
+                    const point = payload?.[0]?.payload as typeof cyclingThresholdPlotData[number] | undefined;
+                    return point
+                      ? `${point.sessionDate} · ${point.intervalLabel} · ${Math.round(point.power)} W · ${point.wattsPerKg ?? "-"} W/kg · ${point.lactate.toFixed(1)} mmol/L · ${point.cadence ? `${Math.round(point.cadence)} rpm` : "cadencia n/d"} · ${point.relation}`
+                      : "Muestra";
+                  }}
+                />
+                <Scatter data={cyclingThresholdPlotData} fill="#c07a18" fillOpacity={0.82} />
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <p className="muted">Aún no hay muestras ciclistas suficientes con potencia y lactato.</p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="page-grid">
+      {expandedCyclingPanel ? (
+        <div className="target-modal-backdrop" onClick={() => setExpandedCyclingPanel(null)}>
+          <section className="card target-modal-card lactate-modal-card cycling-panel-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="card-header">
+              <div>
+                <span className="eyebrow">Visualización ampliada</span>
+                <h2>
+                  {expandedCyclingPanel === "cadence"
+                    ? "Evolución del lactato por franjas de cadencia"
+                    : expandedCyclingPanel === "history"
+                      ? "Histórico por franjas 80-95 rpm"
+                      : "Relación entre picos de potencia y lactato"}
+                </h2>
+              </div>
+              <button className="ghost-button" type="button" onClick={() => setExpandedCyclingPanel(null)}>
+                Cerrar
+              </button>
+            </div>
+            {expandedCyclingPanel === "cadence"
+              ? renderCyclingCadenceEvolution(true)
+              : expandedCyclingPanel === "history"
+                ? renderCyclingCadenceHistory(true)
+                : renderCyclingThresholdRelation(true)}
+          </section>
+        </div>
+      ) : null}
+
+      {physiologyReportOpen ? (
+        <div className="target-modal-backdrop" onClick={() => setPhysiologyReportOpen(false)}>
+          <section className="card target-modal-card physiology-report-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="card-header">
+              <div>
+                <span className="eyebrow">Informe fisiológico</span>
+                <h2>Preview premium para entrenador</h2>
+                <p>
+                  Generado desde el test incremental visible y la ficha actual del atleta.
+                </p>
+              </div>
+              <div className="physiology-report-actions">
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={downloadPhysiologyReportPdf}
+                  disabled={!analysis || physiologyReportPdfLoading}
+                >
+                  {physiologyReportPdfLoading ? "Descargando PDF..." : "Descargar PDF"}
+                </button>
+                <button className="ghost-button" type="button" onClick={() => setPhysiologyReportOpen(false)}>
+                  Cerrar
+                </button>
+              </div>
+            </div>
+            <div className="physiology-report-modal-body">
+              {physiologyReport ? (
+                <>
+                  {physiologyReportError ? (
+                    <div className="physiology-report-empty-state">
+                      <strong>Incidencia en el informe</strong>
+                      <p>{physiologyReportError}</p>
+                    </div>
+                  ) : null}
+                  <PhysiologyReportPreview report={physiologyReport} />
+                </>
+              ) : physiologyReportError ? (
+                <div className="physiology-report-empty-state">
+                  <strong>No se pudo generar el informe</strong>
+                  <p>{physiologyReportError}</p>
+                </div>
+              ) : physiologyReportLoading ? (
+                <div className="physiology-report-empty-state">
+                  <strong>Generando informe...</strong>
+                  <p>Estamos interpretando el test incremental y preparando el PDF.</p>
+                </div>
+              ) : (
+                <div className="physiology-report-empty-state">
+                  <strong>No hay informe visible</strong>
+                  <p>Genera el informe fisiológico desde la cabecera del mapa de umbrales.</p>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {lactateOverlayOpen ? (
+        <div className="target-modal-backdrop" onClick={() => setLactateOverlayOpen(false)}>
+          <section className="card target-modal-card lactate-modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="card-header">
+              <div>
+                <span className="eyebrow">Registro manual</span>
+                <h2>Añadir datos de lactato</h2>
+                <p>Registra una sesión rápida sin salir de la ficha del atleta.</p>
+              </div>
+              <button className="ghost-button" type="button" onClick={() => setLactateOverlayOpen(false)}>
+                Cerrar
+              </button>
+            </div>
+            <form className="session-form lactate-modal-form" onSubmit={handleSubmit}>
+              <label>
+                Fecha y hora
+                <input type="datetime-local" value={performedAt} onChange={(event) => setPerformedAt(event.target.value)} required />
+              </label>
+              <label>
+                Disciplina
+                <select value={discipline} onChange={(event) => setDiscipline(event.target.value)}>
+                  <option value="running">Running</option>
+                  <option value="ciclismo">Ciclismo</option>
+                  <option value="natación">Natación</option>
+                  <option value="triatlón">Triatlón</option>
+                </select>
+              </label>
+              <label>
+                Tipo de sesión
+                <select value={sessionType} onChange={(event) => setSessionType(event.target.value)}>
+                  <option value="test incremental">Test incremental</option>
+                  <option value="sesión LT1">Sesión LT1</option>
+                  <option value="sesión LT2">Sesión LT2</option>
+                  <option value="VO2max">VO2max</option>
+                  <option value="continuo">Continuo</option>
+                  <option value="progresivo">Progresivo</option>
+                  <option value="intervalos">Intervalos</option>
+                  <option value="competición">Competición</option>
+                  <option value="recuperación">Recuperación</option>
+                </select>
+              </label>
+              {discipline === "ciclismo" ? (
+                <label>
+                  Potenciómetro
+                  <select value={sessionPowerSource} onChange={(event) => setSessionPowerSource(event.target.value)}>
+                    <option value="outdoor">Potenciómetro de a pie</option>
+                    <option value="indoor">Potenciómetro de interior</option>
+                  </select>
+                </label>
+              ) : null}
+              <label className="full-width">
+                Objetivo
+                <input value={goal} onChange={(event) => setGoal(event.target.value)} required />
+              </label>
+              <label>
+                Superficie
+                <input value={surface} onChange={(event) => setSurface(event.target.value)} />
+              </label>
+              <label>
+                Temperatura
+                <input type="number" step="0.1" value={temperature} onChange={(event) => setTemperature(event.target.value)} />
+              </label>
+              <label>
+                Basal del día (mmol/L)
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={sessionBaselineLactate}
+                  onChange={(event) => setSessionBaselineLactate(event.target.value)}
+                  placeholder="Opcional"
+                />
+              </label>
+              <label>
+                Número de bloques
+                <input type="number" min="1" value={blocksCount} onChange={(event) => applyBlocksCount(event.target.value)} />
+              </label>
+              <label className="full-width">
+                Comentarios
+                <textarea rows={3} value={comments} onChange={(event) => setComments(event.target.value)} />
+              </label>
+
+              <div className="full-width interval-stack">
+                {intervals.map((interval, index) => (
+                  <div key={index} className="card interval-card">
+                    <div className="card-header">
+                      <h3>Bloque {index + 1}</h3>
+                      <span className="muted">Configurado desde el número de bloques</span>
+                    </div>
+                    <div className="session-form">
+                      <label>
+                        Unidad duración
+                        <select
+                          value={interval.duration_mode}
+                          onChange={(event) => updateInterval(index, "duration_mode", event.target.value as "seconds" | "km")}
+                          disabled={discipline !== "running"}
+                        >
+                          <option value="seconds">Segundos</option>
+                          {discipline === "running" ? <option value="km">Kilómetros</option> : null}
+                        </select>
+                      </label>
+                      <label>
+                        Duración
+                        <input type="number" step="0.1" value={interval.duration_value} onChange={(event) => updateInterval(index, "duration_value", event.target.value)} required />
+                      </label>
+                      <label>
+                        Descanso
+                        <input type="number" value={interval.rest_seconds} onChange={(event) => updateInterval(index, "rest_seconds", event.target.value)} />
+                      </label>
+                      <label>
+                        Lactato
+                        <div className="sample-row">
+                          <label className="checkbox-row">
+                            <input type="checkbox" checked={interval.sampled} onChange={(event) => updateIntervalBoolean(index, event.target.checked)} />
+                            <span>Tomar muestra</span>
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={interval.lactate_mmol}
+                            onChange={(event) => updateInterval(index, "lactate_mmol", event.target.value)}
+                            disabled={!interval.sampled}
+                          />
+                        </div>
+                      </label>
+                      <label>
+                        Retraso muestra (s)
+                        <input
+                          type="number"
+                          value={interval.sample_delay_seconds}
+                          onChange={(event) => updateInterval(index, "sample_delay_seconds", event.target.value)}
+                          disabled={!interval.sampled}
+                          placeholder="Opcional"
+                        />
+                      </label>
+                      <label>
+                        FC media
+                        <input type="number" value={interval.heart_rate_avg} onChange={(event) => updateInterval(index, "heart_rate_avg", event.target.value)} placeholder="Opcional" />
+                      </label>
+                      <label>
+                        {discipline === "ciclismo" ? "Potencia media (W)" : "Ritmo medio (min/km)"}
+                        {discipline === "ciclismo" ? (
+                          <input
+                            type="number"
+                            step="1"
+                            min="0"
+                            value={interval.power_watts}
+                            onChange={(event) => updateInterval(index, "power_watts", event.target.value)}
+                            placeholder="250"
+                          />
+                        ) : (
+                          <input
+                            value={interval.pace_min_per_km}
+                            onChange={(event) => updateInterval(index, "pace_min_per_km", event.target.value)}
+                            placeholder="03:30"
+                            pattern="\d{1,2}:\d{2}"
+                          />
+                        )}
+                      </label>
+                      <label>
+                        Cadencia media
+                        <input type="number" value={interval.cadence} onChange={(event) => updateInterval(index, "cadence", event.target.value)} placeholder="Opcional" />
+                      </label>
+                      <label>
+                        FC máxima
+                        <input type="number" value={interval.heart_rate_max} onChange={(event) => updateInterval(index, "heart_rate_max", event.target.value)} placeholder="Opcional" />
+                      </label>
+                      <label>
+                        RPE
+                        <input type="number" min="0" max="10" step="0.5" value={interval.rpe} onChange={(event) => updateInterval(index, "rpe", event.target.value)} placeholder="Opcional" />
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {saveError ? <p className="error full-width">{saveError}</p> : null}
+              {saveMessage ? <p className="full-width">{saveMessage}</p> : null}
+              <div className="button-row full-width">
+                <button className="primary-button" type="submit" disabled={saving}>
+                  {saving ? "Guardando..." : "Guardar sesión de lactato"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
+
       {targetsOverlayOpen ? (
         <div className="target-modal-backdrop" onClick={() => setTargetsOverlayOpen(false)}>
           <section className="card target-modal-card" onClick={(event) => event.stopPropagation()}>
@@ -1634,7 +3874,9 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                     <strong>{triathlonPlannerSummary.bikeSeconds ? formatClock(triathlonPlannerSummary.bikeSeconds) : "-"}</strong>
                     <small>
                       {triathlonPlannerSummary.bikeSpeed && triathlonPlannerSummary.bikeWkg
-                        ? `${triathlonPlannerSummary.bikeWkg.toFixed(2)} W/kg · ${formatSpeedKph(triathlonPlannerSummary.bikeSpeed)}`
+                        ? `${triathlonPlannerSummary.bikeWkg.toFixed(2)} W/kg${
+                            athleteWeight ? ` · ${Math.round(triathlonPlannerSummary.bikeWkg * athleteWeight)} W` : ""
+                          } · ${formatSpeedKph(triathlonPlannerSummary.bikeSpeed)}`
                         : "Introduce W/kg"}
                     </small>
                   </article>
@@ -1771,13 +4013,16 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
           </section>
         </div>
       ) : null}
-      <section className="hero card">
-        <div>
+      <section className="hero card athlete-hero-layout">
+        <div className="hero-main">
           <span className="eyebrow">{disciplineLabel(activeDiscipline)}</span>
           <div className="athlete-title-row">
             <h1>{analysis.athlete.name}</h1>
             <button className="ghost-button" type="button" onClick={() => setTargetsOverlayOpen(true)}>
               Objetivos y competiciones
+            </button>
+            <button className="ghost-button" type="button" onClick={downloadLactateHistoryCsv} disabled={!displayView.measurement_log.length}>
+              Descargar CSV
             </button>
             <small className="athlete-vo2-inline">
               VO2max {vo2maxEstimate ? `${Math.round(vo2maxEstimate.value * 10) / 10} ml/kg/min` : "n/d"}
@@ -1785,28 +4030,9 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
           </div>
           <p>{analysis.athlete.notes}</p>
           <div className="hero-goal-row">
-            <div className="goal-select">
-              <span>Objetivo general</span>
-              <div className="goal-chip-row">
-                {[
-                  { value: "larga_distancia", label: "Larga distancia" },
-                  { value: "media_distancia", label: "Media distancia" },
-                  { value: "corta_distancia", label: "Corta distancia" },
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`goal-chip ${goalCategory === option.value ? "active" : ""}`}
-                    onClick={() => setGoalCategory(option.value)}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
             {analysis.athlete.primary_discipline === "triatlón" ? (
               <div className="discipline-tab-row">
-                {["natación", "ciclismo", "running"].filter((discipline) => Object.keys(analysis.discipline_views).includes(discipline)).map((discipline) => (
+                {["natación", "ciclismo", "running"].map((discipline) => (
                   <button
                     key={discipline}
                     type="button"
@@ -1836,375 +4062,152 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
             </div>
           </details>
         </div>
-        <div className="hero-stats">
-          {focusedEstimates.map((estimate) => {
+        <div className="hero-focus-stack">
+          <article className="hero-focus-card current">
+            <span className="eyebrow">Foco actual</span>
+            <strong>Bloque activo</strong>
+            {activeFocusBlockWithEvaluation ? (
+              <>
+                <p>
+                  {activeFocusBlockWithEvaluation.energy_system_focus} · {activeFocusBlockWithEvaluation.block_objective}
+                  {activeFocusBlockWithEvaluation.priority_discipline ? ` · ${disciplineLabel(activeFocusBlockWithEvaluation.priority_discipline)}` : ""}
+                </p>
+                <small>
+                  {activeFocusBlockWithEvaluation.start_date}
+                  {activeFocusBlockWithEvaluation.end_date ? ` → ${activeFocusBlockWithEvaluation.end_date}` : " → abierto"} · {activeFocusBlockWithEvaluation.phase ?? "sin fase"}
+                </small>
+                <small>{activeFocusBlockWithEvaluation.block_intent || "Sin intención operativa definida todavía."}</small>
+              </>
+            ) : (
+              <p>No hay bloque activo definido para este atleta.</p>
+            )}
+          </article>
+
+          <article className="hero-focus-card evaluation">
+            <span className="eyebrow">Evaluación</span>
+            <strong>Evaluación del bloque</strong>
+            {activeFocusBlockWithEvaluation?.evaluation ? (
+              <>
+                <p>{activeFocusBlockWithEvaluation.evaluation.summary}</p>
+                <small>
+                  {focusDirectionLabel(activeFocusBlockWithEvaluation.evaluation.direction)} · {Math.round(activeFocusBlockWithEvaluation.evaluation.confidence * 100)}% confianza
+                </small>
+                <small>
+                  {activeFocusBlockWithEvaluation.evaluation.key_metric}: {formatValue(activeFocusBlockWithEvaluation.evaluation.baseline_value, activeFocusBlockWithEvaluation.evaluation.unit)} →{" "}
+                  {formatValue(activeFocusBlockWithEvaluation.evaluation.latest_value, activeFocusBlockWithEvaluation.evaluation.unit)}
+                </small>
+                {activeFocusBlockWithEvaluation.evaluation.delta !== null && activeFocusBlockWithEvaluation.evaluation.delta !== undefined ? (
+                  <div className="evaluation-delta-row">
+                    <small
+                      className={`evaluation-delta ${
+                        activeFocusBlockWithEvaluation.evaluation.delta > 0 ? "positive" : activeFocusBlockWithEvaluation.evaluation.delta < 0 ? "negative" : "neutral"
+                      }`}
+                    >
+                      {formatSignedDelta(activeFocusBlockWithEvaluation.evaluation.delta, activeFocusBlockWithEvaluation.evaluation.unit)}
+                    </small>
+                    {activeFocusBlockWithEvaluation.evaluation.delta_relative !== null &&
+                    activeFocusBlockWithEvaluation.evaluation.delta_relative !== undefined &&
+                    activeFocusBlockWithEvaluation.evaluation.relative_unit ? (
+                      <small
+                        className={`evaluation-delta ${
+                          activeFocusBlockWithEvaluation.evaluation.delta_relative > 0
+                            ? "positive"
+                            : activeFocusBlockWithEvaluation.evaluation.delta_relative < 0
+                              ? "negative"
+                              : "neutral"
+                        }`}
+                      >
+                        {formatSignedDelta(activeFocusBlockWithEvaluation.evaluation.delta_relative, activeFocusBlockWithEvaluation.evaluation.relative_unit)}
+                      </small>
+                    ) : null}
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <p>Aún no hay suficiente histórico comparable para valorar el bloque activo.</p>
+            )}
+          </article>
+
+          <Link
+            className="hero-plan-card"
+            to={`/planning?athleteId=${analysis.athlete.id}&athleteName=${encodeURIComponent(analysis.athlete.name)}&discipline=${encodeURIComponent(activeDiscipline)}`}
+          >
+            <span className="eyebrow">Planificación</span>
+            <strong>Abrir planificación del atleta</strong>
+            <p>Cuadra siguientes bloques y el siguiente ciclo en una vista separada.</p>
+            <small>{activeFocusBlockWithEvaluation?.evaluation?.recommendation ?? "Organiza el siguiente bloque desde una vista dedicada."}</small>
+          </Link>
+        </div>
+      </section>
+
+      <section className="card athlete-detail-nav-card">
+        <div className="athlete-detail-nav-head">
+          <div>
+            <span className="eyebrow">Lectura rápida</span>
+            <h2>Resumen del atleta</h2>
+          </div>
+          <small>Salta a cada bloque sin recorrer toda la página.</small>
+        </div>
+        <div className="athlete-detail-summary-grid">
+          {summaryCards.map((card) => (
+            <article key={card.label} className={`athlete-detail-summary-card ${card.tone}`}>
+              <span className="eyebrow">{card.label}</span>
+              <strong>{card.value}</strong>
+              <small>{card.detail}</small>
+            </article>
+          ))}
+        </div>
+        <div className="athlete-detail-section-nav" aria-label="Secciones del análisis">
+          {sectionLinks.map((link) => (
+            <button key={link.id} type="button" className="athlete-detail-section-pill" onClick={() => scrollToSection(link.id)} title={link.label}>
+              {link.shortLabel}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {visibleThresholdCards.length || relevantEstimates.length ? (
+        <section className="metrics-grid metrics-strip">
+          {visibleThresholdCards.map((threshold) => (
+            <article key={threshold.name} className="card status-card">
+              <div className="status-head">
+                <span className="eyebrow">{threshold.name}</span>
+                <span className={`status-badge ${threshold.evidence_level}`}>{threshold.evidence_level}</span>
+              </div>
+              <strong>{thresholdPrimaryValue(threshold, activeDiscipline, athleteWeight)}</strong>
+              <p>
+                {thresholdSecondaryValue(threshold, activeDiscipline)}
+              </p>
+              <small>{thresholdDetailLine(threshold, activeDiscipline, athleteWeight)}</small>
+            </article>
+          ))}
+          {relevantEstimates.map((estimate, index) => {
             const raceSummary = racePredictionSummary(estimate);
             return (
-              <div key={`hero-${estimate.estimate_type}`}>
-                <span>{estimate.estimate_type}</span>
+              <article
+                key={`${estimate.estimate_type}-${estimate.discipline}-${estimate.valid_on ?? "na"}-${index}`}
+                className={`card status-card selectable-estimate-card ${selectedRelevantEstimate?.estimate_type === estimate.estimate_type ? "active" : ""}`}
+                onClick={() => setSelectedEstimateType(estimate.estimate_type)}
+              >
+                <div className="status-head">
+                  <span className="eyebrow">{estimate.estimate_type}</span>
+                  <span className={`status-badge ${estimate.reliability_label}`}>{estimate.reliability_label}</span>
+                </div>
                 <strong>
                   {raceSummary
                     ? raceSummary.pace
                     : activeDiscipline === "ciclismo" && estimate.unit === "W"
                       ? formatPowerWithWeight(estimate.value, athleteWeight)
-                      : formatValue(estimate.value, estimate.unit)}
+                      : `${estimate.value} ${estimate.unit}`}
                 </strong>
-                <small>{raceSummary ? raceSummary.totalTime : activeDiscipline === "ciclismo" && estimate.unit === "W" ? estimate.unit : estimate.unit}</small>
-              </div>
+                <p>{raceSummary ? raceSummary.totalTime : `${formatValue(estimate.lower_bound, estimate.unit)} - ${formatValue(estimate.upper_bound, estimate.unit)}`}</p>
+                {raceSummary ? <small>IC tiempo {raceSummary.lowerTime} - {raceSummary.upperTime}</small> : null}
+                <small>{estimate.low_evidence ? "Evidencia limitada" : "Evidencia suficiente"}</small>
+              </article>
             );
           })}
-          <div>
-            <span>Último snapshot</span>
-            <strong>{displayView.latest_snapshot_date ?? "Sin datos"}</strong>
-          </div>
-          <div>
-            <span>Peso</span>
-            <strong>{athleteWeight ? `${athleteWeight.toFixed(1)} kg` : "Sin dato"}</strong>
-            <small>{latestWeightEntry ? `Último registro ${latestWeightEntry.recorded_at}` : "Sin histórico"}</small>
-            {weightTrendValue !== null ? (
-              <small className={`evaluation-delta ${weightTrendValue < 0 ? "positive" : weightTrendValue > 0 ? "negative" : "neutral"}`}>
-                {weightTrendValue > 0 ? "+" : ""}
-                {weightTrendValue.toFixed(1)} kg
-              </small>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      <section className="card">
-        <div className="card-header">
-          <div>
-            <span className="eyebrow">Mesociclo</span>
-            <h2>Foco actual y planificación</h2>
-          </div>
-        </div>
-        <div className="threshold-overview">
-          <article className="threshold-legend-card lt1">
-            <span className="threshold-dot lt1" />
-            <div>
-              <strong>Bloque activo</strong>
-              {activeFocusBlockWithEvaluation ? (
-                <>
-                  <p>
-                    {activeFocusBlockWithEvaluation.energy_system_focus} · {activeFocusBlockWithEvaluation.block_objective}
-                    {activeFocusBlockWithEvaluation.priority_discipline ? ` · ${disciplineLabel(activeFocusBlockWithEvaluation.priority_discipline)}` : ""}
-                  </p>
-                  <small>
-                    {activeFocusBlockWithEvaluation.start_date}
-                    {activeFocusBlockWithEvaluation.end_date ? ` → ${activeFocusBlockWithEvaluation.end_date}` : " → abierto"} · {activeFocusBlockWithEvaluation.phase ?? "sin fase"}
-                  </small>
-                  <small>{activeFocusBlockWithEvaluation.block_intent || "Sin intención operativa definida todavía."}</small>
-                </>
-              ) : (
-                <p>No hay bloque activo definido para este atleta.</p>
-              )}
-            </div>
-          </article>
-          <article className="threshold-legend-card lt2">
-            <span className="threshold-dot lt2" />
-            <div>
-              <strong>Evaluación del bloque</strong>
-              {activeFocusBlockWithEvaluation?.evaluation ? (
-                <>
-                  <p>{activeFocusBlockWithEvaluation.evaluation.summary}</p>
-                  <small>
-                    {focusDirectionLabel(activeFocusBlockWithEvaluation.evaluation.direction)} · {Math.round(activeFocusBlockWithEvaluation.evaluation.confidence * 100)}% confianza
-                  </small>
-                  <small>
-                    {activeFocusBlockWithEvaluation.evaluation.key_metric}: {formatValue(activeFocusBlockWithEvaluation.evaluation.baseline_value, activeFocusBlockWithEvaluation.evaluation.unit)} →{" "}
-                    {formatValue(activeFocusBlockWithEvaluation.evaluation.latest_value, activeFocusBlockWithEvaluation.evaluation.unit)}
-                  </small>
-                  {activeFocusBlockWithEvaluation.evaluation.delta !== null && activeFocusBlockWithEvaluation.evaluation.delta !== undefined ? (
-                    <div className="evaluation-delta-row">
-                      <small
-                        className={`evaluation-delta ${
-                          activeFocusBlockWithEvaluation.evaluation.delta > 0 ? "positive" : activeFocusBlockWithEvaluation.evaluation.delta < 0 ? "negative" : "neutral"
-                        }`}
-                      >
-                        {formatSignedDelta(activeFocusBlockWithEvaluation.evaluation.delta, activeFocusBlockWithEvaluation.evaluation.unit)}
-                      </small>
-                      {activeFocusBlockWithEvaluation.evaluation.delta_relative !== null &&
-                      activeFocusBlockWithEvaluation.evaluation.delta_relative !== undefined &&
-                      activeFocusBlockWithEvaluation.evaluation.relative_unit ? (
-                        <small
-                          className={`evaluation-delta ${
-                            activeFocusBlockWithEvaluation.evaluation.delta_relative > 0
-                              ? "positive"
-                              : activeFocusBlockWithEvaluation.evaluation.delta_relative < 0
-                                ? "negative"
-                                : "neutral"
-                          }`}
-                        >
-                          {formatSignedDelta(activeFocusBlockWithEvaluation.evaluation.delta_relative, activeFocusBlockWithEvaluation.evaluation.relative_unit)}
-                        </small>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {activeFocusBlockWithEvaluation.evaluation.baseline_relative_value !== null &&
-                  activeFocusBlockWithEvaluation.evaluation.baseline_relative_value !== undefined &&
-                  activeFocusBlockWithEvaluation.evaluation.latest_relative_value !== null &&
-                  activeFocusBlockWithEvaluation.evaluation.latest_relative_value !== undefined &&
-                  activeFocusBlockWithEvaluation.evaluation.relative_unit ? (
-                    <small>
-                      Relativo: {activeFocusBlockWithEvaluation.evaluation.baseline_relative_value.toFixed(2)} {activeFocusBlockWithEvaluation.evaluation.relative_unit} →{" "}
-                      {activeFocusBlockWithEvaluation.evaluation.latest_relative_value.toFixed(2)} {activeFocusBlockWithEvaluation.evaluation.relative_unit}
-                    </small>
-                  ) : null}
-                  {activeFocusBlockWithEvaluation.evaluation.baseline_weight !== null &&
-                  activeFocusBlockWithEvaluation.evaluation.baseline_weight !== undefined &&
-                  activeFocusBlockWithEvaluation.evaluation.latest_weight !== null &&
-                  activeFocusBlockWithEvaluation.evaluation.latest_weight !== undefined ? (
-                    <small>
-                      Peso: {activeFocusBlockWithEvaluation.evaluation.baseline_weight.toFixed(1)} kg → {activeFocusBlockWithEvaluation.evaluation.latest_weight.toFixed(1)} kg
-                    </small>
-                  ) : null}
-                </>
-              ) : (
-                <p>Aún no hay suficiente histórico comparable para valorar el bloque activo.</p>
-              )}
-            </div>
-          </article>
-          <article className="threshold-legend-card pool">
-            <span className="threshold-dot pool" />
-            <div>
-              <strong>Siguiente paso recomendado</strong>
-              <p>{activeFocusBlockWithEvaluation?.evaluation?.recommendation ?? "Define un bloque o acumula más datos para que la app sugiera el siguiente mesociclo."}</p>
-              <small>{disciplineFocusBlocks.length} bloques en {disciplineLabel(activeDiscipline).toLowerCase()}</small>
-            </div>
-          </article>
-        </div>
-
-        <div className="focus-block-folders">
-          <details className="card collapsible-card">
-            <summary className="collapsible-summary">
-              <div>
-                <span className="eyebrow">Histórico</span>
-                <h3>Histórico de bloques</h3>
-                <p className="muted">Consulta los bloques anteriores y activa uno planificado si hace falta.</p>
-              </div>
-            </summary>
-            {disciplineTargets.length ? (
-              <div className="list">
-                {disciplineTargets.map((target) => (
-                  <article key={target.id} className="list-item">
-                    <div className="status-head">
-                      <strong>{target.objective}</strong>
-                      <span className="status-badge neutral">{target.target_date}</span>
-                    </div>
-                    <p>
-                      {disciplineLabel(target.discipline)}
-                      {target.distance_label ? ` · ${target.distance_label}` : ""}
-                      {target.priority_level ? ` · prioridad ${target.priority_level}` : ""}
-                    </p>
-                    <small>{targetSummaryForDiscipline(target, activeDiscipline)}</small>
-                    {target.notes ? <small>{target.notes}</small> : null}
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="muted">Todavía no hay objetivos o competiciones guardados para esta disciplina.</p>
-            )}
-            {disciplineFocusBlocks.length ? (
-              <div className="list">
-                {disciplineFocusBlocks.map((block) => {
-                  const evaluation = focusEvaluationsById.get(block.id);
-                  return (
-                    <article key={block.id} className="list-item">
-                      <div className="status-head">
-                        <strong>{block.energy_system_focus} · {block.block_objective}</strong>
-                        <span className={`status-badge ${evaluation?.worked ? "high" : evaluation?.worked === false ? "low" : "medium"}`}>
-                          {block.status}
-                        </span>
-                      </div>
-                      <p>
-                        {block.start_date}
-                        {block.end_date ? ` → ${block.end_date}` : " → abierto"}
-                        {block.priority_discipline ? ` · ${disciplineLabel(block.priority_discipline)}` : ""}
-                        {block.phase ? ` · ${block.phase}` : ""}
-                      </p>
-                      <small>{block.block_intent || "Sin intención descrita."}</small>
-                      {evaluation ? <small>{evaluation.summary}</small> : null}
-                      {block.status === "planned" ? (
-                        <div className="button-row">
-                          <button className="ghost-button" type="button" onClick={() => activatePlannedBlock(block.id)}>
-                            Activar bloque
-                          </button>
-                        </div>
-                      ) : null}
-                    </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="muted">Todavía no hay bloques guardados para este atleta.</p>
-            )}
-          </details>
-
-          <details className="card collapsible-card">
-            <summary className="collapsible-summary">
-              <div>
-                <span className="eyebrow">Planificación</span>
-                <h3>Programar siguiente mesociclo</h3>
-                <p className="muted">Ábrelo solo cuando quieras preparar el siguiente bloque.</p>
-              </div>
-            </summary>
-            <div className="athlete-form">
-              <label>
-                Inicio
-                <input
-                  type="date"
-                  value={focusForm.start_date}
-                  onChange={(event) => setFocusForm({ ...focusForm, start_date: event.target.value })}
-                />
-              </label>
-              <label>
-                Fin
-                <input
-                  type="date"
-                  value={focusForm.end_date}
-                  onChange={(event) => setFocusForm({ ...focusForm, end_date: event.target.value })}
-                />
-              </label>
-              <label>
-                Sistema
-                <select
-                  value={focusForm.energy_system_focus}
-                  onChange={(event) =>
-                    setFocusForm({
-                      ...focusForm,
-                      energy_system_focus: event.target.value,
-                      block_objective: ENERGY_SYSTEM_OPTIONS[event.target.value as keyof typeof ENERGY_SYSTEM_OPTIONS][0],
-                    })
-                  }
-                >
-                  {Object.keys(ENERGY_SYSTEM_OPTIONS).map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Objetivo
-                <select
-                  value={focusForm.block_objective}
-                  onChange={(event) => setFocusForm({ ...focusForm, block_objective: event.target.value })}
-                >
-                  {ENERGY_SYSTEM_OPTIONS[focusForm.energy_system_focus as keyof typeof ENERGY_SYSTEM_OPTIONS].map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Disciplina prioritaria
-                <select
-                  value={focusForm.priority_discipline}
-                  onChange={(event) => setFocusForm({ ...focusForm, priority_discipline: event.target.value })}
-                >
-                  {analysis.athlete.primary_discipline === "triatlón" ? (
-                    <>
-                      <option value="running">Running</option>
-                      <option value="ciclismo">Ciclismo</option>
-                      <option value="natación">Natación</option>
-                    </>
-                  ) : (
-                    <option value={analysis.athlete.primary_discipline}>{disciplineLabel(analysis.athlete.primary_discipline)}</option>
-                  )}
-                </select>
-              </label>
-              <label>
-                Fase
-                <select value={focusForm.phase} onChange={(event) => setFocusForm({ ...focusForm, phase: event.target.value })}>
-                  {PHASE_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Estado
-                <select value={focusForm.status} onChange={(event) => setFocusForm({ ...focusForm, status: event.target.value })}>
-                  <option value="planned">Planned</option>
-                  <option value="active">Active</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </label>
-              <label className="full-width">
-                Intención del bloque
-                <textarea
-                  rows={2}
-                  value={focusForm.block_intent}
-                  onChange={(event) => setFocusForm({ ...focusForm, block_intent: event.target.value })}
-                />
-              </label>
-              <label>
-                Evento objetivo
-                <input value={focusForm.target_event} onChange={(event) => setFocusForm({ ...focusForm, target_event: event.target.value })} />
-              </label>
-              <label>
-                Fecha objetivo
-                <input type="date" value={focusForm.target_date} onChange={(event) => setFocusForm({ ...focusForm, target_date: event.target.value })} />
-              </label>
-              <label className="full-width">
-                Notas del entrenador
-                <textarea
-                  rows={2}
-                  value={focusForm.coach_notes}
-                  onChange={(event) => setFocusForm({ ...focusForm, coach_notes: event.target.value })}
-                />
-              </label>
-              <div className="button-row full-width">
-                <button className="primary-button" type="button" onClick={saveFocusBlock} disabled={focusSubmitting}>
-                  {focusSubmitting ? "Guardando..." : "Guardar bloque"}
-                </button>
-              </div>
-            </div>
-          </details>
-        </div>
-      </section>
-
-      <section className="metrics-grid">
-        {[lt1, lt2].filter(isDefined).map((threshold) => (
-          <article key={threshold.name} className="card status-card">
-            <div className="status-head">
-              <span className="eyebrow">{threshold.name}</span>
-              <span className={`status-badge ${threshold.evidence_level}`}>{threshold.evidence_level}</span>
-            </div>
-            <strong>{thresholdPrimaryValue(threshold, activeDiscipline, athleteWeight)}</strong>
-            <p>
-              {thresholdSecondaryValue(threshold, activeDiscipline)}
-            </p>
-            <small>{thresholdDetailLine(threshold, activeDiscipline, athleteWeight)}</small>
-          </article>
-        ))}
-        {focusedEstimates.map((estimate, index) => {
-          const raceSummary = racePredictionSummary(estimate);
-          return (
-          <article
-            key={`${estimate.estimate_type}-${estimate.discipline}-${estimate.valid_on ?? "na"}-${index}`}
-            className="card status-card"
-          >
-            <div className="status-head">
-              <span className="eyebrow">{estimate.estimate_type}</span>
-              <span className={`status-badge ${estimate.reliability_label}`}>{estimate.reliability_label}</span>
-            </div>
-            <strong>
-              {raceSummary
-                ? raceSummary.pace
-                : activeDiscipline === "ciclismo" && estimate.unit === "W"
-                  ? formatPowerWithWeight(estimate.value, athleteWeight)
-                  : `${estimate.value} ${estimate.unit}`}
-            </strong>
-            <p>{raceSummary ? raceSummary.totalTime : `${formatValue(estimate.lower_bound, estimate.unit)} - ${formatValue(estimate.upper_bound, estimate.unit)}`}</p>
-            {raceSummary ? <small>IC tiempo {raceSummary.lowerTime} - {raceSummary.upperTime}</small> : null}
-            <small>{estimate.low_evidence ? "Evidencia limitada" : "Evidencia suficiente"}</small>
-          </article>
-          );
-        })}
-      </section>
+        </section>
+      ) : null}
 
       {activeDiscipline === "ciclismo" && displayView.power_bests.length ? (
         <section className="card">
@@ -2214,15 +4217,15 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               <h2>Mejores registros ciclistas</h2>
             </div>
           </div>
-          <div className="metrics-grid">
+          <div className="power-bests-grid">
             {displayView.power_bests.map((best) => (
-              <article key={best.label} className="card status-card">
+              <article key={best.label} className="power-best-card">
                 <div className="status-head">
                   <span className="eyebrow">{best.label}</span>
                   <span className="status-badge medium">peak</span>
                 </div>
                 <strong>{formatPowerWithWeight(best.value_watts, athleteWeight)}</strong>
-                <p>Mejor potencia media registrada para {best.label}</p>
+                <p>Mejor media en {best.label}</p>
                 <small>{formatWattsPerKg(best.value_watts, athleteWeight)}</small>
               </article>
             ))}
@@ -2230,13 +4233,26 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         </section>
       ) : null}
 
-      <section className="card threshold-plot-card">
+      <section id="thresholds" className="card threshold-plot-card athlete-detail-anchor">
         <div className="card-header">
           <div>
             <span className="eyebrow">Mapa de umbrales</span>
-            <h2>LT1 y LT2 por disciplina</h2>
+            <h2>
+              LT1 y LT2 por disciplina{" "}
+              <small className="threshold-sample-count">
+                ({buildPlotView(activeDiscipline).pool.length} muestras de lactato)
+              </small>
+            </h2>
           </div>
           <div className="threshold-filter-row">
+            <GeneratePhysiologyReportButton
+              onClick={generatePhysiologyReport}
+              loading={physiologyReportLoading}
+              disabled={!analysis}
+            />
+            <button className="primary-button threshold-add-button" type="button" onClick={openLactateEntryForm}>
+              Añadir lactato
+            </button>
             <label>
               Desde
               <input type="date" value={historyFrom} onChange={(event) => setHistoryFrom(event.target.value)} />
@@ -2251,15 +4267,39 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
           {(() => {
             const disciplineKey = activeDiscipline;
             const plotView = buildPlotView(disciplineKey);
+            const evidenceSampleCount = plotView.pool.length;
+            const thresholdEvidence = [plotView.lt1, plotView.lt2].filter(Boolean);
+            const lowConfidenceThresholds = thresholdEvidence.filter(
+              (threshold) =>
+                (threshold?.evidence_level ?? "").toLowerCase() === "low" || (threshold?.confidence ?? 0) < 0.6,
+            ).length;
+            const sparseEvidence =
+              evidenceSampleCount <= 4 ||
+              plotView.plotData.length < 2 ||
+              thresholdEvidence.length < 2 ||
+              lowConfidenceThresholds >= 1;
+            const plotLt1X =
+              disciplineKey === "ciclismo"
+                ? plotView.lt1?.power_watts ?? plotView.provisionalLt1?.x ?? null
+                : plotView.lt1?.pace_seconds_per_km ?? plotView.provisionalLt1?.x ?? null;
+            const plotLt2X =
+              disciplineKey === "ciclismo"
+                ? plotView.lt2?.power_watts ?? plotView.provisionalLt2?.x ?? null
+                : plotView.lt2?.pace_seconds_per_km ?? plotView.provisionalLt2?.x ?? null;
+            const plotLt1RealX =
+              disciplineKey === "ciclismo"
+                ? plotView.individualThresholds?.lt1_individual?.power_watts ?? null
+                : plotView.individualThresholds?.lt1_individual?.pace_seconds_per_km ?? null;
+            const plotLt2RealX =
+              disciplineKey === "ciclismo"
+                ? plotView.individualThresholds?.lt2_individual?.power_watts ?? null
+                : plotView.individualThresholds?.lt2_individual?.pace_seconds_per_km ?? null;
             return (
               <div className="discipline-plot-panel">
                 <div className="discipline-plot-header">
                   <span className="eyebrow">{disciplineLabel(disciplineKey)}</span>
                   <div className="discipline-plot-title-row">
                     <strong>{disciplineKey === "ciclismo" ? "Base ciclista independiente" : `Base ${disciplineLabel(disciplineKey).toLowerCase()} independiente`}</strong>
-                    <small className="discipline-vo2-inline">
-                      VO2max {plotView.vo2max ? `${Math.round(plotView.vo2max.value * 10) / 10} ml/kg/min` : "n/d"}
-                    </small>
                   </div>
                   {disciplineKey === "ciclismo" ? (
                     <div className="source-toggle-row">
@@ -2295,44 +4335,154 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                     ))
                   ) : (
                     <>
-                      <article className="threshold-legend-card lt1">
+                      <article className="threshold-legend-card lt1" title={thresholdHoverLabel(plotView.lt1, disciplineKey, athleteWeight, plotView.lt1Support)}>
                         <span className="threshold-dot lt1" />
                         <div>
-                          <strong>LT1</strong>
+                          <strong>{plotView.lt1 ? "LT1" : plotView.provisionalLt1 ? "LT1 provisional" : "LT1"}</strong>
                           <p>{disciplineKey === "ciclismo" ? "Primer umbral ciclista. Referencia de trabajo aeróbico sostenible en potencia." : "Primer umbral. Marca la transición hacia un trabajo aeróbico más exigente pero todavía muy sostenible."}</p>
                           <small>
                             {plotView.lt1
                               ? thresholdDetailLine(plotView.lt1, disciplineKey, athleteWeight)
-                              : "Sin cálculo disponible"}
+                              : plotView.provisionalLt1
+                                ? `${disciplineKey === "ciclismo" ? formatPowerWithWeight(plotView.provisionalLt1.x, athleteWeight) : formatPace(plotView.provisionalLt1.x)} · ${plotView.provisionalLt1.lactate.toFixed(1)} mmol/L · estimación provisional`
+                                : "Sin cálculo disponible"}
                           </small>
                         </div>
                       </article>
-                      <article className="threshold-legend-card lt2">
+                      <article className="threshold-legend-card lt2" title={thresholdHoverLabel(plotView.lt2, disciplineKey, athleteWeight, plotView.lt2Support)}>
                         <span className="threshold-dot lt2" />
                         <div>
-                          <strong>LT2</strong>
+                          <strong>{plotView.lt2 ? "LT2" : plotView.provisionalLt2 ? "LT2 provisional" : "LT2"}</strong>
                           <p>{disciplineKey === "ciclismo" ? "Segundo umbral ciclista. Punto de alta exigencia sostenible antes de acumular lactato con claridad." : "Segundo umbral. Señala el punto de alta exigencia sostenible antes de una acumulación marcada de lactato."}</p>
                           <small>
                             {plotView.lt2
                               ? thresholdDetailLine(plotView.lt2, disciplineKey, athleteWeight)
-                              : "Sin cálculo disponible"}
+                              : plotView.provisionalLt2
+                                ? `${disciplineKey === "ciclismo" ? formatPowerWithWeight(plotView.provisionalLt2.x, athleteWeight) : formatPace(plotView.provisionalLt2.x)} · ${plotView.provisionalLt2.lactate.toFixed(1)} mmol/L · estimación provisional`
+                                : "Sin cálculo disponible"}
                           </small>
                         </div>
                       </article>
-                      <article className="threshold-legend-card pool">
-                        <span className="threshold-dot pool" />
-                        <div>
-                          <strong>Piscina de datos</strong>
-                          <p>
-                            Todas las muestras históricas de {disciplineLabel(disciplineKey).toLowerCase()}
-                            {disciplineKey === "ciclismo" && cyclingPowerSourceMode !== "compare" ? ` · ${powerSourceLabel(preferredCyclingSource)}` : ""}
-                            {" "}quedan visibles en segundo plano.
-                          </p>
-                          <small>{plotView.pool.length} muestras visibles</small>
-                        </div>
-                      </article>
+                      {dynamicThresholds?.chronic.practical_lt1 ? (
+                        <article
+                          className="threshold-legend-card practical-lt1"
+                          title={dynamicReferenceHoverLabel(dynamicThresholds.chronic.practical_lt1, disciplineKey, athleteWeight, plotView.practicalLt1Support)}
+                        >
+                          <span className="threshold-dot practical-lt1" />
+                          <div>
+                            <strong>LT1 práctico</strong>
+                            <p>Referencia operativa algo más conservadora que LT1.</p>
+                            <small>{dynamicReferencePrimaryValue(dynamicThresholds.chronic.practical_lt1, disciplineKey)}</small>
+                          </div>
+                        </article>
+                      ) : null}
+                      {dynamicThresholds?.chronic.practical_lt2 ? (
+                        <article
+                          className="threshold-legend-card practical-lt2"
+                          title={dynamicReferenceHoverLabel(dynamicThresholds.chronic.practical_lt2, disciplineKey, athleteWeight, plotView.practicalLt2Support)}
+                        >
+                          <span className="threshold-dot practical-lt2" />
+                          <div>
+                            <strong>LT2 práctico</strong>
+                            <p>Referencia operativa para trabajo exigente sin usar 4 mmol de forma literal.</p>
+                            <small>{dynamicReferencePrimaryValue(dynamicThresholds.chronic.practical_lt2, disciplineKey)}</small>
+                          </div>
+                        </article>
+                      ) : null}
                     </>
                   )}
+                </div>
+                {sparseEvidence ? (
+                  <div className="threshold-disclaimer warning">
+                    <strong>Lectura provisional</strong>
+                    <p>
+                      La gráfica refleja muestras reales del atleta, pero la base de lactato todavía es escasa. Úsala como
+                      orientación fisiológica, no como un umbral cerrado.
+                    </p>
+                    <div className="threshold-disclaimer-meta">
+                      <span>{evidenceSampleCount} muestras visibles</span>
+                      <span>{thresholdEvidence.length ? `${thresholdEvidence.length} umbrales detectados` : "Sin umbrales sólidos"}</span>
+                      <span>{lowConfidenceThresholds ? "Confianza baja o media" : "Confianza aún por consolidar"}</span>
+                    </div>
+                  </div>
+                ) : null}
+                <div className="threshold-plot-meta">
+                  {plotView.vo2max ? (
+                    <HoverMetaPill
+                      className="threshold-meta-pill neutral"
+                      tooltip={`${Math.round(plotView.vo2max.value * 10) / 10} ml/kg/min · estimación derivada del snapshot actual.`}
+                    >
+                      VO2max {Math.round(plotView.vo2max.value * 10) / 10} ml/kg/min
+                    </HoverMetaPill>
+                  ) : null}
+                  {plotView.peakPoint ? (
+                    <HoverMetaPill
+                      className="threshold-meta-pill warning"
+                      tooltip={`Fecha ${formatDate(plotView.peakPoint.sessionDate)} · ${disciplineKey === "ciclismo" ? `Potencia ${Math.round(plotView.peakPoint.x)} W · ${formatWattsPerKg(plotView.peakPoint.x, athleteWeight)}` : `Ritmo ${formatPace(plotView.peakPoint.x)}`} · FC ${plotView.peakPoint.heartRate ?? "-"} bpm · Lactato ${plotView.peakPoint.lactate.toFixed(1)} mmol/L`}
+                    >
+                      VLAMAX proxy {plotView.peakPoint.lactate.toFixed(1)} mmol/L
+                    </HoverMetaPill>
+                  ) : null}
+                  {plotLt1X !== null ? (
+                    <HoverMetaPill
+                      className={`threshold-meta-pill line lt1 ${thresholdReferenceVisibility.lt1 ? "active" : "inactive"}`}
+                      tooltip={thresholdHoverLabel(plotView.lt1, disciplineKey, athleteWeight, plotView.lt1Support)}
+                      pressed={thresholdReferenceVisibility.lt1}
+                      onClick={() => toggleThresholdReference("lt1")}
+                    >
+                      LT1 fisiológico
+                    </HoverMetaPill>
+                  ) : null}
+                  {plotLt2X !== null ? (
+                    <HoverMetaPill
+                      className={`threshold-meta-pill line lt2 ${thresholdReferenceVisibility.lt2 ? "active" : "inactive"}`}
+                      tooltip={thresholdHoverLabel(plotView.lt2, disciplineKey, athleteWeight, plotView.lt2Support)}
+                      pressed={thresholdReferenceVisibility.lt2}
+                      onClick={() => toggleThresholdReference("lt2")}
+                    >
+                      LT2 fisiológico
+                    </HoverMetaPill>
+                  ) : null}
+                  {practicalThresholdPlotReferences.lt1 ? (
+                    <HoverMetaPill
+                      className={`threshold-meta-pill line practical-lt1 ${thresholdReferenceVisibility.practicalLt1 ? "active" : "inactive"}`}
+                      tooltip={dynamicReferenceHoverLabel(dynamicThresholds?.chronic.practical_lt1, disciplineKey, athleteWeight, plotView.practicalLt1Support)}
+                      pressed={thresholdReferenceVisibility.practicalLt1}
+                      onClick={() => toggleThresholdReference("practicalLt1")}
+                    >
+                      LT1 práctico
+                    </HoverMetaPill>
+                  ) : null}
+                  {practicalThresholdPlotReferences.lt2 ? (
+                    <HoverMetaPill
+                      className={`threshold-meta-pill line practical-lt2 ${thresholdReferenceVisibility.practicalLt2 ? "active" : "inactive"}`}
+                      tooltip={dynamicReferenceHoverLabel(dynamicThresholds?.chronic.practical_lt2, disciplineKey, athleteWeight, plotView.practicalLt2Support)}
+                      pressed={thresholdReferenceVisibility.practicalLt2}
+                      onClick={() => toggleThresholdReference("practicalLt2")}
+                    >
+                      LT2 práctico
+                    </HoverMetaPill>
+                  ) : null}
+                  {plotLt1RealX !== null ? (
+                    <HoverMetaPill
+                      className={`threshold-meta-pill line lt1-real ${thresholdReferenceVisibility.lt1Real ? "active" : "inactive"}`}
+                      tooltip={plotView.individualThresholds?.lt1_individual ? `LT1 Individual · ${disciplineKey === "ciclismo" ? `${Math.round(plotView.individualThresholds.lt1_individual.power_watts ?? 0)} W` : formatPace(plotView.individualThresholds.lt1_individual.pace_seconds_per_km ?? 0)} · ${plotView.individualThresholds.lt1_individual.lactate?.toFixed(2)} mmol/L · confianza ${((plotView.individualThresholds.lt1_individual.confidence ?? 0) * 100).toFixed(0)}%` : "LT1 Individual"}
+                      pressed={thresholdReferenceVisibility.lt1Real}
+                      onClick={() => toggleThresholdReference("lt1Real")}
+                    >
+                      LT1 Individual
+                    </HoverMetaPill>
+                  ) : null}
+                  {plotLt2RealX !== null ? (
+                    <HoverMetaPill
+                      className={`threshold-meta-pill line lt2-real ${thresholdReferenceVisibility.lt2Real ? "active" : "inactive"}`}
+                      tooltip={plotView.individualThresholds?.lt2_individual ? `LT2 Individual · ${disciplineKey === "ciclismo" ? `${Math.round(plotView.individualThresholds.lt2_individual.power_watts ?? 0)} W` : formatPace(plotView.individualThresholds.lt2_individual.pace_seconds_per_km ?? 0)} · ${plotView.individualThresholds.lt2_individual.lactate?.toFixed(2)} mmol/L · confianza ${((plotView.individualThresholds.lt2_individual.confidence ?? 0) * 100).toFixed(0)}%` : "LT2 Individual"}
+                      pressed={thresholdReferenceVisibility.lt2Real}
+                      onClick={() => toggleThresholdReference("lt2Real")}
+                    >
+                      LT2 Individual
+                    </HoverMetaPill>
+                  ) : null}
                 </div>
                 {disciplineKey === "ciclismo" && cyclingPowerSourceMode === "compare" ? (
                   plotView.comparePools.length ? (
@@ -2350,7 +4500,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                           }}
                           labelFormatter={(_, payload) => payload?.[0]?.payload?.name ?? "Umbral"}
                         />
-                        <Legend />
                         {plotView.comparePools.map((pool) => {
                           const thresholdPoints = [
                             pool.lt1
@@ -2367,7 +4516,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                                   lactate: pool.lt2.lactate,
                                 }
                               : null,
-                          ].filter(Boolean);
+                          ].filter(isDefined);
                           return (
                             <Scatter
                               key={pool.sourceKey}
@@ -2385,7 +4534,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                               x={pool.lt1.power_watts}
                               stroke={pool.color}
                               strokeDasharray="5 5"
-                              label={{ value: `${pool.label} LT1`, position: "insideTopLeft", fill: pool.color }}
                             />
                           ) : null,
                         )}
@@ -2396,7 +4544,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                               x={pool.lt2.power_watts}
                               stroke={pool.color}
                               strokeDasharray="2 6"
-                              label={{ value: `${pool.label} LT2`, position: "insideTopRight", fill: pool.color }}
                             />
                           ) : null,
                         )}
@@ -2405,7 +4552,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                   ) : (
                     <p className="muted">Aún no hay suficientes datos ciclistas para comparar potenciómetro exterior e interior.</p>
                   )
-                ) : plotView.plotData.length ? (
+                ) : plotView.pool.length ? (
                   <ResponsiveContainer width="100%" height={360}>
                     <ScatterChart margin={{ top: 16, right: 20, bottom: 16, left: 8 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
@@ -2419,90 +4566,104 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                       />
                       <YAxis type="number" dataKey="lactate" name="Lactato" unit=" mmol/L" domain={[0, "auto"]} />
                       <Tooltip
-                        formatter={(value: number, name: string) => {
-                          if (name === "x" || name === plotView.plotLabel) {
-                            if (disciplineKey === "ciclismo") {
-                              return `${Math.round(value)} W · ${formatWattsPerKg(value, athleteWeight)}`;
-                            }
-                            return formatPace(value);
-                          }
-                          return `${Math.round(value * 10) / 10} mmol/L`;
-                        }}
-                        labelFormatter={(_, payload) => payload?.[0]?.payload?.label ?? payload?.[0]?.payload?.name ?? "Muestra"}
+                        content={({ active, payload }) => customThresholdTooltip(active, payload as Array<{ payload?: Record<string, unknown> }> | undefined, disciplineKey, athleteWeight)}
                       />
-                      {plotView.lt1 && plotView.lt2 ? (
+                      {plotView.lt1 && plotView.lt2 && thresholdReferenceVisibility.lt1 && thresholdReferenceVisibility.lt2 ? (
                         <ReferenceArea
-                          x1={disciplineKey === "ciclismo" ? plotView.lt1.power_watts : plotView.lt1.pace_seconds_per_km}
-                          x2={disciplineKey === "ciclismo" ? plotView.lt2.power_watts : plotView.lt2.pace_seconds_per_km}
+                          x1={plotLt1X ?? undefined}
+                          x2={plotLt2X ?? undefined}
                           y1={Math.min(plotView.lt1.lactate ?? 0, plotView.lt2.lactate ?? 0)}
                           y2={Math.max(plotView.lt1.lactate ?? 0, plotView.lt2.lactate ?? 0)}
                           fill="rgba(210, 106, 54, 0.10)"
                           strokeOpacity={0}
                         />
                       ) : null}
-                      {(disciplineKey === "ciclismo" ? plotView.lt1?.power_watts : plotView.lt1?.pace_seconds_per_km) ? (
+                      {plotLt1X !== null && thresholdReferenceVisibility.lt1 ? (
                         <ReferenceLine
-                          x={disciplineKey === "ciclismo" ? plotView.lt1?.power_watts : plotView.lt1?.pace_seconds_per_km}
+                          x={plotLt1X}
                           stroke="#257a4d"
-                          strokeDasharray="6 6"
-                          label={{
-                            value: `LT1 · ${plotView.lt1?.heart_rate ?? "-"} bpm`,
-                            position: "insideTopLeft",
-                            fill: "#257a4d",
-                          }}
+                          strokeWidth={3}
+                          strokeDasharray={plotView.lt1 ? "10 4" : "4 6"}
                         />
                       ) : null}
-                      {(disciplineKey === "ciclismo" ? plotView.lt2?.power_watts : plotView.lt2?.pace_seconds_per_km) ? (
+                      {plotLt2X !== null && thresholdReferenceVisibility.lt2 ? (
                         <ReferenceLine
-                          x={disciplineKey === "ciclismo" ? plotView.lt2?.power_watts : plotView.lt2?.pace_seconds_per_km}
-                          stroke="#8d2e0f"
-                          strokeDasharray="6 6"
-                          label={{
-                            value: `LT2 · ${plotView.lt2?.heart_rate ?? "-"} bpm`,
-                            position: "insideTopRight",
-                            fill: "#8d2e0f",
-                          }}
+                          x={plotLt2X}
+                          stroke="#d26a36"
+                          strokeWidth={3}
+                          strokeDasharray={plotView.lt2 ? "10 4" : "4 6"}
                         />
                       ) : null}
-                      {plotView.lt1 && plotView.lt2 && plotView.vlamax ? (
-                        <ReferenceDot
-                          x={
-                            disciplineKey === "ciclismo"
-                              ? ((plotView.lt1.power_watts ?? 0) + (plotView.lt2.power_watts ?? 0)) / 2
-                              : ((plotView.lt1.pace_seconds_per_km ?? 0) + (plotView.lt2.pace_seconds_per_km ?? 0)) / 2
-                          }
-                          y={((plotView.lt1.lactate ?? 0) + (plotView.lt2.lactate ?? 0)) / 2}
-                          r={5}
-                          fill="#d26a36"
-                          stroke="white"
-                          label={{
-                            value: `VLAMAX ${estimateLabelValue(plotView.vlamax)}`,
-                            position: "top",
-                            fill: "#a2502a",
-                          }}
+                      {practicalThresholdPlotReferences.lt1 && thresholdReferenceVisibility.practicalLt1 ? (
+                        <ReferenceLine
+                          x={practicalThresholdPlotReferences.lt1}
+                          stroke="#2d8f5b"
+                          strokeWidth={2.6}
+                          strokeDasharray="2 7"
                         />
                       ) : null}
-                      {plotView.lt2 && plotView.vo2max ? (
-                        <ReferenceDot
-                          x={disciplineKey === "ciclismo" ? plotView.lt2.power_watts : plotView.lt2.pace_seconds_per_km}
-                          y={plotView.lt2.lactate}
-                          r={6}
-                          fill="#1d5c63"
-                          stroke="white"
-                          label={{
-                            value: `VO2max ${estimateLabelValue(plotView.vo2max)}`,
-                            position: "bottom",
-                            fill: "#1d5c63",
-                          }}
+                      {practicalThresholdPlotReferences.lt2 && thresholdReferenceVisibility.practicalLt2 ? (
+                        <ReferenceLine
+                          x={practicalThresholdPlotReferences.lt2}
+                          stroke="#d26a36"
+                          strokeWidth={2.6}
+                          strokeDasharray="2 7"
                         />
                       ) : null}
-                      <Scatter data={plotView.pool} fill="rgba(22, 53, 61, 0.18)" />
-                      {plotView.lt1 ? <Scatter data={plotView.plotData.filter((point) => point.name === "LT1")} fill="#257a4d" /> : null}
-                      {plotView.lt2 ? <Scatter data={plotView.plotData.filter((point) => point.name === "LT2")} fill="#8d2e0f" /> : null}
+                      {plotLt1RealX !== null && thresholdReferenceVisibility.lt1Real ? (
+                        <ReferenceLine
+                          x={plotLt1RealX}
+                          stroke="#1a5c3a"
+                          strokeWidth={2.5}
+                        />
+                      ) : null}
+                      {plotLt2RealX !== null && thresholdReferenceVisibility.lt2Real ? (
+                        <ReferenceLine
+                          x={plotLt2RealX}
+                          stroke="#8b3510"
+                          strokeWidth={2.5}
+                        />
+                      ) : null}
+                      {(() => {
+                        const peakPoint = plotView.peakPoint;
+                        return peakPoint ? (
+                          <>
+                            <ReferenceLine
+                              y={peakPoint.lactate}
+                              stroke="#b84a14"
+                              strokeWidth={1.5}
+                              strokeDasharray="3 4"
+                              label={{ value: `Pico ${peakPoint.lactate} mmol`, position: "insideTopRight", fontSize: 11, fill: "#b84a14" }}
+                            />
+                            <ReferenceDot
+                              x={peakPoint.x}
+                              y={peakPoint.lactate}
+                              r={8}
+                              fill="#b84a14"
+                              stroke="white"
+                              strokeWidth={2}
+                            />
+                          </>
+                        ) : null;
+                      })()}
+                      <Scatter data={plotView.pool} fill="rgba(22, 53, 61, 0.22)" />
+                      {plotView.lt1 ? <Scatter data={plotView.plotData.filter((point) => point.name === "LT1")} fill="#257a4d" shape="circle" /> : null}
+                      {plotView.lt2 ? <Scatter data={plotView.plotData.filter((point) => point.name === "LT2")} fill="#d26a36" shape="circle" /> : null}
+                      {thresholdReferenceVisibility.practicalLt1 ? <Scatter data={plotView.practicalPlotData.filter((point) => point.name === "LT1 práctico")} fill="#2d8f5b" shape="circle" /> : null}
+                      {thresholdReferenceVisibility.practicalLt2 ? <Scatter data={plotView.practicalPlotData.filter((point) => point.name === "LT2 práctico")} fill="#d26a36" shape="circle" /> : null}
+                      {plotView.peakPoint ? <Scatter data={[{ ...plotView.peakPoint, name: "Pico VLaMax" }]} fill="#b84a14" shape="circle" /> : null}
+                      {!plotView.lt1 && plotView.provisionalLt1 ? (
+                        <Scatter data={plotView.provisionalPlotData.filter((point) => point.name === "LT1 provisional")} fill="#257a4d" shape="star" />
+                      ) : null}
+                      {!plotView.lt2 && plotView.provisionalLt2 ? (
+                        <Scatter data={plotView.provisionalPlotData.filter((point) => point.name === "LT2 provisional")} fill="#d26a36" shape="star" />
+                      ) : null}
                     </ScatterChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="muted">Aún no hay LT1 y LT2 suficientes para {disciplineLabel(disciplineKey).toLowerCase()}.</p>
+                  <p className="muted">
+                    Aún no hay suficientes muestras de lactato para representar {disciplineLabel(disciplineKey).toLowerCase()}.
+                  </p>
                 )}
               </div>
             );
@@ -2510,700 +4671,554 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         </div>
       </section>
 
-      {activeDiscipline === "ciclismo" ? (
-        <section className="card cycling-cadence-card collapsible-card">
-          <details>
-            <summary className="collapsible-summary">
-              <div>
-                <span className="eyebrow">Cadencia y coste</span>
-                <h2>Evolución del lactato por franjas de cadencia</h2>
-                <p className="muted">
-                  Ábrelo para ver si las cadencias altas te cuestan menos lactato con el tiempo a potencia comparable.
-                </p>
+      <section id="goal-gap" className="card goal-movement-card athlete-detail-anchor">
+        <div className="card-header">
+          <div>
+            <span className="eyebrow">Objetivo activo</span>
+            <h2>Qué tiene que moverse para cumplirlo</h2>
+            <p className="muted">
+              Lectura aplicada a la disciplina visible ahora mismo. El bloque prioriza el objetivo más relevante guardado para esta disciplina.
+            </p>
+          </div>
+          <button className="ghost-button" type="button" onClick={() => setTargetsOverlayOpen(true)}>
+            {targetMovementInsight ? "Editar objetivo" : "Definir objetivo"}
+          </button>
+        </div>
+        {targetMovementInsight ? (
+          <>
+            <div className="goal-movement-summary">
+              <article className="goal-movement-kpi">
+                <span className="eyebrow">Objetivo</span>
+                <strong>{targetMovementInsight.targetValue}</strong>
+                <small>{targetMovementInsight.target.objective}</small>
+              </article>
+              <article className="goal-movement-kpi">
+                <span className="eyebrow">Referencia actual</span>
+                <strong>{targetMovementInsight.currentValue}</strong>
+                <small>{targetMovementInsight.contextLabel}</small>
+              </article>
+              <article className="goal-movement-kpi">
+                <span className="eyebrow">Gap</span>
+                <strong>{targetMovementInsight.gapLabel}</strong>
+                <small>Objetivo {formatDate(targetMovementInsight.target.target_date)}</small>
+              </article>
+            </div>
+
+            <div className={`goal-movement-banner ${targetMovementInsight.tone}`}>
+              <div className="status-head">
+                <strong>{targetMovementInsight.movementHeadline}</strong>
+                <span className={`status-badge ${targetMovementInsight.tone}`}>
+                  {targetMovementInsight.tone === "positive" ? "encaja" : targetMovementInsight.tone === "neutral" ? "cerca" : "gap"}
+                </span>
               </div>
-            </summary>
-            <div className="cycling-cadence-body">
-              <div className="card-header">
-                <div>
-                  <p className="muted">
-                    Compara cómo cambia el lactato en cada franja de cadencia cuando ruedas a una potencia parecida.
-                  </p>
+              <p>{targetMovementInsight.summary}</p>
+            </div>
+
+            <div className="goal-movement-grid">
+              {targetMovementInsight.focuses.map((focus) => (
+                <article key={`${focus.label}-${focus.current}-${focus.target ?? "na"}`} className={`goal-movement-focus-card ${focus.tone}`}>
+                  <div className="status-head">
+                    <span className="eyebrow">{focus.label}</span>
+                    <span className={`status-badge ${focus.tone}`}>{focus.tone === "positive" ? "ok" : focus.tone === "neutral" ? "vigilar" : "mover"}</span>
+                  </div>
+                  <strong>{focus.current}</strong>
+                  {focus.target ? <p>Objetivo fisiológico: {focus.target}</p> : null}
+                  {focus.delta ? <small>{focus.delta}</small> : null}
+                  <p className="goal-movement-copy">{focus.description}</p>
+                </article>
+              ))}
+            </div>
+
+            {targetMovementInsight.scenario ? (
+              <div className="goal-scenario-card">
+                <div className="goal-scenario-head">
+                  <div>
+                    <span className="eyebrow">Escenario objetivo</span>
+                    <strong>{targetMovementInsight.scenario.title}</strong>
+                  </div>
+                  <p className="muted">{targetMovementInsight.scenario.description}</p>
                 </div>
-                <div className="cycling-controls">
-                  <label>
-                    Potencia comparable
-                    <input
-                      type="number"
-                      min="0"
-                      step="5"
-                      value={comparableCyclingTarget}
-                      onChange={(event) => setCyclingPowerTarget(event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Tolerancia
-                    <input
-                      type="number"
-                      min="5"
-                      step="5"
-                      value={cyclingPowerTolerance}
-                      onChange={(event) => setCyclingPowerTolerance(event.target.value)}
-                    />
-                  </label>
+                <div className="goal-scenario-legend">
+                  <span>
+                    <i className="actual" />
+                    Actual
+                  </span>
+                  <span>
+                    <i className="target" />
+                    Objetivo
+                  </span>
                 </div>
-              </div>
-              <div className="cycling-cadence-summary">
-                {cyclingCadenceBandSummaries.length ? (
-                  cyclingCadenceBandSummaries.map((band) => (
-                    <article key={band.label} className="cycling-band-card" style={{ borderColor: `${band.color}55` }}>
-                      <span className="cycling-band-chip" style={{ backgroundColor: `${band.color}22`, color: band.color }}>
-                        {band.label} rpm
-                      </span>
-                      <strong>{band.average !== null ? `${band.average.toFixed(1)} mmol/L` : "-"}</strong>
-                      <p>{band.count} muestras comparables</p>
-                      <small>
-                        {band.averagePower !== null
-                          ? `Potencia media ${Math.round(band.averagePower)} W (${formatWattsPerKg(band.averagePower, athleteWeight)}) · rango ${Math.round(band.minPower ?? band.averagePower)}-${Math.round(band.maxPower ?? band.averagePower)} W`
-                          : "Sin potencia comparable suficiente"}
-                      </small>
-                      <small>
-                        {band.delta === null
-                          ? "Aún sin evolución suficiente"
-                          : band.delta < 0
-                            ? `${Math.abs(band.delta).toFixed(1)} mmol/L menos que al inicio`
-                            : `${band.delta.toFixed(1)} mmol/L más que al inicio`}
-                      </small>
-                    </article>
-                  ))
-                ) : (
-                  <p className="muted">Aún no hay suficientes muestras ciclistas con potencia y cadencia comparables.</p>
-                )}
-              </div>
-              {cyclingCadenceTrendData.length ? (
-                <div className="cycling-chart-stack">
-                  <ResponsiveContainer width="100%" height={320}>
-                    <LineChart data={cyclingCadenceTrendData} margin={{ top: 10, right: 20, left: 4, bottom: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
-                      <XAxis dataKey="date" />
-                      <YAxis unit=" mmol/L" domain={[0, "auto"]} />
-                      <Tooltip
-                        formatter={(value: number, name: string, item) => {
-                          const payload = item?.payload as Record<string, number | string | null> | undefined;
-                          const power = payload?.[`${name}__power`];
-                          if (typeof value !== "number") return value;
-                          if (typeof power === "number") {
-                            return [`${Math.round(value * 10) / 10} mmol/L · ${Math.round(power)} W`, name];
-                          }
-                          return [`${Math.round(value * 10) / 10} mmol/L`, name];
-                        }}
-                      />
-                      <Legend />
-                      {CYCLING_CADENCE_BANDS.map((band) => (
-                        <Line
-                          key={band.label}
-                          type="monotone"
-                          dataKey={band.label}
-                          name={`${band.label} rpm`}
-                          stroke={band.color}
-                          strokeWidth={2.4}
-                          dot={{ r: 3 }}
-                          connectNulls
-                        />
-                      ))}
-                    </LineChart>
-                  </ResponsiveContainer>
+                <div className="goal-scenario-chart">
                   <ResponsiveContainer width="100%" height={280}>
-                    <ScatterChart margin={{ top: 10, right: 20, left: 4, bottom: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
-                      <XAxis type="number" dataKey="cadence" name="Cadencia" unit=" rpm" domain={[60, "auto"]} />
-                      <YAxis type="number" dataKey="lactate" name="Lactato" unit=" mmol/L" domain={[0, "auto"]} />
-                      <Tooltip
-                        formatter={(value: number, name: string) => {
-                          if (name === "Cadencia") return `${Math.round(value)} rpm`;
-                          if (name === "Lactato") return `${Math.round(value * 10) / 10} mmol/L`;
-                          return `${value}`;
-                        }}
-                        labelFormatter={(_, payload) => {
-                          const point = payload?.[0]?.payload;
-                          return point ? `${point.date} · ${Math.round(point.power)} W · ${point.band} rpm` : "Muestra";
-                        }}
-                      />
-                      {CYCLING_CADENCE_BANDS.map((band) => (
-                        <Scatter
-                          key={band.label}
-                          name={band.label}
-                          data={cyclingScatterData.filter((point) => point.band === band.label)}
-                          fill={band.color}
-                          fillOpacity={0.65}
-                        >
-                          <LabelList
-                            dataKey="power"
-                            position="top"
-                            formatter={(value: number) => `${Math.round(value)}W`}
-                            style={{ fontSize: "0.7rem", fill: band.color, fontWeight: 700 }}
-                          />
-                        </Scatter>
-                      ))}
-                    </ScatterChart>
-                  </ResponsiveContainer>
-                  <div className="cycling-comparable-table">
-                  <div className="compact-row compact-head">
-                    <span>Fecha</span>
-                    <span>Banda</span>
-                    <span>W</span>
-                    <span>W/kg</span>
-                    <span>mmol</span>
-                    <span>Cadencia</span>
-                  </div>
-                    {cyclingComparableRows.map((entry, index) => (
-                      <div key={`${entry.session_id}-${entry.interval_label}-${index}`} className="compact-row">
-                        <span>{entry.session_date}</span>
-                        <span>{cadenceBandLabel(entry.cadence) ?? "-"}</span>
-                        <span>{entry.power_watts ? `${Math.round(entry.power_watts)} W` : "-"}</span>
-                        <span>{entry.power_watts ? formatWattsPerKg(entry.power_watts, athleteWeight) : "-"}</span>
-                        <span>{entry.lactate_mmol.toFixed(1)}</span>
-                        <span>{entry.cadence ? `${Math.round(entry.cadence)} rpm` : "-"}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </details>
-        </section>
-      ) : null}
-
-      {activeDiscipline === "ciclismo" ? (
-        <section className="card collapsible-card">
-          <details>
-            <summary className="collapsible-summary">
-              <div>
-                <span className="eyebrow">W/kg, lactato y FC</span>
-                <h2>Histórico por franjas 80-95 rpm</h2>
-                <p className="muted">
-                  Ábrelo para ver la evolución temporal del coste fisiológico en las franjas de cadencia más relevantes.
-                </p>
-              </div>
-            </summary>
-            <div className="cycling-cadence-body">
-              {cyclingEfficiencyHistoryData.length ? (
-                <ResponsiveContainer width="100%" height={340}>
-                  <ComposedChart data={cyclingEfficiencyHistoryData} margin={{ top: 12, right: 24, left: 4, bottom: 12 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
-                    <XAxis dataKey="sessionDate" />
-                    <YAxis yAxisId="lactate" unit=" mmol/L" domain={[0, "auto"]} />
-                    <YAxis yAxisId="fc" orientation="right" unit=" bpm" domain={["auto", "auto"]} />
-                    <Tooltip
-                      formatter={(value: number, name: string) => {
-                        if (name === "Lactato") return `${Math.round(value * 10) / 10} mmol/L`;
-                        if (name === "FC") return `${Math.round(value)} bpm`;
-                        return `${value}`;
-                      }}
-                      labelFormatter={(_, payload) => {
-                        const point = payload?.[0]?.payload as typeof cyclingEfficiencyHistoryData[number] | undefined;
-                        return point
-                          ? `${point.sessionDate} · ${point.intervalLabel} · ${point.cadence ? `${Math.round(point.cadence)} rpm` : "cadencia n/d"} · ${point.wattsPerKg} W/kg`
-                          : "Muestra";
-                      }}
-                    />
-                    <Legend />
-                    <Line yAxisId="lactate" type="monotone" dataKey="lactate" name="Lactato" stroke="#c07a18" strokeWidth={2.4} dot={false} connectNulls />
-                    <Line yAxisId="fc" type="monotone" dataKey="heartRate" name="FC" stroke="#1d5c63" strokeWidth={2.2} dot={false} connectNulls />
-                    {CYCLING_HISTORY_CADENCE_BANDS.map((band) => (
-                      <Scatter
-                        key={band.label}
-                        yAxisId="lactate"
-                        name={`${band.label} rpm`}
-                        data={cyclingEfficiencyHistoryData.filter((point) => point.cadenceBand === band.label)}
-                        fill={band.color}
-                        fillOpacity={0.75}
-                      >
-                        <LabelList
-                          dataKey="wattsPerKg"
-                          position="top"
-                          formatter={(value: number | null) => (value ? `${value}` : "")}
-                          style={{ fontSize: "0.68rem", fill: band.color, fontWeight: 700 }}
-                        />
-                      </Scatter>
-                    ))}
-                  </ComposedChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="muted">Aún no hay suficientes muestras entre 80 y 95 rpm con lactato y potencia para esta vista.</p>
-              )}
-            </div>
-          </details>
-        </section>
-      ) : null}
-
-      {activeDiscipline === "ciclismo" ? (
-        <section className="card collapsible-card">
-          <details>
-            <summary className="collapsible-summary">
-              <div>
-                <span className="eyebrow">Potencia y umbrales</span>
-                <h2>Relación entre picos de potencia y lactato</h2>
-                <p className="muted">
-                  Ábrelo para ver cada potencia medida con su lactato y dónde cae respecto a LT1 y LT2.
-                </p>
-              </div>
-            </summary>
-            <div className="cycling-cadence-body">
-              <div className="threshold-overview">
-                <article className="threshold-legend-card lt1">
-                  <span className="threshold-dot lt1" />
-                  <div>
-                    <strong>Referencia LT1</strong>
-                    <small>{lt1 ? thresholdDetailLine(lt1, "ciclismo", athleteWeight) : "Sin LT1 ciclista"}</small>
-                  </div>
-                </article>
-                <article className="threshold-legend-card lt2">
-                  <span className="threshold-dot lt2" />
-                  <div>
-                    <strong>Referencia LT2</strong>
-                    <small>{lt2 ? thresholdDetailLine(lt2, "ciclismo", athleteWeight) : "Sin LT2 ciclista"}</small>
-                  </div>
-                </article>
-              </div>
-              {cyclingThresholdPlotData.length ? (
-                <div className="cycling-threshold-visual">
-                  {cyclingThresholdLt1FocusData.length ? (
-                    <div className="cycling-threshold-focus">
-                      <div className="card-header">
-                        <div>
-                          <span className="eyebrow">Zoom LT1</span>
-                          <h3>Zona cercana a LT1</h3>
-                          <p className="muted">
-                            Vista ampliada de las muestras dentro de {lt1FocusWindow} W alrededor de LT1 para distinguir mejor esa zona.
-                          </p>
-                        </div>
-                      </div>
-                      <ResponsiveContainer width="100%" height={260}>
-                        <ScatterChart margin={{ top: 12, right: 24, left: 4, bottom: 12 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
-                          <XAxis
-                            type="number"
-                            dataKey="power"
-                            name="Potencia"
-                            unit=" W"
-                            domain={
-                              lt1FocusPowerMin !== null && lt1FocusPowerMax !== null
-                                ? [Math.max(0, lt1FocusPowerMin - 5), lt1FocusPowerMax + 5]
-                                : ["auto", "auto"]
-                            }
-                          />
-                          <YAxis
-                            type="number"
-                            dataKey="lactate"
-                            name="Lactato"
-                            unit=" mmol/L"
-                            domain={
-                              lt1FocusLactateMin !== null && lt1FocusLactateMax !== null
-                                ? [Math.max(0, lt1FocusLactateMin - 0.25), lt1FocusLactateMax + 0.25]
-                                : [0, "auto"]
-                            }
-                          />
-                          {lt1?.power_watts ? (
-                            <ReferenceLine
-                              x={lt1.power_watts}
-                              stroke="#257a4d"
-                              strokeDasharray="6 6"
-                              label={{ value: `LT1 ${Math.round(lt1.power_watts)} W`, position: "insideTopLeft", fill: "#257a4d" }}
-                            />
-                          ) : null}
-                          <Tooltip
-                            formatter={(value: number, name: string, payload) => {
-                              const point = payload?.payload as typeof cyclingThresholdPlotData[number] | undefined;
-                              if (name === "Potencia") {
-                                return point ? `${Math.round(value)} W · ${point.wattsPerKg ?? "-"} W/kg` : `${Math.round(value)} W`;
-                              }
-                              return `${Math.round(value * 10) / 10} mmol/L`;
-                            }}
-                            labelFormatter={(_, payload) => {
-                              const point = payload?.[0]?.payload as typeof cyclingThresholdPlotData[number] | undefined;
-                              return point
-                                ? `${point.sessionDate} · ${point.intervalLabel} · ${Math.round(point.power)} W · ${point.wattsPerKg ?? "-"} W/kg · ${point.lactate.toFixed(1)} mmol/L · ${point.cadence ? `${Math.round(point.cadence)} rpm` : "cadencia n/d"}`
-                                : "Muestra";
-                            }}
-                          />
-                          <Scatter data={cyclingThresholdLt1FocusData} fill="#257a4d" fillOpacity={0.85} />
-                        </ScatterChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : null}
-                  <ResponsiveContainer width="100%" height={320}>
-                    <ScatterChart margin={{ top: 12, right: 24, left: 4, bottom: 12 }}>
+                    <ScatterChart margin={{ top: 16, right: 20, bottom: 12, left: 8 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
                       <XAxis
                         type="number"
-                        dataKey="power"
-                        name="Potencia"
-                        unit=" W"
-                        domain={
-                          thresholdPowerMin !== null && thresholdPowerMax !== null
-                            ? [Math.max(0, thresholdPowerMin - 10), thresholdPowerMax + 10]
-                            : ["auto", "auto"]
-                        }
+                        dataKey="x"
+                        name={targetMovementInsight.scenario.xLabel}
+                        reversed={targetMovementInsight.scenario.reversed}
+                        domain={["auto", "auto"]}
+                        tickFormatter={(value) => (activeDiscipline === "ciclismo" ? `${Math.round(value)}W` : formatPace(value))}
                       />
                       <YAxis
                         type="number"
                         dataKey="lactate"
                         name="Lactato"
                         unit=" mmol/L"
-                        domain={
-                          thresholdLactateMin !== null && thresholdLactateMax !== null
-                            ? [Math.max(0, thresholdLactateMin - 0.4), thresholdLactateMax + 0.4]
-                            : [0, "auto"]
+                        domain={[1.6, 4.4]}
+                        ticks={[2, 3.1, 4]}
+                      />
+                      <Tooltip
+                        content={({ active, payload }) =>
+                          customGoalScenarioTooltip(
+                            active,
+                            payload as Array<{ payload?: Record<string, unknown> }> | undefined,
+                            activeDiscipline,
+                            athleteWeight,
+                          )
                         }
                       />
-                      {lt1?.power_watts ? (
-                        <ReferenceLine
-                          x={lt1.power_watts}
-                          stroke="#257a4d"
-                          strokeDasharray="6 6"
-                          label={{ value: `LT1 ${Math.round(lt1.power_watts)} W`, position: "insideTopLeft", fill: "#257a4d" }}
-                        />
-                      ) : null}
-                      {lt2?.power_watts ? (
-                        <ReferenceLine
-                          x={lt2.power_watts}
-                          stroke="#8d2e0f"
-                          strokeDasharray="6 6"
-                          label={{ value: `LT2 ${Math.round(lt2.power_watts)} W`, position: "insideTopRight", fill: "#8d2e0f" }}
-                        />
-                      ) : null}
-                      <Tooltip
-                        formatter={(value: number, name: string, payload) => {
-                          const point = payload?.payload as typeof cyclingThresholdPlotData[number] | undefined;
-                          if (name === "Potencia") {
-                            return point ? `${Math.round(value)} W · ${point.wattsPerKg ?? "-"} W/kg` : `${Math.round(value)} W`;
-                          }
-                          return `${Math.round(value * 10) / 10} mmol/L`;
-                        }}
-                        labelFormatter={(_, payload) => {
-                          const point = payload?.[0]?.payload as typeof cyclingThresholdPlotData[number] | undefined;
-                          return point
-                            ? `${point.sessionDate} · ${point.intervalLabel} · ${Math.round(point.power)} W · ${point.wattsPerKg ?? "-"} W/kg · ${point.lactate.toFixed(1)} mmol/L · ${point.cadence ? `${Math.round(point.cadence)} rpm` : "cadencia n/d"} · ${point.relation}`
-                            : "Muestra";
-                        }}
+                      <Scatter
+                        name="Actual"
+                        data={targetMovementInsight.scenario.points.filter((point) => point.series === "Actual")}
+                        fill="#16353d"
+                        line={{ stroke: "#16353d", strokeWidth: 2 }}
                       />
-                      <Scatter data={cyclingThresholdPlotData} fill="#c07a18" fillOpacity={0.82} />
+                      <Scatter
+                        name="Objetivo"
+                        data={targetMovementInsight.scenario.points.filter((point) => point.series === "Objetivo")}
+                        fill="#d26a36"
+                        line={{ stroke: "#d26a36", strokeWidth: 2, strokeDasharray: "6 4" }}
+                      />
                     </ScatterChart>
                   </ResponsiveContainer>
-                  <div className="cycling-threshold-cards">
-                    {cyclingThresholdPlotData.slice(0, 8).map((point) => (
-                      <article key={point.id} className="cycling-threshold-card">
-                        <strong>{Math.round(point.power)} W</strong>
-                        <p>{point.wattsPerKg ?? "-"} W/kg · {point.lactate.toFixed(1)} mmol/L</p>
-                        <small>{point.sessionDate} · {point.intervalLabel} · {point.cadence ? `${Math.round(point.cadence)} rpm` : "cadencia n/d"}</small>
-                        <small>{point.relation}</small>
-                      </article>
-                    ))}
-                  </div>
                 </div>
-              ) : (
-                <p className="muted">Aún no hay muestras ciclistas suficientes con potencia y lactato.</p>
-              )}
+              </div>
+            ) : null}
+
+            {targetMovementInsight.notes.length ? (
+              <div className="goal-movement-notes">
+                {targetMovementInsight.notes.map((note, index) => (
+                  <div key={`${note}-${index}`} className="goal-movement-note">
+                    <span className="caution-eyebrow">Nota</span>
+                    <p>{note}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="goal-movement-empty">
+            <strong>Sin objetivo específico para esta disciplina</strong>
+            <p>
+              Guarda un objetivo de running, ciclismo o triatlón y este bloque te dirá qué ancla fisiológica tiene que moverse primero para acercarte.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {activeDiscipline === "ciclismo" ? (
+        <section id="cycling-insights" className="cycling-insights-row athlete-detail-anchor">
+          <section className="card cycling-insight-card">
+            <div className="cycling-insight-head">
+              <div>
+                <span className="eyebrow">Cadencia y coste</span>
+                <h2>Evolución por cadencia</h2>
+                <p className="muted">Compara el lactato por bandas de cadencia a potencia parecida.</p>
+              </div>
+              <button className="ghost-button" type="button" onClick={() => setExpandedCyclingPanel("cadence")}>
+                Ampliar
+              </button>
             </div>
-          </details>
+            {renderCyclingCadenceEvolution(false)}
+          </section>
+
+          <section className="card cycling-insight-card">
+            <div className="cycling-insight-head">
+              <div>
+                <span className="eyebrow">W/kg, lactato y FC</span>
+                <h2>Histórico 80-95 rpm</h2>
+                <p className="muted">Sigue el coste fisiológico reciente de esa franja.</p>
+              </div>
+              <button className="ghost-button" type="button" onClick={() => setExpandedCyclingPanel("history")}>
+                Ampliar
+              </button>
+            </div>
+            {renderCyclingCadenceHistory(false)}
+          </section>
+
+          <section className="card cycling-insight-card">
+            <div className="cycling-insight-head">
+              <div>
+                <span className="eyebrow">Potencia y umbrales</span>
+                <h2>Potencia vs lactato</h2>
+                <p className="muted">Ubica cada muestra respecto a LT1 y LT2.</p>
+              </div>
+              <button className="ghost-button" type="button" onClick={() => setExpandedCyclingPanel("threshold")}>
+                Ampliar
+              </button>
+            </div>
+            {renderCyclingThresholdRelation(false)}
+          </section>
         </section>
       ) : null}
 
-      <section className="card athlete-form-card collapsible-card">
-        <details>
-          <summary className="collapsible-summary">
-            <div>
-              <span className="eyebrow">Registro manual</span>
-              <h2>Añadir datos de lactato</h2>
-              <p className="muted">Ábrelo solo cuando necesites registrar una sesión rápida en pista o entrenamiento.</p>
-            </div>
-          </summary>
-          <form className="session-form" onSubmit={handleSubmit}>
-          <label>
-            Fecha y hora
-            <input type="datetime-local" value={performedAt} onChange={(event) => setPerformedAt(event.target.value)} required />
-          </label>
-          <label>
-            Disciplina
-            <select value={discipline} onChange={(event) => setDiscipline(event.target.value)}>
-              <option value="running">Running</option>
-              <option value="ciclismo">Ciclismo</option>
-              <option value="natación">Natación</option>
-              <option value="triatlón">Triatlón</option>
-            </select>
-          </label>
-          <label>
-            Tipo de sesión
-            <select value={sessionType} onChange={(event) => setSessionType(event.target.value)}>
-              <option value="test incremental">Test incremental</option>
-              <option value="sesión LT1">Sesión LT1</option>
-              <option value="sesión LT2">Sesión LT2</option>
-              <option value="VO2max">VO2max</option>
-              <option value="continuo">Continuo</option>
-              <option value="progresivo">Progresivo</option>
-              <option value="intervalos">Intervalos</option>
-              <option value="competición">Competición</option>
-              <option value="recuperación">Recuperación</option>
-            </select>
-          </label>
-          {discipline === "ciclismo" ? (
-            <label>
-              Potenciómetro
-              <select value={sessionPowerSource} onChange={(event) => setSessionPowerSource(event.target.value)}>
-                <option value="outdoor">Potenciómetro de a pie</option>
-                <option value="indoor">Potenciómetro de interior</option>
-              </select>
-            </label>
-          ) : null}
-          <label className="full-width">
-            Objetivo
-            <input value={goal} onChange={(event) => setGoal(event.target.value)} required />
-          </label>
-          <label>
-            Superficie
-            <input value={surface} onChange={(event) => setSurface(event.target.value)} />
-          </label>
-          <label>
-            Temperatura
-            <input type="number" step="0.1" value={temperature} onChange={(event) => setTemperature(event.target.value)} />
-          </label>
-          <label>
-            Número de bloques
-            <input type="number" min="1" value={blocksCount} onChange={(event) => applyBlocksCount(event.target.value)} />
-          </label>
-          <label className="full-width">
-            Comentarios
-            <textarea rows={3} value={comments} onChange={(event) => setComments(event.target.value)} />
-          </label>
-
-          <div className="full-width interval-stack">
-            {intervals.map((interval, index) => (
-              <div key={index} className="card interval-card">
-                <div className="card-header">
-                  <h3>Bloque {index + 1}</h3>
-                  <span className="muted">Configurado desde el número de bloques</span>
-                </div>
-                <div className="session-form">
-                  <label>
-                    Unidad duración
-                    <select
-                      value={interval.duration_mode}
-                      onChange={(event) => updateInterval(index, "duration_mode", event.target.value as "seconds" | "km")}
-                      disabled={discipline !== "running"}
-                    >
-                      <option value="seconds">Segundos</option>
-                      {discipline === "running" ? <option value="km">Kilómetros</option> : null}
-                    </select>
-                  </label>
-                  <label>
-                    Duración
-                    <input type="number" step="0.1" value={interval.duration_value} onChange={(event) => updateInterval(index, "duration_value", event.target.value)} required />
-                  </label>
-                  <label>
-                    Descanso
-                    <input type="number" value={interval.rest_seconds} onChange={(event) => updateInterval(index, "rest_seconds", event.target.value)} />
-                  </label>
-                  <label>
-                    Lactato
-                    <div className="sample-row">
-                      <label className="checkbox-row">
-                        <input type="checkbox" checked={interval.sampled} onChange={(event) => updateIntervalBoolean(index, event.target.checked)} />
-                        <span>Tomar muestra</span>
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={interval.lactate_mmol}
-                        onChange={(event) => updateInterval(index, "lactate_mmol", event.target.value)}
-                        disabled={!interval.sampled}
-                      />
-                    </div>
-                  </label>
-                  <label>
-                    Retraso muestra (s)
-                    <input
-                      type="number"
-                      value={interval.sample_delay_seconds}
-                      onChange={(event) => updateInterval(index, "sample_delay_seconds", event.target.value)}
-                      disabled={!interval.sampled}
-                      placeholder="Opcional"
-                    />
-                  </label>
-                  <label>
-                    FC media
-                    <input type="number" value={interval.heart_rate_avg} onChange={(event) => updateInterval(index, "heart_rate_avg", event.target.value)} placeholder="Opcional" />
-                  </label>
-                  <label>
-                    {discipline === "ciclismo" ? "Potencia media (W)" : "Ritmo medio (min/km)"}
-                    {discipline === "ciclismo" ? (
-                      <input
-                        type="number"
-                        step="1"
-                        min="0"
-                        value={interval.power_watts}
-                        onChange={(event) => updateInterval(index, "power_watts", event.target.value)}
-                        placeholder="250"
-                      />
-                    ) : (
-                      <input
-                        value={interval.pace_min_per_km}
-                        onChange={(event) => updateInterval(index, "pace_min_per_km", event.target.value)}
-                        placeholder="03:30"
-                        pattern="\d{1,2}:\d{2}"
-                      />
-                    )}
-                  </label>
-                  <label>
-                    Cadencia media
-                    <input type="number" value={interval.cadence} onChange={(event) => updateInterval(index, "cadence", event.target.value)} placeholder="Opcional" />
-                  </label>
-                  <label>
-                    FC máxima
-                    <input type="number" value={interval.heart_rate_max} onChange={(event) => updateInterval(index, "heart_rate_max", event.target.value)} placeholder="Opcional" />
-                  </label>
-                  <label>
-                    RPE
-                    <input type="number" min="0" max="10" step="0.5" value={interval.rpe} onChange={(event) => updateInterval(index, "rpe", event.target.value)} placeholder="Opcional" />
-                  </label>
-                </div>
-              </div>
-            ))}
+      {dynamicThresholds ? (
+        <section id="dynamic-references" className="card section-card athlete-detail-anchor">
+          <div className="section-heading compact">
+            <span className="eyebrow">Lectura operativa</span>
+            <h2 className="section-title">Referencias dinámicas</h2>
           </div>
-          {saveError ? <p className="error full-width">{saveError}</p> : null}
-          {saveMessage ? <p className="full-width">{saveMessage}</p> : null}
-          <div className="button-row full-width">
-            <button className="primary-button" type="submit" disabled={saving}>
-              {saving ? "Guardando..." : "Guardar sesión de lactato"}
-            </button>
-          </div>
-          </form>
-        </details>
-      </section>
-
-      <section className="card">
-        <div>
-          <h2>Umbrales</h2>
-          <div className="compact-table">
+          <div className="compact-table dynamic-reference-table">
             <div className="compact-row compact-head">
-              <span>Zona</span>
-                <span>{activeDiscipline === "ciclismo" ? "Potencia" : "Ritmo"}</span>
-                <span>Lactato</span>
-                <span>FC</span>
-                <span>Conf.</span>
-              </div>
-            {displayView.thresholds.map((threshold) => (
-              <div key={threshold.name} className="compact-row">
-                <strong>{threshold.name}</strong>
-                <span>{thresholdPrimaryValue(threshold, activeDiscipline, athleteWeight)}</span>
-                <span>{threshold.lactate?.toFixed(1) ?? "-"}</span>
-                <span>{threshold.heart_rate ?? "-"}</span>
-                <span>{Math.round(threshold.confidence * 100)}%</span>
+              <span>Referencia</span>
+              <span>{activeDiscipline === "ciclismo" ? "Potencia" : "Ritmo"}</span>
+              <span>FC</span>
+              <span>Fiabilidad</span>
+            </div>
+            {chronicDynamicReferenceRows.map(({ label, reference }) => (
+              <div key={label} className="compact-row">
+                <strong>{label}</strong>
+                <span>{dynamicReferencePrimaryValue(reference, activeDiscipline)}</span>
+                <span className="dynamic-secondary-cell">{dynamicReferenceSecondaryValue(reference)}</span>
+                <span>{reference ? `${Math.round(reference.reliability_score * 100)}%` : "-"}</span>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+          <p className="muted dynamic-footnote" style={{ marginTop: 12 }}>
+            Basal actual: {dynamicThresholds.current_baseline_lactate?.toFixed(2) ?? "-"} mmol · {formatBaselineSource(dynamicThresholds.current_baseline_source)}
+            {dynamicThresholds.current_baseline_state ? ` · estado ${formatBaselineState(dynamicThresholds.current_baseline_state)}` : ""}
+            {typeof dynamicThresholds.current_baseline_delta_from_history === "number"
+              ? ` · Δ histórico ${dynamicThresholds.current_baseline_delta_from_history >= 0 ? "+" : ""}${dynamicThresholds.current_baseline_delta_from_history.toFixed(2)}`
+              : ""}
+          </p>
+          <p className="muted dynamic-footnote">
+            LT1 relativo orientativo: {dynamicThresholds.lt1_relative_target_lactate?.toFixed(2) ?? "-"} mmol. Estas referencias no sustituyen un umbral definitivo.
+          </p>
+        </section>
+      ) : null}
 
-      <section className="card split-card">
-        <div>
-          <h2>Estimaciones</h2>
-          <div className="list estimate-grid">
-            {displayView.estimates.map((estimate, index) => {
-              const raceSummary = racePredictionSummary(estimate);
-              return (
-                <div
-                  key={`${estimate.estimate_type}-${estimate.discipline}-${estimate.valid_on ?? "na"}-${index}`}
-                  className="list-item estimate-card"
-                >
-                  <strong>{estimate.estimate_type}</strong>
-                  {raceSummary ? (
-                    <>
-                      <p className="estimate-main">{raceSummary.pace}</p>
-                      <p>Tiempo estimado: {raceSummary.totalTime}</p>
-                      <p>IC tiempo: {raceSummary.lowerTime} - {raceSummary.upperTime}</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="estimate-main">
-                        {estimate.value} {estimate.unit}
-                      </p>
-                      <p>
-                        IC: {formatValue(estimate.lower_bound, estimate.unit)} - {formatValue(estimate.upper_bound, estimate.unit)}
-                      </p>
-                    </>
-                  )}
-                  <span className={`status-badge ${estimate.reliability_label}`}>{estimate.reliability_label}</span>
+      {dynamicThresholds ? (
+        <section className="card section-card">
+          <div className="section-heading compact">
+            <span className="eyebrow">Temporalidad</span>
+            <h2 className="section-title">Agudo vs crónico</h2>
+          </div>
+          <div className="temporal-grid">
+            <div className="list-item temporal-card">
+              <strong className="info-line">Modelo agudo <InfoHint label="Usa la ventana corta del modelo, pensada para reflejar el estado reciente del atleta. Sirve para detectar fatiga, pico de forma o cambios rápidos." /></strong>
+              <p>Ventana: {dynamicThresholds.acute.based_on_days} días · {dynamicThresholds.acute.sessions_considered} sesiones</p>
+              <div className="temporal-bar-stack">
+                {[
+                  { label: "Confianza", value: dynamicThresholds.acute.confidence_score, tone: "neutral" },
+                  { label: "Fiabilidad", value: dynamicThresholds.acute.reliability_score, tone: "positive" },
+                  { label: "Validez", value: dynamicThresholds.acute.validity_score, tone: "warning" },
+                ].map((item) => (
+                  <div key={`acute-${item.label}`} className="temporal-bar-group">
+                    <div className="temporal-bar-head">
+                      <span>{item.label}</span>
+                      <strong>{Math.round(item.value * 100)}%</strong>
+                    </div>
+                    <div className="temporal-bar-track">
+                      <div className={`temporal-bar-fill ${item.tone}`} style={{ width: `${Math.max(0, Math.min(100, item.value * 100))}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="list-item temporal-card">
+              <strong className="info-line">Modelo crónico <InfoHint label="Usa una ventana más larga para describir la referencia más estable del atleta. Ayuda a separar tendencia real de ruido de pocas sesiones." /></strong>
+              <p>Ventana: {dynamicThresholds.chronic.based_on_days} días · {dynamicThresholds.chronic.sessions_considered} sesiones</p>
+              <div className="temporal-bar-stack">
+                {[
+                  { label: "Confianza", value: dynamicThresholds.chronic.confidence_score, tone: "neutral" },
+                  { label: "Fiabilidad", value: dynamicThresholds.chronic.reliability_score, tone: "positive" },
+                  { label: "Validez", value: dynamicThresholds.chronic.validity_score, tone: "warning" },
+                ].map((item) => (
+                  <div key={`chronic-${item.label}`} className="temporal-bar-group">
+                    <div className="temporal-bar-head">
+                      <span>{item.label}</span>
+                      <strong>{Math.round(item.value * 100)}%</strong>
+                    </div>
+                    <div className="temporal-bar-track">
+                      <div className={`temporal-bar-fill ${item.tone}`} style={{ width: `${Math.max(0, Math.min(100, item.value * 100))}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="list-item temporal-card temporal-comparison-card">
+              <strong className="info-line">Lectura comparativa <InfoHint label="Compara modelo agudo y crónico. Si el agudo se separa mucho, puede haber mejora puntual, fatiga reciente o sesiones poco comparables." /></strong>
+              <p>{dynamicThresholds.comparison.summary}</p>
+              <div className="temporal-bar-stack">
+                <div className="temporal-bar-group">
+                  <div className="temporal-bar-head">
+                    <span>
+                      Efecto muestral <InfoHint label="Expresa cuánto respaldo tiene la referencia por volumen de datos. Cuanto más alto, menos depende de unas pocas muestras." />
+                    </span>
+                    <strong>{Math.round(dynamicThresholds.chronic.sample_size_effect * 100)}%</strong>
+                  </div>
+                  <div className="temporal-bar-track">
+                    <div className="temporal-bar-fill positive" style={{ width: `${Math.max(0, Math.min(100, dynamicThresholds.chronic.sample_size_effect * 100))}%` }} />
+                  </div>
                 </div>
+                <div className="temporal-bar-group">
+                  <div className="temporal-bar-head">
+                    <span>
+                      Influencia de punto nuevo <InfoHint label="Expresa cuánto podría moverse el modelo si añades una nueva muestra comparable. Cuanto más bajo, más estable es la referencia actual." />
+                    </span>
+                    <strong>{Math.round(dynamicThresholds.chronic.point_influence_score * 100)}%</strong>
+                  </div>
+                  <div className="temporal-bar-track">
+                    <div className="temporal-bar-fill negative" style={{ width: `${Math.max(0, Math.min(100, dynamicThresholds.chronic.point_influence_score * 100))}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {dynamicThresholds ? (
+        <section className="card split-card">
+          <div>
+            <details className="insight-disclosure">
+              <summary className="insight-disclosure-summary">
+                <div>
+                  <span className="eyebrow">Lectura guiada</span>
+                  <h2 className="section-title">Cautelas</h2>
+                </div>
+                <small>{dynamicWarningCards.length ? `${dynamicWarningCards.length} avisos` : "Sin avisos"}</small>
+              </summary>
+              <div className="list caution-list insight-disclosure-body">
+                {dynamicWarningCards.length ? (
+                  dynamicWarningCards.map((warning) => (
+                    <div key={warning.title} className={`list-item caution-card ${warning.tone}`}>
+                      <span className="caution-eyebrow">{warning.eyebrow}</span>
+                      <strong>{warning.title}</strong>
+                      <p>{warning.body}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="muted">Sin warnings adicionales para esta ventana.</p>
+                )}
+              </div>
+            </details>
+          </div>
+          <div>
+            <details className="insight-disclosure">
+              <summary className="insight-disclosure-summary">
+                <div>
+                  <span className="eyebrow">Trazabilidad</span>
+                  <h2 className="section-title">Cómo se ha calculado</h2>
+                </div>
+                <small>{Math.min(dynamicThresholds.explanation.length, 8)} pasos</small>
+              </summary>
+              <div className="list explanation-list insight-disclosure-body">
+                {dynamicThresholds.explanation.slice(0, 8).map((item, index) => (
+                  <div key={`${item}-${index}`} className="list-item explanation-card">
+                    <span className="explanation-step">{index + 1}</span>
+                    <div className="explanation-copy">
+                      <p>{item}</p>
+                      <small className="explanation-help">
+                        {explainTechnicalItem(item)}
+                        <InfoHint label={explainTechnicalItem(item)} />
+                      </small>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        </section>
+      ) : null}
+
+      <section id="estimates" className="card section-card athlete-detail-anchor">
+        <div className="section-heading compact">
+          <span className="eyebrow">Estimaciones</span>
+          <h2 className="section-title">Referencias estimadas</h2>
+        </div>
+        {relevantEstimates.length > 1 ? (
+          <div className="estimate-selector-strip">
+            {relevantEstimates.map((estimate) => {
+              const raceSummary = racePredictionSummary(estimate);
+              const compactValue = raceSummary
+                ? raceSummary.totalTime
+                : estimate.estimate_type === "FTP" && estimate.unit === "W"
+                  ? formatPowerWithWeight(estimate.value, athleteWeight)
+                  : `${Math.round(estimate.value * 10) / 10} ${estimate.unit}`;
+              return (
+                <button
+                  key={`estimate-picker-${estimate.estimate_type}-${estimate.discipline}-${estimate.valid_on ?? "na"}`}
+                  type="button"
+                  className={`estimate-selector-card ${selectedRelevantEstimate?.estimate_type === estimate.estimate_type ? "active" : ""}`}
+                  onClick={() => setSelectedEstimateType(estimate.estimate_type)}
+                >
+                  <span className="eyebrow">{estimate.estimate_type}</span>
+                  <strong>{compactValue}</strong>
+                  <small>{estimate.discipline ? disciplineLabel(estimate.discipline) : "Referencia global"}</small>
+                </button>
               );
             })}
           </div>
-        </div>
-        <div>
-          <h2>Confianza</h2>
-          <div className="list">
-            {analysis.confidence_summary.length ? (
-              analysis.confidence_summary.map((item) => (
-                <div key={item.label} className={`list-item confidence-card ${item.level}`}>
-                  <strong>{item.label}</strong>
-                  <p>{Math.round(item.score * 100)}%</p>
-                </div>
-              ))
-            ) : (
-              <p className="muted">No hay elementos de confianza calculados.</p>
-            )}
-          </div>
-        </div>
+        ) : null}
+        {selectedRelevantEstimate ? (
+          <>
+            <div className="list estimate-grid estimate-visual-grid">
+              {(() => {
+                const visual = estimateVisualRange(selectedRelevantEstimate, athleteWeight);
+                return (
+                  <div
+                    key={`${selectedRelevantEstimate.estimate_type}-${selectedRelevantEstimate.discipline}-${selectedRelevantEstimate.valid_on ?? "na"}`}
+                    className="list-item estimate-card estimate-card-featured"
+                  >
+                    <div className="status-head">
+                      <strong>{selectedRelevantEstimate.estimate_type}</strong>
+                      <span className={`status-badge ${selectedRelevantEstimate.reliability_label}`}>{selectedRelevantEstimate.reliability_label}</span>
+                    </div>
+                    <p className="estimate-main">{visual.primary}</p>
+                    <p>{visual.secondary}</p>
+                    <div className="estimate-range">
+                      <div className="estimate-range-track">
+                        <div className="estimate-range-fill" />
+                        <div className="estimate-range-marker" style={{ left: `${visual.position}%` }}>
+                          <span>{visual.markerLabel}</span>
+                        </div>
+                      </div>
+                      <div className="estimate-range-labels">
+                        <small>Conservador {visual.conservativeLabel}</small>
+                        <small>Mejor {visual.bestLabel}</small>
+                      </div>
+                    </div>
+                    <p className="estimate-summary">{selectedRelevantEstimate.inputs_summary}</p>
+                    <div className="estimate-support-strip">
+                      <small>{Math.round(selectedRelevantEstimate.confidence * 100)}% confianza</small>
+                      <small>{selectedRelevantEstimate.evidence_points} cortes</small>
+                      {selectedRelevantEstimate.agreement_score !== null && selectedRelevantEstimate.agreement_score !== undefined ? (
+                        <small>{Math.round(selectedRelevantEstimate.agreement_score * 100)}% acuerdo</small>
+                      ) : null}
+                      <small>{estimateMethodLabel(selectedRelevantEstimate.method_used)}</small>
+                      {selectedRelevantEstimate.primary_anchor ? <small>{estimateAnchorLabel(selectedRelevantEstimate.primary_anchor)}</small> : null}
+                    </div>
+                    {selectedRelevantEstimate.anchors?.length ? (
+                      <div className="estimate-anchor-grid">
+                        {selectedRelevantEstimate.anchors.map((anchor) => (
+                          <div key={`${anchor.label}-${anchor.unit}`} className="estimate-anchor-card">
+                            <span className="eyebrow">{anchor.label}</span>
+                            <strong>{formatValue(anchor.value, anchor.unit)}</strong>
+                            <small>{Math.round(anchor.confidence * 100)}% confianza</small>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    {selectedRelevantEstimate.range_summary ? <p className="estimate-range-summary">{selectedRelevantEstimate.range_summary}</p> : null}
+                  </div>
+                );
+              })()}
+            </div>
+            {(selectedRelevantEstimate.cautions?.length || selectedRelevantEstimate.calculation_steps?.length) ? (
+              <div className="estimate-insight-grid">
+                <details className="insight-disclosure">
+                  <summary className="insight-disclosure-summary">
+                    <div>
+                      <span className="eyebrow">Predicción</span>
+                      <h2 className="section-title">Cautelas</h2>
+                    </div>
+                    <small>{selectedRelevantEstimate.cautions?.length ?? 0} avisos</small>
+                  </summary>
+                  <div className="list caution-list insight-disclosure-body">
+                    {selectedRelevantEstimate.cautions?.length ? (
+                      selectedRelevantEstimate.cautions.map((item, index) => (
+                        <div key={`${item}-${index}`} className={`list-item caution-card ${selectedRelevantEstimate.low_evidence ? "warning" : "neutral"}`}>
+                          <span className="caution-eyebrow">Contexto</span>
+                          <strong>Cautela {index + 1}</strong>
+                          <p>{item}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="muted">Sin cautelas adicionales para esta estimación.</p>
+                    )}
+                  </div>
+                </details>
+                <details className="insight-disclosure">
+                  <summary className="insight-disclosure-summary">
+                    <div>
+                      <span className="eyebrow">Predicción</span>
+                      <h2 className="section-title">Cómo se ha calculado</h2>
+                    </div>
+                    <small>{selectedRelevantEstimate.calculation_steps?.length ?? 0} pasos</small>
+                  </summary>
+                  <div className="list explanation-list insight-disclosure-body">
+                    {selectedRelevantEstimate.calculation_steps?.length ? (
+                      selectedRelevantEstimate.calculation_steps.map((item, index) => (
+                        <div key={`${item}-${index}`} className="list-item explanation-card">
+                          <span className="explanation-step">{index + 1}</span>
+                          <div className="explanation-copy">
+                            <p>{item}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="muted">Sin pasos adicionales disponibles.</p>
+                    )}
+                  </div>
+                </details>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="muted">No hay estimaciones relevantes para esta disciplina.</p>
+        )}
       </section>
 
-      <section className="card split-card">
+      <section id="history" className="card split-card athlete-detail-anchor">
         <div>
-          <h2>Evolución histórica</h2>
-          <div className="list timeline-list">
+          <div className="section-heading compact">
+            <span className="eyebrow">Longitudinal</span>
+            <h2 className="section-title">Evolución histórica</h2>
+          </div>
+          <div className="list timeline-list polished-timeline-list">
             {["LT1", "LT2", "lactate_anchor"].map((key) => {
               const point = latestHistorical(displayView.historical_evolution[key]);
               if (!point) return null;
               return (
                 <div key={key} className="list-item timeline-item">
-                  <strong>{point.label}</strong>
-                  <p>{point.date}</p>
-                  <p>{formatValue(point.value, point.unit)}</p>
+                  <span className="eyebrow muted-eyebrow">{historicalMetricLabel(key)}</span>
+                  <strong>{formatValue(point.value, point.unit)}</strong>
+                  <p>Última actualización {point.date}</p>
+                  <small>{point.label}</small>
                 </div>
               );
             })}
           </div>
         </div>
         <div>
-          <h2>Tendencias</h2>
-          <div className="list trend-grid">
-            {analysis.trends.length ? (
+          <div className="section-heading compact">
+            <span className="eyebrow">Dirección</span>
+            <h2 className="section-title">Tendencias</h2>
+          </div>
+          <div className="list trend-grid polished-trend-grid">
+            {hasHistoricalEvolution && analysis.trends.length ? (
               analysis.trends.map((trend) => (
                 <div key={trend.metric} className={`list-item trend-card ${metricTone(trend.direction)}`}>
-                  <strong>{trend.metric}</strong>
+                  <span className="eyebrow muted-eyebrow">{trendDirectionLabel(trend.direction)}</span>
+                  <strong>{trendMetricLabel(trend.metric)}</strong>
                   <p>
-                    {trend.direction} {Math.round(trend.value * 1000) / 10}%
+                    {trendDirectionLabel(trend.direction)} {Math.round(trend.value * 1000) / 10}%
                   </p>
+                  <small>Lectura longitudinal del bloque y sus anclas repetibles.</small>
                 </div>
               ))
             ) : (
-              <p className="muted">Aún no hay suficientes snapshots para tendencias robustas.</p>
+              <p className="muted">Aún no hay suficientes snapshots de esta disciplina para tendencias robustas.</p>
             )}
           </div>
         </div>
       </section>
 
-      <section className="charts-grid">
-        {activeDiscipline === "ciclismo" ? (
-          <CurveChart title="Curva lactato vs potencia" data={displayView.curve_history.power ?? []} xLabel="Potencia (W)" overlays={chartOverlays} />
-        ) : (
-          <CurveChart title="Curva lactato vs ritmo" data={displayView.curve_history.pace ?? []} xLabel="Ritmo (introducido en min/km)" overlays={chartOverlays} />
-        )}
-        <CurveChart title="Curva lactato vs FC" data={displayView.curve_history.heart_rate ?? []} xLabel="FC (bpm)" overlays={chartOverlays} />
-        {activeDiscipline !== "natación" ? (
-          <CurveChart title="Curva lactato vs potencia" data={displayView.curve_history.power ?? []} xLabel="Potencia (W)" overlays={chartOverlays} />
-        ) : null}
-      </section>
-
-      <section className="table-card card">
+      <section id="measurements" className="table-card card athlete-detail-anchor">
         <div className="card-header">
           <div>
             <span className="eyebrow">Mediciones</span>
@@ -3222,12 +5237,13 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               <th>FC</th>
               <th>Cadencia</th>
               <th>Sesión</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {displayView.measurement_log.length ? (
               displayView.measurement_log.map((entry, index) => (
-                <tr key={`${entry.session_id}-${entry.interval_label}-${index}`}>
+                <tr key={`${entry.interval_id}-${entry.session_id}-${entry.interval_label}-${index}`}>
                   <td>{entry.session_date}</td>
                   <td>{entry.interval_label}</td>
                   <td>{formatIntervalDuration(entry.duration_seconds)}</td>
@@ -3242,11 +5258,21 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                   <td>{entry.heart_rate_avg ?? "-"}</td>
                   <td>{entry.cadence ?? "-"}</td>
                   <td>{entry.session_type}</td>
+                  <td className="measurement-action-cell">
+                    <button
+                      className="ghost-button danger"
+                      type="button"
+                      onClick={() => deleteMeasurement(entry.interval_id, `${entry.interval_label} · ${entry.session_date}`)}
+                      disabled={deletingMeasurementId === entry.interval_id}
+                    >
+                      {deletingMeasurementId === entry.interval_id ? "Borrando..." : "Borrar"}
+                    </button>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={9} className="muted">No hay mediciones registradas para esta disciplina.</td>
+                <td colSpan={10} className="muted">No hay mediciones registradas para esta disciplina.</td>
               </tr>
             )}
           </tbody>

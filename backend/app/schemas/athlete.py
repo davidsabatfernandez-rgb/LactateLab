@@ -23,6 +23,7 @@ class AthleteWeightHistoryRead(AthleteWeightHistoryBase):
 class AthleteFocusBlockBase(BaseModel):
     start_date: date
     end_date: Optional[date] = None
+    template_id: Optional[str] = None
     energy_system_focus: str
     block_objective: str
     block_intent: Optional[str] = None
@@ -41,6 +42,7 @@ class AthleteFocusBlockCreate(AthleteFocusBlockBase):
 class AthleteFocusBlockUpdate(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
+    template_id: Optional[str] = None
     energy_system_focus: Optional[str] = None
     block_objective: Optional[str] = None
     block_intent: Optional[str] = None
@@ -149,6 +151,8 @@ class AthleteUpdate(BaseModel):
 class AthleteRead(AthleteBase):
     id: int
     coach_id: Optional[int]
+    strava_athlete_id: Optional[int] = None
+    strava_connected: bool = False
     weights: list[AthleteWeightHistoryRead] = []
     focus_blocks: list[AthleteFocusBlockRead] = []
     targets: list[AthleteTargetRead] = []
