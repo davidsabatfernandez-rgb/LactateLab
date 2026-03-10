@@ -1,11 +1,15 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=str(BACKEND_ROOT / ".env"), env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "Lactate Lab API"
     api_prefix: str = "/api"
@@ -49,6 +53,9 @@ class Settings(BaseSettings):
             return normalized.replace("postgres://", "postgresql+psycopg://", 1)
         if normalized.startswith("postgresql://") and "+psycopg" not in normalized:
             return normalized.replace("postgresql://", "postgresql+psycopg://", 1)
+        if normalized.startswith("sqlite:///./"):
+            sqlite_path = BACKEND_ROOT / normalized.removeprefix("sqlite:///./")
+            return f"sqlite:///{sqlite_path}"
         return normalized
 
     @property

@@ -1,4 +1,5 @@
-import { Link, NavLink } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
 
 type LayoutProps = {
   onLogout: () => void;
@@ -6,6 +7,16 @@ type LayoutProps = {
 };
 
 export function Layout({ onLogout, children }: LayoutProps) {
+  const location = useLocation();
+  const isLibrarySection = location.pathname.startsWith("/library");
+  const [isLibraryOpen, setIsLibraryOpen] = useState(isLibrarySection);
+
+  useEffect(() => {
+    if (isLibrarySection) {
+      setIsLibraryOpen(true);
+    }
+  }, [isLibrarySection]);
+
   return (
     <div className="shell">
       <aside className="sidebar">
@@ -18,13 +29,28 @@ export function Layout({ onLogout, children }: LayoutProps) {
         </Link>
         <nav className="nav">
           <NavLink to="/lab">Lab</NavLink>
+          <NavLink to="/athletes">Atletas</NavLink>
           <NavLink to="/planning">Planificación</NavLink>
           <NavLink to="/nutrition">Nutrición</NavLink>
-          <NavLink to="/library">Librería</NavLink>
-          <NavLink to="/library-generator">Librería Generator</NavLink>
+          <div className={`nav-group ${isLibraryOpen ? "open" : ""}`}>
+            <button
+              type="button"
+              className={`nav-group-trigger ${isLibrarySection ? "active" : ""}`}
+              onClick={() => setIsLibraryOpen((current) => !current)}
+            >
+              <span>Librería</span>
+              <span className="nav-group-chevron">{isLibraryOpen ? "▾" : "▸"}</span>
+            </button>
+            {isLibraryOpen ? (
+              <div className="nav-group-links">
+                <NavLink to="/library" end>
+                  Repositorio
+                </NavLink>
+                <NavLink to="/library-generator">Repositorio inteligente</NavLink>
+              </div>
+            ) : null}
+          </div>
           <NavLink to="/strava-information">Strava Information</NavLink>
-          <NavLink to="/athletes">Atletas</NavLink>
-          <NavLink to="/sessions">Sesiones</NavLink>
         </nav>
         <button className="ghost-button" onClick={onLogout}>
           Cerrar sesión

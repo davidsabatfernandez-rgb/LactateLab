@@ -266,6 +266,16 @@ def _normalize_activity(payload: dict[str, Any]) -> dict[str, Any]:
         "suffer_score": float(payload["suffer_score"]) if payload.get("suffer_score") is not None else None,
         "perceived_exertion": float(payload["perceived_exertion"]) if payload.get("perceived_exertion") is not None else None,
         "has_heartrate": bool(payload["has_heartrate"]) if payload.get("has_heartrate") is not None else None,
+        "workout_type": int(payload["workout_type"]) if payload.get("workout_type") is not None else None,
+        "gear_id": payload.get("gear_id"),
+        "start_latlng": _normalize_latlng(payload.get("start_latlng")),
+        "end_latlng": _normalize_latlng(payload.get("end_latlng")),
+        "map_summary_polyline": (payload.get("map") or {}).get("summary_polyline"),
+        "device_name": payload.get("device_name"),
+        "splits_metric": [_normalize_split(item) for item in payload.get("splits_metric") or [] if isinstance(item, dict)],
+        "splits_standard": [_normalize_split(item) for item in payload.get("splits_standard") or [] if isinstance(item, dict)],
+        "best_efforts": [_normalize_effort(item) for item in payload.get("best_efforts") or [] if isinstance(item, dict)],
+        "segment_efforts": [_normalize_effort(item) for item in payload.get("segment_efforts") or [] if isinstance(item, dict)],
         "laps": [],
         "zones": [],
         "streams": {},
@@ -283,7 +293,7 @@ def _enrich_activity(access_token: str, activity: dict[str, Any]) -> dict[str, A
         detail = _request_json(
             STRAVA_ACTIVITY_DETAIL_URL.format(activity_id=activity_id),
             headers=headers,
-            params={"include_all_efforts": "false"},
+            params={"include_all_efforts": "true"},
         )
         enriched.update(_normalize_activity(detail))
         enriched["raw_detail"] = detail
@@ -358,6 +368,54 @@ def _normalize_streams(payload: Any) -> dict[str, dict[str, Any]]:
             "data": stream.get("data") or [],
         }
     return streams
+
+
+def _normalize_latlng(payload: Any) -> list[float]:
+    if not isinstance(payload, list):
+        return []
+    points: list[float] = []
+    for item in payload:
+        try:
+            points.append(float(item))
+        except (TypeError, ValueError):
+            continue
+    return points
+
+
+def _normalize_split(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "distance_m": float(payload.get("distance") or 0),
+        "elapsed_time_seconds": int(payload.get("elapsed_time") or 0),
+        "moving_time_seconds": int(payload.get("moving_time") or 0),
+        "elevation_difference_m": float(payload["elevation_difference"]) if payload.get("elevation_difference") is not None else None,
+        "split_index": int(payload["split"]) if payload.get("split") is not None else None,
+        "average_speed_m_s": float(payload["average_speed"]) if payload.get("average_speed") is not None else None,
+        "average_heartrate": float(payload["average_heartrate"]) if payload.get("average_heartrate") is not None else None,
+        "pace_zone": int(payload["pace_zone"]) if payload.get("pace_zone") is not None else None,
+    }
+
+
+def _normalize_effort(payload: dict[str, Any]) -> dict[str, Any]:
+    segment = payload.get("segment") or {}
+    achievements = payload.get("achievements") or []
+    return {
+        "name": payload.get("name") or segment.get("name") or "Effort",
+        "distance_m": float(payload.get("distance") or segment.get("distance") or 0),
+        "elapsed_time_seconds": int(payload.get("elapsed_time") or 0),
+        "moving_time_seconds": int(payload.get("moving_time") or 0),
+        "start_date": payload.get("start_date"),
+        "average_heartrate": float(payload["average_heartrate"]) if payload.get("average_heartrate") is not None else None,
+        "average_watts": float(payload["average_watts"]) if payload.get("average_watts") is not None else None,
+        "pr_rank": int(payload["pr_rank"]) if payload.get("pr_rank") is not None else None,
+        "achievement_count": len(achievements) if isinstance(achievements, list) else 0,
+        "segment_id": segment.get("id"),
+        "segment_average_grade": float(segment["average_grade"]) if segment.get("average_grade") is not None else None,
+        "segment_max_grade": float(segment["maximum_grade"]) if segment.get("maximum_grade") is not None else None,
+        "segment_elevation_high_m": float(segment["elevation_high"]) if segment.get("elevation_high") is not None else None,
+        "segment_elevation_low_m": float(segment["elevation_low"]) if segment.get("elevation_low") is not None else None,
+        "segment_start_latlng": _normalize_latlng(segment.get("start_latlng")),
+        "segment_end_latlng": _normalize_latlng(segment.get("end_latlng")),
+    }
 
 
 def _request_json(url: str, headers: dict[str, str], params: dict[str, str] | None = None) -> Any:

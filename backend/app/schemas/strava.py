@@ -65,6 +65,16 @@ class StravaActivityRead(BaseModel):
     suffer_score: Optional[float] = None
     perceived_exertion: Optional[float] = None
     has_heartrate: Optional[bool] = None
+    workout_type: Optional[int] = None
+    gear_id: Optional[str] = None
+    start_latlng: list[float] = Field(default_factory=list)
+    end_latlng: list[float] = Field(default_factory=list)
+    map_summary_polyline: Optional[str] = None
+    device_name: Optional[str] = None
+    splits_metric: list[dict[str, Any]] = Field(default_factory=list)
+    splits_standard: list[dict[str, Any]] = Field(default_factory=list)
+    best_efforts: list[dict[str, Any]] = Field(default_factory=list)
+    segment_efforts: list[dict[str, Any]] = Field(default_factory=list)
     laps: list[StravaActivityLapRead] = Field(default_factory=list)
     zones: list[StravaActivityZoneRead] = Field(default_factory=list)
     streams: dict[str, StravaActivityStreamRead] = Field(default_factory=dict)

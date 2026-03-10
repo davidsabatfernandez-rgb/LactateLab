@@ -114,6 +114,70 @@ textarea {
   gap: 8px;
 }
 
+.nav-group {
+  display: grid;
+  gap: 8px;
+}
+
+.nav-group-trigger {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 15px;
+  border-radius: 16px;
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.nav-group-trigger:hover {
+  background: rgba(22, 53, 61, 0.05);
+  color: var(--primary);
+  transform: translateX(2px);
+}
+
+.nav-group-trigger.active {
+  background: linear-gradient(135deg, rgba(22, 53, 61, 0.1), rgba(22, 53, 61, 0.06));
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.nav-group-chevron {
+  font-size: 0.9rem;
+  color: inherit;
+}
+
+.nav-group-links {
+  display: grid;
+  gap: 6px;
+  padding-left: 12px;
+}
+
+.nav-group-links a {
+  position: relative;
+  padding: 11px 14px 11px 18px;
+  border-radius: 14px;
+}
+
+.nav-group-links a::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.5;
+  transform: translateY(-50%);
+}
+
 .nav a {
   padding: 13px 15px;
   border-radius: 16px;
@@ -141,6 +205,261 @@ textarea {
 .page-grid {
   display: grid;
   gap: 24px;
+}
+
+.athlete-roster-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.athlete-roster-header p {
+  margin: 8px 0 0;
+  max-width: 54ch;
+}
+
+.athlete-roster-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.athlete-roster-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.athlete-roster-stat {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border-radius: 24px;
+}
+
+.athlete-roster-stat strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.athlete-roster-stat.positive {
+  background:
+    radial-gradient(circle at top right, rgba(21, 127, 102, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 247, 244, 0.92));
+}
+
+.athlete-roster-stat.warning {
+  background:
+    radial-gradient(circle at top right, rgba(210, 106, 54, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(252, 242, 237, 0.92));
+}
+
+.athlete-roster-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) 1fr;
+  gap: 16px;
+  padding: 18px 20px;
+}
+
+.athlete-roster-search {
+  display: grid;
+  gap: 8px;
+}
+
+.athlete-roster-search input {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.athlete-roster-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.athlete-roster-filter-pill {
+  border: 1px solid rgba(16, 34, 42, 0.10);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.athlete-roster-filter-pill:hover {
+  transform: translateY(-1px);
+  color: var(--primary);
+  border-color: rgba(16, 34, 42, 0.18);
+}
+
+.athlete-roster-filter-pill.active {
+  background: linear-gradient(135deg, #16353d, #2f6570);
+  color: white;
+  border-color: transparent;
+}
+
+.athlete-roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.athlete-roster-card {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(210, 106, 54, 0.10), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 242, 236, 0.9));
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.athlete-roster-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px rgba(16, 34, 42, 0.08);
+}
+
+.athlete-roster-card.running {
+  border-color: rgba(210, 106, 54, 0.14);
+}
+
+.athlete-roster-card.cycling {
+  border-color: rgba(21, 127, 102, 0.14);
+}
+
+.athlete-roster-card.triathlon {
+  border-color: rgba(49, 86, 211, 0.14);
+}
+
+.athlete-roster-card-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.athlete-roster-card-title {
+  display: flex;
+  gap: 12px;
+  align-items: start;
+}
+
+.athlete-roster-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--primary);
+  background:
+    linear-gradient(135deg, rgba(22, 53, 61, 0.10), rgba(255, 255, 255, 0.82));
+  border: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.athlete-roster-card-head h2 {
+  margin: 6px 0 0;
+  font-size: 1.6rem;
+}
+
+.athlete-roster-summary {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  min-height: 72px;
+}
+
+.athlete-roster-metadata {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.athlete-roster-meta-pill {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(16, 34, 42, 0.06);
+}
+
+.athlete-roster-meta-pill small,
+.athlete-roster-target small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.athlete-roster-meta-pill strong,
+.athlete-roster-target strong {
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.athlete-roster-footer {
+  display: grid;
+  gap: 14px;
+  margin-top: auto;
+}
+
+.athlete-roster-target {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(22, 53, 61, 0.05);
+  border: 1px solid rgba(16, 34, 42, 0.06);
+}
+
+.athlete-roster-target span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.athlete-roster-card-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.athlete-roster-empty {
+  grid-column: 1 / -1;
+  padding: 28px;
+  display: grid;
+  gap: 10px;
+  place-items: start;
+}
+
+.ghost-button.compact {
+  padding: 9px 12px;
+  border-radius: 12px;
+}
+
+.athlete-management-modal {
+  width: min(840px, 100%);
+}
+
+.athlete-management-form {
+  padding: 0 24px 24px;
+}
+
+.athlete-management-actions {
+  justify-content: flex-end;
 }
 
 .hero,
@@ -5931,6 +6250,25 @@ textarea {
 
   .session-form {
     grid-template-columns: 1fr;
+  }
+
+  .athlete-roster-header,
+  .athlete-roster-toolbar {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .athlete-roster-header {
+    display: grid;
+  }
+
+  .athlete-roster-overview,
+  .athlete-roster-metadata {
+    grid-template-columns: 1fr;
+  }
+
+  .athlete-roster-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .dynamic-reference-table .compact-row {

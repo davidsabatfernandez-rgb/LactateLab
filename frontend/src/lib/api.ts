@@ -3,6 +3,10 @@ function defaultApiUrls() {
     return ["http://127.0.0.1:8000/api", "http://localhost:8000/api"];
   }
 
+  if (import.meta.env.DEV) {
+    return ["/api", "http://127.0.0.1:8000/api", "http://localhost:8000/api"];
+  }
+
   const protocol = window.location.protocol === "https:" ? "https:" : "http:";
   const candidates = [
     `${protocol}//${window.location.hostname}:8000/api`,

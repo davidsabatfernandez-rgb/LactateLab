@@ -57,6 +57,68 @@ export type StravaActivity = {
   suffer_score?: number | null;
   perceived_exertion?: number | null;
   has_heartrate?: boolean | null;
+  workout_type?: number | null;
+  gear_id?: string | null;
+  start_latlng: number[];
+  end_latlng: number[];
+  map_summary_polyline?: string | null;
+  device_name?: string | null;
+  splits_metric: Array<{
+    distance_m: number;
+    elapsed_time_seconds: number;
+    moving_time_seconds: number;
+    elevation_difference_m?: number | null;
+    split_index?: number | null;
+    average_speed_m_s?: number | null;
+    average_heartrate?: number | null;
+    pace_zone?: number | null;
+  }>;
+  splits_standard: Array<{
+    distance_m: number;
+    elapsed_time_seconds: number;
+    moving_time_seconds: number;
+    elevation_difference_m?: number | null;
+    split_index?: number | null;
+    average_speed_m_s?: number | null;
+    average_heartrate?: number | null;
+    pace_zone?: number | null;
+  }>;
+  best_efforts: Array<{
+    name: string;
+    distance_m: number;
+    elapsed_time_seconds: number;
+    moving_time_seconds: number;
+    start_date?: string | null;
+    average_heartrate?: number | null;
+    average_watts?: number | null;
+    pr_rank?: number | null;
+    achievement_count: number;
+    segment_id?: number | null;
+    segment_average_grade?: number | null;
+    segment_max_grade?: number | null;
+    segment_elevation_high_m?: number | null;
+    segment_elevation_low_m?: number | null;
+    segment_start_latlng: number[];
+    segment_end_latlng: number[];
+  }>;
+  segment_efforts: Array<{
+    name: string;
+    distance_m: number;
+    elapsed_time_seconds: number;
+    moving_time_seconds: number;
+    start_date?: string | null;
+    average_heartrate?: number | null;
+    average_watts?: number | null;
+    pr_rank?: number | null;
+    achievement_count: number;
+    segment_id?: number | null;
+    segment_average_grade?: number | null;
+    segment_max_grade?: number | null;
+    segment_elevation_high_m?: number | null;
+    segment_elevation_low_m?: number | null;
+    segment_start_latlng: number[];
+    segment_end_latlng: number[];
+  }>;
   laps: Array<{
     lap_index: number;
     name: string;
