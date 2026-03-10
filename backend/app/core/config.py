@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me"
     jwt_expire_minutes: int = 1440
     access_token_algorithm: str = "HS256"
-    cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    cors_origins_raw: str = Field(default="http://localhost:5173,http://127.0.0.1:5173", alias="CORS_ORIGINS")
     openrouter_api_key: str = ""
     openrouter_model: str = "google/gemma-3-12b-it:free"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
@@ -38,17 +38,25 @@ class Settings(BaseSettings):
     strava_scopes: str = "read,activity:read_all"
     strava_token_encryption_key: str = ""
 
-    @field_validator("cors_origins", mode="before")
+    @field_validator("database_url", mode="before")
     @classmethod
-    def parse_cors_origins(cls, value: object) -> object:
-        if isinstance(value, str):
-            normalized = value.strip()
-            if not normalized:
-                return []
-            if normalized.startswith("["):
-                return normalized
-            return [item.strip() for item in normalized.split(",") if item.strip()]
-        return value
+    def normalize_database_url(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+
+        normalized = value.strip()
+        if normalized.startswith("postgres://"):
+            return normalized.replace("postgres://", "postgresql+psycopg://", 1)
+        if normalized.startswith("postgresql://") and "+psycopg" not in normalized:
+            return normalized.replace("postgresql://", "postgresql+psycopg://", 1)
+        return normalized
+
+    @property
+    def cors_origins(self) -> list[str]:
+        normalized = self.cors_origins_raw.strip()
+        if not normalized:
+            return []
+        return [item.strip() for item in normalized.split(",") if item.strip()]
 
 
 @lru_cache
