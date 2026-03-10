@@ -1,3 +1,4 @@
+
 # Lactate Lab
 
 Plataforma full-stack para registrar, analizar e interpretar datos de lactato en deportes de resistencia. La primera entrega deja Fase 1 y Fase 2 operativas:
@@ -106,4 +107,8 @@ docker-compose up --build
 - Machine learning explicable opcional por atleta.
 - Mejoras de auth, permisos finos y auditoría.
 - Importación CSV/Excel de analizadores de lactato y plataformas como TrainingPeaks o Garmin.
+
+=======
+# LactateLab
+XipiPairo
 
