@@ -7022,6 +7022,25 @@ textarea {
   margin: 8px 0 0;
 }
 
+.strava-raw-json {
+  margin-top: 22px;
+  display: grid;
+  gap: 12px;
+}
+
+.strava-raw-json pre {
+  margin: 0;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: rgba(18, 29, 35, 0.94);
+  color: rgba(238, 244, 246, 0.94);
+  overflow: auto;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}
+
 .library-toolbar-summary {
   display: flex;
   gap: 10px;

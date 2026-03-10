@@ -77,6 +77,10 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
     () => athletes.find((athlete) => athlete.id === selectedAthleteId) ?? null,
     [athletes, selectedAthleteId],
   );
+  const rawJsonPreview = useMemo(
+    () => (importResult ? JSON.stringify(importResult, null, 2) : null),
+    [importResult],
+  );
 
   async function handleImport() {
     if (!selectedAthleteId) return;
@@ -245,6 +249,17 @@ export function StravaInformationPage({ token, athletes }: StravaInformationPage
             <p>Todavía no has cargado actividades para este atleta.</p>
           </div>
         )}
+        {rawJsonPreview ? (
+          <div className="strava-raw-json">
+            <div className="strava-preview-header">
+              <div>
+                <span className="eyebrow">Debug</span>
+                <h3>JSON crudo</h3>
+              </div>
+            </div>
+            <pre>{rawJsonPreview}</pre>
+          </div>
+        ) : null}
       </section>
     </div>
   );
