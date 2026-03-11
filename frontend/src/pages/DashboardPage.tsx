@@ -730,7 +730,7 @@ export function DashboardPage({ athletes, token, viewerId }: DashboardPageProps)
   const summaryCards = useMemo(() => templateSummary(rows, selectedTemplateId), [rows, selectedTemplateId]);
 
   return (
-    <div className="page-grid">
+    <div className="page-grid lab-dashboard-page">
       <section className="card lab-athlete-list-card lab-dashboard-shell">
         <div className="card-header lab-home-header lab-dashboard-hero">
           <div className="lab-dashboard-head-copy">
