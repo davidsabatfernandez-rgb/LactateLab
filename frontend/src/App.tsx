@@ -20,6 +20,8 @@ import { SessionsPage } from "./pages/SessionsPage";
 import { StravaInformationPage } from "./pages/StravaInformationPage";
 import { Athlete, AthleteAnalysis, AuthUser, DashboardData, SessionAnalysis, SessionSummary } from "./types";
 
+type ThemeMode = "light" | "dark";
+
 function AthleteDetailRoute({ token, onDataChanged }: { token: string; onDataChanged: () => Promise<void> }) {
   const { athleteId } = useParams();
   const [analysis, setAnalysis] = useState<AthleteAnalysis | null>(null);
@@ -101,6 +103,10 @@ function SessionDetailRoute({ token }: { token: string }) {
 export default function App() {
   const navigate = useNavigate();
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("lactate-token"));
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    const storedTheme = localStorage.getItem("lactate-theme");
+    return storedTheme === "dark" ? "dark" : "light";
+  });
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -168,6 +174,12 @@ export default function App() {
     setSessionInitError(null);
     refreshData(token);
   }, [token]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+    document.documentElement.style.colorScheme = themeMode === "dark" ? "dark" : "light";
+    localStorage.setItem("lactate-theme", themeMode);
+  }, [themeMode]);
 
   async function handleLogin(email: string, password: string, mode: "coach" | "athlete") {
     const result = await api.login(email, password);
@@ -252,7 +264,11 @@ export default function App() {
   }
 
   return (
-    <Layout onLogout={handleLogout}>
+    <Layout
+      onLogout={handleLogout}
+      themeMode={themeMode}
+      onToggleTheme={() => setThemeMode((currentTheme) => (currentTheme === "dark" ? "light" : "dark"))}
+    >
       {dataLoadError ? <div className="error">{dataLoadError}</div> : null}
       <Routes>
         <Route path="/" element={<DashboardPage athletes={athletes} token={token} viewerId={authUser.id} />} />

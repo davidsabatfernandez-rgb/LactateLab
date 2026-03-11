@@ -3,8 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { WorkoutPreviewModal, WorkoutPreviewSelection } from "../components/WorkoutPreviewModal";
 import { api } from "../lib/api";
-import { individualThresholdReason, resolveAnalysisDisciplineView, resolveTrainingThreshold } from "../lib/trainingThresholds";
-import { Athlete, AthleteAnalysis, AthleteTarget, PlanningMesocycleDraftSession, PlanningMesocycleTemplate, PlanningOverview, PlanningPlannedSession, PlanningWorkoutTemplate } from "../types";
+import { resolveAnalysisDisciplineView, resolveTrainingThreshold } from "../lib/trainingThresholds";
+import { Athlete, AthleteAnalysis, AthleteTarget, DynamicReference, PlanningMesocycleDraftSession, PlanningMesocycleTemplate, PlanningOverview, PlanningPlannedSession, PlanningWorkoutTemplate } from "../types";
 
 type PlanningPageProps = {
   token: string;
@@ -15,7 +15,12 @@ type OpenWorkoutPreviewState = {
   selection: WorkoutPreviewSelection;
 };
 
-type PlanningWorkspace = "overview" | "calendar" | "builder";
+type PlanningSourceModalState = {
+  source: PlanningCalendarSource;
+  title: string;
+  summary: string;
+  details: string[];
+};
 
 type PlanTone = "positive" | "warning" | "neutral";
 
@@ -53,6 +58,7 @@ type CalendarSession = {
   description: string;
   dose: string;
   confidence: "alta" | "media";
+  estimatedMinutes?: number;
   rawId?: number;
   blaCheck?: boolean;
 };
@@ -60,6 +66,14 @@ type CalendarSession = {
 type CalendarEntry = CalendarSession & {
   layerDiscipline: string;
   isOverlay: boolean;
+};
+
+type CalendarWarningCard = {
+  id: string;
+  severity: "high" | "medium" | "low";
+  title: string;
+  explanation: string;
+  suggestion?: string;
 };
 
 function parseDateValue(value: string) {
@@ -126,6 +140,44 @@ function formatTargetChipDate(value?: string | null) {
   return parsed.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
 }
 
+function formatTargetCountdown(value?: string | null) {
+  if (!value) return "Sin fecha objetivo";
+  const target = parseDateValue(value);
+  if (Number.isNaN(target.getTime())) return "Fecha no válida";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  target.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
+  if (diffDays < 0) return "Objetivo pasado";
+  if (diffDays === 0) return "Hoy";
+  if (diffDays === 1) return "Mañana";
+  const weeks = Math.floor(diffDays / 7);
+  const days = diffDays % 7;
+  if (weeks <= 0) return `${diffDays} días`;
+  if (days === 0) return `${weeks} sem`;
+  return `${weeks} sem · ${days} días`;
+}
+
+function targetMetricLabel(target: AthleteTarget) {
+  const runningPace = target.target_running_pace_label || target.target_pace_label;
+  const swimPace = target.target_swim_pace_label;
+  const cyclingWatts = target.target_cycling_power_watts || target.target_power_watts;
+
+  if (target.discipline === "ciclismo" && typeof cyclingWatts === "number") {
+    return `${Math.round(cyclingWatts)} W objetivo`;
+  }
+  if (target.discipline === "natación" && swimPace) {
+    return `Ritmo objetivo ${swimPace}`;
+  }
+  if (runningPace) {
+    return `Ritmo objetivo ${runningPace}`;
+  }
+  if (typeof cyclingWatts === "number") {
+    return `${Math.round(cyclingWatts)} W objetivo`;
+  }
+  return "Sin métrica objetivo";
+}
+
 function targetPrimaryValue(target: AthleteTarget) {
   return target.objective || target.distance_label || "Objetivo";
 }
@@ -168,6 +220,26 @@ function formatThresholdPrimaryMetric(
   }
   if (typeof threshold.heartRate === "number") {
     return `${Math.round(threshold.heartRate)} bpm`;
+  }
+  return "Sin referencia";
+}
+
+function formatDynamicReferencePrimaryMetric(reference: DynamicReference | null | undefined, discipline: string) {
+  if (!reference) return "Sin referencia";
+  if (discipline === "ciclismo" && typeof reference.estimated_power_watts === "number") {
+    return `${Math.round(reference.estimated_power_watts)} W`;
+  }
+  if (discipline === "natación" && typeof reference.estimated_pace_seconds_per_km === "number") {
+    return formatSwimPace(reference.estimated_pace_seconds_per_km);
+  }
+  if (typeof reference.estimated_pace_seconds_per_km === "number") {
+    return formatPace(reference.estimated_pace_seconds_per_km);
+  }
+  if (typeof reference.estimated_power_watts === "number") {
+    return `${Math.round(reference.estimated_power_watts)} W`;
+  }
+  if (typeof reference.estimated_hr_at_target === "number") {
+    return `${Math.round(reference.estimated_hr_at_target)} bpm`;
   }
   return "Sin referencia";
 }
@@ -244,6 +316,45 @@ function buildPlanningPrescriptionHint(
   return lt1 && lt2
     ? `Zona media entre LT1 y LT2: ${formatThresholdRange(lt1, lt2, discipline)}.`
     : "Sesión con intensidad mixta sin rango LT1-LT2 completo.";
+}
+
+function estimateMinutesFromDose(dose?: string | null) {
+  if (!dose) return 0;
+  const rangeRepeat = dose.match(/(\d+)\s*x\s*(\d+)\s*-\s*(\d+)\s*'/i);
+  if (rangeRepeat) {
+    return Number(rangeRepeat[1]) * Math.round((Number(rangeRepeat[2]) + Number(rangeRepeat[3])) / 2);
+  }
+  const repeat = dose.match(/(\d+)\s*x\s*(\d+)\s*'/i);
+  if (repeat) {
+    return Number(repeat[1]) * Number(repeat[2]);
+  }
+  const range = dose.match(/(\d+)\s*-\s*(\d+)\s*'/);
+  if (range) {
+    return Math.round((Number(range[1]) + Number(range[2])) / 2);
+  }
+  const single = dose.match(/(\d+)\s*'/);
+  if (single) {
+    return Number(single[1]);
+  }
+  return 0;
+}
+
+function isDemandingSession(session: CalendarSession) {
+  const text = `${session.title} ${session.objective} ${session.sessionType}`.toLowerCase();
+  return session.sessionType === "clave"
+    || text.includes("lt2")
+    || text.includes("vo2")
+    || text.includes("ftp")
+    || text.includes("compet")
+    || text.includes("css");
+}
+
+function isLongSession(session: CalendarSession) {
+  const text = `${session.title} ${session.objective}`.toLowerCase();
+  return (session.estimatedMinutes ?? 0) >= 75
+    || text.includes("fondo")
+    || text.includes("tirada")
+    || text.includes("continuidad");
 }
 
 function daysBetween(start?: string | null, end?: string | null) {
@@ -323,6 +434,38 @@ function monthDayLabel(isoDate: string) {
   const parsed = parseDateValue(isoDate);
   if (Number.isNaN(parsed.getTime())) return isoDate;
   return parsed.toLocaleDateString("es-ES", { day: "numeric" });
+}
+
+function compactPlanningSourceTitle(source: PlanningCalendarSource) {
+  if (source.kind === "draft") {
+    return `${source.objective} · ${disciplineLabel(source.discipline)}`;
+  }
+  return source.title;
+}
+
+function describePlanningSource(source: PlanningCalendarSource) {
+  const details = [
+    `Disciplina: ${disciplineLabel(source.discipline)}`,
+    `Ventana: ${formatDate(source.startDate)} → ${formatDate(source.endDate)}`,
+    source.phase ? `Fase: ${source.phase}` : null,
+    source.energySystemFocus ? `Sistema dominante: ${source.energySystemFocus}` : null,
+    source.density ? `Densidad: ${source.density}` : null,
+  ].filter(Boolean) as string[];
+
+  let summary = source.intent || "Sin intención operativa cargada.";
+  if (source.kind === "historical") {
+    summary = source.intent || "Mesociclo histórico detectado para reutilizar su lógica.";
+  } else if (source.kind === "planned") {
+    summary = source.intent || "Bloque real ya guardado para esta disciplina.";
+  } else if (source.kind === "draft") {
+    summary = source.intent || "Borrador vivo construido desde la plantilla, el objetivo y la disciplina activa.";
+  }
+
+  return {
+    title: compactPlanningSourceTitle(source),
+    summary,
+    details,
+  };
 }
 
 function buildWorkoutBlueprints(source: PlanningCalendarSource) {
@@ -418,6 +561,7 @@ function buildSyntheticCalendarSessions(source: PlanningCalendarSource) {
         description: `${blueprint.description} Semana de ${weekTone} del bloque ${source.objective.toLowerCase()}.`,
         dose: blueprint.dose,
         confidence: blueprint.confidence,
+        estimatedMinutes: estimateMinutesFromDose(blueprint.dose),
       });
     });
     currentWeek = addDays(currentWeek, 7);
@@ -440,6 +584,9 @@ function buildPersistedCalendarSessions(source: PlanningCalendarSource, plannedS
       description: [session.coach_note, session.expected_signal].filter(Boolean).join(" "),
       dose: session.dose_prescription,
       confidence: session.confidence >= 0.85 ? "alta" : "media",
+      estimatedMinutes: typeof session.payload?.total_duration_min === "number"
+        ? Number(session.payload.total_duration_min)
+        : estimateMinutesFromDose(session.dose_prescription),
       rawId: session.id,
       blaCheck: session.bla_check,
     }));
@@ -679,6 +826,7 @@ export function PlanningPage({ token }: PlanningPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const athleteId = searchParams.get("athleteId");
   const searchDiscipline = searchParams.get("discipline") ?? "running";
+  const calendarPanelOpen = searchParams.get("panel") === "calendar";
 
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [overview, setOverview] = useState<PlanningOverview | null>(null);
@@ -688,7 +836,6 @@ export function PlanningPage({ token }: PlanningPageProps) {
   const [loading, setLoading] = useState(Boolean(athleteId));
   const [error, setError] = useState<string | null>(null);
   const [selectedDiscipline, setSelectedDiscipline] = useState(searchDiscipline);
-  const [activeWorkspace, setActiveWorkspace] = useState<PlanningWorkspace>("overview");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
   const [blockObjective, setBlockObjective] = useState("LT1");
@@ -701,18 +848,18 @@ export function PlanningPage({ token }: PlanningPageProps) {
   const [blockPhase, setBlockPhase] = useState("base");
   const [blockIntent, setBlockIntent] = useState("");
   const [coachNotes, setCoachNotes] = useState("");
-  const [timelineFrom, setTimelineFrom] = useState(() => isoDateFromToday(-70));
-  const [timelineTo, setTimelineTo] = useState(() => isoDateFromToday(140));
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingBlockId, setDeletingBlockId] = useState<number | null>(null);
+  const [calendarVisualMode, setCalendarVisualMode] = useState<"month" | "week">("month");
   const [selectedCalendarSourceId, setSelectedCalendarSourceId] = useState<string>("draft");
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(isoDateFromToday()));
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
   const [enabledOverlayDisciplines, setEnabledOverlayDisciplines] = useState<string[]>([]);
   const [workoutLibrary, setWorkoutLibrary] = useState<PlanningWorkoutTemplate[]>([]);
   const [openWorkoutPreview, setOpenWorkoutPreview] = useState<OpenWorkoutPreviewState | null>(null);
+  const [planningSourceModal, setPlanningSourceModal] = useState<PlanningSourceModalState | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -765,6 +912,18 @@ export function PlanningPage({ token }: PlanningPageProps) {
     },
     [athletes, searchParams, setSearchParams],
   );
+
+  const openCalendarPanel = useCallback(() => {
+    const params = new URLSearchParams(searchParams);
+    params.set("panel", "calendar");
+    setSearchParams(params);
+  }, [searchParams, setSearchParams]);
+
+  const closeCalendarPanel = useCallback(() => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("panel");
+    setSearchParams(params);
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (athleteId || !athletes.length) return;
@@ -1096,8 +1255,6 @@ export function PlanningPage({ token }: PlanningPageProps) {
   }
 
   const timelineItems = useMemo(() => {
-    const from = dateValue(timelineFrom);
-    const to = dateValue(timelineTo);
     const items: Array<{
       id: string;
       tone: PlanTone;
@@ -1110,9 +1267,6 @@ export function PlanningPage({ token }: PlanningPageProps) {
     }> = [];
 
     (overview?.detected_mesocycles ?? []).forEach((block) => {
-      const start = dateValue(block.start_date);
-      if (!Number.isNaN(from) && start < from) return;
-      if (!Number.isNaN(to) && start > to) return;
       items.push({
         id: `historical-${block.start_date}-${block.block_type}`,
         tone:
@@ -1131,9 +1285,6 @@ export function PlanningPage({ token }: PlanningPageProps) {
     });
 
     (overview?.planned_blocks ?? []).forEach((block) => {
-      const start = dateValue(block.start_date);
-      if (!Number.isNaN(from) && start < from) return;
-      if (!Number.isNaN(to) && start > to) return;
       items.push({
         id: `planned-${block.id}`,
         tone: block.status === "active" ? "positive" : block.status === "planned" ? "neutral" : "warning",
@@ -1148,22 +1299,19 @@ export function PlanningPage({ token }: PlanningPageProps) {
 
     const target = overview?.next_recommendation.next_target;
     if (target?.target_date) {
-      const targetDate = dateValue(target.target_date);
-      if ((Number.isNaN(from) || targetDate >= from) && (Number.isNaN(to) || targetDate <= to)) {
-        items.push({
-          id: `target-${target.target_date}-${target.objective}`,
-          tone: "warning",
-          kind: "target",
-          date: target.target_date,
-          title: target.objective || "Objetivo",
-          subtitle: `Objetivo ${disciplineLabel(selectedDiscipline).toLowerCase()}`,
-          meta: target.target_metric || target.distance_label || "Objetivo abierto",
-        });
-      }
+      items.push({
+        id: `target-${target.target_date}-${target.objective}`,
+        tone: "warning",
+        kind: "target",
+        date: target.target_date,
+        title: target.objective || "Objetivo",
+        subtitle: `Objetivo ${disciplineLabel(selectedDiscipline).toLowerCase()}`,
+        meta: target.target_metric || target.distance_label || "Objetivo abierto",
+      });
     }
 
     return items.sort((a, b) => dateValue(a.date) - dateValue(b.date));
-  }, [overview?.detected_mesocycles, overview?.next_recommendation.next_target, overview?.planned_blocks, selectedDiscipline, timelineFrom, timelineTo]);
+  }, [overview?.detected_mesocycles, overview?.next_recommendation.next_target, overview?.planned_blocks, selectedDiscipline]);
 
   const draftCalendarSource = useMemo<PlanningCalendarSource>(() => {
     const durationWeeks = Number(weeks) || overview?.next_recommendation.duration_weeks || 4;
@@ -1198,6 +1346,44 @@ export function PlanningPage({ token }: PlanningPageProps) {
     selectedTemplate?.summary,
     weeks,
   ]);
+
+  const ribbonCards = useMemo(() => {
+    const items: Array<{
+      id: string;
+      tone: PlanTone;
+      kind: "draft" | "historical" | "planned" | "target";
+      date: string;
+      endDate?: string | null;
+      title: string;
+      subtitle: string;
+      meta: string;
+    }> = [...timelineItems];
+    items.push({
+      id: draftCalendarSource.id,
+      tone: "warning",
+      kind: "draft",
+      date: draftCalendarSource.startDate,
+      endDate: draftCalendarSource.endDate,
+      title: compactPlanningSourceTitle(draftCalendarSource),
+      subtitle: "Borrador vivo",
+      meta: disciplineLabel(draftCalendarSource.discipline),
+    });
+
+    const nextTarget = overview?.next_recommendation.next_target;
+    if (nextTarget?.target_date && !items.some((item) => item.kind === "target")) {
+      items.push({
+        id: `target-${nextTarget.target_date}-${nextTarget.objective}`,
+        tone: "warning",
+        kind: "target",
+        date: nextTarget.target_date,
+        title: nextTarget.objective || "Objetivo",
+        subtitle: "Objetivo",
+        meta: nextTarget.target_metric || nextTarget.distance_label || "Objetivo abierto",
+      });
+    }
+
+    return items.sort((a, b) => dateValue(a.date) - dateValue(b.date));
+  }, [draftCalendarSource, overview?.next_recommendation.next_target, timelineItems]);
 
   const calendarSources = useMemo<PlanningCalendarSource[]>(() => {
     const planned = (overview?.planned_blocks ?? []).map((block) => ({
@@ -1381,25 +1567,23 @@ export function PlanningPage({ token }: PlanningPageProps) {
     () => resolveTrainingThreshold(planningThresholdSource, "LT2"),
     [planningThresholdSource],
   );
-  const planningThresholdOpinionText = useMemo(
-    () => planningThresholdOpinion(planningLt1, planningLt2, individualThresholdReason(planningThresholdSource)),
-    [planningLt1, planningLt2, planningThresholdSource],
-  );
+  const planningPracticalLt1 = planningThresholdSource?.dynamic_thresholds?.chronic.practical_lt1 ?? null;
+  const planningPracticalLt2 = planningThresholdSource?.dynamic_thresholds?.chronic.practical_lt2 ?? null;
   const planningThresholdBasis = useMemo(() => {
     const visibleSources = Array.from(new Set([planningLt1?.source, planningLt2?.source].filter(Boolean)));
     if (planningLt1?.source === "individual" && planningLt2?.source === "individual") {
-      return "Base activa: LT1/LT2 individuales.";
+      return "LT1/LT2 individuales";
     }
     if (visibleSources.length > 1) {
-      return "Base activa: mixta entre referencia individual/fisiológica y análisis disponible.";
+      return "Referencia mixta";
     }
     if (planningLt1?.source === "physiological" || planningLt2?.source === "physiological") {
-      return "Base activa: fisiológicos 2.0 / 4.0 mmol.";
+      return "LT1/LT2 activos";
     }
     if (planningLt1 || planningLt2) {
-      return "Base activa: anclas del análisis actual.";
+      return "Anclas actuales";
     }
-    return "Sin anclas visibles para esta disciplina.";
+    return "Sin anclas visibles";
   }, [planningLt1, planningLt2]);
 
   const openDraftWorkoutPreview = useCallback((session: PlanningMesocycleDraftSession) => {
@@ -1438,13 +1622,21 @@ export function PlanningPage({ token }: PlanningPageProps) {
     });
   }, [overview?.planned_sessions, planningLt1, planningLt2, planningThresholdBasis, workoutLibrary]);
 
-  const draftWeeksCount = overview?.mesocycle_draft?.weeks.length ?? Math.max(1, Number(weeks) || 0);
-  const draftSessionCount = overview?.mesocycle_draft?.weeks.reduce((total, week) => total + week.sessions.length, 0) ?? plannedSessions.length;
   const activeBlockLabel = overview?.current_block.energy_system_focus
     ? `${overview.current_block.energy_system_focus} · ${overview.current_block.block_objective}`
     : "Sin bloque activo";
-  const nextTargetLabel = overview?.next_recommendation.next_target?.target_date
-    ? formatDate(overview.next_recommendation.next_target.target_date)
+  const nextTargetPrimaryLabel = overview?.next_recommendation.next_target?.distance_label
+    || overview?.next_recommendation.next_target?.objective
+    || "Objetivo abierto";
+  const nextTargetLabel = overview?.next_recommendation.next_target
+    ? [
+        overview.next_recommendation.next_target.target_date
+          ? formatDate(overview.next_recommendation.next_target.target_date)
+          : "Sin fecha",
+        overview.next_recommendation.next_target.target_metric
+          ? `Ritmo objetivo ${overview.next_recommendation.next_target.target_metric}`
+          : null,
+      ].filter(Boolean).join(" · ")
     : "Sin fecha";
   const selectedAthlete = useMemo(
     () => athletes.find((athlete) => String(athlete.id) === String(athleteId)) ?? null,
@@ -1457,11 +1649,104 @@ export function PlanningPage({ token }: PlanningPageProps) {
       .sort((left, right) => String(left.target_date).localeCompare(String(right.target_date)))
       .slice(0, 4);
   }, [selectedAthlete]);
-  const coachWorkspaces: Array<{ id: PlanningWorkspace; label: string; hint: string }> = [
-    { id: "overview", label: "Cockpit", hint: "lectura y decisión" },
-    { id: "calendar", label: "Calendario", hint: "semana y capas" },
-    { id: "builder", label: "Diseño", hint: "bloque y borrador" },
-  ];
+  const selectedWeekStart = useMemo(
+    () => startOfWeek(selectedCalendarDate || selectedCalendarSource.startDate),
+    [selectedCalendarDate, selectedCalendarSource.startDate],
+  );
+  const selectedWeekEnd = useMemo(() => addDays(selectedWeekStart, 6), [selectedWeekStart]);
+  const selectedWeekPrimarySessions = useMemo(
+    () => primaryEntries.filter((session) => dateValue(session.date) >= dateValue(selectedWeekStart) && dateValue(session.date) <= dateValue(selectedWeekEnd)),
+    [primaryEntries, selectedWeekEnd, selectedWeekStart],
+  );
+  const selectedWeekOverlaySessions = useMemo(
+    () => overlayEntries.filter((session) => dateValue(session.date) >= dateValue(selectedWeekStart) && dateValue(session.date) <= dateValue(selectedWeekEnd)),
+    [overlayEntries, selectedWeekEnd, selectedWeekStart],
+  );
+  const selectedWeekKeySessions = useMemo(
+    () => selectedWeekPrimarySessions.filter((session) => session.sessionType === "clave" || session.sessionType === "key").length,
+    [selectedWeekPrimarySessions],
+  );
+  const selectedWeekSupportSessions = useMemo(
+    () => selectedWeekPrimarySessions.filter((session) => session.sessionType === "soporte" || session.sessionType === "support").length,
+    [selectedWeekPrimarySessions],
+  );
+  const selectedBlockDurationDays = useMemo(
+    () => daysBetween(selectedCalendarSource.startDate, selectedCalendarSource.endDate),
+    [selectedCalendarSource.endDate, selectedCalendarSource.startDate],
+  );
+  const selectedWeekDates = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => addDays(selectedWeekStart, index)),
+    [selectedWeekStart],
+  );
+  const selectedWeekEstimatedMinutes = useMemo(
+    () => selectedWeekPrimarySessions.reduce((total, session) => total + (session.estimatedMinutes ?? 0), 0),
+    [selectedWeekPrimarySessions],
+  );
+  const selectedWeekDisciplineMix = useMemo(() => {
+    const counts = new Map<string, number>();
+    [...selectedWeekPrimarySessions, ...selectedWeekOverlaySessions].forEach((session) => {
+      const key = session.layerDiscipline || session.discipline;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .sort((left, right) => right[1] - left[1])
+      .map(([discipline, count]) => `${disciplineLabel(discipline)} ${count}`);
+  }, [selectedWeekOverlaySessions, selectedWeekPrimarySessions]);
+  const calendarWarningCards = useMemo<CalendarWarningCard[]>(() => {
+    const warnings: CalendarWarningCard[] = [];
+    const demandingSessions = selectedWeekPrimarySessions.filter(isDemandingSession);
+    const longSessions = selectedWeekPrimarySessions.filter(isLongSession);
+
+    for (let index = 1; index < demandingSessions.length; index += 1) {
+      const previous = demandingSessions[index - 1];
+      const current = demandingSessions[index];
+      if (dateValue(current.date) - dateValue(previous.date) <= 86400000) {
+        warnings.push({
+          id: `demanding-${previous.id}-${current.id}`,
+          severity: "high",
+          title: "Dos estímulos exigentes demasiado juntos",
+          explanation: `${previous.title} y ${current.title} quedan en días consecutivos dentro de la misma semana.`,
+          suggestion: "Valora dejar un día más limpio entre ambos para proteger la calidad.",
+        });
+        break;
+      }
+    }
+
+    if (longSessions.length && demandingSessions.length) {
+      const longSession = longSessions[0];
+      const nearbyDemanding = demandingSessions.find((session) => Math.abs(dateValue(session.date) - dateValue(longSession.date)) <= 86400000);
+      if (nearbyDemanding) {
+        warnings.push({
+          id: `long-${longSession.id}-${nearbyDemanding.id}`,
+          severity: "medium",
+          title: "La sesión larga está demasiado cerca de una sesión intensa",
+          explanation: `${longSession.title} comparte una ventana demasiado pegada con ${nearbyDemanding.title}.`,
+          suggestion: "Revisa si quieres proteger mejor la tirada larga o la sesión clave.",
+        });
+      }
+    }
+
+    if (selectedWeekKeySessions === 0 && selectedCalendarSource.kind !== "historical") {
+      warnings.push({
+        id: "missing-key",
+        severity: "low",
+        title: "No aparece una sesión clave clara esta semana",
+        explanation: "La semana visible tiene soporte y continuidad, pero no un ancla principal evidente.",
+        suggestion: "Puede ser intencional. Si no lo es, marca la sesión dominante o añade una sesión clave.",
+      });
+    }
+
+    return warnings.slice(0, 4);
+  }, [selectedCalendarSource.kind, selectedWeekKeySessions, selectedWeekPrimarySessions]);
+
+  useEffect(() => {
+    if (!calendarPanelOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [calendarPanelOpen]);
 
   if (loading) {
     return <div className="loading">Preparando planificación...</div>;
@@ -1469,6 +1754,361 @@ export function PlanningPage({ token }: PlanningPageProps) {
 
   if (error) {
     return <div className="error">No se pudo cargar la planificación: {error}</div>;
+  }
+
+  if (calendarPanelOpen) {
+    return (
+      <div className="planning-calendar-overlay-page">
+        <button type="button" className="planning-calendar-overlay-close" onClick={closeCalendarPanel} aria-label="Cerrar calendario">
+          ×
+        </button>
+
+        <div className="planning-calendar-app">
+        <header className="planning-calendar-app-topnav">
+          <div className="planning-calendar-app-brand">PeakAerobic</div>
+          <nav className="planning-calendar-app-nav">
+            <button type="button" className="planning-calendar-app-tab" onClick={closeCalendarPanel}>Planificación</button>
+            <button type="button" className="planning-calendar-app-tab active">Calendario</button>
+            <button type="button" className="planning-calendar-app-tab">Panel de control</button>
+          </nav>
+          <div className="planning-calendar-app-user">
+            <span>{overview ? firstName(overview.athlete_name) : "Atleta"}</span>
+            <button type="button" className="planning-calendar-back subtle" onClick={closeCalendarPanel}>
+              Volver
+            </button>
+          </div>
+        </header>
+
+        <div className="planning-calendar-app-body">
+          <aside className="planning-calendar-app-rail">
+            <button type="button" className="planning-calendar-rail-item">Atletas</button>
+            <button type="button" className="planning-calendar-rail-item">Biblioteca</button>
+            <button type="button" className="planning-calendar-rail-item active">Calendario</button>
+            <button type="button" className="planning-calendar-rail-item">Resumen</button>
+          </aside>
+
+          <section className="planning-calendar-app-workspace">
+            <div className="planning-calendar-app-toolbar">
+              <div className="planning-calendar-toolbar-left">
+                <div className="planning-calendar-toolbar-heading">
+                  <strong>{monthHeading(calendarMonth)}</strong>
+                  <p>{compactPlanningSourceTitle(selectedCalendarSource)} · {disciplineLabel(selectedCalendarSource.discipline)}</p>
+                </div>
+                <div className="planning-calendar-toolbar-nav">
+                  <button type="button" className="planning-inline-action" onClick={() => {
+                    const today = isoDateFromToday();
+                    setCalendarMonth(startOfMonth(today));
+                    setSelectedCalendarDate(today);
+                  }}>
+                    Hoy
+                  </button>
+                  <button type="button" className="planning-inline-action" onClick={() => setCalendarMonth(startOfMonth(addMonths(calendarMonth, -1)))}>
+                    &lt;
+                  </button>
+                  <button type="button" className="planning-inline-action" onClick={() => setCalendarMonth(startOfMonth(addMonths(calendarMonth, 1)))}>
+                    &gt;
+                  </button>
+                </div>
+              </div>
+
+              <div className="planning-calendar-toolbar-center">
+                <button type="button" className="planning-calendar-athlete-chip">
+                  {overview ? firstName(overview.athlete_name) : "Atleta"}
+                </button>
+                <button type="button" className="planning-calendar-source-chip">
+                  {selectedCalendarSource.kind === "draft" ? "Borrador" : selectedCalendarSource.kind === "planned" ? "Bloque guardado" : "Histórico"}
+                </button>
+              </div>
+
+              <div className="planning-calendar-toolbar-right">
+                <div className="training-calendar-view-switch">
+                  <button
+                    type="button"
+                    className={`planning-inline-action ${calendarVisualMode === "month" ? "active" : ""}`}
+                    onClick={() => setCalendarVisualMode("month")}
+                  >
+                    Mes
+                  </button>
+                  <button
+                    type="button"
+                    className={`planning-inline-action ${calendarVisualMode === "week" ? "active" : ""}`}
+                    onClick={() => setCalendarVisualMode("week")}
+                  >
+                    Semana
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="planning-calendar-app-content">
+              <section className="planning-calendar-app-main">
+                <div className="planning-calendar-app-header-row">
+                  {["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"].map((day) => (
+                    <span key={day} className="planning-calendar-app-weekday">{day}</span>
+                  ))}
+                </div>
+
+                {calendarVisualMode === "month" ? (
+                  <div className="planning-calendar-app-grid">
+                    {calendarCells.map((cell) => {
+                      if (!cell.date) {
+                        return <span key={cell.id} className="planning-calendar-app-spacer" aria-hidden="true" />;
+                      }
+                      const day = cell.date;
+                      const daySessions = sessionsByDate.get(day) ?? [];
+                      const primaryDaySessions = daySessions.filter((session) => !session.isOverlay);
+                      const overlayDaySessions = daySessions.filter((session) => session.isOverlay);
+                      const isSelected = selectedCalendarDate === day;
+                      const isInBlock = dateValue(day) >= dateValue(selectedCalendarSource.startDate) && dateValue(day) <= dateValue(selectedCalendarSource.endDate);
+                      const isToday = day === isoDateFromToday();
+                      return (
+                        <article
+                          key={cell.id}
+                          className={`planning-calendar-app-day ${isSelected ? "selected" : ""} ${isInBlock ? "in-block" : ""}`}
+                        >
+                          <button type="button" className={`planning-calendar-app-day-label ${isToday ? "today" : ""}`} onClick={() => setSelectedCalendarDate(day)}>
+                            {isToday ? `Hoy ${monthDayLabel(day)}` : monthDayLabel(day)}
+                          </button>
+                          <div className="planning-calendar-app-day-stack">
+                            {primaryDaySessions.map((session) => (
+                              <button
+                                key={session.id}
+                                type="button"
+                                className={`planning-calendar-app-session ${session.layerDiscipline === "running" ? "running" : session.layerDiscipline === "ciclismo" ? "cycling" : session.layerDiscipline === "natación" ? "swimming" : ""} ${session.sessionType === "clave" ? "key" : ""}`}
+                                onClick={() => {
+                                  setSelectedCalendarDate(day);
+                                  if (session.rawId != null) openPlannedWorkoutPreview(session.rawId);
+                                }}
+                              >
+                                <span>{session.sessionType}</span>
+                                <strong>{session.title}</strong>
+                                <p>{session.estimatedMinutes ? `${session.estimatedMinutes} min` : session.dose}</p>
+                                <small>{session.dose}</small>
+                              </button>
+                            ))}
+                            {!primaryDaySessions.length ? (
+                              <button type="button" className="planning-calendar-app-empty" onClick={() => setSelectedCalendarDate(day)}>
+                                +
+                              </button>
+                            ) : null}
+                            {overlayDaySessions.map((session) => (
+                              <span key={session.id} className="planning-calendar-app-overlay">
+                                {disciplineLabel(session.layerDiscipline)}
+                              </span>
+                            ))}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="training-calendar-week-grid">
+                    {selectedWeekDates.map((day) => {
+                      const daySessions = sessionsByDate.get(day) ?? [];
+                      const primaryDaySessions = daySessions.filter((session) => !session.isOverlay);
+                      const overlayDaySessions = daySessions.filter((session) => session.isOverlay);
+                      const isSelected = selectedCalendarDate === day;
+                      return (
+                        <article key={day} className={`training-calendar-week-column ${isSelected ? "selected" : ""}`}>
+                          <button type="button" className="training-calendar-week-head" onClick={() => setSelectedCalendarDate(day)}>
+                            <span>{dayNameShort(day)}</span>
+                            <strong>{monthDayLabel(day)}</strong>
+                          </button>
+                          <div className="training-calendar-week-stack">
+                            {primaryDaySessions.length ? primaryDaySessions.map((session) => (
+                              <button
+                                key={session.id}
+                                type="button"
+                                className={`training-calendar-session-card ${session.layerDiscipline === "running" ? "running" : session.layerDiscipline === "ciclismo" ? "cycling" : session.layerDiscipline === "natación" ? "swimming" : ""} ${session.sessionType === "clave" ? "key" : ""}`}
+                                onClick={() => setSelectedCalendarDate(day)}
+                              >
+                                <span>{session.sessionType}</span>
+                                <strong>{session.title}</strong>
+                                <p>{session.dose}</p>
+                                <small>{session.objective}</small>
+                              </button>
+                            )) : (
+                              <div className="training-calendar-empty-slot">Día libre</div>
+                            )}
+                            {overlayDaySessions.map((session) => (
+                              <div key={session.id} className="training-calendar-session-card overlay">
+                                <span>{disciplineLabel(session.layerDiscipline)}</span>
+                                <strong>{session.title}</strong>
+                              </div>
+                            ))}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <aside className="planning-calendar-app-summary">
+                <div className="planning-calendar-summary-panel">
+                  <span className="planning-kicker">Resumen</span>
+                  <div className="planning-calendar-summary-stats">
+                    <article>
+                      <small>Bloque actual</small>
+                      <strong>{overview?.next_recommendation.recommended_block_label || selectedCalendarSource.objective}</strong>
+                    </article>
+                    <article>
+                      <small>Tiempo semanal</small>
+                      <strong>{selectedWeekEstimatedMinutes ? `${selectedWeekEstimatedMinutes} min` : "n/d"}</strong>
+                    </article>
+                    <article>
+                      <small>Sesiones clave</small>
+                      <strong>{selectedWeekKeySessions}</strong>
+                    </article>
+                    <article>
+                      <small>Confidence</small>
+                      <strong>{overview?.next_recommendation.physiological_analysis?.confidence_band || "sin banda"}</strong>
+                    </article>
+                    <article>
+                      <small>Primary limiter</small>
+                      <strong>{overview?.next_recommendation.physiological_analysis?.primary_limiter || "sin lectura"}</strong>
+                    </article>
+                    <article>
+                      <small>Secondary limiter</small>
+                      <strong>{overview?.next_recommendation.physiological_analysis?.secondary_limiter || "sin lectura"}</strong>
+                    </article>
+                  </div>
+                </div>
+
+                <div className="planning-calendar-warning-panel">
+                  <span className="planning-kicker">Warnings</span>
+                  {calendarWarningCards.length ? calendarWarningCards.map((warning) => (
+                    <article key={warning.id} className={`training-calendar-warning ${warning.severity}`}>
+                      <span>{warning.severity === "high" ? "Alta" : warning.severity === "medium" ? "Media" : "Baja"}</span>
+                      <strong>{warning.title}</strong>
+                      <p>{warning.explanation}</p>
+                      {warning.suggestion ? <small>{warning.suggestion}</small> : null}
+                    </article>
+                  )) : (
+                    <article className="planning-empty-state">
+                      <strong>Sin avisos prioritarios.</strong>
+                      <p>La distribución visible no muestra conflictos evidentes.</p>
+                    </article>
+                  )}
+                </div>
+
+                <div className="planning-calendar-day-panel">
+                  <span className="planning-kicker">
+                    {selectedCalendarDate ? `${dayNameShort(selectedCalendarDate)} ${formatDate(selectedCalendarDate)}` : "Selecciona un día"}
+                  </span>
+                  <strong>{selectedDaySessions.length ? `${selectedDaySessions.length} propuesta(s)` : "Día libre"}</strong>
+                  <p>{selectedCalendarSource.intent || "Sin intención operativa cargada."}</p>
+                  <div className="planning-day-stack">
+                    {selectedPrimarySessions.length ? selectedPrimarySessions.map((session) => (
+                      <article
+                        key={session.id}
+                        className={`planning-day-card clickable${session.blaCheck ? " bla-active" : ""}`}
+                        onClick={() => {
+                          if (session.rawId != null) openPlannedWorkoutPreview(session.rawId);
+                        }}
+                      >
+                        <div className="planning-day-card-top">
+                          <span className="planning-kicker">{session.sessionType}</span>
+                          <span className={`planning-session-confidence ${session.confidence}`}>{session.confidence}</span>
+                        </div>
+                        <strong>{session.title}</strong>
+                        <p>{session.objective}</p>
+                        <small className="planning-dose">{session.dose}</small>
+                      </article>
+                    )) : (
+                      <article className="planning-day-card empty">
+                        <strong>Sin sesión propuesta</strong>
+                        <p>Queda libre para trabajo manual del entrenador.</p>
+                      </article>
+                    )}
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </section>
+        </div>
+        </div>
+
+        {openWorkoutPreview && (
+          <WorkoutPreviewModal
+            template={openWorkoutPreview.template}
+            selection={openWorkoutPreview.selection}
+            onClose={() => setOpenWorkoutPreview(null)}
+          />
+        )}
+
+        {planningSourceModal && (
+          <div className="target-modal-backdrop" onClick={() => setPlanningSourceModal(null)}>
+            <section className="card target-modal-card planning-source-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="library-workout-modal-head">
+                <div>
+                  <span className="eyebrow">
+                    {planningSourceModal.source.kind === "draft" ? "Borrador" : planningSourceModal.source.kind === "planned" ? "Bloque real" : "Histórico útil"}
+                  </span>
+                  <h2>{planningSourceModal.title}</h2>
+                  <p>{planningSourceModal.summary}</p>
+                </div>
+                <button type="button" className="ghost-button" onClick={() => setPlanningSourceModal(null)}>
+                  Cerrar
+                </button>
+              </div>
+              <div className="planning-source-modal-body">
+                <article className="planning-source-modal-card">
+                  <span className="planning-kicker">Objetivo del mesociclo</span>
+                  <strong>{planningSourceModal.source.objective}</strong>
+                  <p>{planningSourceModal.source.intent || "Sin intención operativa detallada."}</p>
+                </article>
+                {overview?.next_recommendation ? (
+                  <article className="planning-source-modal-card">
+                    <span className="planning-kicker">Por qué el sistema prioriza este mesociclo</span>
+                    <strong>{overview.next_recommendation.recommended_block_label}</strong>
+                    <p>{overview.next_recommendation.template_summary || overview.next_recommendation.reasoning[0] || "Sin explicación prioritaria disponible."}</p>
+                    <div className="planning-modal-reading-grid">
+                      {(overview.next_recommendation.reasoning ?? []).slice(0, 3).map((item, index) => (
+                        <article key={item} className="planning-modal-reading-item">
+                          <span>{index === 0 ? "Lectura principal" : index === 1 ? "Bloque sugerido" : "Criterio adicional"}</span>
+                          <strong>{item}</strong>
+                        </article>
+                      ))}
+                    </div>
+                  </article>
+                ) : null}
+                <article className="planning-source-modal-card">
+                  <span className="planning-kicker">Características</span>
+                  <ul className="planning-note-list">
+                    {planningSourceModal.details.map((detail) => (
+                      <li key={detail}>{detail}</li>
+                    ))}
+                  </ul>
+                </article>
+                {(overview?.next_recommendation.candidates_scored?.length ?? 0) > 0 ? (
+                  <article className="planning-source-modal-card">
+                    <span className="planning-kicker">Posiciones por scoring entre mesociclos</span>
+                    <div className="planning-modal-score-list">
+                      {overview!.next_recommendation.candidates_scored!.map((candidate, index) => (
+                        <article key={candidate.block_type} className={`planning-modal-score-item ${index === 0 ? "winner" : ""}`}>
+                          <div className="planning-modal-score-head">
+                            <strong>{index + 1}. {BLOCK_LABELS[candidate.block_type] ?? candidate.block_type}</strong>
+                            <span>{candidate.score} pts</span>
+                          </div>
+                          <p>{candidate.reasons[0] || "Sin argumento resumido."}</p>
+                        </article>
+                      ))}
+                    </div>
+                  </article>
+                ) : null}
+                {planningSourceModal.source.notes ? (
+                  <article className="planning-source-modal-card">
+                    <span className="planning-kicker">Notas</span>
+                    <p>{planningSourceModal.source.notes}</p>
+                  </article>
+                ) : null}
+              </div>
+            </section>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -1528,7 +2168,8 @@ export function PlanningPage({ token }: PlanningPageProps) {
                 <article key={target.id} className="planning-target-chip">
                   <small>{target.distance_label || disciplineLabel(target.discipline)}</small>
                   <strong>{targetPrimaryValue(target)}</strong>
-                  <span>{formatTargetChipDate(target.target_date)}</span>
+                  <span>{formatDate(target.target_date)}</span>
+                  <span>{formatTargetCountdown(target.target_date)} · {targetMetricLabel(target)}</span>
                 </article>
               ))}
             </div>
@@ -1539,24 +2180,19 @@ export function PlanningPage({ token }: PlanningPageProps) {
       <section className="card section-card planning-card planning-toolbar-card">
         <div className="planning-kpi-strip">
           <article className="planning-kpi-card">
-            <span className="planning-kpi-label">Bloque activo</span>
+            <span className="planning-kpi-label">Bloque activo · {disciplineLabel(selectedDiscipline)}</span>
             <strong>{activeBlockLabel}</strong>
             <small>{overview?.current_block.start_date ? `${formatDate(overview.current_block.start_date)} → ${formatDate(overview.current_block.end_date || overview.current_block.target_date)}` : "Sin bloque real cargado"}</small>
           </article>
           <article className="planning-kpi-card">
             <span className="planning-kpi-label">Siguiente hito</span>
-            <strong>{overview?.next_recommendation.next_target?.objective || "Objetivo abierto"}</strong>
+            <strong>{nextTargetPrimaryLabel}</strong>
             <small>{nextTargetLabel}</small>
           </article>
           <article className="planning-kpi-card">
             <span className="planning-kpi-label">Bloques guardados</span>
             <strong>{overview?.planned_blocks.length ?? 0}</strong>
             <small>{overview?.planned_blocks.length ? "listos para revisar o borrar" : "sin plan persistido todavía"}</small>
-          </article>
-          <article className="planning-kpi-card">
-            <span className="planning-kpi-label">Borrador operativo</span>
-            <strong>{draftWeeksCount} sem · {draftSessionCount} sesiones</strong>
-            <small>{selectedTemplate?.public_label || overview?.next_recommendation.recommended_block_label || "borrador base"}</small>
           </article>
         </div>
         <div className="planning-threshold-strip">
@@ -1566,408 +2202,90 @@ export function PlanningPage({ token }: PlanningPageProps) {
             <small>{planningLt1 ? `${planningLt1.sourceLabel}${planningLt1.heartRate != null ? ` · ${Math.round(planningLt1.heartRate)} bpm` : ""}` : "Sin LT1 visible"}</small>
           </article>
           <article className="planning-threshold-card">
+            <span className="planning-kicker">LT1 práctico</span>
+            <strong>{formatDynamicReferencePrimaryMetric(planningPracticalLt1, selectedDiscipline)}</strong>
+            <small>{planningPracticalLt1?.estimated_hr_at_target != null ? `${Math.round(planningPracticalLt1.estimated_hr_at_target)} bpm` : "Sin LT1 práctico visible"}</small>
+          </article>
+          <article className="planning-threshold-card">
             <span className="planning-kicker">LT2 activo</span>
             <strong>{formatThresholdPrimaryMetric(planningLt2, selectedDiscipline)}</strong>
             <small>{planningLt2 ? `${planningLt2.sourceLabel}${planningLt2.heartRate != null ? ` · ${Math.round(planningLt2.heartRate)} bpm` : ""}` : "Sin LT2 visible"}</small>
           </article>
-          <article className="planning-threshold-card policy">
-            <span className="planning-kicker">Política de lectura</span>
-            <strong>{planningThresholdBasis}</strong>
-            <small>{planningThresholdOpinionText}</small>
+          <article className="planning-threshold-card">
+            <span className="planning-kicker">LT2 práctico</span>
+            <strong>{formatDynamicReferencePrimaryMetric(planningPracticalLt2, selectedDiscipline)}</strong>
+            <small>{planningPracticalLt2?.estimated_hr_at_target != null ? `${Math.round(planningPracticalLt2.estimated_hr_at_target)} bpm` : "Sin LT2 práctico visible"}</small>
           </article>
-        </div>
-        <div className="planning-workspace-switch" role="tablist" aria-label="Áreas de trabajo de planificación">
-          {coachWorkspaces.map((workspace) => (
-            <button
-              key={workspace.id}
-              type="button"
-              role="tab"
-              aria-selected={activeWorkspace === workspace.id}
-              className={`planning-workspace-button ${activeWorkspace === workspace.id ? "active" : ""}`}
-              onClick={() => setActiveWorkspace(workspace.id)}
-            >
-              <strong>{workspace.label}</strong>
-              <small>{workspace.hint}</small>
-            </button>
-          ))}
+          <article className="planning-threshold-card policy">
+            <span className="planning-kicker">Base activa</span>
+            <strong>{planningThresholdBasis}</strong>
+          </article>
         </div>
       </section>
 
-      {activeWorkspace === "overview" && (
-        <>
-          <section className="planning-stack">
-            <article className="card section-card planning-card">
-              <div className="section-heading compact">
-                <span className="eyebrow">Roadmap</span>
-                <h2 className="section-title">Próximo objetivo</h2>
-              </div>
-              <div className="planning-target-stack">
-                <div className="planning-target-main planning-target-wide">
-                  <strong>{overview?.next_recommendation.next_target?.objective || "Sin competición prioritaria cargada"}</strong>
+      <section className="card section-card planning-card planning-block-ribbon">
+        <div className="planning-ribbon-strip">
+          {ribbonCards.length ? ribbonCards.map((item) => {
+            const matchingSource = calendarSources.find((source) => source.id === item.id);
+            const isDeletable = matchingSource?.kind === "planned" && Boolean(matchingSource.focusBlockId);
+            return (
+              <article key={item.id} className="planning-ribbon-item">
+                <button
+                  type="button"
+                  className={`planning-ribbon-card ${item.tone} ${item.kind === "target" ? "target" : ""} ${matchingSource && selectedCalendarSourceId === item.id ? "active" : ""}`}
+                  onClick={() => {
+                    if (!matchingSource) return;
+                    setSelectedCalendarSourceId(item.id);
+                    setPlanningSourceModal({
+                      source: matchingSource,
+                      ...describePlanningSource(matchingSource),
+                    });
+                  }}
+                >
+                  <span className="planning-kicker">{item.subtitle}</span>
+                  <strong>{matchingSource ? compactPlanningSourceTitle(matchingSource) : item.title}</strong>
                   <p>
-                    {overview?.next_recommendation.next_target
-                      ? `${disciplineLabel(selectedDiscipline)} · ${overview.next_recommendation.next_target.distance_label || "Objetivo abierto"}`
-                      : "Puedes ordenar esta vista mejor desde los objetivos del atleta."}
+                    {formatDate(item.date)}
+                    {item.endDate ? ` → ${formatDate(item.endDate)}` : ""}
+                    {item.meta ? ` · ${item.meta}` : ""}
                   </p>
-                  <small>
-                    {overview?.next_recommendation.next_target
-                      ? `Fecha objetivo: ${formatDate(overview.next_recommendation.next_target.target_date)}${
-                          overview.next_recommendation.next_target.target_metric ? ` · Objetivo ${overview.next_recommendation.next_target.target_metric}` : ""
-                        }`
-                      : "Aún no hay una fecha futura prioritaria."}
-                  </small>
-                </div>
-                <div className="planning-mini-list">
-                  <article className="planning-mini-card">
-                    <span className="eyebrow">Disciplina</span>
-                    <strong>{disciplineLabel(selectedDiscipline)}</strong>
-                    <p>La prescripción rápida se adapta a la disciplina activa.</p>
-                  </article>
-                  <article className="planning-mini-card">
-                    <span className="eyebrow">Bloque sugerido</span>
-                    <strong>{overview?.next_recommendation.recommended_block_label || "Sin sugerencia"}</strong>
-                    <p>{overview ? `${overview.next_recommendation.structure} · ${overview.next_recommendation.primary_focus}` : "Todavía no hay recomendación disponible."}</p>
-                  </article>
-                </div>
-              </div>
-            </article>
-          </section>
-
-          <section className="planning-bottom-grid">
-            <article className="card section-card planning-card">
-              <div className="section-heading compact">
-                <span className="eyebrow">Lectura del sistema</span>
-                <h2 className="section-title">Qué ve el motor ahora mismo</h2>
-              </div>
-              <div className="planning-flow">
-                {(overview?.next_recommendation.reasoning ?? []).map((item, index) => (
-                  <article key={item} className="planning-flow-step">
-                    <span>{String(index + 1).padStart(2, "0")}</span>
-                    <div>
-                      <strong>{index === 0 ? "Lectura principal" : index === 1 ? "Lógica de bloque" : "Criterio adicional"}</strong>
-                      <p>{item}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-              {(overview?.next_recommendation.candidates_scored?.length ?? 0) > 0 && (
-                <div className="planning-candidates">
-                  <span className="planning-candidates-title">Candidatos evaluados</span>
-                  {overview!.next_recommendation.candidates_scored!.map((c, i) => (
-                    <article key={c.block_type} className={`planning-candidate ${i === 0 ? "winner" : ""}`}>
-                      <div className="candidate-header">
-                        <strong>{BLOCK_LABELS[c.block_type] ?? c.block_type}</strong>
-                        <span className="candidate-score">{c.score}pts</span>
-                        {i === 0 && <span className="candidate-badge">elegido</span>}
-                      </div>
-                      {i === 0 && c.reasons.slice(0, 2).map((r) => (
-                        <small key={r} className="candidate-reason">{r}</small>
-                      ))}
-                    </article>
-                  ))}
-                </div>
-              )}
-            </article>
-
-            <article className="card section-card planning-card">
-              <div className="section-heading compact">
-                <span className="eyebrow">Histórico útil</span>
-                <h2 className="section-title">Bloques cerrados</h2>
-              </div>
-              <div className="planning-archive">
-                {overview?.detected_mesocycles.length ? (
-                  overview.detected_mesocycles.slice(-4).reverse().map((block) => (
-                    <article key={`${block.start_date}-${block.end_date}-${block.block_type}`} className={`planning-archive-card ${block.block_type === "recovery_consolidation_block" ? "warning" : "positive"}`}>
-                      <strong>{block.block_label}</strong>
-                      <p>{formatDate(block.start_date)} → {formatDate(block.end_date)}</p>
-                      <small>{block.explanation[block.explanation.length - 1] || "Sin recomendación guardada."}</small>
-                    </article>
-                  ))
-                ) : (
-                  <article className="planning-empty-state">
-                    <strong>Todavía no hay bloques cerrados comparables.</strong>
-                    <p>Aquí quedará visible lo aprendido de los bloques anteriores para no volver a planificar desde cero.</p>
-                  </article>
-                )}
-              </div>
-            </article>
-          </section>
-        </>
-      )}
-
-      {activeWorkspace === "calendar" && (
-        <section className="planning-stack">
-          <article className="card section-card planning-card">
-            <div className="section-heading compact">
-              <span className="eyebrow">Timeline</span>
-              <h2 className="section-title">Contexto de la disciplina</h2>
-              <p className="muted">Una sola línea para ver contexto reciente, bloques programados y el objetivo de la disciplina. Arrastra horizontalmente si quieres más detalle.</p>
-            </div>
-            <div className="planning-timeline-toolbar">
-              <label>
-                Desde
-                <input type="date" value={timelineFrom} onChange={(event) => setTimelineFrom(event.target.value)} />
-              </label>
-              <label>
-                Hasta
-                <input type="date" value={timelineTo} onChange={(event) => setTimelineTo(event.target.value)} />
-              </label>
-            </div>
-            {overview?.planned_blocks.length ? (
-              <div className="planning-inline-actions">
-                {overview.planned_blocks
-                  .filter((block) => {
-                    const start = dateValue(block.start_date);
-                    const from = dateValue(timelineFrom);
-                    const to = dateValue(timelineTo);
-                    return (Number.isNaN(from) || start >= from) && (Number.isNaN(to) || start <= to);
-                  })
-                  .slice(0, 4)
-                  .map((block) => (
-                    <button
-                      key={`delete-${block.id}`}
-                      type="button"
-                      className="planning-inline-action planning-delete-button"
-                      onClick={() => deletePlannedBlock(block.id)}
-                      disabled={deletingBlockId === block.id}
-                    >
-                      {deletingBlockId === block.id ? "Eliminando..." : `Eliminar ${block.block_objective}`}
-                    </button>
-                  ))}
-              </div>
-            ) : null}
-            <div className="planning-horizontal-line">
-              {timelineItems.length ? (
-                <div className="planning-timeline-strip">
-                  {timelineItems.map((item) => {
-                    const matchingSource = calendarSources.find((source) => source.id === item.id);
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className={`planning-timeline-pill ${item.tone} ${item.kind} ${
-                          matchingSource && selectedCalendarSourceId === item.id ? "selected" : ""
-                        }`}
-                        onClick={() => {
-                          if (matchingSource) {
-                            setSelectedCalendarSourceId(item.id);
-                          }
-                          setCalendarMonth(startOfMonth(item.date));
-                        }}
-                      >
-                        <span className="planning-kicker">{item.subtitle}</span>
-                        <strong>{item.title}</strong>
-                        <p>{formatDate(item.date)}{item.endDate ? ` → ${formatDate(item.endDate)}` : ""}</p>
-                        <small>{item.meta}</small>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <article className="planning-empty-state">
-                  <strong>No hay elementos en ese rango para {disciplineLabel(selectedDiscipline).toLowerCase()}.</strong>
-                  <p>Ajusta las fechas para ver más histórico reciente o próximos bloques de la disciplina.</p>
-                </article>
-              )}
-            </div>
-            <div className="planning-inline-actions">
-              <button
-                type="button"
-                className={`planning-inline-action ${selectedCalendarSourceId === "draft" ? "active" : ""}`}
-                onClick={() => setSelectedCalendarSourceId("draft")}
-              >
-                Ver borrador actual
-              </button>
-            </div>
-            <div className="planning-calendar-shell">
-              <div className="planning-calendar-header">
-                <div className="planning-calendar-summary">
-                  <span className="planning-kicker">Calendario del bloque</span>
-                  <strong>{selectedCalendarSource.title}</strong>
-                  <p>
-                    {disciplineLabel(selectedCalendarSource.discipline)} · {selectedCalendarSource.objective} · {formatDate(selectedCalendarSource.startDate)} → {formatDate(selectedCalendarSource.endDate)}
-                  </p>
-                  <div className="planning-calendar-meta">
-                    <span className="planning-calendar-meta-pill active-month">Mes activo: {monthHeading(calendarMonth)}</span>
-                    <span className="planning-calendar-meta-pill">{selectedCalendarSource.kind === "draft" ? "borrador" : selectedCalendarSource.kind === "planned" ? "plan guardado" : "histórico traducido"}</span>
-                    <span className="planning-calendar-meta-pill">{selectedCalendarSource.phase || "fase abierta"}</span>
-                    <span className="planning-calendar-meta-pill">{selectedCalendarSource.energySystemFocus || selectedCalendarSource.objective}</span>
-                  </div>
-                </div>
-                <div className="planning-calendar-month-nav">
-                  <button type="button" className="planning-inline-action" onClick={() => setCalendarMonth(startOfMonth(addMonths(calendarMonth, -1)))}>
-                    Mes previo
+                </button>
+                {isDeletable ? (
+                  <button
+                    type="button"
+                    className="planning-inline-action planning-delete-button planning-ribbon-delete"
+                    onClick={() => deletePlannedBlock(matchingSource.focusBlockId!)}
+                    disabled={deletingBlockId === matchingSource.focusBlockId}
+                  >
+                    {deletingBlockId === matchingSource.focusBlockId ? "Eliminando..." : "Eliminar"}
                   </button>
-                  <strong>{monthLabel(calendarMonth)}</strong>
-                  <button type="button" className="planning-inline-action" onClick={() => setCalendarMonth(startOfMonth(addMonths(calendarMonth, 1)))}>
-                    Mes siguiente
-                  </button>
-                </div>
-              </div>
-              <div className="planning-calendar-active-month-card">
-                <span className="planning-kicker">Mes de trabajo</span>
-                <strong>{monthHeading(calendarMonth)}</strong>
-                <p>La cuadrícula y las capas de disciplinas se están leyendo sobre este mes.</p>
-              </div>
-              {overlayOptions.length ? (
-                <div className="planning-overlay-toolbar">
-                  <span className="planning-kicker">Capas de otras disciplinas</span>
-                  <div className="planning-overlay-chips">
-                    {overlayOptions.map((discipline) => {
-                      const active = enabledOverlayDisciplines.includes(discipline);
-                      return (
-                        <button
-                          key={discipline}
-                          type="button"
-                          className={`planning-overlay-chip ${active ? "active" : ""}`}
-                          onClick={() => setEnabledOverlayDisciplines((current) => (
-                            current.includes(discipline)
-                              ? current.filter((item) => item !== discipline)
-                              : [...current, discipline]
-                          ))}
-                        >
-                          {disciplineLabel(discipline)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-              <div className="planning-calendar-layout">
-                <div className="planning-calendar-grid">
-                  {["lun", "mar", "mié", "jue", "vie", "sáb", "dom"].map((day) => (
-                    <span key={day} className="planning-calendar-weekday">{day}</span>
-                  ))}
-                  {calendarCells.map((cell) => {
-                    if (!cell.date) {
-                      return <span key={cell.id} className="planning-calendar-spacer" aria-hidden="true" />;
-                    }
-                    const day = cell.date;
-                    const daySessions = sessionsByDate.get(day) ?? [];
-                    const primaryDaySessions = daySessions.filter((session) => !session.isOverlay);
-                    const overlayDaySessions = daySessions.filter((session) => session.isOverlay);
-                    const isSelected = selectedCalendarDate === day;
-                    const isInBlock = dateValue(day) >= dateValue(selectedCalendarSource.startDate) && dateValue(day) <= dateValue(selectedCalendarSource.endDate);
-                    return (
-                      <button
-                        key={cell.id}
-                        type="button"
-                        className={`planning-calendar-day ${isSelected ? "selected" : ""} ${isInBlock ? "in-block" : ""}`}
-                        onClick={() => setSelectedCalendarDate(day)}
-                      >
-                        <div className="planning-calendar-day-head">
-                          <span>{monthDayLabel(day)}</span>
-                          {daySessions.length ? <small>{daySessions.length}</small> : null}
-                        </div>
-                        <div className="planning-calendar-session-list">
-                          {primaryDaySessions.slice(0, 2).map((session) => (
-                            <span key={session.id} className={`planning-calendar-chip ${session.confidence}`}>
-                              {session.title}
-                            </span>
-                          ))}
-                          {overlayDaySessions.slice(0, 2).map((session) => (
-                            <span key={session.id} className="planning-calendar-chip overlay">
-                              {disciplineLabel(session.layerDiscipline)}
-                            </span>
-                          ))}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-                <aside className="planning-calendar-detail">
-                  <div className="planning-calendar-detail-head">
-                    <span className="planning-kicker">
-                      {selectedCalendarDate ? `${dayNameShort(selectedCalendarDate)} ${formatDate(selectedCalendarDate)}` : "Selecciona un día"}
-                    </span>
-                    <strong>{selectedDaySessions.length ? `${selectedDaySessions.length} propuesta(s)` : "Día libre o de margen"}</strong>
-                    <p>
-                      {selectedCalendarSource.kind === "historical"
-                        ? "Vista de traducción: sesiones tipo si repitieras hoy la lógica de este bloque histórico."
-                        : "Sesiones tipo derivadas del bloque seleccionado para revisar la semana en modo calendario."}
-                    </p>
-                  </div>
-                  {selectedPrimarySessions.length ? (
-                    <div className="planning-day-stack">
-                      {selectedPrimarySessions.map((session) => (
-                        <article
-                          key={session.id}
-                          className={`planning-day-card clickable${session.blaCheck ? " bla-active" : ""}`}
-                          onClick={() => {
-                            if (session.rawId != null) openPlannedWorkoutPreview(session.rawId);
-                          }}
-                        >
-                          <div className="planning-day-card-top">
-                            <span className="planning-kicker">{session.sessionType}</span>
-                            <span className={`planning-session-confidence ${session.confidence}`}>{session.confidence}</span>
-                            {session.rawId != null && (
-                              <button
-                                className={`bla-toggle-btn${session.blaCheck ? " active" : ""}`}
-                                title={session.blaCheck ? "BLa check activo — clic para desactivar" : "Activar BLa check en esta sesión"}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleBlaToggle(session.rawId!, session.blaCheck ?? false);
-                                }}
-                                disabled={blaCheckLoading === session.rawId}
-                              >
-                                {blaCheckLoading === session.rawId ? "…" : "🩸 BLa"}
-                              </button>
-                            )}
-                          </div>
-                          <strong>{session.title}</strong>
-                          <p>{session.objective}</p>
-                          <small className="planning-dose">{session.dose}</small>
-                          <small className="planning-threshold-note">
-                            {buildPlanningPrescriptionHint(session.objective, session.title, selectedCalendarSource.discipline, planningLt1, planningLt2)}
-                          </small>
-                          <small>{session.description}</small>
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <article className="planning-day-card empty">
-                      <strong>Sin sesión propuesta</strong>
-                      <p>Úsalo como descanso, movilidad o ajuste manual según carga real del atleta.</p>
-                    </article>
-                  )}
-                  {selectedOverlaySessions.length ? (
-                    <div className="planning-day-stack">
-                      <span className="planning-kicker">Otras disciplinas activas</span>
-                      {selectedOverlaySessions.map((session) => (
-                        <article key={session.id} className="planning-day-card overlay">
-                          <div className="planning-day-card-top">
-                            <span className="planning-kicker">{disciplineLabel(session.layerDiscipline)}</span>
-                            <span className="planning-session-confidence media">overlay</span>
-                          </div>
-                          <strong>{session.title}</strong>
-                          <p>{session.objective}</p>
-                          <small className="planning-dose">{session.dose}</small>
-                        </article>
-                      ))}
-                    </div>
-                  ) : null}
-                  <article className="planning-day-card source">
-                    <span className="planning-kicker">Base del calendario</span>
-                    <strong>{selectedCalendarSource.energySystemFocus || selectedCalendarSource.objective}</strong>
-                    <p>{selectedCalendarSource.intent || "Sin intención operativa cargada."}</p>
-                    <small className="planning-threshold-note">{planningThresholdBasis}</small>
-                    <small>{selectedCalendarSource.notes || "Sin notas adicionales."}</small>
-                  </article>
-                </aside>
-              </div>
-            </div>
-          </article>
-        </section>
-      )}
+                ) : null}
+              </article>
+            );
+          }) : (
+            <article className="planning-empty-state">
+              <strong>No hay bloques ni hitos en ese rango.</strong>
+              <p>Ajusta la ventana para recuperar histórico o próximos objetivos.</p>
+            </article>
+          )}
+        </div>
+        <div className="planning-block-ribbon-actions">
+          <button
+            type="button"
+            className="planning-calendar-trigger"
+            onClick={openCalendarPanel}
+          >
+            CALENDARIO
+          </button>
+        </div>
+      </section>
 
-      {activeWorkspace === "builder" && (
-        <>
-          <section className="card section-card planning-builder-card">
-            <div className="section-heading">
-              <span className="eyebrow">Workbench</span>
-              <h2 className="section-title">Planificación coach-led</h2>
-              <p className="muted">Tú eliges disciplina, limitante y familia de bloque. El sistema aporta checks, contexto histórico y evidencia para que la decisión sea más sólida.</p>
-            </div>
+      <section className="card section-card planning-builder-card">
+        <div className="section-heading">
+          <span className="eyebrow">Diseño del bloque</span>
+          <h2 className="section-title">Editor coach-led del bloque</h2>
+          <p className="muted">Aquí ajustas diagnóstico, plantilla y reglas del bloque sin depender del calendario central.</p>
+        </div>
 
             <div className="planning-foundation-grid">
               {(overview?.foundations ?? []).map((foundation) => (
@@ -2293,84 +2611,82 @@ export function PlanningPage({ token }: PlanningPageProps) {
                 </div>
               </div>
             </div>
-          </section>
+      </section>
 
-          {overview?.mesocycle_draft && (
-            <section className="card section-card planning-card planning-draft-section">
-              <div className="section-heading compact">
-                <span className="eyebrow">Propuesta generada</span>
-                <h2 className="section-title">Borrador del bloque</h2>
-                {overview.mesocycle_draft.state_summary && (
-                  <p className="section-sub">{overview.mesocycle_draft.state_summary}</p>
-                )}
-              </div>
-              <div className="planning-draft-grid">
-                {overview.mesocycle_draft.weeks.map((week) => {
-                  const weekClass =
-                    week.load_type === "descarga" ? "recovery"
-                    : week.load_type === "acumulación" ? "load"
-                    : week.load_type === "especificidad" ? "specific"
-                    : "build";
-                  return (
-                    <article key={week.week_index} className={`planning-draft-week ${weekClass}`}>
-                      <header className="planning-draft-week-header">
-                        <span className="planning-week-num">S{week.week_index}</span>
-                        <span className="planning-week-theme">{week.theme}</span>
-                        {(week.spacing_warnings?.length ?? 0) > 0 && (
-                          <span className="planning-spacing-badge" title={week.spacing_warnings!.join(" · ")}>
-                            ⚠ spacing
+      {overview?.mesocycle_draft && (
+        <section className="card section-card planning-card planning-draft-section">
+          <div className="section-heading compact">
+            <span className="eyebrow">Propuesta generada</span>
+            <h2 className="section-title">Borrador del bloque</h2>
+            {overview.mesocycle_draft.state_summary && (
+              <p className="section-sub">{overview.mesocycle_draft.state_summary}</p>
+            )}
+          </div>
+          <div className="planning-draft-grid">
+            {overview.mesocycle_draft.weeks.map((week) => {
+              const weekClass =
+                week.load_type === "descarga" ? "recovery"
+                : week.load_type === "acumulación" ? "load"
+                : week.load_type === "especificidad" ? "specific"
+                : "build";
+              return (
+                <article key={week.week_index} className={`planning-draft-week ${weekClass}`}>
+                  <header className="planning-draft-week-header">
+                    <span className="planning-week-num">S{week.week_index}</span>
+                    <span className="planning-week-theme">{week.theme}</span>
+                    {(week.spacing_warnings?.length ?? 0) > 0 && (
+                      <span className="planning-spacing-badge" title={week.spacing_warnings!.join(" · ")}>
+                        ⚠ spacing
+                      </span>
+                    )}
+                  </header>
+                  <ul className="planning-draft-sessions">
+                    {week.sessions.map((session) => {
+                      const doseStep = session.payload?.dose_step_index as number | null | undefined;
+                      return (
+                        <li
+                          key={session.session_id}
+                          className={`planning-draft-session clickable role-${session.session_role}`}
+                          onClick={() => openDraftWorkoutPreview(session)}
+                        >
+                          <span className="session-role-badge">
+                            {SESSION_ROLE_LABEL[session.session_role] ?? session.session_role}
                           </span>
-                        )}
-                      </header>
-                      <ul className="planning-draft-sessions">
-                        {week.sessions.map((session) => {
-                          const doseStep = session.payload?.dose_step_index as number | null | undefined;
-                          return (
-                            <li
-                              key={session.session_id}
-                              className={`planning-draft-session clickable role-${session.session_role}`}
-                              onClick={() => openDraftWorkoutPreview(session)}
-                            >
-                              <span className="session-role-badge">
-                                {SESSION_ROLE_LABEL[session.session_role] ?? session.session_role}
-                              </span>
-                              <div className="session-main">
-                                <strong>{session.public_label}</strong>
-                                {session.dose_prescription && (
-                                  <span className="session-dose">{session.dose_prescription}</span>
-                                )}
-                                {doseStep != null && (
-                                  <span className="session-step">peldaño {doseStep}</span>
-                                )}
-                                <small className="planning-threshold-note">
-                                  {buildPlanningPrescriptionHint(session.objective, session.public_label, selectedDiscipline, planningLt1, planningLt2)}
-                                </small>
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                      {week.control_points.length > 0 && (
-                        <footer className="planning-draft-controls">
-                          {week.control_points.slice(0, 2).map((cp) => (
-                            <small key={cp}>· {cp}</small>
-                          ))}
-                        </footer>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
-              {overview.mesocycle_draft.progression_rules.length > 0 && (
-                <div className="planning-draft-rules">
-                  {overview.mesocycle_draft.progression_rules.map((rule) => (
-                    <small key={rule}>→ {rule}</small>
-                  ))}
-                </div>
-              )}
-            </section>
+                          <div className="session-main">
+                            <strong>{session.public_label}</strong>
+                            {session.dose_prescription && (
+                              <span className="session-dose">{session.dose_prescription}</span>
+                            )}
+                            {doseStep != null && (
+                              <span className="session-step">peldaño {doseStep}</span>
+                            )}
+                            <small className="planning-threshold-note">
+                              {buildPlanningPrescriptionHint(session.objective, session.public_label, selectedDiscipline, planningLt1, planningLt2)}
+                            </small>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {week.control_points.length > 0 && (
+                    <footer className="planning-draft-controls">
+                      {week.control_points.slice(0, 2).map((cp) => (
+                        <small key={cp}>· {cp}</small>
+                      ))}
+                    </footer>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+          {overview.mesocycle_draft.progression_rules.length > 0 && (
+            <div className="planning-draft-rules">
+              {overview.mesocycle_draft.progression_rules.map((rule) => (
+                <small key={rule}>→ {rule}</small>
+              ))}
+            </div>
           )}
-        </>
+        </section>
       )}
 
       {openWorkoutPreview && (
@@ -2379,6 +2695,77 @@ export function PlanningPage({ token }: PlanningPageProps) {
           selection={openWorkoutPreview.selection}
           onClose={() => setOpenWorkoutPreview(null)}
         />
+      )}
+
+      {planningSourceModal && (
+        <div className="target-modal-backdrop" onClick={() => setPlanningSourceModal(null)}>
+          <section className="card target-modal-card planning-source-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="library-workout-modal-head">
+              <div>
+                <span className="eyebrow">
+                  {planningSourceModal.source.kind === "draft" ? "Borrador" : planningSourceModal.source.kind === "planned" ? "Bloque real" : "Histórico útil"}
+                </span>
+                <h2>{planningSourceModal.title}</h2>
+                <p>{planningSourceModal.summary}</p>
+              </div>
+              <button type="button" className="ghost-button" onClick={() => setPlanningSourceModal(null)}>
+                Cerrar
+              </button>
+            </div>
+            <div className="planning-source-modal-body">
+              <article className="planning-source-modal-card">
+                <span className="planning-kicker">Objetivo del mesociclo</span>
+                <strong>{planningSourceModal.source.objective}</strong>
+                <p>{planningSourceModal.source.intent || "Sin intención operativa detallada."}</p>
+              </article>
+              {overview?.next_recommendation ? (
+                <article className="planning-source-modal-card">
+                  <span className="planning-kicker">Por qué el sistema prioriza este mesociclo</span>
+                  <strong>{overview.next_recommendation.recommended_block_label}</strong>
+                  <p>{overview.next_recommendation.template_summary || overview.next_recommendation.reasoning[0] || "Sin explicación prioritaria disponible."}</p>
+                  <div className="planning-modal-reading-grid">
+                    {(overview.next_recommendation.reasoning ?? []).slice(0, 3).map((item, index) => (
+                      <article key={item} className="planning-modal-reading-item">
+                        <span>{index === 0 ? "Lectura principal" : index === 1 ? "Bloque sugerido" : "Criterio adicional"}</span>
+                        <strong>{item}</strong>
+                      </article>
+                    ))}
+                  </div>
+                </article>
+              ) : null}
+              <article className="planning-source-modal-card">
+                <span className="planning-kicker">Características</span>
+                <ul className="planning-note-list">
+                  {planningSourceModal.details.map((detail) => (
+                    <li key={detail}>{detail}</li>
+                  ))}
+                </ul>
+              </article>
+              {(overview?.next_recommendation.candidates_scored?.length ?? 0) > 0 ? (
+                <article className="planning-source-modal-card">
+                  <span className="planning-kicker">Posiciones por scoring entre mesociclos</span>
+                  <div className="planning-modal-score-list">
+                    {overview!.next_recommendation.candidates_scored!.map((candidate, index) => (
+                      <article key={candidate.block_type} className={`planning-modal-score-item ${index === 0 ? "winner" : ""}`}>
+                        <div className="planning-modal-score-head">
+                          <strong>{index + 1}. {BLOCK_LABELS[candidate.block_type] ?? candidate.block_type}</strong>
+                          <span>{candidate.score} pts</span>
+                        </div>
+                        <p>{candidate.reasons[0] || "Sin argumento resumido."}</p>
+                      </article>
+                    ))}
+                  </div>
+                </article>
+              ) : null}
+              {planningSourceModal.source.notes ? (
+                <article className="planning-source-modal-card">
+                  <span className="planning-kicker">Notas</span>
+                  <p>{planningSourceModal.source.notes}</p>
+                </article>
+              ) : null}
+            </div>
+          </section>
+        </div>
       )}
     </div>
   );

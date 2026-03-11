@@ -21,6 +21,37 @@
   --radius-xl: 30px;
   --radius-lg: 22px;
   --radius-md: 16px;
+  --field-bg: rgba(255, 255, 255, 0.88);
+  --surface-soft: rgba(255, 255, 255, 0.72);
+  --surface-softer: rgba(255, 255, 255, 0.58);
+  --hover-soft: rgba(255, 255, 255, 0.18);
+  --toggle-track: rgba(16, 34, 42, 0.12);
+  --toggle-thumb-bg: linear-gradient(180deg, #16353d, #2f6570);
+}
+
+:root[data-theme="dark"] {
+  color: #e7eff4;
+  background:
+    radial-gradient(circle at top left, rgba(74, 109, 142, 0.22), transparent 28%),
+    linear-gradient(135deg, #081319 0%, #0d1d25 42%, #132833 100%);
+  color-scheme: dark;
+  --panel: rgba(11, 24, 31, 0.78);
+  --panel-strong: rgba(14, 30, 38, 0.92);
+  --border: rgba(203, 225, 233, 0.10);
+  --border-strong: rgba(203, 225, 233, 0.16);
+  --primary: #e7eff4;
+  --primary-soft: #bfd4dc;
+  --accent: #ffb067;
+  --accent-soft: rgba(255, 176, 103, 0.16);
+  --muted: #93a9b2;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+  --shadow-soft: 0 14px 36px rgba(0, 0, 0, 0.22);
+  --field-bg: rgba(19, 39, 48, 0.88);
+  --surface-soft: rgba(20, 42, 53, 0.72);
+  --surface-softer: rgba(16, 34, 42, 0.62);
+  --hover-soft: rgba(255, 255, 255, 0.08);
+  --toggle-track: rgba(255, 255, 255, 0.12);
+  --toggle-thumb-bg: linear-gradient(180deg, #ffbf78, #d26a36);
 }
 
 * {
@@ -31,6 +62,8 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--primary);
+  background: inherit;
+  transition: background 180ms ease, color 180ms ease;
 }
 
 h2,
@@ -249,7 +282,6 @@ textarea {
 }
 
 .sidebar-logout {
-  margin-top: auto;
   width: 100%;
   min-height: 40px;
   border-radius: 16px;
@@ -259,6 +291,58 @@ textarea {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.22),
     0 10px 22px rgba(16, 34, 42, 0.04);
+}
+
+.sidebar-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.theme-toggle {
+  width: 44px;
+  height: 44px;
+  align-self: flex-end;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-softer);
+  color: var(--primary);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+  background: var(--surface-soft);
+  border-color: var(--border-strong);
+}
+
+.theme-toggle-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--toggle-thumb-bg);
+  color: #fff7ee;
+  font-size: 0.92rem;
+  line-height: 1;
+}
+
+:root[data-theme="dark"] .theme-toggle {
+  background: rgba(18, 39, 49, 0.96);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+:root[data-theme="dark"] .theme-toggle:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 10px 22px rgba(0, 0, 0, 0.24);
 }
 
 .content {
@@ -1052,25 +1136,9 @@ textarea {
   border-radius: 14px;
 }
 
-.athlete-vo2-inline {
-  color: var(--muted);
-  font-size: 0.88rem;
-  font-weight: 600;
-}
-
 .cycling-cadence-card {
   display: grid;
   gap: 18px;
-}
-
-.inline-weight-entry {
-  margin-top: 10px;
-}
-
-.inline-weight-entry summary {
-  cursor: pointer;
-  color: var(--accent);
-  font-weight: 700;
 }
 
 .hero-main > p {
@@ -1090,28 +1158,6 @@ textarea {
 .hero-goal-row .discipline-tab {
   padding: 12px 18px;
   min-height: auto;
-}
-
-.inline-weight-form {
-  display: flex;
-  gap: 12px;
-  align-items: end;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
-.inline-weight-form label {
-  display: grid;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.inline-weight-form input {
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.88);
 }
 
 .cycling-cadence-body {
@@ -2923,6 +2969,257 @@ textarea {
     radial-gradient(circle at top right, rgba(22, 53, 61, 0.06), transparent 34%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 241, 236, 0.9));
   box-shadow: 0 16px 34px rgba(16, 34, 42, 0.06);
+}
+
+.training-calendar-board {
+  gap: 18px;
+}
+
+.training-calendar-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.training-calendar-heading {
+  display: grid;
+  gap: 6px;
+}
+
+.training-calendar-heading strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 2rem;
+  line-height: 0.95;
+}
+
+.training-calendar-heading p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.training-calendar-controls {
+  display: grid;
+  gap: 12px;
+  justify-items: end;
+}
+
+.training-calendar-view-switch {
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 16px;
+  background: rgba(16, 34, 42, 0.05);
+  border: 1px solid rgba(16, 34, 42, 0.06);
+}
+
+.training-calendar-meta {
+  margin-top: -4px;
+}
+
+.training-calendar-grid {
+  gap: 10px;
+  padding: 16px;
+}
+
+.training-calendar-day {
+  min-height: 144px;
+  gap: 10px;
+}
+
+.planning-calendar-chip.running {
+  background: rgba(46, 123, 211, 0.12);
+  border-color: rgba(46, 123, 211, 0.16);
+}
+
+.planning-calendar-chip.cycling {
+  background: rgba(40, 140, 96, 0.12);
+  border-color: rgba(40, 140, 96, 0.16);
+}
+
+.planning-calendar-chip.swimming {
+  background: rgba(33, 112, 176, 0.12);
+  border-color: rgba(33, 112, 176, 0.16);
+}
+
+.planning-calendar-chip.key {
+  box-shadow: inset 0 0 0 1px rgba(210, 106, 54, 0.18);
+  font-weight: 700;
+}
+
+.training-calendar-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.training-calendar-week-column {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+  min-height: 440px;
+}
+
+.training-calendar-week-column.selected {
+  border-color: rgba(46, 123, 211, 0.3);
+  box-shadow: 0 0 0 3px rgba(46, 123, 211, 0.08);
+}
+
+.training-calendar-week-head {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  color: var(--primary);
+}
+
+.training-calendar-week-head span {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.training-calendar-week-head strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.2rem;
+}
+
+.training-calendar-week-stack {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.training-calendar-session-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 242, 236, 0.92));
+  text-align: left;
+  color: var(--primary);
+}
+
+.training-calendar-session-card span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.training-calendar-session-card strong {
+  font-size: 0.98rem;
+  line-height: 1.1;
+}
+
+.training-calendar-session-card p,
+.training-calendar-session-card small {
+  margin: 0;
+  color: var(--muted);
+}
+
+.training-calendar-session-card.running {
+  background: linear-gradient(180deg, rgba(235, 244, 255, 0.96), rgba(223, 236, 252, 0.92));
+}
+
+.training-calendar-session-card.cycling {
+  background: linear-gradient(180deg, rgba(234, 247, 238, 0.96), rgba(223, 241, 229, 0.92));
+}
+
+.training-calendar-session-card.swimming {
+  background: linear-gradient(180deg, rgba(236, 246, 252, 0.96), rgba(223, 238, 247, 0.92));
+}
+
+.training-calendar-session-card.key {
+  border-color: rgba(210, 106, 54, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(210, 106, 54, 0.12);
+}
+
+.training-calendar-session-card.overlay {
+  background: rgba(16, 34, 42, 0.06);
+}
+
+.training-calendar-empty-slot {
+  display: grid;
+  place-items: center;
+  min-height: 96px;
+  border-radius: 14px;
+  border: 1px dashed rgba(16, 34, 42, 0.12);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.training-calendar-sidebar {
+  gap: 14px;
+}
+
+.training-calendar-summary-card {
+  gap: 14px;
+}
+
+.training-calendar-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.training-calendar-discipline-mix {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.training-calendar-warning-list {
+  display: grid;
+  gap: 10px;
+}
+
+.training-calendar-warning {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.training-calendar-warning span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.training-calendar-warning p,
+.training-calendar-warning small {
+  margin: 0;
+  color: var(--muted);
+}
+
+.training-calendar-warning.high {
+  border-color: rgba(183, 69, 69, 0.18);
+  background: rgba(252, 240, 240, 0.88);
+}
+
+.training-calendar-warning.medium {
+  border-color: rgba(210, 106, 54, 0.18);
+  background: rgba(251, 244, 238, 0.88);
+}
+
+.training-calendar-warning.low {
+  border-color: rgba(46, 123, 211, 0.16);
+  background: rgba(239, 246, 255, 0.88);
 }
 
 .planning-calendar-detail-head {
@@ -11728,6 +12025,91 @@ h4 {
   padding-top: 12px;
 }
 
+:root[data-theme="dark"] .sidebar {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(15, 30, 38, 0.92), rgba(10, 22, 29, 0.82));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 42px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme="dark"] .brand-copy p,
+:root[data-theme="dark"] .brand p,
+:root[data-theme="dark"] .muted,
+:root[data-theme="dark"] .card-header p,
+:root[data-theme="dark"] .page-grid p,
+:root[data-theme="dark"] small {
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .nav a:hover,
+:root[data-theme="dark"] .nav-group-trigger:hover,
+:root[data-theme="dark"] .nav-group-links a,
+:root[data-theme="dark"] .ghost-button,
+:root[data-theme="dark"] .athlete-topbar,
+:root[data-theme="dark"] .hero-focus-card,
+:root[data-theme="dark"] .hero-plan-card,
+:root[data-theme="dark"] .athlete-roster-search input,
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
+  background: var(--surface-soft);
+}
+
+:root[data-theme="dark"] .nav a.active,
+:root[data-theme="dark"] .nav-group-trigger.active {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.10), rgba(255, 176, 103, 0.08));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 10px 22px rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="dark"] .sidebar-logout,
+:root[data-theme="dark"] .ghost-button {
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--primary);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 10px 22px rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="dark"] .primary-button {
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+}
+
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .hero,
+:root[data-theme="dark"] .planning-draft-week,
+:root[data-theme="dark"] .planning-draft-session.clickable {
+  border-color: var(--border);
+  background: var(--panel);
+}
+
+:root[data-theme="dark"] .hero-focus-card.current,
+:root[data-theme="dark"] .athlete-roster-stat.positive {
+  background: linear-gradient(180deg, rgba(22, 88, 70, 0.34), rgba(15, 33, 40, 0.94));
+}
+
+:root[data-theme="dark"] .hero-focus-card.evaluation,
+:root[data-theme="dark"] .athlete-roster-stat.warning {
+  background: linear-gradient(180deg, rgba(131, 68, 41, 0.34), rgba(15, 33, 40, 0.94));
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
+  color: var(--primary);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] ::placeholder {
+  color: #7f96a0;
+}
+
+:root[data-theme="dark"] .error {
+  color: #ffb4a6;
+}
+
 @media (max-width: 1280px) {
   .planning-bottom-grid,
   .planning-builder-grid,
@@ -11752,4 +12134,1470 @@ h4 {
   .planning-workspace-button {
     flex: 1 1 100%;
   }
+}
+
+:root[data-theme="dark"] .planning-page,
+:root[data-theme="dark"] .page-header,
+:root[data-theme="dark"] .hero,
+:root[data-theme="dark"] .planning-hero {
+  color: var(--primary);
+}
+
+:root[data-theme="dark"] .page-header h1,
+:root[data-theme="dark"] .hero h1,
+:root[data-theme="dark"] .planning-hero-main h1,
+:root[data-theme="dark"] .section-title,
+:root[data-theme="dark"] .planning-kpi-card strong,
+:root[data-theme="dark"] .planning-threshold-card strong,
+:root[data-theme="dark"] .planning-context-card strong,
+:root[data-theme="dark"] .planning-target-main strong,
+:root[data-theme="dark"] .planning-mini-card strong,
+:root[data-theme="dark"] .planning-archive-card strong,
+:root[data-theme="dark"] .planning-week-card strong,
+:root[data-theme="dark"] .planning-foundation-card strong,
+:root[data-theme="dark"] .planning-template-card strong,
+:root[data-theme="dark"] .planning-template-detail strong,
+:root[data-theme="dark"] .planning-day-card strong,
+:root[data-theme="dark"] .planning-calendar-detail strong {
+  color: #f2f7fa;
+}
+
+:root[data-theme="dark"] .page-header p,
+:root[data-theme="dark"] .hero p,
+:root[data-theme="dark"] .section-heading p,
+:root[data-theme="dark"] .planning-hero-main p,
+:root[data-theme="dark"] .planning-context-card p,
+:root[data-theme="dark"] .planning-context-card small,
+:root[data-theme="dark"] .planning-kpi-card small,
+:root[data-theme="dark"] .planning-threshold-card small,
+:root[data-theme="dark"] .planning-target-chip span,
+:root[data-theme="dark"] .planning-target-chip small,
+:root[data-theme="dark"] .planning-timeline-pill p,
+:root[data-theme="dark"] .planning-timeline-pill small,
+:root[data-theme="dark"] .planning-day-card p,
+:root[data-theme="dark"] .planning-day-card small,
+:root[data-theme="dark"] .planning-calendar-day p,
+:root[data-theme="dark"] .planning-calendar-day small,
+:root[data-theme="dark"] .planning-template-card p,
+:root[data-theme="dark"] .planning-template-card small,
+:root[data-theme="dark"] .planning-template-detail p,
+:root[data-theme="dark"] .planning-foundation-card p,
+:root[data-theme="dark"] .planning-week-card p,
+:root[data-theme="dark"] .planning-week-card small,
+:root[data-theme="dark"] .planning-archive-card p,
+:root[data-theme="dark"] .planning-archive-card small,
+:root[data-theme="dark"] .planning-mini-card p {
+  color: #a8bbc3;
+}
+
+:root[data-theme="dark"] .planning-toolbar-card,
+:root[data-theme="dark"] .planning-context-card,
+:root[data-theme="dark"] .planning-kpi-card,
+:root[data-theme="dark"] .planning-threshold-card,
+:root[data-theme="dark"] .planning-target-main,
+:root[data-theme="dark"] .planning-mini-card,
+:root[data-theme="dark"] .planning-archive-card,
+:root[data-theme="dark"] .planning-week-card,
+:root[data-theme="dark"] .planning-foundation-card,
+:root[data-theme="dark"] .planning-builder-controls,
+:root[data-theme="dark"] .planning-template-browser,
+:root[data-theme="dark"] .planning-template-detail,
+:root[data-theme="dark"] .planning-template-card,
+:root[data-theme="dark"] .planning-calendar-shell,
+:root[data-theme="dark"] .planning-calendar-grid,
+:root[data-theme="dark"] .planning-calendar-detail,
+:root[data-theme="dark"] .planning-calendar-day,
+:root[data-theme="dark"] .planning-day-card,
+:root[data-theme="dark"] .planning-draft-week,
+:root[data-theme="dark"] .planning-draft-session.clickable {
+  background: linear-gradient(180deg, rgba(15, 29, 37, 0.96), rgba(12, 24, 31, 0.94));
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 14px 28px rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="dark"] .planning-context-card.current,
+:root[data-theme="dark"] .planning-context-card.positive,
+:root[data-theme="dark"] .planning-timeline-card.positive,
+:root[data-theme="dark"] .planning-archive-card.positive,
+:root[data-theme="dark"] .planning-session-confidence.alta {
+  background: linear-gradient(180deg, rgba(18, 49, 44, 0.96), rgba(13, 30, 30, 0.94));
+}
+
+:root[data-theme="dark"] .planning-context-card.warning,
+:root[data-theme="dark"] .planning-timeline-card.warning,
+:root[data-theme="dark"] .planning-archive-card.warning,
+:root[data-theme="dark"] .planning-session-confidence.media {
+  background: linear-gradient(180deg, rgba(64, 40, 24, 0.96), rgba(27, 21, 18, 0.94));
+}
+
+:root[data-theme="dark"] .planning-target-chip,
+:root[data-theme="dark"] .planning-athlete-select,
+:root[data-theme="dark"] .planning-workspace-button,
+:root[data-theme="dark"] .planning-overlay-chip,
+:root[data-theme="dark"] .planning-inline-action,
+:root[data-theme="dark"] .planning-card-dismiss,
+:root[data-theme="dark"] .planning-timeline-pill {
+  background: rgba(20, 40, 50, 0.92);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #e8f0f4;
+}
+
+:root[data-theme="dark"] .planning-target-chip strong,
+:root[data-theme="dark"] .planning-athlete-select,
+:root[data-theme="dark"] .planning-workspace-button strong,
+:root[data-theme="dark"] .planning-timeline-pill strong {
+  color: #eef5f8;
+}
+
+:root[data-theme="dark"] .planning-workspace-button.active,
+:root[data-theme="dark"] .planning-timeline-pill.selected,
+:root[data-theme="dark"] .planning-calendar-day.selected {
+  background: linear-gradient(180deg, rgba(201, 125, 61, 0.24), rgba(44, 31, 23, 0.96));
+  border-color: rgba(255, 176, 103, 0.36);
+}
+
+:root[data-theme="dark"] .planning-day-card.clickable:hover,
+:root[data-theme="dark"] .planning-calendar-day:hover,
+:root[data-theme="dark"] .planning-template-card:hover,
+:root[data-theme="dark"] .planning-workspace-button:hover,
+:root[data-theme="dark"] .planning-overlay-chip:hover,
+:root[data-theme="dark"] .planning-inline-action:hover {
+  background: rgba(28, 53, 65, 0.96);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Dark comfort pass: quieter canvas, softer separation, less glare */
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .athlete-shell {
+  background:
+    radial-gradient(circle at top left, rgba(255, 176, 103, 0.05), transparent 24%),
+    linear-gradient(180deg, #0d1418 0%, #10181d 100%);
+}
+
+:root[data-theme="dark"] .shell {
+  background: transparent;
+}
+
+:root[data-theme="dark"] .content {
+  padding-top: 14px;
+}
+
+:root[data-theme="dark"] .sidebar {
+  background: linear-gradient(180deg, rgba(22, 29, 34, 0.96), rgba(18, 24, 29, 0.94));
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+:root[data-theme="dark"] .nav a,
+:root[data-theme="dark"] .nav-group-trigger,
+:root[data-theme="dark"] .nav-group-links a {
+  color: #b2c0c8;
+}
+
+:root[data-theme="dark"] .nav a:hover,
+:root[data-theme="dark"] .nav-group-trigger:hover,
+:root[data-theme="dark"] .nav-group-links a:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #eef4f7;
+}
+
+:root[data-theme="dark"] .nav a.active,
+:root[data-theme="dark"] .nav-group-trigger.active {
+  background: rgba(255, 255, 255, 0.07);
+  color: #f5f8fa;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme="dark"] .ghost-button,
+:root[data-theme="dark"] .sidebar-logout {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .planning-hero {
+  padding: 10px 0 0;
+  margin-bottom: 6px;
+}
+
+:root[data-theme="dark"] .planning-hero-main h1 {
+  color: #edf3f6;
+}
+
+:root[data-theme="dark"] .planning-athlete-select,
+:root[data-theme="dark"] .planning-target-chip,
+:root[data-theme="dark"] .planning-workspace-button,
+:root[data-theme="dark"] .planning-overlay-chip,
+:root[data-theme="dark"] .planning-inline-action,
+:root[data-theme="dark"] .planning-card-dismiss,
+:root[data-theme="dark"] .planning-timeline-pill {
+  background: #1a242a;
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .planning-target-chip,
+:root[data-theme="dark"] .planning-workspace-button {
+  color: #c9d5db;
+}
+
+:root[data-theme="dark"] .planning-workspace-button.active,
+:root[data-theme="dark"] .planning-timeline-pill.selected,
+:root[data-theme="dark"] .planning-calendar-day.selected {
+  background: #25323a;
+  border-color: rgba(255, 176, 103, 0.26);
+  box-shadow: inset 0 0 0 1px rgba(255, 176, 103, 0.08);
+}
+
+:root[data-theme="dark"] .planning-card,
+:root[data-theme="dark"] .planning-toolbar-card {
+  background: #182126;
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+:root[data-theme="dark"] .planning-toolbar-card,
+:root[data-theme="dark"] .planning-context-card,
+:root[data-theme="dark"] .planning-kpi-card,
+:root[data-theme="dark"] .planning-threshold-card,
+:root[data-theme="dark"] .planning-target-main,
+:root[data-theme="dark"] .planning-mini-card,
+:root[data-theme="dark"] .planning-archive-card,
+:root[data-theme="dark"] .planning-week-card,
+:root[data-theme="dark"] .planning-foundation-card,
+:root[data-theme="dark"] .planning-builder-controls,
+:root[data-theme="dark"] .planning-template-browser,
+:root[data-theme="dark"] .planning-template-detail,
+:root[data-theme="dark"] .planning-template-card,
+:root[data-theme="dark"] .planning-calendar-shell,
+:root[data-theme="dark"] .planning-calendar-grid,
+:root[data-theme="dark"] .planning-calendar-detail,
+:root[data-theme="dark"] .planning-calendar-day,
+:root[data-theme="dark"] .planning-day-card,
+:root[data-theme="dark"] .planning-draft-week,
+:root[data-theme="dark"] .planning-draft-session.clickable {
+  background: #11191e;
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .planning-context-card.current,
+:root[data-theme="dark"] .planning-context-card.positive,
+:root[data-theme="dark"] .planning-timeline-card.positive,
+:root[data-theme="dark"] .planning-archive-card.positive,
+:root[data-theme="dark"] .planning-session-confidence.alta {
+  background: #142227;
+  border-color: rgba(100, 190, 160, 0.14);
+}
+
+:root[data-theme="dark"] .planning-context-card.warning,
+:root[data-theme="dark"] .planning-timeline-card.warning,
+:root[data-theme="dark"] .planning-archive-card.warning,
+:root[data-theme="dark"] .planning-session-confidence.media,
+:root[data-theme="dark"] .planning-threshold-card.policy {
+  background: #211b17;
+  border-color: rgba(255, 176, 103, 0.16);
+}
+
+:root[data-theme="dark"] .planning-threshold-strip,
+:root[data-theme="dark"] .planning-workspace-switch,
+:root[data-theme="dark"] .planning-horizontal-line::before {
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .planning-page p,
+:root[data-theme="dark"] .planning-page small,
+:root[data-theme="dark"] .planning-page span {
+  color: inherit;
+}
+
+:root[data-theme="dark"] .planning-kicker,
+:root[data-theme="dark"] .planning-kpi-label,
+:root[data-theme="dark"] .eyebrow {
+  color: #d29a64;
+}
+
+:root[data-theme="dark"] .planning-page .muted,
+:root[data-theme="dark"] .planning-page small,
+:root[data-theme="dark"] .planning-page p,
+:root[data-theme="dark"] .planning-target-chip span,
+:root[data-theme="dark"] .planning-target-chip small,
+:root[data-theme="dark"] .planning-kpi-card small,
+:root[data-theme="dark"] .planning-threshold-card small,
+:root[data-theme="dark"] .planning-day-card p,
+:root[data-theme="dark"] .planning-day-card small,
+:root[data-theme="dark"] .planning-calendar-day p,
+:root[data-theme="dark"] .planning-calendar-day small,
+:root[data-theme="dark"] .planning-mini-card p,
+:root[data-theme="dark"] .planning-archive-card p,
+:root[data-theme="dark"] .planning-archive-card small,
+:root[data-theme="dark"] .planning-week-card p,
+:root[data-theme="dark"] .planning-week-card small,
+:root[data-theme="dark"] .planning-template-card p,
+:root[data-theme="dark"] .planning-template-card small,
+:root[data-theme="dark"] .planning-template-detail p,
+:root[data-theme="dark"] .planning-foundation-card p {
+  color: #93a5ae;
+}
+
+:root[data-theme="dark"] .planning-page strong,
+:root[data-theme="dark"] .planning-page h1,
+:root[data-theme="dark"] .planning-page h2,
+:root[data-theme="dark"] .planning-page h3 {
+  color: #edf3f6;
+}
+
+:root[data-theme="dark"] .planning-day-card.clickable:hover,
+:root[data-theme="dark"] .planning-calendar-day:hover,
+:root[data-theme="dark"] .planning-template-card:hover,
+:root[data-theme="dark"] .planning-workspace-button:hover,
+:root[data-theme="dark"] .planning-overlay-chip:hover,
+:root[data-theme="dark"] .planning-inline-action:hover,
+:root[data-theme="dark"] .planning-timeline-pill:hover {
+  background: #1b262d;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .page-grid {
+  background: transparent;
+}
+
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .section-card,
+:root[data-theme="dark"] .table-card,
+:root[data-theme="dark"] .chart-card,
+:root[data-theme="dark"] .split-card,
+:root[data-theme="dark"] .import-card {
+  backdrop-filter: none;
+}
+
+:root[data-theme="dark"] .athlete-roster-header .eyebrow,
+:root[data-theme="dark"] .athlete-roster-overview .eyebrow,
+:root[data-theme="dark"] .athlete-roster-search .eyebrow {
+  color: #c8925d;
+}
+
+:root[data-theme="dark"] .athlete-roster-overview {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+:root[data-theme="dark"] .athlete-roster-stat {
+  background: #151e23;
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .athlete-roster-stat.warning {
+  background: #1f1915;
+  border-color: rgba(255, 176, 103, 0.14);
+}
+
+:root[data-theme="dark"] .athlete-roster-stat strong {
+  color: #eef4f7;
+}
+
+:root[data-theme="dark"] .athlete-roster-toolbar {
+  background: #131b20;
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .athlete-roster-search input {
+  background: #1a242a;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #edf3f6;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .athlete-roster-search input::placeholder {
+  color: #7f939d;
+}
+
+:root[data-theme="dark"] .athlete-roster-filter-pill {
+  background: #202b31;
+  border-color: rgba(255, 255, 255, 0.07);
+  color: #b9c7ce;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .athlete-roster-filter-pill:hover {
+  background: #27343b;
+  color: #eef4f7;
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+:root[data-theme="dark"] .athlete-roster-filter-pill.active {
+  background: #315564;
+  color: #f5f9fb;
+  border-color: rgba(114, 176, 198, 0.20);
+}
+
+:root[data-theme="dark"] .athlete-roster-card {
+  background: #10191e;
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .athlete-roster-card.running,
+:root[data-theme="dark"] .athlete-roster-card.cycling,
+:root[data-theme="dark"] .athlete-roster-card.triathlon {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme="dark"] .athlete-roster-card:hover {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .athlete-roster-avatar {
+  background: #263239;
+  border-color: rgba(255, 255, 255, 0.06);
+  color: #eef4f7;
+}
+
+:root[data-theme="dark"] .athlete-roster-card-head h2,
+:root[data-theme="dark"] .athlete-roster-meta-pill strong,
+:root[data-theme="dark"] .athlete-roster-target strong {
+  color: #edf3f6;
+}
+
+:root[data-theme="dark"] .athlete-roster-summary,
+:root[data-theme="dark"] .athlete-roster-target span,
+:root[data-theme="dark"] .athlete-roster-meta-pill small,
+:root[data-theme="dark"] .athlete-roster-target small {
+  color: #93a6af;
+}
+
+:root[data-theme="dark"] .athlete-roster-metadata {
+  gap: 12px;
+}
+
+:root[data-theme="dark"] .athlete-roster-meta-pill {
+  background: #192329;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme="dark"] .athlete-roster-target {
+  background: #192126;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme="dark"] .status-badge.neutral,
+:root[data-theme="dark"] .status-badge.medium {
+  background: rgba(201, 146, 93, 0.14);
+  color: #d7a06b;
+}
+
+:root[data-theme="dark"] .status-badge.positive,
+:root[data-theme="dark"] .status-badge.high {
+  background: rgba(91, 156, 128, 0.14);
+  color: #8fceb2;
+}
+
+:root[data-theme="dark"] .status-badge.negative,
+:root[data-theme="dark"] .status-badge.low {
+  background: rgba(188, 107, 86, 0.14);
+  color: #d78d79;
+}
+
+:root[data-theme="dark"] .inline-link {
+  color: #f0ae69;
+}
+
+:root[data-theme="dark"] .danger-link {
+  color: #c96f57;
+}
+
+:root[data-theme="dark"] .primary-button {
+  background: #356170;
+  color: #f5f9fb;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .primary-button:hover {
+  background: #3e7284;
+}
+
+:root[data-theme="dark"] .athlete-roster-actions .ghost-button {
+  background: #1a2328;
+  border-color: rgba(255, 255, 255, 0.07);
+  color: #d7e1e6;
+}
+
+:root[data-theme="dark"] .athlete-roster-empty {
+  background: #131b20;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme="dark"] .lab-dashboard-shell {
+  background: transparent;
+}
+
+:root[data-theme="dark"] .lab-dashboard-shell::before {
+  inset: 0;
+  height: 280px;
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(201, 146, 93, 0.06), transparent 22%),
+    linear-gradient(180deg, rgba(20, 28, 33, 0.98), rgba(15, 22, 27, 0.96));
+}
+
+:root[data-theme="dark"] .lab-dashboard-hero {
+  padding: 18px 8px 4px;
+  margin-bottom: 12px;
+}
+
+:root[data-theme="dark"] .lab-dashboard-head-copy .eyebrow {
+  color: #c8925d;
+}
+
+:root[data-theme="dark"] .lab-dashboard-head-copy h2 {
+  color: #edf3f6;
+}
+
+:root[data-theme="dark"] .lab-dashboard-head-copy p {
+  color: #94a6af;
+}
+
+:root[data-theme="dark"] .lab-template-trigger {
+  background: #1b252b;
+  border-color: rgba(255, 255, 255, 0.07);
+  color: #dbe5e9;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .lab-template-menu {
+  background: #182127;
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.24);
+}
+
+:root[data-theme="dark"] .lab-template-option {
+  background: #202b31;
+  color: #d4dfe4;
+}
+
+:root[data-theme="dark"] .lab-template-option strong {
+  color: #eef4f7;
+}
+
+:root[data-theme="dark"] .lab-template-option.active {
+  background: #2a3941;
+}
+
+:root[data-theme="dark"] .lab-dashboard-summary-card,
+:root[data-theme="dark"] .lab-home-note,
+:root[data-theme="dark"] .lab-athlete-row,
+:root[data-theme="dark"] .lab-discipline-trend,
+:root[data-theme="dark"] .lab-template-card,
+:root[data-theme="dark"] .lab-sparkline-empty {
+  background: #121b20;
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .lab-dashboard-summary {
+  gap: 14px;
+}
+
+:root[data-theme="dark"] .lab-dashboard-summary-card::before,
+:root[data-theme="dark"] .lab-discipline-trend::before,
+:root[data-theme="dark"] .lab-template-card::before {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+:root[data-theme="dark"] .lab-dashboard-summary-card.positive::before {
+  background: rgba(111, 189, 154, 0.55);
+}
+
+:root[data-theme="dark"] .lab-dashboard-summary-card.warning::before {
+  background: rgba(201, 146, 93, 0.55);
+}
+
+:root[data-theme="dark"] .lab-dashboard-summary-card.negative::before {
+  background: rgba(201, 111, 91, 0.55);
+}
+
+:root[data-theme="dark"] .lab-dashboard-summary-card span,
+:root[data-theme="dark"] .lab-summary-card span,
+:root[data-theme="dark"] .lab-athlete-identity p:first-of-type,
+:root[data-theme="dark"] .lab-discipline-head span,
+:root[data-theme="dark"] .lab-template-card-head span {
+  color: #c8925d;
+}
+
+:root[data-theme="dark"] .lab-dashboard-summary-card strong,
+:root[data-theme="dark"] .lab-athlete-identity strong,
+:root[data-theme="dark"] .lab-discipline-head strong,
+:root[data-theme="dark"] .lab-template-card-head strong,
+:root[data-theme="dark"] .lab-athlete-meta strong {
+  color: #edf3f6;
+}
+
+:root[data-theme="dark"] .lab-dashboard-summary-card small,
+:root[data-theme="dark"] .lab-dashboard-note,
+:root[data-theme="dark"] .lab-athlete-meta p,
+:root[data-theme="dark"] .lab-home-header p,
+:root[data-theme="dark"] .lab-sparkline-empty {
+  color: #93a6af;
+}
+
+:root[data-theme="dark"] .lab-athlete-row:hover {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .lab-athlete-deadline {
+  color: #e0a066 !important;
+}
+
+:root[data-theme="dark"] .lab-dashboard-focuses .status-badge {
+  background: #1d272d;
+  border-color: rgba(255, 255, 255, 0.06);
+  color: #a9bac2;
+}
+
+:root[data-theme="dark"] .lab-dashboard-link {
+  background: #1e2a30;
+  border-color: rgba(255, 255, 255, 0.07);
+  color: #eef4f7;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .lab-dashboard-link:hover {
+  background: #26353c;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .lab-inline-pill {
+  background: #1b252b;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .lab-inline-pill.positive {
+  background: rgba(58, 103, 85, 0.22);
+  color: #97d4b8;
+}
+
+:root[data-theme="dark"] .lab-inline-pill.warning,
+:root[data-theme="dark"] .lab-inline-pill.neutral {
+  background: rgba(92, 71, 44, 0.22);
+  color: #e0ae76;
+}
+
+:root[data-theme="dark"] .lab-inline-pill.negative {
+  background: rgba(108, 57, 47, 0.24);
+  color: #df9581;
+}
+
+:root[data-theme="dark"] .lab-sparkline-empty {
+  border-style: solid;
+}
+
+.planning-kpi-strip {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.planning-threshold-strip {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.planning-block-ribbon {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.planning-block-ribbon-head {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.planning-ribbon-strip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 18px;
+  overflow-x: auto;
+  padding: 2px 0 6px;
+}
+
+.planning-ribbon-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding-right: 18px;
+  border-right: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.planning-ribbon-item:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.planning-ribbon-card {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--primary);
+  transition: opacity 140ms ease, color 140ms ease;
+}
+
+.planning-ribbon-card:hover {
+  opacity: 0.82;
+}
+
+.planning-ribbon-card.active {
+  color: var(--accent);
+}
+
+.planning-ribbon-card.target {
+  color: #c85f2d;
+}
+
+.planning-ribbon-card strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.18;
+  white-space: nowrap;
+}
+
+.planning-ribbon-card p,
+.planning-ribbon-card small {
+  margin: 0;
+}
+
+.planning-ribbon-card p {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.planning-ribbon-delete {
+  justify-self: flex-end;
+  align-self: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.planning-block-ribbon-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+}
+
+.planning-calendar-trigger {
+  min-width: 132px;
+  min-height: 52px;
+  padding: 12px 18px;
+  border: 1px solid rgba(17, 83, 173, 0.34);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0b4c9c, #1765c1 58%, #2e87da);
+  color: #f4f9ff;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  box-shadow: 0 16px 34px rgba(23, 101, 193, 0.2);
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.planning-calendar-trigger:hover {
+  background: linear-gradient(135deg, #09458e, #1458ab 58%, #2878c7);
+  border-color: rgba(17, 83, 173, 0.42);
+  transform: translateY(-1px);
+  box-shadow: 0 18px 36px rgba(23, 101, 193, 0.26);
+}
+
+.planning-calendar-overlay-page {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1200;
+  overflow: auto;
+  background: #eef2f6;
+}
+
+.planning-calendar-overlay-close {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 1210;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(7, 20, 40, 0.82);
+  color: #f8fbff;
+  font-size: 1.65rem;
+  line-height: 1;
+  box-shadow: 0 12px 26px rgba(7, 20, 40, 0.24);
+}
+
+.planning-calendar-overlay-close:hover {
+  background: rgba(4, 14, 32, 0.92);
+}
+
+.planning-calendar-app {
+  min-height: 100vh;
+  background: #eef2f6;
+  color: #23313c;
+}
+
+.planning-calendar-app-topnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 24px;
+  background: linear-gradient(180deg, #071a3c, #031127);
+  color: #f5f9fc;
+}
+
+.planning-calendar-app-brand {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.14rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.planning-calendar-app-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.planning-calendar-app-tab {
+  appearance: none;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: rgba(240, 247, 255, 0.8);
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 600;
+}
+
+.planning-calendar-app-tab.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.planning-calendar-app-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.planning-calendar-back.subtle {
+  padding: 10px 14px;
+}
+
+.planning-calendar-app-body {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  min-height: calc(100vh - 70px);
+}
+
+.planning-calendar-app-rail {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 18px 10px;
+  background: #f8fafc;
+  border-right: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.planning-calendar-rail-item {
+  appearance: none;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: #61707c;
+  padding: 12px 8px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.planning-calendar-rail-item.active {
+  background: rgba(23, 101, 193, 0.12);
+  color: #0b4c9c;
+}
+
+.planning-calendar-app-workspace {
+  display: grid;
+  min-height: 0;
+}
+
+.planning-calendar-app-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.planning-calendar-toolbar-left,
+.planning-calendar-toolbar-center,
+.planning-calendar-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.planning-calendar-toolbar-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.planning-calendar-toolbar-heading strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.9rem;
+  line-height: 0.95;
+}
+
+.planning-calendar-toolbar-heading p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.planning-calendar-toolbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.planning-calendar-athlete-chip,
+.planning-calendar-source-chip {
+  appearance: none;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--primary);
+  padding: 12px 16px;
+  font: inherit;
+  font-weight: 700;
+}
+
+.planning-calendar-source-chip {
+  background: rgba(23, 101, 193, 0.06);
+  color: #0b4c9c;
+}
+
+.planning-calendar-app-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  min-height: 0;
+}
+
+.planning-calendar-app-main {
+  display: grid;
+  align-content: start;
+  background: #f2f5f8;
+}
+
+.planning-calendar-app-header-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  background: #ffffff;
+  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.planning-calendar-app-weekday {
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #526170;
+  letter-spacing: 0.08em;
+}
+
+.planning-calendar-app-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: minmax(190px, 1fr);
+}
+
+.planning-calendar-app-spacer {
+  border-right: 1px solid rgba(16, 34, 42, 0.08);
+  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.planning-calendar-app-day {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 8px;
+  border-right: 1px solid rgba(16, 34, 42, 0.08);
+  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+  background: #f6f7fa;
+}
+
+.planning-calendar-app-day.selected {
+  background: #eef5ff;
+}
+
+.planning-calendar-app-day.in-block {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(241, 246, 255, 0.94));
+}
+
+.planning-calendar-app-day-label {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  font-weight: 600;
+  color: #33424f;
+}
+
+.planning-calendar-app-day-label.today {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: #2748d8;
+  color: #ffffff;
+}
+
+.planning-calendar-app-day-stack {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.planning-calendar-app-session {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: #ffffff;
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(16, 34, 42, 0.06);
+}
+
+.planning-calendar-app-session span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.planning-calendar-app-session strong {
+  font-size: 0.98rem;
+  line-height: 1.1;
+}
+
+.planning-calendar-app-session p,
+.planning-calendar-app-session small {
+  margin: 0;
+  color: #3d4b57;
+}
+
+.planning-calendar-app-session.running {
+  border-top: 4px solid #63b05a;
+}
+
+.planning-calendar-app-session.cycling {
+  border-top: 4px solid #8e55d6;
+}
+
+.planning-calendar-app-session.swimming {
+  border-top: 4px solid #27a7d9;
+}
+
+.planning-calendar-app-session.key {
+  background: #f8f2df;
+}
+
+.planning-calendar-app-empty {
+  min-height: 64px;
+  border: 1px dashed rgba(16, 34, 42, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.48);
+  color: #6a7884;
+  font-size: 1.5rem;
+}
+
+.planning-calendar-app-overlay {
+  font-size: 0.72rem;
+  color: #607080;
+}
+
+.planning-calendar-app-summary {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 16px;
+  background: #ffffff;
+  border-left: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.planning-calendar-summary-panel,
+.planning-calendar-warning-panel,
+.planning-calendar-day-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.planning-calendar-summary-stats {
+  display: grid;
+  gap: 10px;
+}
+
+.planning-calendar-summary-stats article {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.planning-calendar-summary-stats small {
+  color: var(--muted);
+}
+
+.planning-calendar-summary-stats strong {
+  text-align: right;
+}
+
+@media (max-width: 1180px) {
+  .planning-calendar-app-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .planning-calendar-app-summary {
+    border-left: 0;
+    border-top: 1px solid rgba(16, 34, 42, 0.08);
+  }
+}
+
+@media (max-width: 900px) {
+  .planning-calendar-app-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .planning-calendar-app-rail {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(110px, 1fr);
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+  }
+
+  .planning-calendar-app-toolbar {
+    display: grid;
+  }
+
+  .planning-calendar-toolbar-left,
+  .planning-calendar-toolbar-center,
+  .planning-calendar-toolbar-right {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .planning-calendar-app-header-row {
+    display: none;
+  }
+
+  .planning-calendar-app-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.planning-page-calendar-mode {
+  gap: 0;
+}
+
+.planning-calendar-tab-shell {
+  display: grid;
+  gap: 18px;
+  min-height: calc(100vh - 88px);
+}
+
+.planning-calendar-tab-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 22px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #071f4a, #0b3776 52%, #1765c1);
+  color: #eef6ff;
+  box-shadow: 0 22px 44px rgba(8, 37, 79, 0.18);
+}
+
+.planning-calendar-tab-brand {
+  display: grid;
+  gap: 4px;
+}
+
+.planning-calendar-tab-brand span {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(228, 240, 255, 0.72);
+}
+
+.planning-calendar-tab-brand strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: #f7fbff;
+}
+
+.planning-calendar-tab-brand p {
+  margin: 0;
+  color: rgba(232, 242, 255, 0.86);
+}
+
+.planning-calendar-back {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f7fbff;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.planning-calendar-back:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+
+.planning-calendar-tab-layout {
+  align-items: stretch;
+}
+
+.planning-studio-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.95fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.planning-calendar-stage {
+  display: grid;
+  gap: 16px;
+}
+
+.planning-week-snapshot {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.planning-snapshot-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(16, 34, 42, 0.07);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.planning-snapshot-card strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+}
+
+.planning-snapshot-card small {
+  color: var(--muted);
+}
+
+.planning-sidebar {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  position: sticky;
+  top: 14px;
+}
+
+.planning-sidebar-card {
+  display: grid;
+  gap: 14px;
+}
+
+.planning-sidebar-head {
+  display: grid;
+  gap: 6px;
+}
+
+.planning-sidebar-head p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.planning-sidebar-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.planning-sidebar-stat {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(16, 34, 42, 0.06);
+  background: rgba(249, 246, 241, 0.88);
+}
+
+.planning-sidebar-stat span {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.planning-sidebar-stat strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.95rem;
+}
+
+.planning-flow.compact {
+  gap: 10px;
+}
+
+.planning-flow.compact .planning-flow-step {
+  padding: 12px 0;
+}
+
+@media (max-width: 1180px) {
+  .planning-studio-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .planning-sidebar {
+    position: static;
+  }
+
+  .planning-week-snapshot {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .planning-ribbon-strip {
+    gap: 14px;
+  }
+
+  .planning-ribbon-item {
+    padding-right: 14px;
+  }
+
+  .planning-sidebar-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.planning-source-modal {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.planning-source-modal-body {
+  display: grid;
+  gap: 14px;
+  padding: 4px 0 0;
+}
+
+.planning-source-modal-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: rgba(249, 246, 241, 0.9);
+}
+
+.planning-source-modal-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.planning-modal-reading-grid,
+.planning-modal-score-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.planning-modal-reading-item,
+.planning-modal-score-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.planning-modal-reading-item span,
+.planning-modal-score-head span {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.planning-modal-reading-item strong,
+.planning-modal-score-head strong {
+  font-size: 0.92rem;
+  line-height: 1.28;
+}
+
+.planning-modal-score-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.planning-modal-score-item.winner {
+  border-color: rgba(201, 125, 61, 0.26);
+  background:
+    radial-gradient(circle at top right, rgba(210, 106, 54, 0.08), transparent 42%),
+    rgba(255, 255, 255, 0.82);
 }

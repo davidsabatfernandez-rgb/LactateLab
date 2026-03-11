@@ -3,10 +3,12 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 
 type LayoutProps = {
   onLogout: () => void;
+  themeMode: "light" | "dark";
+  onToggleTheme: () => void;
   children: React.ReactNode;
 };
 
-export function Layout({ onLogout, children }: LayoutProps) {
+export function Layout({ onLogout, themeMode, onToggleTheme, children }: LayoutProps) {
   const location = useLocation();
   const isLibrarySection = location.pathname.startsWith("/library");
   const [isLibraryOpen, setIsLibraryOpen] = useState(isLibrarySection);
@@ -53,9 +55,21 @@ export function Layout({ onLogout, children }: LayoutProps) {
           <NavLink to="/strava-information">Strava Information</NavLink>
           <NavLink to="/garmin-connect">Garmin Connect</NavLink>
         </nav>
-        <button className="ghost-button sidebar-logout" onClick={onLogout}>
-          Cerrar sesión
-        </button>
+        <div className="sidebar-actions">
+          <button className="ghost-button sidebar-logout" onClick={onLogout}>
+            Cerrar sesión
+          </button>
+          <button
+            type="button"
+            className={`theme-toggle ${themeMode === "dark" ? "active" : ""}`}
+            onClick={onToggleTheme}
+            aria-pressed={themeMode === "dark"}
+            aria-label={themeMode === "dark" ? "Desactivar modo oscuro" : "Activar modo oscuro"}
+            title={themeMode === "dark" ? "Desactivar modo oscuro" : "Activar modo oscuro"}
+          >
+            <span className="theme-toggle-icon" aria-hidden="true">☾</span>
+          </button>
+        </div>
       </aside>
       <main className="content">{children}</main>
     </div>

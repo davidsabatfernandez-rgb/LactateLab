@@ -30,36 +30,67 @@ from typing import Any, Optional
 # Trained:      LT2 está ~5-10% por encima de race pace
 # Competitive:  LT2 ≈ race pace o ligeramente por encima
 
+# Convención: required_lt2 = target_race_pace / factor
+# factor < 1 → LT2 debe ser MÁS RÁPIDO que el ritmo de carrera (objetivo de calidad)
+# Fuentes por disciplina:
+#   Running: Faude 2009 (MLSS), Daniels VDOT T-pace, Billat 2003
+#   Ciclismo: Coggan FTP≈0.95×MLSS, Allen&Coggan 2010
+#   Triatlón: Hausswirth & Mujika 2013 (fatiga acumulada penaliza ~8-12% en run leg)
+#   Natación: Maglischo 2003, Olbrecht 2000 (CSS≈LT2 en piscina)
 LT2_RACE_FACTOR: dict[str, dict[str, float]] = {
-    "5k":        {"recreational": 0.90, "trained": 0.95, "competitive": 1.00},
-    "10k":       {"recreational": 0.86, "trained": 0.91, "competitive": 0.96},
-    "hm":        {"recreational": 0.82, "trained": 0.88, "competitive": 0.94},
-    "marathon":  {"recreational": 0.76, "trained": 0.83, "competitive": 0.90},
-    "road_tt_short": {"recreational": 0.88, "trained": 0.93, "competitive": 0.98},
-    "road_tt_medium": {"recreational": 0.85, "trained": 0.90, "competitive": 0.95},
-    "road_tt_long": {"recreational": 0.81, "trained": 0.87, "competitive": 0.93},
-    "pool_400": {"recreational": 0.89, "trained": 0.94, "competitive": 0.99},
-    "pool_800_1500": {"recreational": 0.84, "trained": 0.90, "competitive": 0.96},
-    "open_water_short": {"recreational": 0.82, "trained": 0.88, "competitive": 0.94},
-    "open_water_long": {"recreational": 0.76, "trained": 0.83, "competitive": 0.90},
-    "sprint_tri":{"recreational": 0.88, "trained": 0.93, "competitive": 0.98},
-    "sprint_run":{"recreational": 0.88, "trained": 0.93, "competitive": 0.98},
-    "sprint_bike":{"recreational": 0.88, "trained": 0.93, "competitive": 0.98},
-    "olympic_tri":{"recreational": 0.83, "trained": 0.89, "competitive": 0.94},
-    "olympic_run":{"recreational": 0.83, "trained": 0.89, "competitive": 0.94},
-    "olympic_bike":{"recreational": 0.83, "trained": 0.89, "competitive": 0.94},
-    "70.3":      {"recreational": 0.78, "trained": 0.84, "competitive": 0.90},
-    "half_tri":  {"recreational": 0.78, "trained": 0.84, "competitive": 0.90},
-    "half_run":  {"recreational": 0.78, "trained": 0.84, "competitive": 0.90},
-    "half_bike": {"recreational": 0.78, "trained": 0.84, "competitive": 0.90},
-    "ironman":   {"recreational": 0.70, "trained": 0.76, "competitive": 0.82},
-    "ironman_run": {"recreational": 0.70, "trained": 0.76, "competitive": 0.82},
-    "ironman_bike": {"recreational": 0.70, "trained": 0.76, "competitive": 0.82},
-    "road_tt":   {"recreational": 0.83, "trained": 0.89, "competitive": 0.95},
-    "granfondo": {"recreational": 0.77, "trained": 0.84, "competitive": 0.90},
-    "hill_climb": {"recreational": 0.89, "trained": 0.94, "competitive": 0.99},
-    "road_race": {"recreational": 0.84, "trained": 0.90, "competitive": 0.95},
-    "other":     {"recreational": 0.80, "trained": 0.86, "competitive": 0.92},
+    # ── Running ──────────────────────────────────────────────────────────
+    # 5k: race pace ≈ LT2 para competitive; trained corre ~4% sobre LT2
+    "5k":        {"recreational": 0.90, "trained": 0.96, "competitive": 1.01},
+    # 10k: cerca del umbral para trained/competitive (Faude 2009 fig.3)
+    "10k":       {"recreational": 0.88, "trained": 0.93, "competitive": 0.98},
+    # HM: Daniels T-pace ≈ HM-pace para trained → factor ~0.97; recreational más alejado
+    "hm":        {"recreational": 0.85, "trained": 0.92, "competitive": 0.97},
+    # Maratón: Billat 2003 — élite ≈ 87-93% MLSS; recreational más conservador
+    "marathon":  {"recreational": 0.79, "trained": 0.87, "competitive": 0.93},
+    # ── Ciclismo ─────────────────────────────────────────────────────────
+    # TT corto (<30 min): ~100-105% FTP ≈ 95-100% MLSS → factor cercano a 1
+    "road_tt_short": {"recreational": 0.91, "trained": 0.97, "competitive": 1.02},
+    # TT medio (30-60 min): ~95-100% FTP ≈ 90-95% MLSS
+    "road_tt_medium": {"recreational": 0.87, "trained": 0.92, "competitive": 0.97},
+    # TT largo (>60 min): ~85-90% FTP ≈ 81-86% MLSS
+    "road_tt_long": {"recreational": 0.83, "trained": 0.89, "competitive": 0.94},
+    # TT genérico (alias medium)
+    "road_tt":   {"recreational": 0.86, "trained": 0.92, "competitive": 0.97},
+    # Granfondo (~3-5h): penalización por duración similar a maratón
+    "granfondo": {"recreational": 0.79, "trained": 0.86, "competitive": 0.92},
+    # Hill climb (<60 min intensa): similar TT corto-medio
+    "hill_climb": {"recreational": 0.91, "trained": 0.96, "competitive": 1.01},
+    # Road race (criterium/carrera): corta e intensa
+    "road_race": {"recreational": 0.85, "trained": 0.91, "competitive": 0.96},
+    # ── Natación ─────────────────────────────────────────────────────────
+    # Pool 400: CSS ≈ LT2 en piscina (Olbrecht); competitive puede superar ligeramente
+    "pool_400":  {"recreational": 0.90, "trained": 0.95, "competitive": 1.00},
+    # Pool 800-1500: algo por debajo de CSS/LT2
+    "pool_800_1500": {"recreational": 0.85, "trained": 0.91, "competitive": 0.97},
+    # Open water short (~750-1500m): similar pool pero penalización técnica/corriente
+    "open_water_short": {"recreational": 0.83, "trained": 0.89, "competitive": 0.95},
+    # Open water long (≥5km): fatiga + corriente penalizan más
+    "open_water_long": {"recreational": 0.77, "trained": 0.84, "competitive": 0.91},
+    # ── Triatlón — factores con penalización de fatiga acumulada ─────────
+    # Sprint (~1h total): fatiga acumulada mínima, cerca de running puro
+    "sprint_tri":  {"recreational": 0.90, "trained": 0.95, "competitive": 1.00},
+    "sprint_run":  {"recreational": 0.90, "trained": 0.95, "competitive": 1.00},
+    "sprint_bike": {"recreational": 0.90, "trained": 0.95, "competitive": 1.00},
+    # Olímpico (~2h): penalización ~3-4% respecto a running aislado
+    "olympic_tri":  {"recreational": 0.85, "trained": 0.91, "competitive": 0.96},
+    "olympic_run":  {"recreational": 0.85, "trained": 0.91, "competitive": 0.96},
+    "olympic_bike": {"recreational": 0.85, "trained": 0.91, "competitive": 0.96},
+    # 70.3 (~4-5h): penalización ~8-10%; run leg es ~HM pace para trained
+    "70.3":      {"recreational": 0.80, "trained": 0.86, "competitive": 0.92},
+    "half_tri":  {"recreational": 0.80, "trained": 0.86, "competitive": 0.92},
+    "half_run":  {"recreational": 0.80, "trained": 0.87, "competitive": 0.93},
+    "half_bike": {"recreational": 0.79, "trained": 0.85, "competitive": 0.91},
+    # Ironman (~8-17h): penalización máxima; run leg bien por debajo del LT2 standalone
+    "ironman":     {"recreational": 0.71, "trained": 0.78, "competitive": 0.84},
+    "ironman_run": {"recreational": 0.71, "trained": 0.78, "competitive": 0.84},
+    "ironman_bike": {"recreational": 0.72, "trained": 0.79, "competitive": 0.85},
+    # ── Otros ────────────────────────────────────────────────────────────
+    "other":     {"recreational": 0.81, "trained": 0.87, "competitive": 0.93},
 }
 
 # ── Factores LT1: relevante para eventos donde LT1 es el limitante ────────
@@ -129,12 +160,66 @@ EVENT_LIMITER: dict[str, str] = {
 # ── Semanas mínimas para que un bloque produzca adaptación medible ─────────
 # Olbrecht: adaptaciones estructurales requieren tiempo prolongado
 MIN_WEEKS_FOR_BLOCK: dict[str, int] = {
-    "aerobic_capacity_block":     5,
-    "threshold_development_block":4,
-    "aerobic_power_block":        3,
-    "competition_specific_block": 2,
+    "aerobic_capacity_block":      5,
+    "threshold_development_block": 4,
+    "aerobic_power_block":         3,
+    "competition_specific_block":  2,
     "recovery_consolidation_block":1,
+    "testing_decision_block":      0,
 }
+
+# ── Benchmarks LT2 absoluto para estimar nivel aeróbico ───────────────────
+# (umbral_bajo, umbral_alto) — por debajo = low, entre = moderate, encima = high
+# Running en km/h; Ciclismo en W (sin normalizar); Natación en km/h
+# Fuente: Billat 2003, Daniels VDOT, literatura de laboratorio
+LT2_AEROBIC_BENCHMARKS: dict[str, dict[str, tuple[float, float]]] = {
+    "running": {
+        "recreational": (9.0,  11.5),
+        "trained":      (11.0, 14.5),
+        "competitive":  (13.5, 17.0),
+    },
+    "ciclismo": {
+        "recreational": (170.0, 240.0),
+        "trained":      (220.0, 310.0),
+        "competitive":  (270.0, 380.0),
+    },
+    "natacion": {
+        "recreational": (2.8, 3.4),
+        "trained":      (3.2, 4.0),
+        "competitive":  (3.8, 4.8),
+    },
+}
+
+# ── Umbrales ratio LT1/LT2 para proxy de VLamax ───────────────────────────
+# Ratio = LT1_speed / LT2_speed (misma unidad: km/h o W)
+# Curva empinada (ratio bajo) → VLamax alta → más glucólisis dominante
+# Curva plana (ratio alto)   → VLamax baja → perfil diésel/aeróbico puro
+_VLAMAX_HIGH_RATIO    = 0.79   # ratio < 0.79  → VLamax alta
+_VLAMAX_MODERATE_RATIO = 0.87  # ratio 0.79–0.87 → VLamax moderada
+                                # ratio > 0.87  → VLamax baja
+
+# ── Confianza del perfil según fuente de los thresholds ───────────────────
+_SOURCE_PROFILE_CONFIDENCE: dict[str, float] = {
+    "real":         0.85,  # real_thresholds detectados
+    "basic":        0.65,  # thresholds básicos detectados
+    "interpolated": 0.40,  # interpolados a 2.0/4.0 mmol
+    "insufficient": 0.0,
+}
+
+
+@dataclass
+class CapacityProfile:
+    """Perfil aeróbico/glucolítico derivado de los thresholds disponibles.
+
+    Proxy del modelo VO2max/VLamax de Olbrecht/Mader sin necesitar tests directos.
+    La confianza crece conforme los thresholds mejoran: interpolados → básicos → reales.
+    """
+
+    aerobic_level: str           # "high" | "moderate" | "low" | "unknown"
+    vlamax_level: str            # "high" | "moderate" | "low" | "unknown"
+    confidence: float            # 0.0–1.0
+    source: str                  # "real" | "basic" | "interpolated" | "insufficient"
+    lt1_lt2_ratio: Optional[float]  # ratio LT1/LT2 (transparencia)
 
 
 @dataclass
@@ -155,6 +240,7 @@ class PhysiologicalContext:
     target_power_watts: Optional[float]
     metric_type: str                  # "pace_kmh" | "power_watts" | "none"
     weeks_to_goal: Optional[int]
+    capacity_profile: Optional[CapacityProfile] = None
 
 
 @dataclass
@@ -239,14 +325,29 @@ def _pace_label_to_kmh(pace_label: Optional[str]) -> Optional[float]:
     return None
 
 
+_BASE_PHASES = {"base_early", "base_late"}
+
+
 def _season_phase(weeks_to_goal: Optional[int]) -> str:
+    """Devuelve la fase de temporada según semanas al objetivo.
+
+    base_early (>28s): construcción de base — prioridad capacidad aeróbica.
+    base_late (20-28s): final del base — puede empezar a mover LT2 si la base acompaña.
+        Olbrecht: "en el último mesociclo del base, re-boostear capacidad aeróbica
+        justo antes de entrar en fase específica" (Triathlon PDF, 2011).
+    specific (12-20s): trabajo de umbral y potencia.
+    pre_comp (3-12s): afinado y transferencia.
+    taper (<3s): mantener, reducir volumen. Olbrecht: taper típico 2-3 semanas.
+    """
     if weeks_to_goal is None:
-        return "base"
+        return "base_early"
+    if weeks_to_goal > 28:
+        return "base_early"
     if weeks_to_goal > 20:
-        return "base"
+        return "base_late"
     if weeks_to_goal > 12:
         return "specific"
-    if weeks_to_goal > 5:
+    if weeks_to_goal > 3:
         return "pre_comp"
     return "taper"
 
@@ -374,6 +475,157 @@ def _extract_lt_from_analysis(
     return lt1_kmh, lt2_kmh, lt1_power_watts, lt2_power_watts, lt1_conf, lt2_conf, test_age
 
 
+def _infer_threshold_source(lt1_conf: float, lt2_conf: float) -> str:
+    """Infiere la fuente de los thresholds desde sus confianzas combinadas."""
+    min_conf = min(lt1_conf, lt2_conf)
+    if min_conf >= 0.74:
+        return "real"
+    if min_conf >= 0.62:
+        return "basic"
+    if min_conf >= 0.58:
+        return "interpolated"
+    return "insufficient"
+
+
+def build_capacity_profile(
+    lt1_value: Optional[float],
+    lt2_value: Optional[float],
+    lt1_conf: float,
+    lt2_conf: float,
+    athlete_level: str,
+    discipline: str,
+    metric_type: str,
+) -> CapacityProfile:
+    """Construye el perfil de capacidades aeróbica/glucolítica.
+
+    Requiere LT1 y LT2 para estimar VLamax (ratio de la curva). Si falta
+    alguno o la fuente es insuficiente, devuelve un perfil sin confianza.
+
+    No reemplaza el gap analysis con anclajes — lo cualifica cuando la
+    confianza es suficiente (≥ 0.55 orientativo, ≥ 0.75 para modificar bloque).
+    """
+    if lt1_value is None or lt2_value is None or lt2_value <= 0:
+        return CapacityProfile(
+            aerobic_level="unknown",
+            vlamax_level="unknown",
+            confidence=0.0,
+            source="insufficient",
+            lt1_lt2_ratio=None,
+        )
+
+    source = _infer_threshold_source(lt1_conf, lt2_conf)
+    base_conf = _SOURCE_PROFILE_CONFIDENCE[source]
+
+    if source == "insufficient":
+        return CapacityProfile(
+            aerobic_level="unknown",
+            vlamax_level="unknown",
+            confidence=0.0,
+            source=source,
+            lt1_lt2_ratio=None,
+        )
+
+    # ── Proxy VLamax: ratio LT1/LT2 ──────────────────────────────────────
+    ratio = lt1_value / lt2_value
+    if ratio < _VLAMAX_HIGH_RATIO:
+        vlamax_level = "high"
+    elif ratio < _VLAMAX_MODERATE_RATIO:
+        vlamax_level = "moderate"
+    else:
+        vlamax_level = "low"
+
+    # ── Proxy aeróbico: LT2 absoluto vs benchmarks por nivel/disciplina ──
+    disc_key = discipline if discipline in LT2_AEROBIC_BENCHMARKS else "running"
+    level_key = athlete_level if athlete_level in ("recreational", "trained", "competitive") else "trained"
+    benchmarks = LT2_AEROBIC_BENCHMARKS.get(disc_key, {}).get(level_key)
+
+    if benchmarks is None or metric_type == "none":
+        aerobic_level = "unknown"
+        base_conf *= 0.7  # penalizar si no hay benchmark para esta disciplina
+    else:
+        low_thresh, high_thresh = benchmarks
+        if lt2_value < low_thresh:
+            aerobic_level = "low"
+        elif lt2_value >= high_thresh:
+            aerobic_level = "high"
+        else:
+            aerobic_level = "moderate"
+
+    return CapacityProfile(
+        aerobic_level=aerobic_level,
+        vlamax_level=vlamax_level,
+        confidence=round(base_conf, 3),
+        source=source,
+        lt1_lt2_ratio=round(ratio, 3),
+    )
+
+
+def _apply_capacity_profile(
+    profile: Optional[CapacityProfile],
+    recommended: str,
+    reasons: list[str],
+    season: str = "base_early",
+) -> str:
+    """Cualifica o refina el bloque recomendado con el perfil de capacidades.
+
+    Confianza ≥ 0.75 (thresholds reales): puede cambiar el bloque.
+    Confianza 0.55–0.74 (thresholds básicos): añade contexto, no cambia bloque.
+    Confianza < 0.55 (interpolados): sin efecto — el gap analysis manda.
+
+    No actúa si aerobic_level o vlamax_level son "unknown".
+    La supresión de VLamax (high+high → aerobic_capacity) solo aplica en fases de base.
+    En specific/pre_comp, la sesión específica ya suprime la VLamax de forma natural.
+    """
+    if profile is None or profile.confidence < 0.55:
+        return recommended
+    if profile.aerobic_level == "unknown" or profile.vlamax_level == "unknown":
+        return recommended
+
+    aerobic = profile.aerobic_level
+    vlamax = profile.vlamax_level
+    ratio_str = f"{profile.lt1_lt2_ratio:.2f}" if profile.lt1_lt2_ratio else "?"
+
+    # ── Confianza alta: puede modificar el bloque ─────────────────────────
+    if profile.confidence >= 0.75:
+        # HIGH aeróbico + BAJA VLamax: la base está construida, afinar es más productivo.
+        # NO aplica en base_early: Olbrecht — en base temprana siempre capacidad aeróbica
+        # independientemente del perfil (hay que mantener/construir el sustrato mitocondrial).
+        if aerobic == "high" and vlamax == "low" and season not in {"base_early"}:
+            if recommended in ("aerobic_capacity_block", "threshold_development_block"):
+                reasons.append(
+                    f"Perfil: alta capacidad aeróbica + baja glucólisis (ratio LT1/LT2={ratio_str}). "
+                    "La base ya está construida — potencia aeróbica tiene mejor retorno marginal."
+                )
+                return "aerobic_power_block"
+
+        # HIGH aeróbico + ALTA VLamax: suprimir glucólisis — solo en fases de base
+        # En specific/pre_comp la intensidad de carrera ya gestiona la VLamax
+        if aerobic == "high" and vlamax == "high" and season in _BASE_PHASES:
+            if recommended in ("aerobic_capacity_block", "threshold_development_block"):
+                reasons.append(
+                    f"Perfil: alta capacidad aeróbica pero glucólisis dominante (ratio={ratio_str}). "
+                    "Prioridad: suprimir VLamax con volumen extensivo. Minimizar spices intensos en este bloque."
+                )
+                return "aerobic_capacity_block"
+
+        # LOW aeróbico + ALTA VLamax: thin ice — siempre aplica
+        if aerobic == "low" and vlamax == "high":
+            reasons.append(
+                f"Perfil: base aeróbica débil con glucólisis activa (ratio={ratio_str}). "
+                "Thin ice (Olbrecht): construir base aeróbica con cautela — la intensidad puede "
+                "romper el equilibrio glucolítico antes de que la base soporte la carga."
+            )
+            return "aerobic_capacity_block"
+
+    # ── Confianza media: solo contexto, sin cambio de bloque ─────────────
+    reasons.append(
+        f"Perfil orientativo (ratio LT1/LT2={ratio_str}): "
+        f"aeróbico {aerobic} / VLamax {vlamax}. "
+        f"Confianza {profile.confidence:.0%} — confirmar con más tests."
+    )
+    return recommended
+
+
 def build_physiological_context(
     analysis: dict[str, Any],
     athlete_level: str,
@@ -398,6 +650,20 @@ def build_physiological_context(
     target_kmh = _pace_label_to_kmh(target_pace_label)
     metric_type = "power_watts" if discipline == "ciclismo" and target_power_watts else "pace_kmh" if target_kmh else "none"
 
+    # Valores a pasar al perfil según tipo de métrica
+    lt1_val = lt1_power_watts if metric_type == "power_watts" else lt1_kmh
+    lt2_val = lt2_power_watts if metric_type == "power_watts" else lt2_kmh
+
+    capacity_profile = build_capacity_profile(
+        lt1_value=lt1_val,
+        lt2_value=lt2_val,
+        lt1_conf=lt1_conf,
+        lt2_conf=lt2_conf,
+        athlete_level=athlete_level,
+        discipline=discipline,
+        metric_type=metric_type,
+    )
+
     return PhysiologicalContext(
         lt1_kmh=lt1_kmh,
         lt2_kmh=lt2_kmh,
@@ -413,6 +679,7 @@ def build_physiological_context(
         target_power_watts=target_power_watts,
         metric_type=metric_type,
         weeks_to_goal=weeks_to_goal,
+        capacity_profile=capacity_profile,
     )
 
 
@@ -468,12 +735,38 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
             f"Datos de lactato con baja confianza o test antiguo "
             f"({ctx.test_age_days}d). Recomendable repetir test antes de decidir."
         )
-
-    if season == "base":
+    # P21a: test muy obsoleto (>56d) en fase crítica → no prescribir, recomendar test
+    # Un test de 8+ semanas en specific/pre_comp puede llevar a prescripciones equivocadas.
+    if (
+        data_quality == "low"
+        and ctx.test_age_days is not None and ctx.test_age_days > 56
+        and season in {"specific", "pre_comp"}
+    ):
         reasons.append(
-            f"{ctx.weeks_to_goal or '?'} semanas al objetivo — fase de base: "
-            "la base sesga la decisión, pero no debe tapar un limitante fisiológico claro."
+            f"Test de {ctx.test_age_days} días en fase {season}: demasiado obsoleto para "
+            "prescribir con seguridad. Repetir test antes de decidir el bloque."
         )
+        return PhysiologicalGapResult(
+            primary_limiter="no_data",
+            lt2_gap_kmh=None, lt1_gap_kmh=None,
+            required_lt2_kmh=None, required_lt1_kmh=None,
+            metric_type=ctx.metric_type,
+            season_phase=season, data_quality=data_quality,
+            recommended_block="testing_decision_block",
+            reasons=reasons, contraindications=contra,
+        )
+
+    if season in _BASE_PHASES:
+        if season == "base_late":
+            reasons.append(
+                f"{ctx.weeks_to_goal or '?'} semanas al objetivo — final del bloque de base: "
+                "si la base aeróbica acompaña, es momento de empezar a desplazar LT2."
+            )
+        else:
+            reasons.append(
+                f"{ctx.weeks_to_goal or '?'} semanas al objetivo — base temprana: "
+                "consolidar la capacidad aeróbica antes de cualquier otro trabajo."
+            )
 
     # ── Gap analysis ───────────────────────────────────────────────────────
     dist = ctx.distance_category or "other"
@@ -536,7 +829,9 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
     # ── Señal glucolítica desde pico de lactato ────────────────────────────
     glycolytic_signal = ""
     if ctx.peak_lactate_1km is not None and has_lt2:
-        if ctx.peak_lactate_1km >= 12.0 and (dist in long_duration_events or dist == "hm" or lt2_gap is None or lt2_gap >= 0):
+        # High glycolytic solo penaliza en pruebas largas/medio-largas donde la sostenibilidad
+        # es clave. En pruebas cortas (5k, 10k, sprint_tri...) un pico alto es normal y no penaliza.
+        if ctx.peak_lactate_1km >= 12.0 and (dist in long_duration_events or dist == "hm"):
             glycolytic_signal = "high_glycolytic"
             reasons.append(
                 f"Pico de lactato alto ({ctx.peak_lactate_1km:.1f} mmol/L) para la demanda prevista "
@@ -553,6 +848,10 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
     recommended = "aerobic_capacity_block"  # default conservador
     significant_gap = 0.5 if ctx.metric_type != "power_watts" else 18.0
     moderate_gap = 0.25 if ctx.metric_type != "power_watts" else 8.0
+    # F4: para eventos donde LT1 ES el limitante primario (no "both"), el atleta compite
+    # cerca de LT1 → un gap de 0.35 km/h ya representa penalización real de rendimiento.
+    # Fuente: Coyle 1988 (marathon/LT1); Laursen 2002 (ironman); Olbrecht 2000 (OW long)
+    significant_gap_lt1_primary = 0.35 if ctx.metric_type != "power_watts" else 12.0
     lt1_priority = limiter == "lt1" or dist in long_duration_events
     lt2_priority = limiter == "lt2" or dist in short_intense_events or limiter == "both"
     hm_lt1_guardrail = dist == "hm" and lt1_gap is not None and lt1_gap > moderate_gap
@@ -560,7 +859,19 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
     half_events = {"70.3", "half_tri", "half_run", "half_bike"}
     half_lt1_guardrail = dist in half_events and lt1_gap is not None and lt1_gap > moderate_gap
     half_lt1_red_zone = dist in half_events and lt1_gap is not None and lt1_gap > significant_gap
-    lt2_led_lt1_red_zone = dist in LT1_SUPPORT_FACTOR and lt1_gap is not None and lt1_gap > significant_gap
+    # F1: solo disparar si la base subumbral es genuinamente débil.
+    # Ratio LT1/LT2 ≥ 0.75 = base funcional (Faude 2009: trained runners LT1/LT2 ≈ 0.75–0.85).
+    # Evita alarmas falsas en atletas entrenados con ratio normal pero gap alto por factor estricto.
+    _lt1_base_ok = (
+        lt1_value is not None and lt2_value is not None and lt2_value > 0
+        and lt1_value / lt2_value >= 0.75
+    )
+    lt2_led_lt1_red_zone = (
+        dist in LT1_SUPPORT_FACTOR
+        and lt1_gap is not None
+        and lt1_gap > significant_gap
+        and not _lt1_base_ok
+    )
     lt1_led_flat_profile = (
         dist in {"ironman", "ironman_run", "ironman_bike", "open_water_long"}
         and glycolytic_signal == "low_glycolytic"
@@ -575,10 +886,10 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
         and lt2_gap > moderate_gap
         and (lt1_gap is None or lt1_gap <= moderate_gap)
     )
-    half_power_window = season in {"specific", "pre_comp"}
+    half_power_window = season in {"specific", "pre_comp", "base_late"}
 
     if season == "taper":
-        reasons.append("< 6 semanas al objetivo — fase de taper: mantener y afinar.")
+        reasons.append("≤ 3 semanas al objetivo — taper: mantener estímulo, reducir volumen.")
         return PhysiologicalGapResult(
             primary_limiter="none",
             lt2_gap_kmh=lt2_gap,
@@ -614,7 +925,9 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
             f"Para {dist}, LT1 actual: {lt1_value:.2f} {metric_label} → soporte mínimo recomendado: {required_lt1:.2f} {metric_label} "
             f"(gap: {lt1_gap:+.2f} {metric_label}). El trabajo de LT2 tendría poco retorno con una base tan pobre."
         )
-    elif lt1_priority and lt1_gap is not None and lt1_gap > significant_gap:
+    elif lt1_priority and lt1_gap is not None and lt1_gap > (
+        significant_gap_lt1_primary if limiter == "lt1" else significant_gap
+    ):
         recommended = "aerobic_capacity_block"
         reasons.append(
             f"LT1 actual: {lt1_value:.2f} {metric_label} → requerido: {required_lt1:.2f} {metric_label} "
@@ -635,14 +948,16 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
         reasons.append(
             "El perfil parece demasiado plano por arriba, pero todavía falta desplazar LT2 antes de abrir un bloque más agudo."
         )
-    elif lt2_priority and lt2_gap is not None and lt2_gap > significant_gap:
+    elif lt2_priority and lt2_gap is not None and lt2_gap > significant_gap and season not in {"base_early"}:
+        # En base_early el gap de LT2 se gestiona más abajo junto con la lógica de fase.
+        # En base_late, specific y pre_comp: threshold development es la respuesta correcta.
         recommended = "threshold_development_block"
         reasons.append(
             f"LT2 actual: {lt2_value:.2f} {metric_label} → requerido: {required_lt2:.2f} {metric_label} "
             f"(gap: {lt2_gap:+.2f} {metric_label}). Umbral es el limitante principal."
         )
     elif lt2_priority and lt2_gap is not None and moderate_gap < lt2_gap <= significant_gap:
-        recommended = "threshold_development_block" if season == "base" else "aerobic_power_block"
+        recommended = "threshold_development_block" if season in _BASE_PHASES else "aerobic_power_block"
         reasons.append(
             f"LT2 cerca del objetivo, pero aún corto ({lt2_gap:+.2f} {metric_label}). "
             "La decisión depende más del retorno marginal que del calendario puro."
@@ -658,18 +973,57 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
     elif lt2_gap is not None and lt2_gap <= moderate_gap and season in {"specific", "pre_comp"}:
         recommended = "competition_specific_block"
         reasons.append("El perfil fisiológico ya es compatible; toca transferirlo al gesto y a la prueba.")
-    elif season == "base" and dist in long_duration_events:
-        recommended = "aerobic_capacity_block"
-        reasons.append("En prueba larga y con margen temporal, la capacidad aeróbica sigue teniendo prioridad estructural.")
-    elif season == "base" and lt2_gap is not None:
-        if lt2_gap > moderate_gap and (lt1_gap is None or lt1_gap <= moderate_gap):
+    # F3: base_late con umbral ya en rango → no hacer base, avanzar a potencia aeróbica
+    # Olbrecht: "mesociclo final del base = mantener lo adquirido y preparar para el específico"
+    elif (
+        season == "base_late"
+        and lt2_gap is not None and lt2_gap <= moderate_gap
+        and (lt1_gap is None or lt1_gap <= moderate_gap)
+    ):
+        recommended = "aerobic_power_block"
+        reasons.append(
+            "Base tardía con umbral ya en rango: buena ventana para potencia aeróbica "
+            "antes de entrar en específico (Olbrecht: mantener y preparar, no más base extensa)."
+        )
+    elif season in _BASE_PHASES and dist in long_duration_events:
+        # base_late con LT1 sólido puede empezar a mover LT2 (Olbrecht: 2ª parte del base)
+        # Para eventos lt1-primary (ironman, OW_long...) usamos el umbral F4 (0.35) como
+        # referencia de "LT1 acompaña", no el moderate_gap genérico (0.25).
+        _lt1_ok_for_base_late = (
+            lt1_gap is None
+            or lt1_gap <= (significant_gap_lt1_primary if limiter == "lt1" else moderate_gap)
+        )
+        if (
+            season == "base_late"
+            and lt2_gap is not None and lt2_gap > moderate_gap
+            and _lt1_ok_for_base_late
+        ):
             recommended = "threshold_development_block"
-            reasons.append("Aunque estamos lejos del objetivo, LT2 parece el limitante con mejor retorno marginal ahora.")
+            reasons.append(
+                "Final del base en prueba larga: LT1 acompaña y LT2 sigue siendo el limitante — "
+                "buen momento de empezar a desplazarlo antes de entrar en específico."
+            )
         else:
             recommended = "aerobic_capacity_block"
-            reasons.append(
-                "Aunque estamos lejos del objetivo, la señal actual sugiere consolidar soporte aeróbico primero."
-            )
+            reasons.append("Con margen temporal, la capacidad aeróbica sigue teniendo prioridad estructural.")
+    elif season in _BASE_PHASES and lt2_gap is not None:
+        if lt2_gap > moderate_gap and (lt1_gap is None or lt1_gap <= moderate_gap):
+            if season == "base_late":
+                recommended = "threshold_development_block"
+                reasons.append(
+                    "Final del base: LT2 es el limitante claro y LT1 ya acompaña — "
+                    "adelantar el trabajo de umbral tiene buen retorno marginal."
+                )
+            else:
+                # base_early: aunque LT2 sea el limitante, consolidar base primero
+                recommended = "aerobic_capacity_block"
+                reasons.append(
+                    "Base temprana: construir la capacidad aeróbica es la prioridad "
+                    "antes de atacar el umbral directamente."
+                )
+        else:
+            recommended = "aerobic_capacity_block"
+            reasons.append("La señal actual sugiere consolidar soporte aeróbico primero.")
     elif season in {"specific", "pre_comp"} and lt1_priority and lt1_gap is not None and lt1_gap > significant_gap:
         recommended = "aerobic_capacity_block"
         reasons.append("La prueba exige más soporte subumbral del que el atleta tiene hoy.")
@@ -687,6 +1041,27 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
         primary_limiter = "lt2"
     else:
         primary_limiter = "lt2" if limiter in ("lt2", "both") else "lt1"
+
+    # ── Perfil de capacidades: cualifica o refina el bloque ───────────────
+    # Solo actúa cuando data_quality != "none" y confianza del perfil es suficiente.
+    # No sobreescribe decisiones de red_zone ni taper (esas tienen returns propios).
+    if data_quality != "none":
+        recommended = _apply_capacity_profile(ctx.capacity_profile, recommended, reasons, season)
+
+    # P5a: advertencia si el bloque requiere más semanas de las disponibles
+    # Olbrecht: adaptaciones estructurales de AEC requieren ≥5 semanas; AEP ≥3 semanas
+    _min_weeks = MIN_WEEKS_FOR_BLOCK.get(recommended, 0)
+    if (
+        _min_weeks > 0
+        and ctx.weeks_to_goal is not None
+        and ctx.weeks_to_goal < _min_weeks + 2
+        and recommended not in {"competition_specific_block", "recovery_consolidation_block", "testing_decision_block"}
+    ):
+        contra.append(
+            f"'{recommended}' necesita ≥{_min_weeks} semanas para adaptación estructural (Olbrecht). "
+            f"Con {ctx.weeks_to_goal}s al objetivo, el margen es muy ajustado — "
+            "considera reducir el alcance o acortar el bloque."
+        )
 
     return PhysiologicalGapResult(
         primary_limiter=primary_limiter,

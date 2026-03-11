@@ -221,16 +221,39 @@ class BlockCandidateRead(BaseModel):
 
 class ScoringContextRead(BaseModel):
     assignment_mode: Optional[str] = None
+    selection_engine: Optional[str] = None
     robustness: str
     evaluation_signal: str
     previous_major: Optional[str] = None
     days_to_target: Optional[int] = None
 
 
+class DurabilityAnalysisRead(BaseModel):
+    durability_score: Optional[float] = None
+    lt1_degradation_pct: Optional[float] = None
+    lt2_degradation_pct: Optional[float] = None
+    aerobic_drift_pct: Optional[float] = None
+    durability_confidence: float = 0.0
+    durability_source: str = "none"
+    durability_flag: str = "insufficient_evidence_for_durability"
+
+
+class LactateCheckRecommendationRead(BaseModel):
+    session_type: str
+    purpose: str
+    suggested_timing_within_block: str
+    minimum_conditions: list[str] = []
+    optional_lactate_points: list[str] = []
+    coach_editable: bool = True
+    priority: str
+    why_now: str
+
+
 class PhysiologicalAnalysisRead(BaseModel):
     data_quality: str
     season_phase: Optional[str] = None
     primary_limiter: Optional[str] = None
+    secondary_limiter: Optional[str] = None
     lt2_gap_kmh: Optional[float] = None
     lt1_gap_kmh: Optional[float] = None
     required_lt2_kmh: Optional[float] = None
@@ -238,6 +261,17 @@ class PhysiologicalAnalysisRead(BaseModel):
     physiological_block: Optional[str] = None
     distance_category: Optional[str] = None
     metric_type: Optional[str] = None
+    lt1_confidence_dynamic: Optional[float] = None
+    lt2_confidence_dynamic: Optional[float] = None
+    glycolytic_confidence: Optional[float] = None
+    overall_decision_confidence: Optional[float] = None
+    confidence_band: Optional[str] = None
+    decision_uncertainty: Optional[str] = None
+    needs_confirmation: bool = False
+    durability: Optional[DurabilityAnalysisRead] = None
+    contradictory_signals: list[str] = []
+    confidence_factors: list[dict] = []
+    lactate_check_recommendations: list[LactateCheckRecommendationRead] = []
     overrides_temporal_scoring: bool = False
 
 
@@ -265,6 +299,7 @@ class MesocycleRecommendationRead(BaseModel):
     candidates_scored: list[BlockCandidateRead] = []
     scoring_context: Optional[ScoringContextRead] = None
     physiological_analysis: Optional[PhysiologicalAnalysisRead] = None
+    lactate_check_recommendations: list[LactateCheckRecommendationRead] = []
 
 
 class PlanningOverviewRead(BaseModel):

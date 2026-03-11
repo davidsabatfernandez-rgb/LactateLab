@@ -907,8 +907,14 @@ def test_planning_initial_assignment_uses_physiology_for_new_athlete(client, db_
 
     assert recommendation["recommended_block_type"] == "aerobic_capacity_block"
     assert recommendation["scoring_context"]["assignment_mode"] == "initial_assignment"
+    assert recommendation["scoring_context"]["selection_engine"] == "physiological_primary"
     assert recommendation["physiological_analysis"]["distance_category"] == "hm"
     assert recommendation["physiological_analysis"]["overrides_temporal_scoring"] is True
+    assert recommendation["physiological_analysis"]["secondary_limiter"] in {"lt2_ceiling", "lt1_support", "glycolytic_mismatch", "durability_risk", None}
+    assert recommendation["physiological_analysis"]["overall_decision_confidence"] is not None
+    assert recommendation["physiological_analysis"]["confidence_band"] in {"high", "medium", "low", "very_low"}
+    assert "durability" in recommendation["physiological_analysis"]
+    assert isinstance(recommendation["lactate_check_recommendations"], list)
 
 
 def test_physiology_report_preview_and_pdf(client, db_session):

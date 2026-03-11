@@ -460,15 +460,6 @@ function formatDuration(seconds?: number | null) {
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
-function csvCell(value: unknown) {
-  if (value === null || value === undefined) return "";
-  const text = String(value);
-  if (text.includes(",") || text.includes('"') || text.includes("\n")) {
-    return `"${text.replace(/"/g, '""')}"`;
-  }
-  return text;
-}
-
 function formatIntervalDuration(seconds?: number | null) {
   if (seconds === null || seconds === undefined) return "-";
   if (seconds >= 60) {
@@ -986,6 +977,75 @@ function targetSummaryForDiscipline(
     return target.target_power_watts ? `${Math.round(target.target_power_watts)} W` : "Sin potencia objetivo";
   }
   return target.target_pace_label || "Sin ritmo objetivo";
+}
+
+function compactTargetLabel(target: Pick<AthleteTarget, "discipline" | "distance_category" | "distance_label" | "objective">) {
+  if (target.distance_category === "hm") return "HM";
+  if (target.distance_category === "marathon") return "Maratón";
+  if (target.distance_category === "10k") return "10K";
+  if (target.distance_category === "5k") return "5K";
+
+  const label = buildTargetObjective({
+    category: target.distance_category,
+    distanceLabel: target.distance_label,
+    fallback: target.objective,
+  });
+  const normalized = label.toLowerCase();
+
+  if (normalized.includes("media marat")) return "HM";
+  if (normalized.includes("marat")) return "Maratón";
+  if (/\b10\s*k\b/.test(normalized)) return "10K";
+  if (/\b5\s*k\b/.test(normalized)) return "5K";
+  if (normalized.includes("ironman")) return "Ironman";
+  if (normalized.includes("half")) return "Half";
+
+  return label;
+}
+
+function targetTotalTimeLabel(target: AthleteTarget, activeDiscipline: string) {
+  const objectiveLabel = buildTargetObjective({
+    category: target.distance_category,
+    distanceLabel: target.distance_label,
+    fallback: target.objective,
+  });
+
+  if (target.discipline === "triatlón") {
+    const totalSeconds = parseSubTargetSeconds(target.objective || objectiveLabel, { discipline: "triatlón" });
+    return totalSeconds ? formatDuration(totalSeconds) : null;
+  }
+
+  if (target.discipline === "running") {
+    const distanceKm = parseDistanceKm(target.distance_label || objectiveLabel);
+    const paceSeconds = parseRunningPaceLabel(target.target_pace_label);
+    if (distanceKm && paceSeconds) {
+      return formatDuration(distanceKm * paceSeconds);
+    }
+    const totalSeconds = parseSubTargetSeconds(target.objective || objectiveLabel, { distanceKm, discipline: target.discipline });
+    return totalSeconds ? formatDuration(totalSeconds) : null;
+  }
+
+  if (target.discipline === "natación") {
+    return null;
+  }
+
+  if (target.discipline === "ciclismo" && activeDiscipline === "ciclismo") {
+    const distanceKm = parseDistanceKm(target.distance_label || objectiveLabel);
+    const totalSeconds = parseSubTargetSeconds(target.objective || objectiveLabel, { distanceKm, discipline: target.discipline });
+    return totalSeconds ? formatDuration(totalSeconds) : null;
+  }
+
+  return null;
+}
+
+function targetMetricDetailLabel(target: AthleteTarget, activeDiscipline: string) {
+  const summary = targetSummaryForDiscipline(target, activeDiscipline);
+  if (summary.startsWith("Sin ")) return null;
+  if (target.discipline === "triatlón" && activeDiscipline === "ciclismo") return `Potencia objetivo ${summary}`;
+  if (target.discipline === "triatlón" && activeDiscipline === "natación") return `Ritmo swim ${summary}`;
+  if (target.discipline === "triatlón" && activeDiscipline === "running") return `Ritmo run ${summary}`;
+  if (target.discipline === "ciclismo") return `Potencia objetivo ${summary}`;
+  if (target.discipline === "natación") return `Ritmo objetivo ${summary}`;
+  return `Ritmo objetivo ${summary}`;
 }
 
 const RUNNING_LT2_TARGET_FACTORS: Record<"5K" | "10K" | "HM" | "Maratón", number> = {
@@ -2045,8 +2105,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     lt1PracticalReal: false,
     lt2PracticalReal: true,
   });
-  const [weightValue, setWeightValue] = useState("");
-  const [weightDate, setWeightDate] = useState(new Date().toISOString().slice(0, 10));
   const [lactateOverlayOpen, setLactateOverlayOpen] = useState(false);
   const [targetsOverlayOpen, setTargetsOverlayOpen] = useState(false);
   const [physiologyReportOpen, setPhysiologyReportOpen] = useState(false);
@@ -2456,8 +2514,13 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   });
   const latestSnapshotLabel = displayView.latest_snapshot_date ? formatDate(displayView.latest_snapshot_date) : "Sin snapshot";
   const activeTarget = targetMovementInsight?.target ?? selectRelevantTarget(analysis.athlete.targets ?? [], activeDiscipline);
-  const nextTargetLabel = activeTarget ? formatDate(activeTarget.target_date) : "Sin objetivo";
-  const nextTargetValue = activeTarget ? targetSummaryForDiscipline(activeTarget, activeDiscipline) : "Define una meta";
+  const nextTargetLabel = activeTarget ? compactTargetLabel(activeTarget) : "Define una meta";
+  const nextTargetTotalTime = activeTarget ? targetTotalTimeLabel(activeTarget, activeDiscipline) : null;
+  const nextTargetMetric = activeTarget ? targetMetricDetailLabel(activeTarget, activeDiscipline) : null;
+  const nextTargetValue = activeTarget ? [nextTargetLabel, nextTargetTotalTime].filter(Boolean).join(" · ") : "Define una meta";
+  const nextTargetDetail = activeTarget
+    ? [nextTargetMetric, `Objetivo ${formatDate(activeTarget.target_date)}`].filter(Boolean).join(" · ")
+    : "Sin objetivo";
   const sectionLinks: AthleteDetailSectionLink[] = [
     { id: "thresholds", label: "Mapa de umbrales", shortLabel: "Umbrales" },
     ...(targetMovementInsight ? [{ id: "goal-gap", label: "Qué mover para el objetivo", shortLabel: "Objetivo" }] : []),
@@ -2483,7 +2546,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     {
       label: "Objetivo activo",
       value: nextTargetValue,
-      detail: nextTargetLabel,
+      detail: nextTargetDetail,
       tone: activeTarget ? "neutral" : "warning",
     },
     {
@@ -2985,23 +3048,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     }
   }
 
-  async function saveWeight() {
-    setSaveError(null);
-    setSaveMessage(null);
-    try {
-      await api.addAthleteWeight(token, analysis!.athlete.id, {
-        recorded_at: weightDate,
-        weight: Number(weightValue),
-        source: "manual",
-      });
-      setWeightValue("");
-      setSaveMessage("Peso registrado.");
-      await onSaved();
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "No se pudo guardar el peso.");
-    }
-  }
-
   async function saveAthleteTarget() {
     setSaveError(null);
     setSaveMessage(null);
@@ -3099,43 +3145,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "No se pudo eliminar el objetivo.");
     }
-  }
-
-  function downloadLactateHistoryCsv() {
-    const rows = displayView.measurement_log.map((entry) => ({
-      fecha: entry.session_date,
-      sesion: entry.session_type,
-      intervalo: entry.interval_label,
-      duracion_segundos: entry.duration_seconds,
-      descanso_segundos: entry.rest_seconds ?? "",
-      lactato_mmol_l: entry.lactate_mmol,
-      ritmo_seg_km: entry.pace_seconds_per_km ?? "",
-      potencia_w: entry.power_watts ?? "",
-      fc_bpm: entry.heart_rate_avg ?? "",
-      cadencia: entry.cadence ?? "",
-      disciplina: activeDiscipline,
-    }));
-    const headers = Object.keys(rows[0] ?? {
-      fecha: "",
-      sesion: "",
-      intervalo: "",
-      duracion_segundos: "",
-      descanso_segundos: "",
-      lactato_mmol_l: "",
-      ritmo_seg_km: "",
-      potencia_w: "",
-      fc_bpm: "",
-      cadencia: "",
-      disciplina: "",
-    });
-    const csv = [headers.join(","), ...rows.map((row) => headers.map((header) => csvCell(row[header as keyof typeof row])).join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${analysis!.athlete.name.toLowerCase().replace(/\s+/g, "-")}-${activeDiscipline}-historico-lactato.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
   }
 
   async function generatePhysiologyReport() {
@@ -4157,12 +4166,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
             <button className="ghost-button" type="button" onClick={() => setTargetsOverlayOpen(true)}>
               Objetivos y competiciones
             </button>
-            <button className="ghost-button" type="button" onClick={downloadLactateHistoryCsv} disabled={!displayView.measurement_log.length}>
-              Descargar CSV
-            </button>
-            <small className="athlete-vo2-inline">
-              VO2max {vo2maxEstimate ? `${Math.round(vo2maxEstimate.value * 10) / 10} ml/kg/min` : "n/d"}
-            </small>
           </div>
           <p>{analysis.athlete.notes}</p>
           <div className="hero-goal-row">
@@ -4181,22 +4184,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               </div>
             ) : null}
           </div>
-          <details className="inline-weight-entry">
-            <summary>Registrar peso</summary>
-            <div className="inline-weight-form">
-              <label>
-                Fecha
-                <input type="date" value={weightDate} onChange={(event) => setWeightDate(event.target.value)} />
-              </label>
-              <label>
-                Peso (kg)
-                <input type="number" step="0.1" min="0" value={weightValue} onChange={(event) => setWeightValue(event.target.value)} />
-              </label>
-              <button className="ghost-button" type="button" onClick={saveWeight} disabled={!weightValue}>
-                Guardar peso
-              </button>
-            </div>
-          </details>
         </div>
         <div className="hero-focus-stack">
           <article className="hero-focus-card current">

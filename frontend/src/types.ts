@@ -825,6 +825,27 @@ export type BlockCandidate = {
   contraindications: string[];
 };
 
+export type LactateCheckRecommendation = {
+  session_type: string;
+  purpose: string;
+  suggested_timing_within_block: string;
+  minimum_conditions: string[];
+  optional_lactate_points: string[];
+  coach_editable: boolean;
+  priority: string;
+  why_now: string;
+};
+
+export type DurabilityAnalysis = {
+  durability_score?: number | null;
+  lt1_degradation_pct?: number | null;
+  lt2_degradation_pct?: number | null;
+  aerobic_drift_pct?: number | null;
+  durability_confidence: number;
+  durability_source: string;
+  durability_flag: string;
+};
+
 export type MesocycleRecommendation = {
   target_discipline: string;
   recommended_block_type: string;
@@ -846,9 +867,11 @@ export type MesocycleRecommendation = {
   exit_checks: string[];
   risk_flags: string[];
   next_target?: PlanningTargetSummary | null;
+  lactate_check_recommendations?: LactateCheckRecommendation[];
   candidates_scored?: BlockCandidate[];
   scoring_context?: {
     assignment_mode?: string | null;
+    selection_engine?: string | null;
     robustness: string;
     evaluation_signal: string;
     previous_major: string | null;
@@ -858,6 +881,7 @@ export type MesocycleRecommendation = {
     data_quality: string;
     season_phase?: string | null;
     primary_limiter?: string | null;
+    secondary_limiter?: string | null;
     lt2_gap_kmh?: number | null;
     lt1_gap_kmh?: number | null;
     required_lt2_kmh?: number | null;
@@ -865,6 +889,22 @@ export type MesocycleRecommendation = {
     physiological_block?: string | null;
     distance_category?: string | null;
     metric_type?: string | null;
+    lt1_confidence_dynamic?: number | null;
+    lt2_confidence_dynamic?: number | null;
+    glycolytic_confidence?: number | null;
+    overall_decision_confidence?: number | null;
+    confidence_band?: string | null;
+    decision_uncertainty?: string | null;
+    needs_confirmation: boolean;
+    durability?: DurabilityAnalysis | null;
+    contradictory_signals?: string[];
+    confidence_factors?: Array<{
+      label: string;
+      score: number;
+      weight: number;
+      explanation: string;
+    }>;
+    lactate_check_recommendations?: LactateCheckRecommendation[];
     overrides_temporal_scoring: boolean;
   } | null;
 };
