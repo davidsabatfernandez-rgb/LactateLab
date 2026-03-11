@@ -253,11 +253,16 @@ class PhysiologicalGapResult:
     required_lt2_kmh: Optional[float]
     required_lt1_kmh: Optional[float]
     metric_type: str
-    season_phase: str                 # "base" | "specific" | "pre_comp" | "taper"
+    season_phase: str                 # "base_early"|"base_late"|"specific"|"pre_comp"|"taper"
     data_quality: str                 # "good" | "low" | "none"
     recommended_block: str
     reasons: list[str]
     contraindications: list[str]
+    # ── Fiabilidad y rationale ─────────────────────────────────────────────
+    # Poblados por analyse_physiological_gap usando block_rationale.py
+    warnings: list[Any] = None           # list[ReliabilityWarning] — importado lazy
+    borderline: bool = False             # gap cerca de un umbral de decisión (±15%)
+    borderline_note: str = ""            # explicación del caso límite
 
 
 def _interpolate_metric_at_lactate(
@@ -1048,6 +1053,28 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
     if data_quality != "none":
         recommended = _apply_capacity_profile(ctx.capacity_profile, recommended, reasons, season)
 
+    # ── Borderline gap detection ──────────────────────────────────────────────
+    borderline = False
+    borderline_note = ""
+    _sig  = significant_gap
+    _mod  = moderate_gap
+    _tol_sig = 0.15 if ctx.metric_type != "power_watts" else 5.0
+    _tol_mod = 0.10 if ctx.metric_type != "power_watts" else 3.0
+    _gap_ref = lt2_gap if lt2_gap is not None else lt1_gap
+    if _gap_ref is not None:
+        if abs(_gap_ref - _sig) <= _tol_sig:
+            borderline = True
+            borderline_note = (
+                f"Gap ({_gap_ref:+.2f} {metric_label}) muy cerca del umbral significativo "
+                f"({_sig} {metric_label} ±{_tol_sig}). Un test limpio podría cambiar el bloque."
+            )
+        elif abs(_gap_ref - _mod) <= _tol_mod:
+            borderline = True
+            borderline_note = (
+                f"Gap ({_gap_ref:+.2f} {metric_label}) en zona de transición "
+                f"entre 'aceptable' y 'necesita trabajo' ({_mod} {metric_label} ±{_tol_mod})."
+            )
+
     # P5a: advertencia si el bloque requiere más semanas de las disponibles
     # Olbrecht: adaptaciones estructurales de AEC requieren ≥5 semanas; AEP ≥3 semanas
     _min_weeks = MIN_WEEKS_FOR_BLOCK.get(recommended, 0)
@@ -1063,6 +1090,22 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
             "considera reducir el alcance o acortar el bloque."
         )
 
+    # ── Warnings de fiabilidad ────────────────────────────────────────────────
+    try:
+        from app.services.block_rationale import generate_reliability_warnings
+        _result_tmp = PhysiologicalGapResult(
+            primary_limiter=primary_limiter,
+            lt2_gap_kmh=lt2_gap, lt1_gap_kmh=lt1_gap,
+            required_lt2_kmh=required_lt2, required_lt1_kmh=required_lt1,
+            metric_type=ctx.metric_type, season_phase=season,
+            data_quality=data_quality, recommended_block=recommended,
+            reasons=reasons, contraindications=contra,
+            borderline=borderline, borderline_note=borderline_note,
+        )
+        reliability_warnings = generate_reliability_warnings(ctx, _result_tmp)
+    except Exception:
+        reliability_warnings = []
+
     return PhysiologicalGapResult(
         primary_limiter=primary_limiter,
         lt2_gap_kmh=lt2_gap,
@@ -1075,4 +1118,7 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
         recommended_block=recommended,
         reasons=reasons,
         contraindications=contra,
+        warnings=reliability_warnings,
+        borderline=borderline,
+        borderline_note=borderline_note,
     )

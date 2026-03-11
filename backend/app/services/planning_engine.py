@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Any, Optional
 
@@ -11,6 +11,13 @@ from app.models.athlete import Athlete
 from app.models.planned_session import PlannedSession
 from app.models.session import Session as AthleteSession
 from app.services.analytics import athlete_analysis_payload
+from app.services.block_rationale import (
+    BLOCK_RATIONALE,
+    generate_block_explanation,
+    generate_reliability_warnings,
+    rationale_fit_messages,
+    rationale_risk_messages,
+)
 from app.services.mesocycle_library import FOUNDATION_PILLARS, select_mesocycle_template, templates_for_discipline
 from app.services.physiological_engine import (
     analyse_physiological_gap,
@@ -761,7 +768,18 @@ def _prioritize_physiological_candidate(
         for candidate in scored_candidates
     }
     physiological_candidate = cloned.get(physiological_block) or BlockCandidate(block_type=physiological_block, score=0.0)
-    physiological_candidate.reasons = list(dict.fromkeys(reasons + physiological_candidate.reasons))
+    top_score = max((candidate.score for candidate in cloned.values()), default=0.0)
+    if physiological_candidate.score < top_score:
+        physiological_candidate.score = top_score
+    physiological_candidate.reasons = list(
+        dict.fromkeys(
+            [
+                "Prioridad fisiológica explícita: con señal suficiente, el test manda sobre el scoring contextual.",
+            ]
+            + reasons
+            + physiological_candidate.reasons
+        )
+    )
     physiological_candidate.contraindications = list(dict.fromkeys(contraindications + physiological_candidate.contraindications))
     cloned[physiological_block] = physiological_candidate
 
@@ -837,9 +855,6 @@ def _score_initial_assignment_candidates(
     long_duration_events = {"marathon", "70.3", "half_tri", "half_run", "half_bike", "ironman", "ironman_run", "ironman_bike", "open_water_long"}
     short_intense_events = {"5k", "10k", "road_tt", "sprint_tri", "sprint_run", "sprint_bike", "olympic_tri", "olympic_run", "olympic_bike", "pool_400"}
 
-    add("threshold_development_block", 15, "Bloque de entrada válido cuando LT2 parece el cuello principal.")
-    add("aerobic_capacity_block", 15, "Bloque de entrada válido cuando la prueba exige soporte subumbral o durabilidad.")
-    add("aerobic_power_block", 5, "Solo debería abrirse si el perfil ya está bastante compatible.")
     sub("recovery_consolidation_block", 20, "Atleta nuevo sin bloque previo: no toca consolidar fatiga que aún no existe.")
 
     if discipline == "natación":
@@ -888,6 +903,7 @@ def _score_block_candidates(
     """Puntúa cada tipo de bloque candidato con reglas explícitas y auditables.
 
     Cada regla que suma o resta puntos deja una razón o contraindicación textual.
+    No hay puntos base por defecto: solo se puntúa evidencia contextual real.
     El ganador es el bloque con mayor puntuación — el entrenador puede auditar
     todos los candidatos y sus razones.
     """
@@ -918,7 +934,6 @@ def _score_block_candidates(
         c.contraindications.append(f"-{pts:.0f} {reason}")
 
     # ── aerobic_capacity_block ────────────────────────────────────────────────
-    add("aerobic_capacity_block", 30, "Opción base universal; siempre defensible.")
     if previous_major in {None, "testing_decision_block", "recovery_consolidation_block"}:
         add("aerobic_capacity_block", 15, "Sin bloque previo claro o tras test/recovery: construir base es el paso lógico.")
     if previous_major == "aerobic_capacity_block" and evaluation_signal == "degrading":
@@ -939,7 +954,6 @@ def _score_block_candidates(
         add("aerobic_capacity_block", 10, "Sin sesiones recientes: la base es el punto de partida obligado.")
 
     # ── threshold_development_block ───────────────────────────────────────────
-    add("threshold_development_block", 25, "Bloque de alto impacto en rendimiento; bien ubicado en el ciclo.")
     if previous_major == "aerobic_capacity_block" and evaluation_signal in {"improving", "stable"}:
         add("threshold_development_block", 25, "Base aeróbica consolidada con señal positiva: paso lógico hacia el umbral.")
     if previous_major == "aerobic_capacity_block" and evaluation_signal == "degrading":
@@ -960,7 +974,6 @@ def _score_block_candidates(
         add("threshold_development_block", 5, "Robustez alta: el atleta puede absorber carga de umbral sin riesgo.")
 
     # ── aerobic_power_block ───────────────────────────────────────────────────
-    add("aerobic_power_block", 15, "Bloque potente y corto; útil cuando la base y el umbral están asentados.")
     if previous_major in {"threshold_development_block", "aerobic_capacity_block"} and evaluation_signal == "improving":
         add("aerobic_power_block", 20, "Bloque previo bien respondido: se puede abrir una fase más exigente.")
     if previous_major == "aerobic_power_block":
@@ -977,7 +990,6 @@ def _score_block_candidates(
         add("aerobic_power_block", 10, "Robustez alta: el atleta puede absorber la exigencia del bloque de potencia.")
 
     # ── competition_specific_block ────────────────────────────────────────────
-    add("competition_specific_block", 5, "Disponible siempre; solo relevante cuando el objetivo está cerca.")
     if days_to_target is not None and days_to_target <= 21:
         add("competition_specific_block", 50, "Objetivo en menos de 3 semanas: especificidad máxima y taper.")
     elif days_to_target is not None and days_to_target <= 35:
@@ -992,7 +1004,6 @@ def _score_block_candidates(
         sub("competition_specific_block", 15, "Robustez baja: la especificidad sin base puede vaciar al atleta sin adaptación.")
 
     # ── recovery_consolidation_block ──────────────────────────────────────────
-    add("recovery_consolidation_block", 5, "Válvula de seguridad: siempre disponible, necesario cuando hay fatiga acumulada.")
     if evaluation_signal == "degrading":
         add("recovery_consolidation_block", 40, "Señal claramente negativa: consolidar antes de apretar es la única opción segura.")
     if evaluation_signal == "stable" and previous_major not in {None, "recovery_consolidation_block"}:
@@ -1003,7 +1014,6 @@ def _score_block_candidates(
         sub("recovery_consolidation_block", 5, "Atleta robusto con señal aceptable: no necesita descarga ahora.")
 
     # ── technical_rebuild_block ───────────────────────────────────────────────
-    add("technical_rebuild_block", 5, "Disponible cuando hay limitantes técnicas que frenan la expresión fisiológica.")
     if discipline == "natación":
         add("technical_rebuild_block", 15, "En natación la técnica condiciona directamente la utilidad de la carga fisiológica.")
     if previous_major == "aerobic_capacity_block" and robustness == "low":
@@ -1138,6 +1148,10 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
             discipline=selected_discipline,
         )
 
+    for candidate in scored_candidates:
+        candidate.reasons = list(dict.fromkeys(candidate.reasons + rationale_fit_messages(candidate.block_type)))
+        candidate.contraindications = list(dict.fromkeys(candidate.contraindications + rationale_risk_messages(candidate.block_type)))
+
     winner = scored_candidates[0]
     recommended_type = winner.block_type
     reasoning: list[str] = winner.reasons[:]
@@ -1204,6 +1218,9 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
     control_points: list[str] = []
     progression_rules: list[str] = []
 
+    reasoning = list(dict.fromkeys(reasoning + rationale_fit_messages(recommended_type)))
+    risk_flags = list(dict.fromkeys(risk_flags + rationale_risk_messages(recommended_type)))
+
     # ── Risk flags globales ───────────────────────────────────────────────────
     if len(recent_sessions) <= 4:
         risk_flags.append("Muestra reciente escasa: conviene un bloque corto y conservador.")
@@ -1211,6 +1228,61 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
         risk_flags.append("No hay target próximo cargado; la recomendación se apoya en histórico y bloque activo.")
     if not sessions:
         risk_flags.append("Hay muy pocos datos por disciplina; la recomendación es orientativa.")
+
+    risk_flags = list(dict.fromkeys(risk_flags))
+
+    effective_physio_gap = None
+    reliability_warnings_payload = []
+    block_rationale_payload = None
+    block_explanation_payload = None
+    if physio_gap and physio_ctx:
+        effective_physio_gap = (
+            replace(physio_gap, recommended_block=recommended_type)
+            if physio_gap.recommended_block != recommended_type
+            else physio_gap
+        )
+
+        reliability_warnings_payload = [
+            {
+                "code": warning.code,
+                "severity": warning.severity,
+                "message": warning.message,
+                "actionable": warning.actionable,
+            }
+            for warning in generate_reliability_warnings(physio_ctx, effective_physio_gap)
+        ]
+
+        if recommended_type in BLOCK_RATIONALE:
+            rationale = BLOCK_RATIONALE[recommended_type]
+            block_rationale_payload = {
+                "block_key": rationale.block_key,
+                "display_name": rationale.display_name,
+                "olbrecht_class": rationale.olbrecht_class,
+                "summary_coach": rationale.summary_coach,
+                "physiological_goal": rationale.physiological_goal,
+                "training_description": rationale.training_description,
+                "expected_timeline": rationale.expected_timeline,
+                "ideal_context": rationale.ideal_context,
+                "risk_if_wrong": rationale.risk_if_wrong,
+                "min_weeks": rationale.min_weeks,
+                "max_weeks": rationale.max_weeks,
+                "science_refs": rationale.science_refs,
+            }
+
+        block_explanation = generate_block_explanation(physio_ctx, effective_physio_gap)
+        block_explanation_payload = {
+            "headline": block_explanation.headline,
+            "why_now": block_explanation.why_now,
+            "what_to_expect": block_explanation.what_to_expect,
+            "what_to_watch": block_explanation.what_to_watch,
+            "when_to_exit": block_explanation.when_to_exit,
+            "alternative_if_wrong": block_explanation.alternative_if_wrong,
+            "block_key": block_explanation.block_key,
+            "display_name": block_explanation.display_name,
+            "olbrecht_class": block_explanation.olbrecht_class,
+            "min_weeks": block_explanation.min_weeks,
+            "max_weeks": block_explanation.max_weeks,
+        }
 
     # ── Regla de progresión específica por disciplina ─────────────────────────
     if selected_discipline == "ciclismo":
@@ -1357,6 +1429,11 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
             "confidence_factors": dynamic_confidence["confidence_factors"],
             "lactate_check_recommendations": lactate_check_recommendations,
             "overrides_temporal_scoring": can_override if physio_gap else False,
+            "reliability_warnings": reliability_warnings_payload,
+            "borderline": effective_physio_gap.borderline if effective_physio_gap else False,
+            "borderline_note": effective_physio_gap.borderline_note if effective_physio_gap else "",
+            "block_rationale": block_rationale_payload,
+            "block_explanation": block_explanation_payload,
         } if physio_gap else None,
     }
 

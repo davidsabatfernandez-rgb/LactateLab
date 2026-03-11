@@ -846,6 +846,42 @@ export type DurabilityAnalysis = {
   durability_flag: string;
 };
 
+export type BlockRationale = {
+  block_key: string;
+  display_name: string;
+  olbrecht_class: string;
+  summary_coach: string;
+  physiological_goal: string;
+  training_description: string;
+  expected_timeline: string;
+  ideal_context: string;
+  risk_if_wrong: string;
+  min_weeks: number;
+  max_weeks: number;
+  science_refs: string[];
+};
+
+export type ReliabilityWarning = {
+  code: string;
+  severity: string;
+  message: string;
+  actionable: string;
+};
+
+export type BlockExplanation = {
+  headline: string;
+  why_now: string;
+  what_to_expect: string;
+  what_to_watch: string;
+  when_to_exit: string;
+  alternative_if_wrong: string;
+  block_key: string;
+  display_name: string;
+  olbrecht_class: string;
+  min_weeks: number;
+  max_weeks: number;
+};
+
 export type MesocycleRecommendation = {
   target_discipline: string;
   recommended_block_type: string;
@@ -906,6 +942,11 @@ export type MesocycleRecommendation = {
     }>;
     lactate_check_recommendations?: LactateCheckRecommendation[];
     overrides_temporal_scoring: boolean;
+    reliability_warnings?: ReliabilityWarning[];
+    borderline?: boolean;
+    borderline_note?: string;
+    block_rationale?: BlockRationale | null;
+    block_explanation?: BlockExplanation | null;
   } | null;
 };
 
