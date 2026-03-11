@@ -10645,7 +10645,7 @@ h4 {
 }
 
 .lab-dashboard-page {
-  gap: 28px;
+  gap: 24px;
 }
 
 .lab-dashboard-shell::before {
@@ -10668,8 +10668,8 @@ h4 {
 }
 
 .lab-dashboard-hero {
-  padding: 28px 10px 2px;
-  margin-bottom: 12px;
+  padding: 22px 8px 2px;
+  margin-bottom: 8px;
   align-items: start;
 }
 
@@ -10686,7 +10686,7 @@ h4 {
 .lab-dashboard-head-copy h2 {
   margin: 0;
   max-width: 8.5ch;
-  font-size: clamp(2.9rem, 4.6vw, 4.4rem);
+  font-size: clamp(2.6rem, 4.2vw, 3.9rem);
   letter-spacing: -0.075em;
   line-height: 0.9;
   color: #17333c;
@@ -10701,18 +10701,21 @@ h4 {
 }
 
 .lab-template-picker {
+  display: grid;
+  gap: 10px;
   align-self: start;
+  position: relative;
 }
 
 .lab-dashboard-summary {
-  gap: 14px;
+  gap: 12px;
   margin: 2px 0 14px;
 }
 
 .lab-dashboard-summary-card {
-  min-height: 144px;
-  padding: 18px 18px 18px;
-  border-radius: 28px;
+  min-height: 120px;
+  padding: 15px 16px 16px;
+  border-radius: 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -10725,8 +10728,8 @@ h4 {
 
 .lab-dashboard-summary-card::before {
   content: "";
-  width: 42px;
-  height: 4px;
+  width: 34px;
+  height: 3px;
   border-radius: 999px;
   background: rgba(22, 53, 61, 0.10);
 }
@@ -10756,21 +10759,21 @@ h4 {
 }
 
 .lab-dashboard-summary-card strong {
-  font-size: clamp(2rem, 3vw, 2.45rem);
+  font-size: clamp(1.8rem, 2.5vw, 2.15rem);
   line-height: 0.95;
   color: #18343c;
 }
 
 .lab-dashboard-summary-card small {
   max-width: 24ch;
-  font-size: 0.84rem;
-  line-height: 1.52;
+  font-size: 0.8rem;
+  line-height: 1.45;
   color: #6b7b80;
 }
 
 .lab-dashboard-note {
   margin: 0 0 18px;
-  padding: 17px 18px;
+  padding: 14px 16px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(16, 34, 42, 0.05);
@@ -10782,9 +10785,9 @@ h4 {
 
 .lab-dashboard-row {
   grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
-  gap: 22px;
-  padding: 24px 24px 26px;
-  border-radius: 34px;
+  gap: 18px;
+  padding: 20px 20px 22px;
+  border-radius: 28px;
   border: 1px solid rgba(16, 34, 42, 0.055);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.995), rgba(248, 247, 244, 0.97));
   box-shadow:
@@ -10798,7 +10801,7 @@ h4 {
 
 .lab-athlete-identity strong {
   margin-bottom: 8px;
-  font-size: clamp(1.5rem, 2vw, 1.9rem);
+  font-size: clamp(1.35rem, 1.8vw, 1.7rem);
   line-height: 0.98;
   color: #18343c;
 }
@@ -10836,7 +10839,7 @@ h4 {
   align-items: center;
   width: fit-content;
   margin-right: 0;
-  padding: 10px 14px;
+  padding: 9px 13px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(16, 34, 42, 0.08);
@@ -10856,16 +10859,16 @@ h4 {
 }
 
 .lab-inline-pill {
-  padding: 7px 11px;
-  font-size: 0.78rem;
+  padding: 6px 10px;
+  font-size: 0.74rem;
   border: 1px solid transparent;
 }
 
 .lab-discipline-trend,
 .lab-template-card {
-  min-height: 172px;
-  padding: 18px;
-  border-radius: 26px;
+  min-height: 148px;
+  padding: 15px 16px;
+  border-radius: 22px;
   border: 1px solid rgba(16, 34, 42, 0.055);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(249, 247, 244, 0.965));
   box-shadow:
@@ -10877,7 +10880,7 @@ h4 {
 .lab-template-card::before {
   content: "";
   display: block;
-  width: 36px;
+  width: 28px;
   height: 3px;
   border-radius: 999px;
   background: rgba(22, 53, 61, 0.1);
@@ -10895,14 +10898,14 @@ h4 {
 }
 
 .lab-sparkline-empty {
-  min-height: 104px;
+  min-height: 84px;
   background: rgba(248, 246, 243, 0.98);
   border: 1px dashed rgba(16, 34, 42, 0.07);
 }
 
 .lab-template-trigger {
-  min-height: 52px;
-  padding: 12px 18px;
+  min-height: 48px;
+  padding: 11px 16px;
   background: rgba(255, 255, 255, 0.9);
   border-color: rgba(16, 34, 42, 0.06);
   box-shadow:
@@ -10917,22 +10920,38 @@ h4 {
 }
 
 .lab-template-menu {
-  border-radius: 26px;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(290px, calc(100vw - 64px));
+  max-height: 360px;
+  overflow: auto;
+  border-radius: 22px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.96);
   border-color: rgba(16, 34, 42, 0.06);
-  box-shadow: 0 22px 34px rgba(16, 34, 42, 0.08);
+  box-shadow: 0 18px 32px rgba(16, 34, 42, 0.10);
+  z-index: 18;
 }
 
 .lab-template-option {
-  border-radius: 20px;
+  border-radius: 18px;
+  padding: 11px 13px;
   background: rgba(248, 246, 242, 0.9);
 }
 
 .lab-template-option strong {
   color: #18343c;
+  font-size: 0.98rem;
 }
 
 .lab-template-option.active {
   background: rgba(241, 236, 228, 0.95);
+}
+
+.lab-template-option span {
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 @media (max-width: 1180px) {
@@ -10942,7 +10961,7 @@ h4 {
 
   .lab-dashboard-head-copy h2 {
     max-width: 10ch;
-    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-size: clamp(2.35rem, 5vw, 3.2rem);
   }
 }
 
@@ -10967,6 +10986,12 @@ h4 {
     max-width: none;
   }
 
+  .lab-template-menu {
+    right: auto;
+    left: 0;
+    width: min(320px, calc(100vw - 56px));
+  }
+
   .lab-dashboard-summary {
     grid-template-columns: 1fr;
   }
@@ -10975,4 +11000,149 @@ h4 {
     grid-template-columns: 1fr;
     padding: 20px;
   }
+}
+
+/* Global brand pass across the app */
+.page-grid {
+  max-width: 1600px;
+}
+
+.page-header,
+.hero,
+.card-header,
+.section-heading {
+  position: relative;
+}
+
+.page-header,
+.hero {
+  padding-top: 8px;
+}
+
+.page-header h1,
+.hero h1,
+.section-title {
+  color: #17333c;
+}
+
+.page-header p,
+.hero p,
+.section-heading p,
+.card-header p,
+.muted {
+  color: #617278;
+}
+
+.card,
+.section-card,
+.table-card,
+.chart-card,
+.split-card,
+.import-card,
+.target-page-shell,
+.nutrition-panel,
+.nutrition-pillar-card,
+.library-toolbar,
+.library-hero-panel,
+.library-zone-section,
+.library-row,
+.strava-current-panel,
+.strava-summary-card,
+.strava-detail-panel,
+.strava-activity-card,
+.planning-toolbar-card,
+.planning-calendar-shell,
+.planning-calendar-detail,
+.planning-builder-controls,
+.planning-template-browser,
+.planning-template-detail {
+  border-radius: 26px;
+}
+
+.section-card,
+.table-card,
+.chart-card,
+.split-card,
+.import-card {
+  border: 1px solid rgba(16, 34, 42, 0.055);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(249, 247, 244, 0.965));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 10px 22px rgba(16, 34, 42, 0.035);
+}
+
+.card-header,
+.section-heading {
+  margin-bottom: 2px;
+}
+
+.section-heading.compact {
+  margin-bottom: 10px;
+}
+
+.table-card th,
+.table-card td {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.table-card th {
+  font-size: 0.74rem;
+  letter-spacing: 0.14em;
+}
+
+.list-item,
+.library-week-session,
+.library-selection-card,
+.planning-context-card,
+.planning-kpi-card,
+.planning-threshold-card,
+.planning-timeline-card,
+.planning-empty-state,
+.planning-mini-card,
+.planning-archive-card,
+.planning-day-card,
+.planning-template-card,
+.strava-detail-metrics div,
+.strava-current-metric,
+.strava-activity-kpi-grid div,
+.strava-activity-coach-card,
+.strava-threshold-reference-card,
+.strava-threshold-time-card,
+.strava-phase-card {
+  border-radius: 20px;
+  border: 1px solid rgba(16, 34, 42, 0.055);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 246, 243, 0.96));
+}
+
+.hero-focus-card,
+.hero-plan-card,
+.planning-foundation-card,
+.library-foundation-card,
+.library-summary-kpi,
+.nutrition-focus-card {
+  border-radius: 22px;
+  border: 1px solid rgba(16, 34, 42, 0.055);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(248, 246, 243, 0.965));
+}
+
+.primary-button,
+.ghost-button,
+.athlete-roster-filter-pill,
+.planning-overlay-chip,
+.planning-inline-action,
+.planning-card-dismiss,
+.planning-workspace-button,
+.library-ribbon-pill,
+.lib-meta-pill,
+.threshold-meta-pill,
+.chart-overlay-chip {
+  min-height: 42px;
+}
+
+.library-hero,
+.nutrition-hero,
+.planning-hero,
+.page-header {
+  margin-bottom: 2px;
 }
