@@ -153,6 +153,8 @@ class AthleteRead(AthleteBase):
     coach_id: Optional[int]
     strava_athlete_id: Optional[int] = None
     strava_connected: bool = False
+    garmin_user_id: Optional[int] = None
+    garmin_connected: bool = False
     weights: list[AthleteWeightHistoryRead] = []
     focus_blocks: list[AthleteFocusBlockRead] = []
     targets: list[AthleteTargetRead] = []

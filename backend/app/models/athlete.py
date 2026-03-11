@@ -25,6 +25,12 @@ class Athlete(Base):
     strava_refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     strava_token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     strava_connected_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    garmin_user_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
+    garmin_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    garmin_password_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    garmin_token_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    garmin_connected_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    garmin_last_sync_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[date] = mapped_column(Date)
     coach_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
 
@@ -45,6 +51,15 @@ class Athlete(Base):
             and self.strava_access_token
             and self.strava_refresh_token
             and self.strava_token_expires_at is not None
+        )
+
+    @property
+    def garmin_connected(self) -> bool:
+        return bool(
+            self.garmin_user_id is not None
+            and self.garmin_email
+            and self.garmin_password_encrypted
+            and self.garmin_connected_at is not None
         )
 
 

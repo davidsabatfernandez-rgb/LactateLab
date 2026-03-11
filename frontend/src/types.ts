@@ -11,6 +11,8 @@ export type Athlete = {
   notes?: string | null;
   strava_athlete_id?: number | null;
   strava_connected: boolean;
+  garmin_user_id?: number | null;
+  garmin_connected: boolean;
   created_at: string;
   weights?: Array<{
     id: number;
@@ -162,6 +164,52 @@ export type StravaActivitiesImportResponse = {
   end_date: string;
   imported_count: number;
   activities: StravaActivity[];
+};
+
+export type GarminActivity = {
+  provider_activity_id: number;
+  name: string;
+  sport_type: string;
+  started_at: string;
+  timezone?: string | null;
+  distance_m: number;
+  moving_time_seconds: number;
+  elapsed_time_seconds: number;
+  average_speed_m_s?: number | null;
+  max_speed_m_s?: number | null;
+  average_heartrate?: number | null;
+  max_heartrate?: number | null;
+  average_watts?: number | null;
+  calories?: number | null;
+  description?: string | null;
+  total_elevation_gain_m?: number | null;
+  average_cadence?: number | null;
+  max_watts?: number | null;
+  start_latlng: number[];
+  end_latlng: number[];
+  device_name?: string | null;
+  laps: Array<{
+    lap_index: number;
+    name: string;
+    distance_m: number;
+    elapsed_time_seconds: number;
+    moving_time_seconds: number;
+    average_speed_m_s?: number | null;
+    average_heartrate?: number | null;
+    max_heartrate?: number | null;
+    average_watts?: number | null;
+    start_date?: string | null;
+  }>;
+  raw_detail: Record<string, unknown>;
+};
+
+export type GarminActivitiesPreviewResponse = {
+  athlete_id: number;
+  athlete_name: string;
+  start_date: string;
+  end_date: string;
+  imported_count: number;
+  activities: GarminActivity[];
 };
 
 export type AthleteFocusBlock = {

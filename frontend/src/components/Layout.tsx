@@ -51,6 +51,7 @@ export function Layout({ onLogout, children }: LayoutProps) {
             ) : null}
           </div>
           <NavLink to="/strava-information">Strava Information</NavLink>
+          <NavLink to="/garmin-connect">Garmin Connect</NavLink>
         </nav>
         <button className="ghost-button" onClick={onLogout}>
           Cerrar sesión

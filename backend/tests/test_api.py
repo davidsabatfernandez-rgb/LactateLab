@@ -1,5 +1,7 @@
 from datetime import date, datetime
 
+from sqlalchemy import select
+
 from app.core.security import get_password_hash
 from app.models.athlete import Athlete
 from app.models.user import User
@@ -273,6 +275,140 @@ def test_coach_can_fetch_strava_activities_for_selected_athlete(client, db_sessi
     assert payload["activities"][0]["laps"][0]["lap_index"] == 1
     assert payload["activities"][0]["zones"][0]["type"] == "heartrate"
     assert payload["activities"][0]["streams"]["heartrate"]["original_size"] == 3
+
+def test_coach_can_connect_garmin_for_selected_athlete(client, db_session, monkeypatch):
+    coach = User(
+        email="coach-garmin-connect@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="coach",
+        full_name="Coach Garmin Connect",
+    )
+    athlete = Athlete(
+        name="Atleta Garmin Beta",
+        date_of_birth=date(1993, 2, 11),
+        sex="male",
+        weight=70,
+        height=180,
+        primary_discipline="cycling",
+        created_at=date(2026, 1, 1),
+        coach=coach,
+    )
+    db_session.add_all([coach, athlete])
+    db_session.commit()
+
+    def fake_connect(db, athlete_id, email, password, mfa_code=None):
+        target = db.scalar(select(Athlete).where(Athlete.id == athlete_id))
+        target.garmin_user_id = 555001
+        target.garmin_email = email
+        target.garmin_password_encrypted = "encrypted-password"
+        target.garmin_token_encrypted = "encrypted-token"
+        target.garmin_connected_at = datetime(2026, 3, 11, 9, 0)
+        target.garmin_last_sync_at = datetime(2026, 3, 11, 9, 0)
+        db.add(target)
+        db.commit()
+        db.refresh(target)
+        return target
+
+    monkeypatch.setattr("app.api.routes.garmin.connect_garmin_account", fake_connect)
+
+    login_response = client.post("/api/auth/login", json={"email": "coach-garmin-connect@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.post(
+        f"/api/garmin/athletes/{athlete.id}/connect",
+        headers=headers,
+        json={"email": "garmin@test.dev", "password": "secret-pass"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["athlete_id"] == athlete.id
+    assert payload["garmin_user_id"] == 555001
+    assert payload["connected"] is True
+
+
+def test_coach_can_preview_garmin_activities_for_selected_athlete(client, db_session, monkeypatch):
+    coach = User(
+        email="coach-garmin-preview@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="coach",
+        full_name="Coach Garmin Preview",
+    )
+    athlete = Athlete(
+        name="Atleta Garmin Preview",
+        date_of_birth=date(1994, 6, 17),
+        sex="female",
+        weight=58,
+        height=167,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+        coach=coach,
+        garmin_user_id=888777,
+        garmin_email="garmin-preview@test.dev",
+        garmin_password_encrypted="encrypted-password",
+        garmin_token_encrypted="encrypted-token",
+        garmin_connected_at=datetime(2026, 3, 11, 8, 0),
+    )
+    db_session.add_all([coach, athlete])
+    db_session.commit()
+
+    monkeypatch.setattr(
+        "app.api.routes.garmin.list_garmin_activities",
+        lambda db, athlete, start_date, end_date: [
+            {
+                "provider_activity_id": 7001,
+                "name": "Garmin tempo run",
+                "sport_type": "running",
+                "started_at": "2026-03-09T07:30:00Z",
+                "timezone": "Europe/Madrid",
+                "distance_m": 12400.0,
+                "moving_time_seconds": 3120,
+                "elapsed_time_seconds": 3200,
+                "average_speed_m_s": 3.97,
+                "max_speed_m_s": 5.15,
+                "average_heartrate": 154.0,
+                "max_heartrate": 170.0,
+                "average_watts": None,
+                "calories": 812.0,
+                "description": "Preview beta",
+                "total_elevation_gain_m": 61.0,
+                "average_cadence": 86.0,
+                "max_watts": None,
+                "start_latlng": [41.387, 2.17],
+                "end_latlng": [41.388, 2.171],
+                "device_name": "Forerunner 965",
+                "laps": [
+                    {
+                        "lap_index": 1,
+                        "name": "Warmup",
+                        "distance_m": 3000.0,
+                        "elapsed_time_seconds": 900,
+                        "moving_time_seconds": 880,
+                        "average_speed_m_s": 3.4,
+                        "average_heartrate": 142.0,
+                        "max_heartrate": 150.0,
+                        "average_watts": None,
+                        "start_date": "2026-03-09T07:30:00Z",
+                    }
+                ],
+                "raw_detail": {"detail": {"source": "garmin-beta"}},
+            }
+        ],
+    )
+
+    login_response = client.post("/api/auth/login", json={"email": "coach-garmin-preview@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.get(
+        f"/api/garmin/athletes/{athlete.id}/preview?start_date=2026-03-08&end_date=2026-03-10",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["athlete_id"] == athlete.id
+    assert payload["imported_count"] == 1
+    assert payload["activities"][0]["provider_activity_id"] == 7001
+    assert payload["activities"][0]["sport_type"] == "running"
+    assert payload["activities"][0]["laps"][0]["lap_index"] == 1
 
 
 def test_create_athlete_and_session_analysis(client, db_session):

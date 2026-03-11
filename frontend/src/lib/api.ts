@@ -262,6 +262,20 @@ export const api = {
       `/strava/athletes/${athleteId}/activities?${new URLSearchParams({ start_date: startDate, end_date: endDate }).toString()}`,
       { token },
     ),
+  garminConnect: (token: string, athleteId: number, payload: { email: string; password: string; mfa_code?: string }) =>
+    request<{ athlete_id: number; garmin_user_id: number; garmin_email: string; connected: boolean }>(
+      `/garmin/athletes/${athleteId}/connect`,
+      {
+        token,
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    ),
+  garminPreview: (token: string, athleteId: number, startDate: string, endDate: string) =>
+    request<{ athlete_id: number; athlete_name: string; start_date: string; end_date: string; imported_count: number; activities: Array<Record<string, unknown>> }>(
+      `/garmin/athletes/${athleteId}/preview?${new URLSearchParams({ start_date: startDate, end_date: endDate }).toString()}`,
+      { token },
+    ),
   dashboard: (token: string) => request("/analytics/dashboard", { token }),
   athletes: (token: string) => request("/athletes", { token }),
   createAthlete: (token: string, payload: unknown) =>

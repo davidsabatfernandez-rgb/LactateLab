@@ -11,5 +11,6 @@ python-multipart==0.0.20
 psycopg[binary]==3.2.9
 pytest==8.4.1
 httpx==0.28.1
+garth==0.6.3
 openpyxl==3.1.5
 pypdf==6.7.5
