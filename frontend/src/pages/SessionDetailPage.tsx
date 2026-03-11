@@ -1,4 +1,5 @@
 import { CurveChart } from "../components/CurveChart";
+import { resolveTrainingThreshold } from "../lib/trainingThresholds";
 import { SessionAnalysis } from "../types";
 
 function formatPace(seconds?: number | null) {
@@ -19,19 +20,19 @@ export function SessionDetailPage({ analysis }: SessionDetailPageProps) {
     return <div className="loading">Cargando sesión...</div>;
   }
 
-  const lt2 = analysis.thresholds.find((threshold) => threshold.name === "LT2");
-  const lt1 = analysis.thresholds.find((threshold) => threshold.name === "LT1");
+  const lt2 = resolveTrainingThreshold(analysis, "LT2");
+  const lt1 = resolveTrainingThreshold(analysis, "LT1");
   const thresholdValue = (threshold: typeof lt1) =>
     analysis.session.discipline === "ciclismo"
-      ? `${threshold?.power_watts ? `${Math.round(threshold.power_watts)} W` : "-"} · ${threshold?.heart_rate ?? "-"} bpm`
-      : `${formatPace(threshold?.pace_seconds_per_km)} · ${threshold?.heart_rate ?? "-"} bpm`;
+      ? `${threshold?.powerWatts ? `${Math.round(threshold.powerWatts)} W` : "-"} · ${threshold?.heartRate ?? "-"} bpm`
+      : `${formatPace(threshold?.paceSecondsPerKm)} · ${threshold?.heartRate ?? "-"} bpm`;
   const anaerobicValue =
     analysis.session.discipline === "ciclismo"
-      ? `${lt2?.power_watts ? `${Math.round(lt2.power_watts)} W` : "-"} · ${lt2?.heart_rate ?? "-"} bpm`
-      : `${formatPace(lt2?.pace_seconds_per_km)} · ${lt2?.heart_rate ?? "-"} bpm`;
+      ? `${lt2?.powerWatts ? `${Math.round(lt2.powerWatts)} W` : "-"} · ${lt2?.heartRate ?? "-"} bpm`
+      : `${formatPace(lt2?.paceSecondsPerKm)} · ${lt2?.heartRate ?? "-"} bpm`;
   const chartOverlays = [
-    { label: "LT1", value: thresholdValue(lt1), tone: "positive" as const },
-    { label: "LT2", value: thresholdValue(lt2), tone: "negative" as const },
+    { label: "LT1", value: `${thresholdValue(lt1)} · ${lt1?.sourceLabel ?? "Sin ancla"}`, tone: "positive" as const },
+    { label: "LT2", value: `${thresholdValue(lt2)} · ${lt2?.sourceLabel ?? "Sin ancla"}`, tone: "negative" as const },
     { label: "VO2max", value: "n/d", tone: "neutral" as const },
     { label: "VLAMAX", value: "n/d", tone: "warning" as const },
   ];

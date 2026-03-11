@@ -22,13 +22,13 @@ export function Layout({ onLogout, children }: LayoutProps) {
       <aside className="sidebar">
         <Link to="/lab" className="brand">
           <span className="brand-mark">LL</span>
-          <div>
-            <strong>Lactate Lab</strong>
+          <div className="brand-copy">
+            <strong>PeakAerobic</strong>
             <p>Endurance physiology</p>
           </div>
         </Link>
         <nav className="nav">
-          <NavLink to="/lab">Lab</NavLink>
+          <NavLink to="/lab">Inicio</NavLink>
           <NavLink to="/athletes">Atletas</NavLink>
           <NavLink to="/planning">Planificación</NavLink>
           <NavLink to="/nutrition">Nutrición</NavLink>
@@ -39,7 +39,7 @@ export function Layout({ onLogout, children }: LayoutProps) {
               onClick={() => setIsLibraryOpen((current) => !current)}
             >
               <span>Librería</span>
-              <span className="nav-group-chevron">{isLibraryOpen ? "▾" : "▸"}</span>
+              <span className={`nav-group-chevron ${isLibraryOpen ? "open" : ""}`}>▸</span>
             </button>
             {isLibraryOpen ? (
               <div className="nav-group-links">
@@ -53,7 +53,7 @@ export function Layout({ onLogout, children }: LayoutProps) {
           <NavLink to="/strava-information">Strava Information</NavLink>
           <NavLink to="/garmin-connect">Garmin Connect</NavLink>
         </nav>
-        <button className="ghost-button" onClick={onLogout}>
+        <button className="ghost-button sidebar-logout" onClick={onLogout}>
           Cerrar sesión
         </button>
       </aside>

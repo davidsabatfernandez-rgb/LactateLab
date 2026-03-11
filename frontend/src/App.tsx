@@ -255,8 +255,8 @@ export default function App() {
     <Layout onLogout={handleLogout}>
       {dataLoadError ? <div className="error">{dataLoadError}</div> : null}
       <Routes>
-        <Route path="/" element={<DashboardPage athletes={athletes} token={token} />} />
-        <Route path="/lab" element={<DashboardPage athletes={athletes} token={token} />} />
+        <Route path="/" element={<DashboardPage athletes={athletes} token={token} viewerId={authUser.id} />} />
+        <Route path="/lab" element={<DashboardPage athletes={athletes} token={token} viewerId={authUser.id} />} />
         <Route path="/planning" element={<PlanningPage token={token} />} />
         <Route path="/nutrition" element={<NutritionPage />} />
         <Route path="/library" element={<LibraryPage token={token} />} />

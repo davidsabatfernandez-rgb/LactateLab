@@ -20,6 +20,8 @@ class Athlete(Base):
     goal_category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     training_goal: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    athlete_level: Mapped[str] = mapped_column(String(30), nullable=False, default="trained", server_default="trained")
+    """Nivel del atleta: recreational | trained | competitive. Afecta la relación umbral→ritmo de carrera."""
     strava_athlete_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
     strava_access_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     strava_refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -106,6 +108,8 @@ class AthleteTarget(Base):
     discipline: Mapped[str] = mapped_column(String(50), index=True)
     objective: Mapped[str] = mapped_column(String(255))
     distance_label: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    distance_category: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    """Categoría normalizada: 5k | 10k | hm | marathon | sprint_tri | olympic_tri | 70.3 | ironman | road_tt | other"""
     priority_level: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     target_pace_label: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     target_power_watts: Mapped[Optional[float]] = mapped_column(Float, nullable=True)

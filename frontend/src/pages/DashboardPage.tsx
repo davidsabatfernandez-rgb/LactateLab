@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Line, LineChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { api } from "../lib/api";
+import { buildTargetObjective } from "../lib/targetCatalog";
 import { ResolvedTrainingThreshold, resolveAnalysisDisciplineView, resolveTrainingThreshold } from "../lib/trainingThresholds";
-import { Athlete, AthleteAnalysis, AthleteFocusBlockEvaluation, DisciplineView, HistoricalPoint, SessionSummary } from "../types";
+import { Athlete, AthleteAnalysis, AthleteFocusBlockEvaluation, AthleteTarget, DisciplineView, SessionSummary } from "../types";
 
 type DashboardPageProps = {
   athletes: Athlete[];
@@ -123,28 +123,9 @@ function nextTargetSummary(athlete: Athlete) {
   if (!upcoming) return null;
   const remaining = daysUntil(upcoming.target_date);
   return {
-    label: upcoming.objective || upcoming.distance_label || upcoming.discipline,
+    label: buildTargetObjective({ category: upcoming.distance_category, distanceLabel: upcoming.distance_label, fallback: upcoming.objective || upcoming.discipline }),
     remaining,
   };
-}
-
-function objectiveMetricKey(objective?: string | null) {
-  if (!objective) return "LT1";
-  const normalized = objective.toLowerCase();
-  if (normalized.includes("lt2")) return "LT2";
-  if (normalized.includes("vo2")) return "VO2max";
-  if (normalized.includes("peak")) return "peak_power";
-  if (normalized.includes("base") || normalized.includes("recuper") || normalized.includes("readapt") || normalized.includes("estabilidad")) {
-    return "LT1";
-  }
-  return "LT1";
-}
-
-function metricLabel(metricKey: string) {
-  if (metricKey === "LT2") return "LT2";
-  if (metricKey === "VO2max") return "VO2max";
-  if (metricKey === "peak_power") return "Peak";
-  return "LT1";
 }
 
 function formatConfidence(value?: number | null) {
@@ -153,28 +134,17 @@ function formatConfidence(value?: number | null) {
 }
 
 function formatPace(value: number) {
-  const minutes = Math.floor(value / 60);
-  const seconds = Math.round(value % 60);
+  const rounded = Math.round(value);
+  const minutes = Math.floor(rounded / 60);
+  const seconds = rounded % 60;
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}/km`;
 }
 
-function formatMetricValue(point?: HistoricalPoint | null, discipline?: string) {
-  if (!point || typeof point.value !== "number") return "n/d";
-  if (discipline === "ciclismo") {
-    return `${Math.round(point.value)} ${point.unit}`;
-  }
-  if ((discipline === "running" || discipline === "triatlón") && point.unit === "s/km") {
-    const minutes = Math.floor(point.value / 60);
-    const seconds = Math.round(point.value % 60);
-    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}/km`;
-  }
-  return `${Math.round(point.value * 10) / 10} ${point.unit}`;
-}
-
-function latestPoint(points?: HistoricalPoint[]) {
-  if (!points?.length) return null;
-  const sorted = [...points].sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  return sorted[sorted.length - 1] ?? null;
+function formatClock(value: number) {
+  const rounded = Math.round(value);
+  const minutes = Math.floor(rounded / 60);
+  const seconds = rounded % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function latestSession(sessions?: SessionSummary[]) {
@@ -206,29 +176,6 @@ function recencyTone(diff: number | null, staleAfter: number, dangerAfter: numbe
   if (diff <= staleAfter) return "positive";
   if (diff <= dangerAfter) return "warning";
   return "negative";
-}
-
-function seriesDelta(points?: HistoricalPoint[]) {
-  if (!points || points.length < 2) return null;
-  const sorted = [...points].sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  const first = sorted[0];
-  const last = sorted[sorted.length - 1];
-  if (typeof first.value !== "number" || typeof last.value !== "number") return null;
-  return last.value - first.value;
-}
-
-function normalizeSeries(points?: HistoricalPoint[]) {
-  if (!points?.length) return [];
-  return [...points]
-    .filter((point) => typeof point.value === "number")
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
-    .map((point, index) => ({
-      index,
-      date: point.date,
-      value: point.value as number,
-      label: point.label,
-      unit: point.unit,
-    }));
 }
 
 function averageConfidence(analysis?: AthleteAnalysis) {
@@ -371,7 +318,6 @@ function templateSummary(rows: DashboardRow[], templateId: HomeTemplateId): Dash
       { label: "LT2 visible", value: `${rows.length - missingLt2}/${rows.length}`, detail: "Atletas con referencia LT2 usable en preview.", tone: missingLt2 ? "warning" : "positive" },
       { label: "Alta confianza", value: String(highConfidence), detail: "Promedio de confianza >= 70%.", tone: highConfidence ? "positive" : "neutral" },
       { label: "Snapshot reciente", value: String(rows.length - staleSnapshots), detail: "Referencias de 35 dias o menos.", tone: staleSnapshots ? "warning" : "positive" },
-      { label: "Strava activo", value: String(stravaConnected), detail: "Útil para contrastar umbral con realidad de entrenamiento.", tone: stravaConnected ? "positive" : "warning" },
     ];
   }
   if (templateId === "monitoring") {
@@ -393,8 +339,7 @@ function templateSummary(rows: DashboardRow[], templateId: HomeTemplateId): Dash
 
   return [
     { label: "Atletas", value: String(rows.length), detail: "Equipo visible en el inicio.", tone: "neutral" },
-    { label: "Strava activo", value: String(stravaConnected), detail: "Con actividad real vinculada.", tone: stravaConnected ? "positive" : "warning" },
-    { label: "Foco activo", value: String(activeFocus), detail: "Bloques que ya tienen contexto de trabajo.", tone: activeFocus ? "positive" : "neutral" },
+    { label: "Snapshot reciente", value: String(rows.length - staleSnapshots), detail: "Referencias fisiológicas utilizables.", tone: staleSnapshots ? "warning" : "positive" },
     { label: "Objetivo <= 14d", value: String(nearTargets), detail: "Atletas que requieren seguimiento más cercano.", tone: nearTargets ? "warning" : "neutral" },
   ];
 }
@@ -408,27 +353,366 @@ function EyeIcon() {
   );
 }
 
-function AthleteSparkline({
-  points,
-  color,
-}: {
-  points: Array<{ index: number; date: string; value: number; label: string; unit: string }>;
-  color: string;
-}) {
-  if (!points.length) {
-    return <div className="lab-sparkline-empty">Sin histórico suficiente</div>;
+type GoalScenarioPoint = {
+  label: "LT1" | "LT2";
+  lactate: number;
+  value: number;
+};
+
+type GoalScenarioPreview = {
+  targetLabel: string;
+  currentLabel: string;
+  targetValueLabel: string;
+  deltaLabel: string;
+  tone: DashboardTone;
+  reversed: boolean;
+  actual: GoalScenarioPoint[];
+  objective: GoalScenarioPoint[];
+};
+
+function parseRunningPaceLabel(label?: string | null) {
+  if (!label) return null;
+  const match = label.trim().match(/(\d{1,2}):(\d{2})(?:\s*\/?\s*(?:km|k))?$/i);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function parseSwimPaceLabel(label?: string | null) {
+  if (!label) return null;
+  const match = label.trim().match(/(\d{1,2}):(\d{2})(?:\s*\/?\s*(?:100m|100))?$/i);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function parseDistanceKm(label?: string | null) {
+  if (!label) return null;
+  const normalized = label.toLowerCase();
+  if (normalized.includes("hm") || normalized.includes("media")) return 21.0975;
+  if (normalized.includes("marat")) return 42.195;
+  const kilometerMatch = normalized.match(/(\d+(?:[.,]\d+)?)\s*k/);
+  if (kilometerMatch) {
+    return Number(kilometerMatch[1].replace(",", "."));
+  }
+  const kmTextMatch = normalized.match(/(\d+(?:[.,]\d+)?)\s*km/);
+  if (kmTextMatch) {
+    return Number(kmTextMatch[1].replace(",", "."));
+  }
+  return null;
+}
+
+function parseSubTargetSeconds(objective?: string | null, context?: { distanceKm?: number | null; discipline?: string }) {
+  if (!objective) return null;
+  const normalized = objective.toLowerCase().replace(",", ".");
+  const threePart = normalized.match(/sub\s*(\d{1,2})[:h](\d{2})[:m](\d{2})/i) || normalized.match(/sub\s*(\d{1,2}):(\d{2}):(\d{2})/i);
+  if (threePart) {
+    return Number(threePart[1]) * 3600 + Number(threePart[2]) * 60 + Number(threePart[3]);
   }
 
+  const twoPart = normalized.match(/sub\s*(\d{1,3})[:h](\d{2})/i) || normalized.match(/sub\s*(\d{1,3}):(\d{2})/i);
+  if (twoPart) {
+    const first = Number(twoPart[1]);
+    const second = Number(twoPart[2]);
+    const shouldTreatAsHours =
+      normalized.includes("h") ||
+      context?.discipline === "triatlón" ||
+      ((context?.distanceKm ?? 0) >= 21 && first <= 5);
+    if (shouldTreatAsHours) {
+      return first * 3600 + second * 60;
+    }
+    return first * 60 + second;
+  }
+
+  const hourOnly = normalized.match(/sub\s*(\d+(?:\.\d+)?)\s*h/);
+  if (hourOnly) {
+    return Math.round(Number(hourOnly[1]) * 3600);
+  }
+
+  const minuteOnly = normalized.match(/sub\s*(\d{1,3})(?!\d)/);
+  if (minuteOnly) {
+    return Number(minuteOnly[1]) * 60;
+  }
+
+  return null;
+}
+
+function extractFtpWatts(objective: string) {
+  const normalized = objective.toLowerCase();
+  const ftpMatch = normalized.match(/ftp\s*(\d{2,4})\s*w?/i);
+  if (ftpMatch) return Number(ftpMatch[1]);
+  return null;
+}
+
+function targetPriorityRank(priority?: string | null) {
+  const normalized = (priority ?? "").toLowerCase();
+  if (normalized.startsWith("a") || normalized.includes("alta")) return 0;
+  if (normalized.startsWith("b") || normalized.includes("baja")) return 2;
+  return 1;
+}
+
+function selectRelevantTarget(targets: AthleteTarget[], activeDiscipline: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  const primaryPool = targets.filter((target) => target.discipline === activeDiscipline);
+  const fallbackPool = activeDiscipline !== "triatlón" ? targets.filter((target) => target.discipline === "triatlón") : [];
+  const pool = primaryPool.length ? primaryPool : fallbackPool;
   return (
-    <ResponsiveContainer width="100%" height={92}>
-      <LineChart data={points} margin={{ top: 12, right: 6, left: 0, bottom: 0 }}>
-        <Tooltip
-          formatter={(value: number, _name, payload) => [`${Math.round(value * 10) / 10} ${payload?.payload?.unit ?? ""}`, payload?.payload?.label ?? ""]}
-          labelFormatter={(label) => `Muestra ${Number(label) + 1}`}
-        />
-        <Line type="monotone" dataKey="value" stroke={color} strokeWidth={3} dot={false} />
-      </LineChart>
-    </ResponsiveContainer>
+    pool
+      .slice()
+      .sort((a, b) => {
+        const aFuture = a.target_date >= today ? 0 : 1;
+        const bFuture = b.target_date >= today ? 0 : 1;
+        if (aFuture !== bFuture) return aFuture - bFuture;
+        const priorityDiff = targetPriorityRank(a.priority_level) - targetPriorityRank(b.priority_level);
+        if (priorityDiff !== 0) return priorityDiff;
+        return a.target_date.localeCompare(b.target_date);
+      })[0] ?? null
+  );
+}
+
+function formatSwimPacePer100m(value: number) {
+  const rounded = Math.round(value);
+  const minutes = Math.floor(rounded / 60);
+  const seconds = rounded % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}/100m`;
+}
+
+function formatScenarioValue(value: number, discipline: string, athleteWeight?: number | null) {
+  if (discipline === "ciclismo") {
+    const watts = Math.round(value);
+    const perKg = athleteWeight ? ` · ${(value / athleteWeight).toFixed(2)} W/kg` : "";
+    return `${watts} W${perKg}`;
+  }
+  if (discipline === "natación") {
+    return formatSwimPacePer100m(value);
+  }
+  return formatPace(value);
+}
+
+function formatScenarioGap(current?: number | null, target?: number | null, discipline?: string) {
+  if (current == null || target == null) return "Sin referencia objetivo";
+  if (discipline === "ciclismo") {
+    const delta = Math.round(target - current);
+    if (delta <= 0) return "Ya entra en el objetivo";
+    return `Faltan ${delta} W`;
+  }
+  const delta = Math.round(current - target);
+  if (delta <= 0) return "Ya entra en el objetivo";
+  return `Faltan ${discipline === "natación" ? formatSwimPacePer100m(delta).replace("/100m", "/100") : formatClock(delta)}/${
+    discipline === "natación" ? "100" : "km"
+  }`;
+}
+
+function runningTargetLt2Factor(target: AthleteTarget) {
+  const category = target.distance_category ?? "";
+  if (category === "5k" || category === "sprint_tri") return 1.03;
+  if (category === "10k" || category === "olympic_tri") return 1;
+  if (category === "hm" || category === "half_tri") return 0.94;
+  if (category === "marathon" || category === "ironman") return 0.89;
+  return 0.96;
+}
+
+function runningTargetLt1Multiplier(target: AthleteTarget) {
+  const category = target.distance_category ?? "";
+  if (category === "marathon" || category === "ironman") return 1.15;
+  if (category === "hm" || category === "half_tri") return 1.11;
+  return 1.08;
+}
+
+function cyclingEnduranceFactor(target: AthleteTarget) {
+  const category = target.distance_category ?? "";
+  if (category === "ironman" || category === "ironman_bike") return 0.72;
+  if (category === "half_tri" || category === "half_bike") return 0.82;
+  if (category === "granfondo") return 0.8;
+  return 0.86;
+}
+
+function buildGoalScenarioPreview(
+  athlete: Athlete,
+  discipline: string,
+  view?: DisciplineView | AthleteAnalysis | null,
+): GoalScenarioPreview | null {
+  const lt1 = resolveTrainingThreshold(view, "LT1");
+  const lt2 = resolveTrainingThreshold(view, "LT2");
+  if (!lt1 && !lt2) return null;
+
+  const actual: GoalScenarioPoint[] = [];
+  if (discipline === "ciclismo") {
+    if (typeof lt1?.powerWatts === "number") actual.push({ label: "LT1", lactate: lt1.lactate ?? 2, value: lt1.powerWatts });
+    if (typeof lt2?.powerWatts === "number") actual.push({ label: "LT2", lactate: lt2.lactate ?? 4, value: lt2.powerWatts });
+  } else if (discipline === "natación") {
+    if (typeof lt1?.paceSecondsPerKm === "number") actual.push({ label: "LT1", lactate: lt1.lactate ?? 2, value: lt1.paceSecondsPerKm / 10 });
+    if (typeof lt2?.paceSecondsPerKm === "number") actual.push({ label: "LT2", lactate: lt2.lactate ?? 4, value: lt2.paceSecondsPerKm / 10 });
+  } else {
+    if (typeof lt1?.paceSecondsPerKm === "number") actual.push({ label: "LT1", lactate: lt1.lactate ?? 2, value: lt1.paceSecondsPerKm });
+    if (typeof lt2?.paceSecondsPerKm === "number") actual.push({ label: "LT2", lactate: lt2.lactate ?? 4, value: lt2.paceSecondsPerKm });
+  }
+  if (!actual.length) return null;
+
+  const target = selectRelevantTarget(athlete.targets ?? [], discipline);
+  if (!target) {
+    return {
+      targetLabel: "Sin objetivo con línea fisiológica",
+      currentLabel: actual.find((point) => point.label === "LT2") ? formatScenarioValue(actual.find((point) => point.label === "LT2")!.value, discipline, athlete.weight) : "n/d",
+      targetValueLabel: "Añade target",
+      deltaLabel: "Sin referencia objetivo",
+      tone: "neutral",
+      reversed: discipline !== "ciclismo",
+      actual,
+      objective: [],
+    };
+  }
+
+  const objective: GoalScenarioPoint[] = [];
+  if (discipline === "ciclismo") {
+    const targetLabel = buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective });
+    const targetPower = target.discipline === "triatlón" ? target.target_cycling_power_watts ?? extractFtpWatts(targetLabel) : target.target_power_watts ?? extractFtpWatts(targetLabel);
+    const targetLt2 = targetPower ? targetPower / 0.94 : null;
+    const targetLt1 = targetPower ? targetPower * cyclingEnduranceFactor(target) : null;
+    if (typeof targetLt1 === "number") objective.push({ label: "LT1", lactate: 2, value: targetLt1 });
+    if (typeof targetLt2 === "number") objective.push({ label: "LT2", lactate: 4, value: targetLt2 });
+  } else if (discipline === "natación") {
+    const targetPace = target.discipline === "triatlón" ? parseSwimPaceLabel(target.target_swim_pace_label) : parseSwimPaceLabel(target.target_pace_label);
+    if (typeof targetPace === "number") {
+      objective.push({ label: "LT1", lactate: 2, value: targetPace * 1.08 });
+      objective.push({ label: "LT2", lactate: 4, value: targetPace });
+    }
+  } else {
+    const targetLabel = buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective });
+    const distanceKm = parseDistanceKm(target.distance_label || targetLabel);
+    const explicitTargetPace =
+      target.discipline === "triatlón"
+        ? parseRunningPaceLabel(target.target_running_pace_label)
+        : parseRunningPaceLabel(target.target_pace_label);
+    const derivedTargetSeconds =
+      explicitTargetPace || !distanceKm
+        ? null
+        : parseSubTargetSeconds(target.objective || targetLabel, { distanceKm, discipline: target.discipline });
+    const targetPace = explicitTargetPace ?? (derivedTargetSeconds && distanceKm ? derivedTargetSeconds / distanceKm : null);
+    if (typeof targetPace === "number") {
+      const targetLt2 = targetPace * runningTargetLt2Factor(target);
+      objective.push({ label: "LT1", lactate: 2, value: targetLt2 * runningTargetLt1Multiplier(target) });
+      objective.push({ label: "LT2", lactate: 4, value: targetLt2 });
+    }
+  }
+
+  const currentLt2 = actual.find((point) => point.label === "LT2")?.value ?? actual[actual.length - 1]?.value ?? null;
+  const objectiveLt2 = objective.find((point) => point.label === "LT2")?.value ?? null;
+  const tone =
+    currentLt2 == null || objectiveLt2 == null
+      ? "neutral"
+      : discipline === "ciclismo"
+        ? currentLt2 >= objectiveLt2
+          ? "positive"
+          : objectiveLt2 - currentLt2 <= 15
+            ? "warning"
+            : "negative"
+        : currentLt2 <= objectiveLt2
+          ? "positive"
+          : currentLt2 - objectiveLt2 <= (discipline === "natación" ? 3 : 8)
+            ? "warning"
+            : "negative";
+
+  return {
+    targetLabel: buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective }),
+    currentLabel: currentLt2 != null ? formatScenarioValue(currentLt2, discipline, athlete.weight) : "n/d",
+    targetValueLabel: objectiveLt2 != null ? formatScenarioValue(objectiveLt2, discipline, athlete.weight) : "Sin línea objetivo",
+    deltaLabel: formatScenarioGap(currentLt2, objectiveLt2, discipline),
+    tone,
+    reversed: discipline !== "ciclismo",
+    actual,
+    objective,
+  };
+}
+
+function scenarioPointX(value: number, minValue: number, maxValue: number, reversed: boolean) {
+  if (maxValue <= minValue) return 120;
+  const ratio = (value - minValue) / (maxValue - minValue);
+  const usableRatio = reversed ? 1 - ratio : ratio;
+  return 24 + usableRatio * 212;
+}
+
+function scenarioPointY(lactate: number) {
+  const minLactate = 1.5;
+  const maxLactate = 4.5;
+  const ratio = (lactate - minLactate) / (maxLactate - minLactate);
+  return 94 - ratio * 58;
+}
+
+function scenarioPolyline(points: GoalScenarioPoint[], minValue: number, maxValue: number, reversed: boolean) {
+  return points
+    .map((point) => `${scenarioPointX(point.value, minValue, maxValue, reversed)},${scenarioPointY(point.lactate)}`)
+    .join(" ");
+}
+
+function GoalScenarioChart({
+  preview,
+}: {
+  preview: GoalScenarioPreview;
+}) {
+  const allValues = [...preview.actual, ...preview.objective].map((point) => point.value);
+  if (!allValues.length) {
+    return <div className="lab-sparkline-empty">Sin línea fisiológica suficiente</div>;
+  }
+
+  const minValue = Math.min(...allValues);
+  const maxValue = Math.max(...allValues);
+
+  return (
+    <div className={`lab-goal-scenario ${preview.objective.length ? "has-target" : "no-target"} ${preview.tone}`}>
+      <div className="lab-goal-scenario-meta">
+        <span>{preview.targetLabel}</span>
+        <strong>{preview.objective.length ? preview.deltaLabel : "Falta objetivo específico"}</strong>
+      </div>
+      <svg viewBox="0 0 260 110" className="lab-goal-scenario-chart" aria-hidden="true">
+        <line x1="22" y1="94" x2="238" y2="94" className="lab-goal-axis" />
+        <line x1="22" y1="36" x2="238" y2="36" className="lab-goal-axis subtle" />
+        <text x="8" y="97" className="lab-goal-axis-label">2.0</text>
+        <text x="8" y="39" className="lab-goal-axis-label">4.0</text>
+        {preview.objective.length >= 2 ? (
+          <polyline points={scenarioPolyline(preview.objective, minValue, maxValue, preview.reversed)} className="lab-goal-line objective" />
+        ) : null}
+        {preview.actual.length >= 2 ? (
+          <polyline points={scenarioPolyline(preview.actual, minValue, maxValue, preview.reversed)} className="lab-goal-line actual" />
+        ) : null}
+        {preview.objective.map((point) => (
+          <g key={`objective-${point.label}`}>
+            <circle
+              cx={scenarioPointX(point.value, minValue, maxValue, preview.reversed)}
+              cy={scenarioPointY(point.lactate)}
+              r="4"
+              className="lab-goal-dot objective"
+            />
+          </g>
+        ))}
+        {preview.actual.map((point) => (
+          <g key={`actual-${point.label}`}>
+            <circle
+              cx={scenarioPointX(point.value, minValue, maxValue, preview.reversed)}
+              cy={scenarioPointY(point.lactate)}
+              r="4.5"
+              className="lab-goal-dot actual"
+            />
+            <text
+              x={scenarioPointX(point.value, minValue, maxValue, preview.reversed)}
+              y={scenarioPointY(point.lactate) - 8}
+              textAnchor="middle"
+              className="lab-goal-point-label"
+            >
+              {point.label}
+            </text>
+          </g>
+        ))}
+      </svg>
+      <div className="lab-goal-scenario-footer">
+        <div>
+          <small>Actual LT2</small>
+          <strong>{preview.currentLabel}</strong>
+        </div>
+        <div>
+          <small>Objetivo LT2</small>
+          <strong>{preview.targetValueLabel}</strong>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -580,36 +864,23 @@ function AttentionSnapshot({ items }: { items: DashboardAttentionItem[] }) {
 }
 
 function DisciplineMiniTrend({
+  athlete,
   discipline,
-  analysis,
-  blockObjective,
+  view,
 }: {
+  athlete: Athlete;
   discipline: string;
-  analysis?: AthleteAnalysis;
-  blockObjective?: string | null;
+  view?: DisciplineView | AthleteAnalysis | null;
 }) {
-  const view = analysis?.discipline_views?.[discipline];
-  const metricKey = objectiveMetricKey(blockObjective);
-  const rawPoints = metricKey === "VO2max" ? view?.historical_evolution?.VO2max ?? [] : view?.historical_evolution?.[metricKey] ?? [];
-  const points = normalizeSeries(rawPoints);
-  const latest = latestPoint(rawPoints);
-  const delta = seriesDelta(rawPoints);
-  const toneClass = delta == null ? "neutral" : delta >= 0 ? "positive" : "negative";
-  const color = toneClass === "positive" ? "#257a4d" : toneClass === "negative" ? "#8d2e0f" : "#6d7a7f";
+  const preview = buildGoalScenarioPreview(athlete, discipline, view);
 
   return (
     <div className="lab-discipline-trend">
       <div className="lab-discipline-head">
         <strong>{disciplineLabel(discipline)}</strong>
-        <span>{metricLabel(metricKey)}</span>
+        <span>Línea de lactato</span>
       </div>
-      <AthleteSparkline points={points} color={color} />
-      <div className="lab-discipline-foot">
-        <span>{formatMetricValue(latest, discipline)}</span>
-        <span className={`lab-delta ${toneClass}`}>
-          {delta == null ? "Sin delta" : `${delta > 0 ? "+" : ""}${Math.round(delta * 10) / 10}`}
-        </span>
-      </div>
+      {preview ? <GoalScenarioChart preview={preview} /> : <div className="lab-sparkline-empty">Sin línea fisiológica suficiente</div>}
     </div>
   );
 }
@@ -735,8 +1006,7 @@ export function DashboardPage({ athletes, token, viewerId }: DashboardPageProps)
         <div className="card-header lab-home-header lab-dashboard-hero">
           <div className="lab-dashboard-head-copy">
             <span className="eyebrow">Inicio</span>
-            <h2>Vista previa del equipo</h2>
-            <p>{selectedTemplate.description}</p>
+            <h2>Vista previa</h2>
           </div>
           <div className="lab-template-picker" ref={templateMenuRef}>
             <button type="button" className="lab-template-trigger" onClick={() => setIsTemplateMenuOpen((current) => !current)}>
@@ -776,8 +1046,6 @@ export function DashboardPage({ athletes, token, viewerId }: DashboardPageProps)
           ))}
         </div>
 
-        <div className="lab-home-note lab-dashboard-note">{selectedTemplate.insight}</div>
-
         <div className="lab-athlete-list">
           {rows.map(({ athlete, analysis, disciplines, activeBlocks, nextTarget, latestSession, latestSnapshotDate, averageConfidence, activeEvaluation, featuredComment, attentionItems }) => (
             <article key={athlete.id} className="lab-athlete-row lab-dashboard-row">
@@ -798,9 +1066,6 @@ export function DashboardPage({ athletes, token, viewerId }: DashboardPageProps)
                   )}
                 </div>
                 <div className="lab-athlete-status-strip">
-                  <span className={`lab-inline-pill ${athlete.strava_connected ? "positive" : "warning"}`}>
-                    Strava {athlete.strava_connected ? "activo" : "pendiente"}
-                  </span>
                   <span className={`lab-inline-pill ${recencyTone(daysFromToday(latestSession?.performed_at), 7, 21)}`}>
                     Sesión {recencyLabel(latestSession?.performed_at)}
                   </span>
@@ -826,15 +1091,12 @@ export function DashboardPage({ athletes, token, viewerId }: DashboardPageProps)
               {selectedTemplateId === "coach" ? (
                 <div className={`lab-athlete-trends ${disciplines.length > 1 ? "triathlon" : ""}`}>
                   {disciplines.map((discipline) => {
-                    const matchingBlock =
-                      activeBlocks.find((block) => (block.priority_discipline || athlete.primary_discipline) === discipline) ??
-                      activeBlocks[0];
                     return (
                       <DisciplineMiniTrend
                         key={`${athlete.id}-${discipline}`}
+                        athlete={athlete}
                         discipline={discipline}
-                        analysis={analysis}
-                        blockObjective={matchingBlock?.block_objective}
+                        view={analysis?.discipline_views?.[discipline] ?? analysis}
                       />
                     );
                   })}

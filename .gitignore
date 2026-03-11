@@ -1,2 +1,22 @@
+.DS_Store
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Local virtualenvs
+.venv/
+backend/.venv/
+
+# Local databases and generated backend artifacts
+backend/*.db
+backend/data/*.db
 backend/backups/*.json
 !backend/backups/.gitkeep
+
+# Frontend build output
+frontend/dist/
+frontend/node_modules/

@@ -522,7 +522,12 @@ _REAL_MIN_AGREEMENT = 0.62
 _REAL_MIN_PROTOCOL_SCORE = 0.68
 _REAL_MIN_SIGNAL_SCORE = 0.70
 _INDIVIDUAL_MAX_SAMPLE_DELAY_SECONDS = 60
-_INDIVIDUAL_MIN_SUPPORT_SESSIONS = 2
+_INDIVIDUAL_MIN_SUPPORT_SESSIONS = 6
+_INDIVIDUAL_MIN_PROGRESSION_ALIGNMENT = 0.75
+_INDIVIDUAL_PROGRESS_TOLERANCE_RATIO = 0.01
+_INDIVIDUAL_MIN_AGREEMENT = 0.62
+_INDIVIDUAL_MIN_CONFIDENCE = 0.78
+_INDIVIDUAL_RULESET_VERSION = 2
 
 
 def _interpolate_load_from_candidates(
@@ -706,11 +711,52 @@ def _detect_real_thresholds(session: AthleteSession) -> dict[str, Any]:
     return result
 
 
+def _individual_progression_alignment(supports: list[dict[str, Any]]) -> Optional[float]:
+    ordered_supports = sorted(supports, key=lambda entry: entry["session_date"])
+    values: list[float] = []
+    for item in ordered_supports:
+        threshold = item["threshold"]
+        power = threshold.get("power_watts")
+        pace = threshold.get("pace_seconds_per_km")
+        if power is not None:
+            values.append(float(power))
+            continue
+        if pace is not None and pace > 0:
+            values.append(3600 / float(pace))
+    if len(values) < 2:
+        return None
+
+    reference_value = max(abs(median(values)), 1.0)
+    tolerance = max(0.05, reference_value * _INDIVIDUAL_PROGRESS_TOLERANCE_RATIO)
+    directions: list[int] = []
+    for index in range(1, len(values)):
+        delta = values[index] - values[index - 1]
+        if abs(delta) <= tolerance:
+            directions.append(0)
+        elif delta > 0:
+            directions.append(1)
+        else:
+            directions.append(-1)
+
+    if not directions:
+        return None
+
+    positive = directions.count(1)
+    negative = directions.count(-1)
+    flat = directions.count(0)
+    dominant = max(positive, negative)
+    return round((dominant + flat) / len(directions), 2)
+
+
 def _aggregate_individual_threshold(
     name: str,
     supports: list[dict[str, Any]],
 ) -> Optional[dict[str, Any]]:
     if len(supports) < _INDIVIDUAL_MIN_SUPPORT_SESSIONS:
+        return None
+
+    progression_alignment = _individual_progression_alignment(supports)
+    if progression_alignment is None or progression_alignment < _INDIVIDUAL_MIN_PROGRESSION_ALIGNMENT:
         return None
 
     lactates = [item["threshold"]["lactate"] for item in supports if item["threshold"].get("lactate") is not None]
@@ -747,6 +793,8 @@ def _aggregate_individual_threshold(
         ),
         2,
     )
+    if agreement_score < _INDIVIDUAL_MIN_AGREEMENT or confidence < _INDIVIDUAL_MIN_CONFIDENCE:
+        return None
     evidence_level = "high" if confidence >= 0.82 and len(supports) >= 3 else "medium" if confidence >= 0.68 else "low"
     supporting_sessions = [
         {
@@ -771,11 +819,14 @@ def _aggregate_individual_threshold(
         "evidence_level": evidence_level,
         "rationale": (
             f"{display_name} agregado desde {len(supports)} sesiones comparables con gates de protocolo, "
-            f"señal de curva y acuerdo entre métodos. Protocol score mediano {protocol_score:.2f}; signal score mediano {signal_score:.2f}."
+            f"señal de curva, progresión longitudinal alineada y acuerdo entre métodos. "
+            f"Protocol score mediano {protocol_score:.2f}; signal score mediano {signal_score:.2f}; "
+            f"progression alignment {progression_alignment:.2f}."
         ),
         "supporting_sessions": supporting_sessions,
         "protocol_score": protocol_score,
         "signal_score": signal_score,
+        "progression_alignment": progression_alignment,
     }
 
 
@@ -821,17 +872,32 @@ def _build_individual_thresholds(
                 }
             )
 
+    lt1_progression_alignment = _individual_progression_alignment(supports_lt1)
+    lt2_progression_alignment = _individual_progression_alignment(supports_lt2)
     lt1_individual = _aggregate_individual_threshold("LT1", supports_lt1)
     lt2_individual = _aggregate_individual_threshold("LT2", supports_lt2)
     support_session_count = len({item["session_id"] for item in supports_lt1 + supports_lt2})
     sufficient = bool(lt1_individual or lt2_individual)
+    progression_candidates = [value for value in (lt1_progression_alignment, lt2_progression_alignment) if value is not None]
+    progression_alignment = round(min(progression_candidates), 2) if progression_candidates else None
     if sufficient:
         reason = "Pool suficiente para consolidar umbrales individuales longitudinales."
     elif relevant_sessions:
-        reason = (
-            f"Solo {support_session_count} sesiones con señal suficiente para consolidar umbrales individuales "
-            f"(mínimo {_INDIVIDUAL_MIN_SUPPORT_SESSIONS})."
-        )
+        if support_session_count < _INDIVIDUAL_MIN_SUPPORT_SESSIONS:
+            reason = (
+                f"Solo {support_session_count} sesiones con señal suficiente para consolidar umbrales individuales "
+                f"(mínimo {_INDIVIDUAL_MIN_SUPPORT_SESSIONS} sesiones alineadas)."
+            )
+        elif progression_alignment is not None and progression_alignment < _INDIVIDUAL_MIN_PROGRESSION_ALIGNMENT:
+            reason = (
+                "La progresión longitudinal todavía no está suficientemente alineada para publicar LT Individual "
+                f"(alignment {progression_alignment:.0%}, mínimo {_INDIVIDUAL_MIN_PROGRESSION_ALIGNMENT:.0%})."
+            )
+        else:
+            reason = (
+                "Hay sesiones comparables, pero no se ha alcanzado un consenso longitudinal suficientemente robusto "
+                "para publicar LT Individual."
+            )
     else:
         reason = "No hay sesiones comparables para construir umbrales individuales."
 
@@ -842,6 +908,9 @@ def _build_individual_thresholds(
             "session_count": support_session_count,
             "protocol_score": round(median(protocol_scores), 2) if protocol_scores else 0.0,
             "signal_score": round(median(signal_scores), 2) if signal_scores else 0.0,
+            "progression_alignment": progression_alignment,
+            "min_support_sessions": _INDIVIDUAL_MIN_SUPPORT_SESSIONS,
+            "criteria_version": _INDIVIDUAL_RULESET_VERSION,
             "sufficient": sufficient,
             "reason": reason,
         },
@@ -1496,7 +1565,7 @@ def _discipline_view(
         for snapshot in reversed(sorted_snapshots):
             snap_payload = snapshot.payload or {}
             individual = snap_payload.get("individual_thresholds")
-            if individual and (individual.get("lt1_individual") or individual.get("lt2_individual")) and individual_thresholds is None:
+            if individual and individual_thresholds is None:
                 individual_thresholds = individual
             rt = snap_payload.get("real_thresholds")
             if rt and (rt.get("lt1_real") or rt.get("lt2_real")):
@@ -1619,7 +1688,15 @@ def _needs_recalculation(athlete: Athlete, snapshots: list[PhysiologicalSnapshot
     if not session_keys.issubset(snapshot_keys):
         return True
 
-    return any("dynamic_thresholds" not in (snapshot.payload or {}) for snapshot in snapshots)
+    for snapshot in snapshots:
+        payload = snapshot.payload or {}
+        if "dynamic_thresholds" not in payload:
+            return True
+        individual_quality = (payload.get("individual_thresholds") or {}).get("data_quality") or {}
+        if individual_quality.get("criteria_version") != _INDIVIDUAL_RULESET_VERSION:
+            return True
+
+    return False
 
 
 def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:

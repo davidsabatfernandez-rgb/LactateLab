@@ -35,6 +35,12 @@ DEFAULT_STREAM_KEYS = [
 ]
 
 
+class StravaRequestError(ValueError):
+    def __init__(self, detail: str, status_code: int):
+        super().__init__(detail)
+        self.status_code = status_code
+
+
 @dataclass
 class StravaStartPayload:
     authorize_url: str
@@ -281,6 +287,7 @@ def _normalize_activity(payload: dict[str, Any]) -> dict[str, Any]:
         "streams": {},
         "raw_detail": {},
         "enrichment_error": None,
+        "enrichment_notice": None,
     }
 
 
@@ -288,6 +295,7 @@ def _enrich_activity(access_token: str, activity: dict[str, Any]) -> dict[str, A
     activity_id = activity["provider_activity_id"]
     headers = {"Authorization": f"Bearer {access_token}"}
     enriched = dict(activity)
+    notices: list[str] = []
 
     try:
         detail = _request_json(
@@ -298,16 +306,27 @@ def _enrich_activity(access_token: str, activity: dict[str, Any]) -> dict[str, A
         enriched.update(_normalize_activity(detail))
         enriched["raw_detail"] = detail
         enriched["laps"] = [_normalize_lap(item, index) for index, item in enumerate(_request_json(STRAVA_ACTIVITY_LAPS_URL.format(activity_id=activity_id), headers=headers), start=1)]
-        enriched["zones"] = [_normalize_zone(item) for item in _request_optional_list(STRAVA_ACTIVITY_ZONES_URL.format(activity_id=activity_id), headers=headers)]
-        enriched["streams"] = _normalize_streams(
-            _request_optional_json(
-                STRAVA_ACTIVITY_STREAMS_URL.format(activity_id=activity_id),
-                headers=headers,
-                params={"keys": ",".join(DEFAULT_STREAM_KEYS), "key_by_type": "true"},
-            )
+        zones_payload, zones_notice = _request_optional_list(
+            STRAVA_ACTIVITY_ZONES_URL.format(activity_id=activity_id),
+            headers=headers,
+            resource_label="las zonas",
         )
+        streams_payload, streams_notice = _request_optional_json(
+            STRAVA_ACTIVITY_STREAMS_URL.format(activity_id=activity_id),
+            headers=headers,
+            params={"keys": ",".join(DEFAULT_STREAM_KEYS), "key_by_type": "true"},
+            resource_label="los streams",
+        )
+        enriched["zones"] = [_normalize_zone(item) for item in zones_payload]
+        enriched["streams"] = _normalize_streams(streams_payload)
+        if zones_notice:
+            notices.append(zones_notice)
+        if streams_notice:
+            notices.append(streams_notice)
     except ValueError as exc:
         enriched["enrichment_error"] = str(exc)
+    else:
+        enriched["enrichment_notice"] = " ".join(notices) if notices else None
 
     return enriched
 
@@ -421,31 +440,57 @@ def _normalize_effort(payload: dict[str, Any]) -> dict[str, Any]:
 def _request_json(url: str, headers: dict[str, str], params: dict[str, str] | None = None) -> Any:
     response = httpx.get(url, headers=headers, params=params, timeout=20.0)
     if response.status_code >= 400:
-        detail = response.json().get("message", "Strava request failed") if response.headers.get("content-type", "").startswith("application/json") else "Strava request failed"
-        raise ValueError(detail)
+        raise StravaRequestError(_response_error_detail(response, default="Strava request failed"), response.status_code)
     return response.json()
 
 
-def _request_optional_list(url: str, headers: dict[str, str], params: dict[str, str] | None = None) -> list[Any]:
+def _request_optional_list(
+    url: str,
+    headers: dict[str, str],
+    params: dict[str, str] | None = None,
+    resource_label: str = "este recurso",
+) -> tuple[list[Any], str | None]:
     response = httpx.get(url, headers=headers, params=params, timeout=20.0)
     if response.status_code in {401, 403, 404}:
-        return []
+        return [], None
+    if response.status_code == 402:
+        return [], _payment_required_notice(resource_label)
     if response.status_code >= 400:
-        detail = response.json().get("message", "Strava request failed") if response.headers.get("content-type", "").startswith("application/json") else "Strava request failed"
-        raise ValueError(detail)
+        raise StravaRequestError(_response_error_detail(response, default="Strava request failed"), response.status_code)
     payload = response.json()
     if isinstance(payload, list):
-        return payload
+        return payload, None
     if isinstance(payload, dict):
-        return [payload]
-    return []
+        return [payload], None
+    return [], None
 
 
-def _request_optional_json(url: str, headers: dict[str, str], params: dict[str, str] | None = None) -> Any:
+def _request_optional_json(
+    url: str,
+    headers: dict[str, str],
+    params: dict[str, str] | None = None,
+    resource_label: str = "este recurso",
+) -> tuple[Any, str | None]:
     response = httpx.get(url, headers=headers, params=params, timeout=20.0)
     if response.status_code in {401, 403, 404}:
-        return {}
+        return {}, None
+    if response.status_code == 402:
+        return {}, _payment_required_notice(resource_label)
     if response.status_code >= 400:
-        detail = response.json().get("message", "Strava request failed") if response.headers.get("content-type", "").startswith("application/json") else "Strava request failed"
-        raise ValueError(detail)
-    return response.json()
+        raise StravaRequestError(_response_error_detail(response, default="Strava request failed"), response.status_code)
+    return response.json(), None
+
+
+def _response_error_detail(response: httpx.Response, default: str) -> str:
+    if response.status_code == 402:
+        return "Strava ha restringido este recurso para la aplicacion actual."
+    if response.headers.get("content-type", "").startswith("application/json"):
+        try:
+            return response.json().get("message", default)
+        except Exception:
+            return default
+    return default
+
+
+def _payment_required_notice(resource_label: str) -> str:
+    return f"Strava no ha permitido cargar {resource_label} avanzados para esta actividad con la configuracion actual."

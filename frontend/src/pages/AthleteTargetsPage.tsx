@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "../lib/api";
+import { buildTargetObjective, targetCategoryLabel, targetCategoryOptions } from "../lib/targetCatalog";
 import { AthleteAnalysis, AthleteTarget } from "../types";
 
 type AthleteTargetsPageProps = {
@@ -40,6 +41,7 @@ export function AthleteTargetsPage({ analysis, token, onSaved }: AthleteTargetsP
     target_date: new Date().toISOString().slice(0, 10),
     discipline: analysis?.athlete.primary_discipline === "triatlón" ? "triatlón" : analysis?.athlete.primary_discipline ?? "running",
     distance_label: "",
+    distance_category: "",
     priority_level: "media",
     objective: "",
     target_pace_label: "",
@@ -60,11 +62,17 @@ export function AthleteTargetsPage({ analysis, token, onSaved }: AthleteTargetsP
     setError(null);
     setMessage(null);
     try {
+      const objective = buildTargetObjective({
+        category: form.distance_category,
+        distanceLabel: form.distance_label,
+        fallback: disciplineLabel(form.discipline),
+      });
       await api.addAthleteTarget(token, analysis.athlete.id, {
         target_date: form.target_date,
         discipline: form.discipline,
-        objective: form.objective,
-        distance_label: form.distance_label || null,
+        objective,
+        distance_label: form.distance_label || targetCategoryLabel(form.distance_category) || null,
+        distance_category: form.distance_category || null,
         priority_level: form.priority_level || null,
         target_pace_label: form.target_pace_label || null,
         target_power_watts: form.target_power_watts ? Number(form.target_power_watts) : null,
@@ -76,8 +84,8 @@ export function AthleteTargetsPage({ analysis, token, onSaved }: AthleteTargetsP
       setMessage("Objetivo guardado.");
       setForm((current) => ({
         ...current,
-        objective: "",
         distance_label: "",
+        distance_category: "",
         target_pace_label: "",
         target_power_watts: "",
         target_running_pace_label: "",
@@ -147,11 +155,35 @@ export function AthleteTargetsPage({ analysis, token, onSaved }: AthleteTargetsP
             </select>
           </label>
           <label>
-            Distancia
+            Prueba objetivo
+            <small style={{ display: "block", opacity: 0.6, marginBottom: "4px" }}>
+              Campo principal que usa el motor para entender la demanda metabólica.
+            </small>
+            <select
+              value={form.distance_category}
+              onChange={(event) => {
+                const category = event.target.value;
+                setForm((current) => ({
+                  ...current,
+                  distance_category: category,
+                  distance_label: targetCategoryLabel(category, current.distance_label) ?? current.distance_label,
+                }));
+              }}
+            >
+              <option value="">— Selecciona prueba —</option>
+              {targetCategoryOptions(form.discipline).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Etiqueta visible
             <input
               value={form.distance_label}
               onChange={(event) => setForm({ ...form, distance_label: event.target.value })}
-              placeholder={form.discipline === "triatlón" ? "70.3, olímpico, Ironman..." : "5K, 10K, maratón, 1500m..."}
+              placeholder={targetCategoryLabel(form.distance_category, form.discipline) ?? "Nombre visible de la prueba"}
             />
           </label>
           <label>
@@ -162,10 +194,11 @@ export function AthleteTargetsPage({ analysis, token, onSaved }: AthleteTargetsP
               <option value="baja">Baja</option>
             </select>
           </label>
-          <label className="full-width">
-            Objetivo
-            <input value={form.objective} onChange={(event) => setForm({ ...form, objective: event.target.value })} placeholder="Sub 1:15 HM, FTP 320, podio M35..." />
-          </label>
+          <div className="full-width card planning-threshold-card policy">
+            <small>Nombre que guardará el sistema</small>
+            <strong>{buildTargetObjective({ category: form.distance_category, distanceLabel: form.distance_label, fallback: disciplineLabel(form.discipline) })}</strong>
+            <p>El motor usa la categoría de prueba. El texto libre queda como etiqueta visible o nota, no como lógica principal.</p>
+          </div>
           {form.discipline !== "triatlón" ? (
             <>
               <label>
@@ -218,7 +251,7 @@ export function AthleteTargetsPage({ analysis, token, onSaved }: AthleteTargetsP
           {error ? <p className="error full-width">{error}</p> : null}
           {message ? <p className="full-width">{message}</p> : null}
           <div className="button-row full-width">
-            <button className="primary-button" type="button" onClick={handleSave} disabled={submitting || !form.objective}>
+            <button className="primary-button" type="button" onClick={handleSave} disabled={submitting || !form.distance_category}>
               {submitting ? "Guardando..." : "Aceptar y guardar"}
             </button>
           </div>
@@ -236,7 +269,7 @@ export function AthleteTargetsPage({ analysis, token, onSaved }: AthleteTargetsP
           {(analysis.athlete.targets ?? []).map((target) => (
             <article key={target.id} className="list-item">
               <div className="status-head">
-                <strong>{target.objective}</strong>
+                <strong>{buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective })}</strong>
                 <span className="status-badge neutral">{target.target_date}</span>
               </div>
               <p>

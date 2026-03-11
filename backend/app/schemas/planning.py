@@ -220,10 +220,25 @@ class BlockCandidateRead(BaseModel):
 
 
 class ScoringContextRead(BaseModel):
+    assignment_mode: Optional[str] = None
     robustness: str
     evaluation_signal: str
     previous_major: Optional[str] = None
     days_to_target: Optional[int] = None
+
+
+class PhysiologicalAnalysisRead(BaseModel):
+    data_quality: str
+    season_phase: Optional[str] = None
+    primary_limiter: Optional[str] = None
+    lt2_gap_kmh: Optional[float] = None
+    lt1_gap_kmh: Optional[float] = None
+    required_lt2_kmh: Optional[float] = None
+    required_lt1_kmh: Optional[float] = None
+    physiological_block: Optional[str] = None
+    distance_category: Optional[str] = None
+    metric_type: Optional[str] = None
+    overrides_temporal_scoring: bool = False
 
 
 class MesocycleRecommendationRead(BaseModel):
@@ -249,6 +264,7 @@ class MesocycleRecommendationRead(BaseModel):
     next_target: Optional[PlanningTargetSummaryRead] = None
     candidates_scored: list[BlockCandidateRead] = []
     scoring_context: Optional[ScoringContextRead] = None
+    physiological_analysis: Optional[PhysiologicalAnalysisRead] = None
 
 
 class PlanningOverviewRead(BaseModel):

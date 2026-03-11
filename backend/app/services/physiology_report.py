@@ -593,7 +593,7 @@ class _ScientificPdfBuilder:
                 "0.95 0.95 0.96 rg",
                 f"{self.margin_x:.2f} 18.00 {self.width - self.margin_x * 2:.2f} 18.00 re f",
                 "0.45 0.50 0.54 rg",
-                f"BT /F1 8 Tf {self.margin_x:.2f} 24.00 Td (Lactate Lab · Informe fisiológico premium) Tj ET",
+                f"BT /F1 8 Tf {self.margin_x:.2f} 24.00 Td (PeakAerobic · Informe fisiológico premium) Tj ET",
                 f"BT /F1 8 Tf {self.width - self.margin_x - 40:.2f} 24.00 Td (Página {index}) Tj ET",
             ]
 

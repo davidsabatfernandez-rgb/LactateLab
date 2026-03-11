@@ -138,6 +138,7 @@ class IndividualThresholdItemRead(BaseModel):
     supporting_sessions: list[dict[str, Any]] = []
     protocol_score: Optional[float] = None
     signal_score: Optional[float] = None
+    progression_alignment: Optional[float] = None
 
 
 class IndividualThresholdsRead(BaseModel):

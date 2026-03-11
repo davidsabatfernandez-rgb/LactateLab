@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
+from typing import Union
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
@@ -34,6 +35,7 @@ from app.services.book_advisor import build_book_advisor_response
 from app.services.demo_generator import create_chim_demo_athlete, create_demo_athlete
 from app.services.mesocycle_prescription import create_planned_sessions_for_block
 from app.services.physiology_report import build_physiology_report_payload, build_physiology_report_pdf
+from app.services.target_taxonomy import distance_category_label, normalize_distance_category, target_objective_label
 
 router = APIRouter(prefix="/athletes", tags=["athletes"])
 
@@ -49,6 +51,22 @@ def _next_target_for_discipline(athlete: Athlete, discipline: str):
         if target.discipline in {discipline, athlete.primary_discipline, "triatlón"}
     ]
     return sorted(relevant, key=lambda item: item.target_date)[0] if relevant else None
+
+
+def _normalized_target_payload(payload: Union[AthleteTargetCreate, AthleteTargetUpdate]) -> dict:
+    data = payload.model_dump(exclude_unset=True)
+    discipline = data.get("discipline", "running")
+    normalized_category = normalize_distance_category(data.get("distance_category"))
+    if normalized_category:
+        data["distance_category"] = normalized_category
+        data["distance_label"] = data.get("distance_label") or distance_category_label(normalized_category)
+    data["objective"] = target_objective_label(
+        discipline=discipline,
+        distance_category=data.get("distance_category"),
+        distance_label=data.get("distance_label"),
+        objective=data.get("objective"),
+    )
+    return data
 
 
 @router.get("", response_model=list[AthleteRead])
@@ -225,7 +243,7 @@ def add_athlete_target(
     athlete = db.scalar(select(Athlete).where(Athlete.id == athlete_id))
     if athlete is None:
         raise HTTPException(status_code=404, detail="Athlete not found")
-    target = AthleteTarget(athlete_id=athlete_id, **payload.model_dump())
+    target = AthleteTarget(athlete_id=athlete_id, **_normalized_target_payload(payload))
     db.add(target)
     db.commit()
     db.refresh(target)
@@ -243,7 +261,7 @@ def update_athlete_target(
     target = db.scalar(select(AthleteTarget).where(AthleteTarget.id == target_id, AthleteTarget.athlete_id == athlete_id))
     if target is None:
         raise HTTPException(status_code=404, detail="Target not found")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    for field, value in _normalized_target_payload(payload).items():
         setattr(target, field, value)
     db.commit()
     db.refresh(target)

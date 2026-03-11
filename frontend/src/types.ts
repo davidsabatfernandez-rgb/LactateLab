@@ -13,6 +13,7 @@ export type Athlete = {
   strava_connected: boolean;
   garmin_user_id?: number | null;
   garmin_connected: boolean;
+  athlete_level: string;
   created_at: string;
   weights?: Array<{
     id: number;
@@ -155,6 +156,7 @@ export type StravaActivity = {
   >;
   raw_detail: Record<string, unknown>;
   enrichment_error?: string | null;
+  enrichment_notice?: string | null;
 };
 
 export type StravaActivitiesImportResponse = {
@@ -234,6 +236,7 @@ export type AthleteTarget = {
   discipline: string;
   objective: string;
   distance_label?: string | null;
+  distance_category?: string | null;
   priority_level?: string | null;
   target_pace_label?: string | null;
   target_power_watts?: number | null;
@@ -471,6 +474,7 @@ export type IndividualThresholdItem = {
   supporting_sessions?: Array<Record<string, unknown>>;
   protocol_score?: number | null;
   signal_score?: number | null;
+  progression_alignment?: number | null;
 };
 
 export type IndividualThresholds = {
@@ -482,6 +486,9 @@ export type IndividualThresholds = {
     monotonicity?: number;
     protocol_score?: number;
     signal_score?: number;
+    progression_alignment?: number | null;
+    min_support_sessions?: number;
+    criteria_version?: number;
     sufficient: boolean;
     reason: string;
   } | null;
@@ -841,11 +848,25 @@ export type MesocycleRecommendation = {
   next_target?: PlanningTargetSummary | null;
   candidates_scored?: BlockCandidate[];
   scoring_context?: {
+    assignment_mode?: string | null;
     robustness: string;
     evaluation_signal: string;
     previous_major: string | null;
     days_to_target: number | null;
   };
+  physiological_analysis?: {
+    data_quality: string;
+    season_phase?: string | null;
+    primary_limiter?: string | null;
+    lt2_gap_kmh?: number | null;
+    lt1_gap_kmh?: number | null;
+    required_lt2_kmh?: number | null;
+    required_lt1_kmh?: number | null;
+    physiological_block?: string | null;
+    distance_category?: string | null;
+    metric_type?: string | null;
+    overrides_temporal_scoring: boolean;
+  } | null;
 };
 
 export type PlanningOverview = {

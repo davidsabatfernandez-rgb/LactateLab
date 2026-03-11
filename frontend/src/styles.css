@@ -293,19 +293,19 @@ textarea {
 .athlete-roster-overview {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .athlete-roster-stat {
   display: grid;
-  gap: 8px;
-  padding: 16px 18px;
-  border-radius: 24px;
+  gap: 6px;
+  padding: 12px 16px;
+  border-radius: 20px;
 }
 
 .athlete-roster-stat strong {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1;
 }
 
@@ -324,27 +324,27 @@ textarea {
 .athlete-roster-toolbar {
   display: grid;
   grid-template-columns: minmax(260px, 360px) 1fr;
-  gap: 16px;
-  padding: 18px 20px;
+  gap: 12px;
+  padding: 12px 16px;
 }
 
 .athlete-roster-search {
   display: grid;
-  gap: 8px;
+  gap: 4px;
 }
 
 .athlete-roster-search input {
-  padding: 12px 14px;
+  padding: 10px 14px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.88);
 }
 
 .athlete-roster-filters {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  align-items: end;
+  align-items: center;
 }
 
 .athlete-roster-filter-pill {
@@ -352,8 +352,9 @@ textarea {
   background: rgba(255, 255, 255, 0.76);
   color: var(--muted);
   border-radius: 999px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   font-weight: 700;
+  line-height: 1;
   cursor: pointer;
   transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, color 140ms ease;
 }
@@ -2075,7 +2076,7 @@ textarea {
 
 .planning-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   align-items: start;
 }
@@ -2094,7 +2095,7 @@ textarea {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
 }
 
 .planning-athlete-picker {
@@ -2113,6 +2114,7 @@ textarea {
 .planning-athlete-select {
   min-width: 250px;
   padding: 12px 16px;
+  min-height: 52px;
   border-radius: 999px;
   border: 1px solid rgba(16, 34, 42, 0.08);
   background:
@@ -2128,6 +2130,7 @@ textarea {
   align-items: center;
   gap: 8px;
   padding: 6px;
+  min-height: 52px;
   border-radius: 999px;
   background: rgba(22, 53, 61, 0.05);
   border: 1px solid rgba(16, 34, 42, 0.06);
@@ -2142,6 +2145,46 @@ textarea {
   color: var(--accent);
   font-size: 0.82rem;
   font-weight: 700;
+}
+
+.planning-hero-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.planning-targets-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.planning-target-chip {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(16, 34, 42, 0.06);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.planning-target-chip small {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.planning-target-chip strong {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.planning-target-chip span {
+  font-size: 0.84rem;
+  color: var(--muted);
 }
 
 .planning-tag.neutral {
@@ -6629,6 +6672,122 @@ textarea {
   font-size: 0.9rem;
 }
 
+.lab-goal-scenario {
+  display: grid;
+  gap: 10px;
+}
+
+.lab-goal-scenario-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lab-goal-scenario-meta span {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6d7a7f;
+}
+
+.lab-goal-scenario-meta strong {
+  font-size: 0.82rem;
+  color: #18343c;
+}
+
+.lab-goal-scenario-chart {
+  width: 100%;
+  height: 108px;
+  display: block;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.lab-goal-axis {
+  stroke: rgba(22, 53, 61, 0.12);
+  stroke-width: 1;
+}
+
+.lab-goal-axis.subtle {
+  stroke-dasharray: 4 4;
+}
+
+.lab-goal-axis-label {
+  fill: #839096;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.lab-goal-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.lab-goal-line.actual {
+  stroke: #284651;
+}
+
+.lab-goal-line.objective {
+  stroke: #c56637;
+  stroke-dasharray: 6 5;
+}
+
+.lab-goal-dot {
+  stroke-width: 2;
+}
+
+.lab-goal-dot.actual {
+  fill: #ffffff;
+  stroke: #284651;
+}
+
+.lab-goal-dot.objective {
+  fill: #f7dfd2;
+  stroke: #c56637;
+}
+
+.lab-goal-point-label {
+  fill: #284651;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.lab-goal-scenario-footer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.lab-goal-scenario-footer div {
+  display: grid;
+  gap: 2px;
+}
+
+.lab-goal-scenario-footer small {
+  color: #6d7a7f;
+  font-size: 0.76rem;
+}
+
+.lab-goal-scenario-footer strong {
+  color: #18343c;
+  font-size: 0.98rem;
+}
+
+.lab-goal-scenario.positive .lab-goal-scenario-meta strong {
+  color: #257a4d;
+}
+
+.lab-goal-scenario.warning .lab-goal-scenario-meta strong {
+  color: #ad6b2d;
+}
+
+.lab-goal-scenario.negative .lab-goal-scenario-meta strong {
+  color: #8d2e0f;
+}
+
 .lab-template-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -10671,6 +10830,7 @@ h4 {
   padding: 22px 8px 2px;
   margin-bottom: 8px;
   align-items: start;
+  z-index: 4;
 }
 
 .lab-dashboard-head-copy {
@@ -10710,6 +10870,7 @@ h4 {
 .lab-dashboard-summary {
   gap: 12px;
   margin: 2px 0 14px;
+  z-index: 1;
 }
 
 .lab-dashboard-summary-card {
@@ -11153,7 +11314,7 @@ h4 {
 }
 
 .planning-hero {
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
 }
 
@@ -11162,21 +11323,13 @@ h4 {
 }
 
 .planning-hero-main h1 {
-  max-width: 11ch;
-  font-size: clamp(2.35rem, 4vw, 3.4rem);
+  max-width: none;
+  font-size: clamp(2.1rem, 3.2vw, 3rem);
   letter-spacing: -0.065em;
-}
-
-.planning-hero-main p {
-  max-width: 50ch;
-  line-height: 1.65;
+  white-space: nowrap;
 }
 
 .planning-hero-tags {
-  gap: 12px;
-}
-
-.planning-hero-aside {
   gap: 12px;
 }
 

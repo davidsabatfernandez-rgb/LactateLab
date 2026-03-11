@@ -12,6 +12,11 @@ from app.models.planned_session import PlannedSession
 from app.models.session import Session as AthleteSession
 from app.services.analytics import athlete_analysis_payload
 from app.services.mesocycle_library import FOUNDATION_PILLARS, select_mesocycle_template, templates_for_discipline
+from app.services.physiological_engine import (
+    analyse_physiological_gap,
+    build_physiological_context,
+)
+from app.services.target_taxonomy import infer_distance_category
 from app.services.mesocycle_detector import detect_mesocycles, serialize_detected_mesocycles
 from app.services.planning_taxonomy import BLOCK_TAXONOMY
 from app.services.workout_library import (
@@ -112,6 +117,66 @@ def _evaluation_for_block(analysis: dict[str, Any], block_id: Optional[int]) -> 
         if evaluation.get("block_id") == block_id:
             return evaluation
     return None
+
+
+def _peak_lactate_proxy(view: dict[str, Any], raw_curve_points: list[dict[str, Any]]) -> Optional[float]:
+    history = (view.get("historical_evolution") or {}).get("peak_lactate") or []
+    if history:
+        latest = history[-1]
+        value = latest.get("value")
+        if isinstance(value, (int, float)):
+            return float(value)
+
+    measurement_log = view.get("measurement_log") or []
+    values = [
+        float(item["lactate_mmol"])
+        for item in measurement_log
+        if isinstance(item.get("lactate_mmol"), (int, float))
+    ]
+    if values:
+        return max(values)
+
+    curve_values = [
+        float(point["lactate_mmol"])
+        for point in raw_curve_points
+        if isinstance(point.get("lactate_mmol"), (int, float))
+    ]
+    return max(curve_values) if curve_values else None
+
+
+def _raw_lactate_curve(athlete: Athlete, discipline: str) -> list[dict]:
+    """Extrae los puntos crudos de la última sesión de test de lactato.
+
+    Se usa como fallback en el motor fisiológico cuando la detección
+    automática de LT1/LT2 no produce resultados con suficiente confianza.
+    """
+    test_sessions = [
+        s for s in (athlete.sessions or [])
+        if s.discipline == discipline
+        and any(
+            getattr(iv, "lactate_sample", None) is not None
+            for iv in getattr(s, "intervals", [])
+        )
+    ]
+    if not test_sessions:
+        return []
+
+    latest = max(test_sessions, key=lambda s: s.performed_at)
+    points = []
+    for iv in getattr(latest, "intervals", []):
+        sample = getattr(iv, "lactate_sample", None)
+        pace = getattr(iv, "pace_seconds_per_km", None)
+        power = getattr(iv, "power_watts", None)
+        if sample and getattr(sample, "lactate_mmol", None):
+            point = {
+                "lactate_mmol": sample.lactate_mmol,
+            }
+            if pace:
+                point["pace_seconds_per_km"] = pace
+            if power:
+                point["power_watts"] = power
+            points.append(point)
+    return points
 
 
 def _estimate_level(recent_sessions: int) -> tuple[str, int, int]:
@@ -285,6 +350,100 @@ def _eval_signal(direction: Optional[str]) -> str:
     return "none"
 
 
+def _is_initial_assignment(
+    *,
+    current_block: Any,
+    previous_major: Optional[str],
+    recent_session_count: int,
+) -> bool:
+    if current_block is not None:
+        return False
+    if previous_major not in {None, "testing_decision_block", "recovery_consolidation_block"}:
+        return False
+    return recent_session_count <= 2
+
+
+def _score_initial_assignment_candidates(
+    *,
+    days_to_target: Optional[int],
+    discipline: str,
+    distance_category: Optional[str],
+    physiological_block: Optional[str],
+    primary_limiter: Optional[str],
+    data_quality: str,
+) -> list[BlockCandidate]:
+    """Scoring inicial para atletas sin bloque previo.
+
+    Aquí el motor parte de prueba + test fisiológico, no del historial.
+    """
+
+    def _candidate(block_type: str) -> BlockCandidate:
+        return BlockCandidate(block_type=block_type, score=0.0)
+
+    candidates: dict[str, BlockCandidate] = {
+        bt: _candidate(bt)
+        for bt in (
+            "aerobic_capacity_block",
+            "threshold_development_block",
+            "aerobic_power_block",
+            "competition_specific_block",
+            "recovery_consolidation_block",
+            "technical_rebuild_block",
+        )
+    }
+
+    def add(block_type: str, pts: float, reason: str) -> None:
+        c = candidates[block_type]
+        c.score += pts
+        c.reasons.append(f"+{pts:.0f} {reason}")
+
+    def sub(block_type: str, pts: float, reason: str) -> None:
+        c = candidates[block_type]
+        c.score -= pts
+        c.contraindications.append(f"-{pts:.0f} {reason}")
+
+    long_duration_events = {"marathon", "70.3", "half_tri", "half_run", "half_bike", "ironman", "ironman_run", "ironman_bike", "open_water_long"}
+    short_intense_events = {"5k", "10k", "road_tt", "sprint_tri", "sprint_run", "sprint_bike", "olympic_tri", "olympic_run", "olympic_bike", "pool_400"}
+
+    add("threshold_development_block", 15, "Bloque de entrada válido cuando LT2 parece el cuello principal.")
+    add("aerobic_capacity_block", 15, "Bloque de entrada válido cuando la prueba exige soporte subumbral o durabilidad.")
+    add("aerobic_power_block", 5, "Solo debería abrirse si el perfil ya está bastante compatible.")
+    sub("recovery_consolidation_block", 20, "Atleta nuevo sin bloque previo: no toca consolidar fatiga que aún no existe.")
+
+    if discipline == "natación":
+        add("technical_rebuild_block", 12, "En natación el coste técnico puede justificar un bloque inicial más técnico.")
+    else:
+        sub("technical_rebuild_block", 5, "Sin señal técnica explícita, no debe ganar por defecto.")
+
+    if distance_category in long_duration_events:
+        add("aerobic_capacity_block", 15, "La prueba penaliza más una base insuficiente que un LT2 corto.")
+        sub("aerobic_power_block", 10, "La potencia aeróbica no es la primera palanca en una prueba larga.")
+    if distance_category in short_intense_events:
+        add("threshold_development_block", 10, "La prueba depende más de LT2 que de pura durabilidad.")
+
+    if days_to_target is not None and days_to_target <= 35:
+        add("competition_specific_block", 20, "Objetivo cercano: incluso en asignación inicial hay que transferir rápido.")
+    elif days_to_target is not None and days_to_target > 84:
+        sub("competition_specific_block", 15, "Objetivo lejano: todavía no toca gastar especificidad.")
+
+    if primary_limiter == "lt1":
+        add("aerobic_capacity_block", 18, "El limitante principal detectado es LT1 / soporte subumbral.")
+        sub("aerobic_power_block", 10, "Abrir techo sin soporte suficiente tiene poco retorno marginal.")
+    elif primary_limiter == "lt2":
+        add("threshold_development_block", 18, "El limitante principal detectado es LT2.")
+
+    if physiological_block and physiological_block in candidates:
+        add(physiological_block, 35, "El test incremental y la demanda de prueba apuntan a este bloque inicial.")
+
+    if data_quality == "good" and physiological_block and physiological_block in candidates:
+        add(physiological_block, 10, "La señal fisiológica es suficientemente sólida para mandar en la asignación inicial.")
+    elif data_quality == "low":
+        sub("aerobic_power_block", 8, "Con señal fisiológica floja no conviene abrir con un bloque agresivo.")
+        sub("competition_specific_block", 8, "Con señal fisiológica floja no conviene gastar especificidad demasiado pronto.")
+
+    return sorted(candidates.values(), key=lambda c: c.score, reverse=True)
+
+
 def _score_block_candidates(
     *,
     days_to_target: Optional[int],
@@ -455,22 +614,93 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
     positive_block = current_evaluation and current_evaluation.get("direction") in {"up", "positive"}
     reference_estimate = _reference_estimate_label(analysis, selected_discipline)
 
-    # ── Scoring de candidatos (Patch 5) ───────────────────────────────────────
+    next_target_obj = next(
+        (t for t in (athlete.targets or []) if t.target_date >= today),
+        (athlete.targets[0] if athlete.targets else None),
+    )
     robustness = "low" if len(recent_sessions) <= 4 else "medium" if len(recent_sessions) <= 8 else "high"
     evaluation_signal = _eval_signal(current_evaluation.get("direction") if current_evaluation else None)
+    physio_gap = None
+    resolved_distance_category = infer_distance_category(next_target_obj, selected_discipline) if next_target_obj else None
+    if next_target_obj:
+        weeks_to_goal = (next_target_obj.target_date - today).days // 7
+        _disc_view = (analysis.get("discipline_views") or {}).get(selected_discipline) or {}
+        raw_curve_points = _raw_lactate_curve(athlete, selected_discipline)
+        peak_lactate_proxy = _peak_lactate_proxy(_disc_view, raw_curve_points)
 
-    scored_candidates = _score_block_candidates(
-        days_to_target=days_to_target,
+        physio_ctx = build_physiological_context(
+            analysis=analysis,
+            athlete_level=getattr(athlete, "athlete_level", "trained") or "trained",
+            discipline=selected_discipline,
+            distance_category=resolved_distance_category,
+            target_pace_label=getattr(next_target_obj, "target_pace_label", None)
+                or getattr(next_target_obj, "target_running_pace_label", None),
+            target_power_watts=getattr(next_target_obj, "target_power_watts", None)
+                or getattr(next_target_obj, "target_cycling_power_watts", None),
+            weeks_to_goal=weeks_to_goal,
+            peak_lactate_1km=peak_lactate_proxy,
+            raw_curve_points=raw_curve_points,
+        )
+        physio_gap = analyse_physiological_gap(physio_ctx)
+
+    initial_assignment = _is_initial_assignment(
+        current_block=current_block,
         previous_major=previous_major,
-        evaluation_signal=evaluation_signal,
-        robustness=robustness,
         recent_session_count=len(recent_sessions),
-        discipline=selected_discipline,
     )
+
+    if initial_assignment and physio_gap:
+        scored_candidates = _score_initial_assignment_candidates(
+            days_to_target=days_to_target,
+            discipline=selected_discipline,
+            distance_category=resolved_distance_category,
+            physiological_block=physio_gap.recommended_block,
+            primary_limiter=physio_gap.primary_limiter,
+            data_quality=physio_gap.data_quality,
+        )
+    else:
+        scored_candidates = _score_block_candidates(
+            days_to_target=days_to_target,
+            previous_major=previous_major,
+            evaluation_signal=evaluation_signal,
+            robustness=robustness,
+            recent_session_count=len(recent_sessions),
+            discipline=selected_discipline,
+        )
+
     winner = scored_candidates[0]
     recommended_type = winner.block_type
     reasoning: list[str] = winner.reasons[:]
     risk_flags: list[str] = winner.contraindications[:]
+
+    # ── Capa fisiológica (physiological_engine) ───────────────────────────────
+    # Usa LT1/LT2 reales o, si aún no están resueltos, LT fisiológicos
+    # anclados a 2.0/4.0 mmol.
+    if physio_gap:
+        if initial_assignment and physio_gap.data_quality in {"good", "low"} and physio_gap.recommended_block != "testing_decision_block":
+            recommended_type = physio_gap.recommended_block
+            reasoning = physio_gap.reasons + [
+                "Asignación inicial basada en test incremental + demanda de prueba, no en la heurística temporal por defecto."
+            ]
+            risk_flags = physio_gap.contraindications + risk_flags
+        elif physio_gap.data_quality == "good":
+            recommended_type = physio_gap.recommended_block
+            reasoning = physio_gap.reasons + [
+                "Recomendación basada en análisis fisiológico directo del perfil actual."
+            ]
+            risk_flags = physio_gap.contraindications + risk_flags
+        elif physio_gap.data_quality == "low":
+            reasoning.extend(physio_gap.reasons)
+            risk_flags.append(
+                f"Datos de lactato con calidad baja "
+                f"(test hace {physio_ctx.test_age_days}d o confianza insuficiente). "
+                "La recomendación se apoya parcialmente en fisiología, pero no con certeza fuerte."
+            )
+        elif physio_gap.data_quality == "none":
+            risk_flags.append(
+                "Sin test de lactato interpretable — la recomendación es temporal, no fisiológica. "
+                "Incluir test en el próximo mesociclo."
+            )
     control_points: list[str] = []
     progression_rules: list[str] = []
 
@@ -565,11 +795,28 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
             for c in scored_candidates
         ],
         "scoring_context": {
+            "assignment_mode": "initial_assignment" if initial_assignment else "progression_assignment",
             "robustness": robustness,
             "evaluation_signal": evaluation_signal,
             "previous_major": previous_major,
             "days_to_target": days_to_target,
         },
+        "physiological_analysis": {
+            "data_quality": physio_gap.data_quality if physio_gap else "none",
+            "season_phase": physio_gap.season_phase if physio_gap else None,
+            "primary_limiter": physio_gap.primary_limiter if physio_gap else None,
+            "lt2_gap_kmh": physio_gap.lt2_gap_kmh if physio_gap else None,
+            "lt1_gap_kmh": physio_gap.lt1_gap_kmh if physio_gap else None,
+            "required_lt2_kmh": physio_gap.required_lt2_kmh if physio_gap else None,
+            "required_lt1_kmh": physio_gap.required_lt1_kmh if physio_gap else None,
+            "physiological_block": physio_gap.recommended_block if physio_gap else None,
+            "distance_category": resolved_distance_category,
+            "metric_type": physio_gap.metric_type if physio_gap else None,
+            "overrides_temporal_scoring": (
+                (physio_gap.data_quality == "good") or
+                (initial_assignment and physio_gap.data_quality in {"good", "low"})
+            ) if physio_gap else False,
+        } if physio_gap else None,
     }
 
     recommended_workouts = [_serialize_workout_template(template) for template in templates_for_block(selected_discipline, recommended_type)]

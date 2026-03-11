@@ -271,9 +271,25 @@ export const api = {
         body: JSON.stringify(payload),
       },
     ),
-  garminPreview: (token: string, athleteId: number, startDate: string, endDate: string) =>
+  garminPreview: (
+    token: string,
+    athleteId: number,
+    startDate: string,
+    endDate: string,
+    options?: { includeFullDetail?: boolean; activityLimit?: number }
+  ) =>
     request<{ athlete_id: number; athlete_name: string; start_date: string; end_date: string; imported_count: number; activities: Array<Record<string, unknown>> }>(
-      `/garmin/athletes/${athleteId}/preview?${new URLSearchParams({ start_date: startDate, end_date: endDate }).toString()}`,
+      `/garmin/athletes/${athleteId}/preview?${new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+        ...(options?.includeFullDetail ? { include_full_detail: "true" } : {}),
+        ...(options?.activityLimit ? { activity_limit: String(options.activityLimit) } : {}),
+      }).toString()}`,
+      { token },
+    ),
+  garminActivityDetail: (token: string, athleteId: number, activityId: number) =>
+    request<Record<string, unknown>>(
+      `/garmin/athletes/${athleteId}/activities/${activityId}`,
       { token },
     ),
   dashboard: (token: string) => request("/analytics/dashboard", { token }),

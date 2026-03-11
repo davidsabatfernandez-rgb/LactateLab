@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine, ResponsiveContainer, Scatter, Tooltip, XAxis, YAxis } from "recharts";
 
 import { api } from "../lib/api";
-import { AthleteAnalysis, AuthUser, CurvePoint, DisciplineView, Estimate, HistoricalPoint, SessionSummary, Threshold } from "../types";
+import { buildTargetObjective } from "../lib/targetCatalog";
+import { ResolvedTrainingThreshold, resolveTrainingThreshold } from "../lib/trainingThresholds";
+import { AthleteAnalysis, AuthUser, CurvePoint, DisciplineView, Estimate, HistoricalPoint, SessionSummary } from "../types";
 
 type AthletePortalPageProps = {
   user: AuthUser | null;
@@ -12,8 +14,8 @@ type AthletePortalPageProps = {
 type DisciplineSnapshot = {
   discipline: string;
   view: DisciplineView;
-  lt1?: Threshold;
-  lt2?: Threshold;
+  lt1?: ResolvedTrainingThreshold | null;
+  lt2?: ResolvedTrainingThreshold | null;
   estimate?: Estimate;
   weeklySessions: number;
   monthlySessions: number;
@@ -153,10 +155,6 @@ function buildDisciplineTrend(view?: DisciplineView | null, discipline?: string)
   }));
 }
 
-function getPrimaryThreshold(view?: DisciplineView | null, name?: string) {
-  return view?.thresholds?.find((threshold) => threshold.name === name);
-}
-
 function getPrimaryEstimate(view?: DisciplineView | null, type?: string) {
   return view?.estimates?.find((estimate) => estimate.estimate_type === type);
 }
@@ -176,19 +174,19 @@ function disciplineAccent(discipline: string) {
   return "#16353d";
 }
 
-function renderThresholdValue(threshold?: Threshold, discipline?: string) {
+function renderThresholdValue(threshold?: ResolvedTrainingThreshold | null, discipline?: string) {
   if (!threshold) return "n/d";
-  if (discipline === "ciclismo" && typeof threshold.power_watts === "number") {
-    return `${Math.round(threshold.power_watts)} W`;
+  if (discipline === "ciclismo" && typeof threshold.powerWatts === "number") {
+    return `${Math.round(threshold.powerWatts)} W`;
   }
-  if (discipline === "natación" && typeof threshold.pace_seconds_per_km === "number") {
-    return formatSwimPace(threshold.pace_seconds_per_km / 10);
+  if (discipline === "natación" && typeof threshold.paceSecondsPerKm === "number") {
+    return formatSwimPace(threshold.paceSecondsPerKm / 10);
   }
-  if (typeof threshold.pace_seconds_per_km === "number") {
-    return formatPace(threshold.pace_seconds_per_km);
+  if (typeof threshold.paceSecondsPerKm === "number") {
+    return formatPace(threshold.paceSecondsPerKm);
   }
-  if (typeof threshold.power_watts === "number") {
-    return `${Math.round(threshold.power_watts)} W`;
+  if (typeof threshold.powerWatts === "number") {
+    return `${Math.round(threshold.powerWatts)} W`;
   }
   return "n/d";
 }
@@ -495,8 +493,8 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
       .map(([discipline, view]) => ({
         discipline,
         view,
-        lt1: getPrimaryThreshold(view, "LT1"),
-        lt2: getPrimaryThreshold(view, "LT2"),
+        lt1: resolveTrainingThreshold(view, "LT1"),
+        lt2: resolveTrainingThreshold(view, "LT2"),
         estimate: getPrimaryEstimate(view, discipline === "ciclismo" ? "FTP" : discipline === "running" ? "10K" : "VO2max") ?? view.estimates?.[0],
         weeklySessions: countSessionsWithinDays(view.recent_sessions ?? [], 7),
         monthlySessions: countSessionsWithinDays(view.recent_sessions ?? [], 30),
@@ -920,7 +918,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
                     <Tooltip content={({ active, payload }) => portalCurveTooltip(active, payload as Array<{ payload?: PortalCurvePoint; dataKey?: string }> | undefined, selectedSnapshot?.discipline || focusDiscipline)} />
                     {selectedSnapshot?.lt1 ? (
                       <ReferenceLine
-                        x={selectedSnapshot.discipline === "ciclismo" ? selectedSnapshot.lt1.power_watts ?? undefined : selectedSnapshot.lt1.pace_seconds_per_km ?? undefined}
+                        x={selectedSnapshot.discipline === "ciclismo" ? selectedSnapshot.lt1.powerWatts ?? undefined : selectedSnapshot.lt1.paceSecondsPerKm ?? undefined}
                         stroke="#3156d3"
                         strokeWidth={2.6}
                         strokeDasharray="8 4"
@@ -929,7 +927,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
                     ) : null}
                     {selectedSnapshot?.lt2 ? (
                       <ReferenceLine
-                        x={selectedSnapshot.discipline === "ciclismo" ? selectedSnapshot.lt2.power_watts ?? undefined : selectedSnapshot.lt2.pace_seconds_per_km ?? undefined}
+                        x={selectedSnapshot.discipline === "ciclismo" ? selectedSnapshot.lt2.powerWatts ?? undefined : selectedSnapshot.lt2.paceSecondsPerKm ?? undefined}
                         stroke="#d26a36"
                         strokeWidth={2.6}
                         strokeDasharray="8 4"
@@ -1144,7 +1142,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
             upcomingTargets.map((target) => (
               <article key={target.id} className="athlete-target-card athlete-target-card-portal">
                 <span className="athlete-target-date">{formatDate(target.target_date)}</span>
-                <strong>{target.objective}</strong>
+                <strong>{buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective })}</strong>
                 <p>{disciplineLabel(target.discipline)}</p>
                 {target.distance_label ? <p>{target.distance_label}</p> : null}
                 {target.target_pace_label ? <p>Ritmo objetivo: {target.target_pace_label}</p> : null}
