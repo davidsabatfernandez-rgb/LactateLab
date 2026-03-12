@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type WheelEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { WorkoutPreviewModal, WorkoutPreviewSelection } from "../components/WorkoutPreviewModal";
@@ -1053,7 +1053,10 @@ export function PlanningPage({ token }: PlanningPageProps) {
   const [openWorkoutPreview, setOpenWorkoutPreview] = useState<OpenWorkoutPreviewState | null>(null);
   const [planningSourceModal, setPlanningSourceModal] = useState<PlanningSourceModalState | null>(null);
   const [calendarComposerDate, setCalendarComposerDate] = useState<string | null>(null);
-  const calendarWeekWheelLockRef = useRef(0);
+  const calendarWeekScrollerRef = useRef<HTMLDivElement | null>(null);
+  const calendarWeekScrollFrameRef = useRef<number | null>(null);
+  const calendarWeekAutoCenteredRef = useRef(false);
+  const calendarWeekSectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -1806,6 +1809,11 @@ export function PlanningPage({ token }: PlanningPageProps) {
     setSelectedCalendarDate(initialDate);
   }, [plannedSessions, selectedCalendarSource.startDate, selectedCalendarSource.id]);
 
+  useEffect(() => {
+    if (calendarVisualMode !== "week" || !selectedCalendarDate) return;
+    setCalendarMonth(startOfMonth(selectedCalendarDate));
+  }, [calendarVisualMode, selectedCalendarDate]);
+
   const selectedDaySessions = useMemo(
     () => (selectedCalendarDate ? sessionsByDate.get(selectedCalendarDate) ?? [] : []),
     [selectedCalendarDate, sessionsByDate],
@@ -1986,10 +1994,10 @@ export function PlanningPage({ token }: PlanningPageProps) {
     () => daysBetween(selectedCalendarSource.startDate, selectedCalendarSource.endDate),
     [selectedCalendarSource.endDate, selectedCalendarSource.startDate],
   );
-  const selectedWeekDates = useMemo(
-    () => Array.from({ length: 7 }, (_, index) => addDays(selectedWeekStart, index)),
-    [selectedWeekStart],
-  );
+  const selectedWeekdayOffset = useMemo(() => {
+    if (!selectedCalendarDate) return 0;
+    return Math.max(0, Math.min(6, Math.round((dateValue(selectedCalendarDate) - dateValue(selectedWeekStart)) / 86400000)));
+  }, [selectedCalendarDate, selectedWeekStart]);
   const calendarToolbarHeading = useMemo(
     () => (calendarVisualMode === "week" ? weekHeading(selectedWeekStart, selectedWeekEnd) : monthHeading(calendarMonth)),
     [calendarMonth, calendarVisualMode, selectedWeekEnd, selectedWeekStart],
@@ -2004,6 +2012,28 @@ export function PlanningPage({ token }: PlanningPageProps) {
     () => selectedWeekPrimarySessions.reduce((total, session) => total + (session.estimatedMinutes ?? 0), 0),
     [selectedWeekPrimarySessions],
   );
+  const continuousWeekStarts = useMemo(() => {
+    const allDates = [
+      selectedCalendarSource.startDate,
+      selectedCalendarSource.endDate,
+      selectedCalendarDate,
+      isoDateFromToday(),
+      ...primaryEntries.map((session) => session.date),
+      ...overlayEntries.map((session) => session.date),
+    ].filter(Boolean) as string[];
+
+    const sorted = allDates
+      .map((value) => startOfWeek(value))
+      .sort((left, right) => dateValue(left) - dateValue(right));
+
+    const minWeek = sorted[0] ?? startOfWeek(isoDateFromToday());
+    const maxWeek = sorted[sorted.length - 1] ?? minWeek;
+    const rangeStart = addDays(minWeek, -35);
+    const rangeEnd = addDays(maxWeek, 35);
+    const totalWeeks = Math.max(1, Math.round((dateValue(rangeEnd) - dateValue(rangeStart)) / 86400000 / 7) + 1);
+
+    return Array.from({ length: totalWeeks }, (_, index) => addDays(rangeStart, index * 7));
+  }, [overlayEntries, primaryEntries, selectedCalendarDate, selectedCalendarSource.endDate, selectedCalendarSource.startDate]);
   const calendarMesocycleOptions = useMemo<CalendarMesocycleOption[]>(() => {
     const recommendation = overview?.next_recommendation;
     const candidateOrder = recommendation?.candidates_scored ?? [];
@@ -2023,14 +2053,15 @@ export function PlanningPage({ token }: PlanningPageProps) {
       .filter((option): option is CalendarMesocycleOption => option !== null);
 
     if (options.length) {
-      return options.slice(0, 4).map((option) => ({
+      // Mostrar todos los candidatos evaluados (no solo 4)
+      return options.map((option) => ({
         ...option,
         whyItFits: option.whyItFits.slice(0, 3),
         whyNotAsGood: option.whyNotAsGood.slice(0, 3),
       }));
     }
 
-    return templateLibrary.slice(0, 4).map((template, index) => {
+    return templateLibrary.map((template, index) => {
       const isBest = template.template_id === recommendation?.template_id || index === 0;
       return {
         template,
@@ -2149,23 +2180,68 @@ export function PlanningPage({ token }: PlanningPageProps) {
     setCalendarMonth(startOfMonth(addMonths(calendarMonth, 1)));
   }, [calendarMonth, calendarVisualMode, selectedWeekStart]);
 
-  const handleWeekCalendarWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
-    if (calendarVisualMode !== "week") return;
-    const dominantDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-    if (Math.abs(dominantDelta) < 16) return;
+  const syncCalendarWeekSelectionFromScroll = useCallback(() => {
+    const scroller = calendarWeekScrollerRef.current;
+    if (!scroller) return;
 
-    event.preventDefault();
+    const viewportFocus = scroller.scrollTop + scroller.clientHeight * 0.32;
+    let closestWeekStart = selectedWeekStart;
+    let closestDistance = Number.POSITIVE_INFINITY;
 
-    const now = Date.now();
-    if (now - calendarWeekWheelLockRef.current < 220) return;
-    calendarWeekWheelLockRef.current = now;
+    continuousWeekStarts.forEach((weekStart) => {
+      const section = calendarWeekSectionRefs.current[weekStart];
+      if (!section) return;
+      const distance = Math.abs(section.offsetTop - viewportFocus);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestWeekStart = weekStart;
+      }
+    });
 
-    if (dominantDelta > 0) {
-      shiftCalendarForward();
+    if (closestWeekStart === selectedWeekStart) return;
+
+    const nextDate = addDays(closestWeekStart, selectedWeekdayOffset);
+    setSelectedCalendarDate(nextDate);
+    setCalendarMonth(startOfMonth(nextDate));
+  }, [continuousWeekStarts, selectedWeekStart, selectedWeekdayOffset]);
+
+  const handleContinuousWeekScroll = useCallback(() => {
+    if (calendarWeekScrollFrameRef.current != null) return;
+    calendarWeekScrollFrameRef.current = window.requestAnimationFrame(() => {
+      calendarWeekScrollFrameRef.current = null;
+      syncCalendarWeekSelectionFromScroll();
+    });
+  }, [syncCalendarWeekSelectionFromScroll]);
+
+  useEffect(() => () => {
+    if (calendarWeekScrollFrameRef.current != null) {
+      window.cancelAnimationFrame(calendarWeekScrollFrameRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (calendarVisualMode !== "week") {
+      calendarWeekAutoCenteredRef.current = false;
       return;
     }
-    shiftCalendarBackward();
-  }, [calendarVisualMode, shiftCalendarBackward, shiftCalendarForward]);
+
+    const scroller = calendarWeekScrollerRef.current;
+    const selectedSection = calendarWeekSectionRefs.current[selectedWeekStart];
+    if (!scroller || !selectedSection) return;
+
+    const targetTop = Math.max(0, selectedSection.offsetTop - scroller.clientHeight * 0.18);
+    const alreadyNearTarget = Math.abs(scroller.scrollTop - targetTop) < 36;
+
+    if (!calendarWeekAutoCenteredRef.current) {
+      scroller.scrollTo({ top: targetTop, behavior: "auto" });
+      calendarWeekAutoCenteredRef.current = true;
+      return;
+    }
+
+    if (!alreadyNearTarget) {
+      scroller.scrollTo({ top: targetTop, behavior: "smooth" });
+    }
+  }, [calendarVisualMode, continuousWeekStarts, selectedWeekStart]);
 
   if (loading) {
     return <div className="loading">Preparando planificación...</div>;
@@ -2919,46 +2995,74 @@ export function PlanningPage({ token }: PlanningPageProps) {
                         })}
                       </div>
                     ) : (
-                      <div className="training-calendar-week-grid" onWheel={handleWeekCalendarWheel}>
-                        {selectedWeekDates.map((day) => {
-                          const daySessions = sessionsByDate.get(day) ?? [];
-                          const primaryDaySessions = daySessions.filter((session) => !session.isOverlay);
-                          const overlayDaySessions = daySessions.filter((session) => session.isOverlay);
-                          const isSelected = selectedCalendarDate === day;
+                      <div
+                        ref={calendarWeekScrollerRef}
+                        className="training-calendar-week-stream"
+                        onScroll={handleContinuousWeekScroll}
+                      >
+                        {continuousWeekStarts.map((weekStart) => {
+                          const weekEnd = addDays(weekStart, 6);
+                          const weekDates = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+                          const isFocusedWeek = weekStart === selectedWeekStart;
+
                           return (
-                            <article
-                              key={day}
-                              className={`training-calendar-week-column ${isSelected ? "selected" : ""}`}
-                              onMouseEnter={() => setSelectedCalendarDate(day)}
+                            <section
+                              key={weekStart}
+                              ref={(node) => {
+                                calendarWeekSectionRefs.current[weekStart] = node;
+                              }}
+                              className={`training-calendar-week-section ${isFocusedWeek ? "selected" : ""}`}
                             >
-                              <button type="button" className="training-calendar-week-head" onClick={() => setSelectedCalendarDate(day)}>
-                                <span>{dayNameShort(day)}</span>
-                                <strong>{monthDayLabel(day)}</strong>
-                              </button>
-                              <div className="training-calendar-week-stack">
-                                {primaryDaySessions.length ? primaryDaySessions.map((session) => (
-                                  <button
-                                    key={session.id}
-                                    type="button"
-                                    className={`training-calendar-session-card ${session.layerDiscipline === "running" ? "running" : session.layerDiscipline === "ciclismo" ? "cycling" : session.layerDiscipline === "natación" ? "swimming" : ""} ${session.sessionType === "clave" ? "key" : ""}`}
-                                    onClick={() => openCalendarSessionDetail(session)}
-                                  >
-                                    <span>{session.sessionType}</span>
-                                    <strong>{session.title}</strong>
-                                    <p>{session.dose}</p>
-                                    <small>{session.objective}</small>
-                                  </button>
-                                )) : (
-                                  <button type="button" className="training-calendar-empty-slot" onClick={() => openCalendarMesocycleComposer(day)}>+</button>
-                                )}
-                                {overlayDaySessions.map((session) => (
-                                  <div key={session.id} className="training-calendar-session-card overlay">
-                                    <span>{disciplineLabel(session.layerDiscipline)}</span>
-                                    <strong>{session.title}</strong>
-                                  </div>
-                                ))}
+                              <div className="training-calendar-week-section-head">
+                                <span>{isFocusedWeek ? "Semana activa" : "Semana visible"}</span>
+                                <strong>{weekHeading(weekStart, weekEnd)}</strong>
                               </div>
-                            </article>
+
+                              <div className="training-calendar-week-grid">
+                                {weekDates.map((day) => {
+                                  const daySessions = sessionsByDate.get(day) ?? [];
+                                  const primaryDaySessions = daySessions.filter((session) => !session.isOverlay);
+                                  const overlayDaySessions = daySessions.filter((session) => session.isOverlay);
+                                  const isSelected = selectedCalendarDate === day;
+                                  const isToday = day === isoDateFromToday();
+                                  return (
+                                    <article
+                                      key={day}
+                                      className={`training-calendar-week-column ${isSelected ? "selected" : ""}`}
+                                      onMouseEnter={() => setSelectedCalendarDate(day)}
+                                    >
+                                      <button type="button" className={`training-calendar-week-head ${isToday ? "today" : ""}`} onClick={() => setSelectedCalendarDate(day)}>
+                                        <span>{dayNameShort(day)}</span>
+                                        <strong>{monthDayLabel(day)}</strong>
+                                      </button>
+                                      <div className="training-calendar-week-stack">
+                                        {primaryDaySessions.length ? primaryDaySessions.map((session) => (
+                                          <button
+                                            key={session.id}
+                                            type="button"
+                                            className={`training-calendar-session-card ${session.layerDiscipline === "running" ? "running" : session.layerDiscipline === "ciclismo" ? "cycling" : session.layerDiscipline === "natación" ? "swimming" : ""} ${session.sessionType === "clave" ? "key" : ""}`}
+                                            onClick={() => openCalendarSessionDetail(session)}
+                                          >
+                                            <span>{session.sessionType}</span>
+                                            <strong>{session.title}</strong>
+                                            <p>{session.dose}</p>
+                                            <small>{session.objective}</small>
+                                          </button>
+                                        )) : (
+                                          <button type="button" className="training-calendar-empty-slot" onClick={() => openCalendarMesocycleComposer(day)}>+</button>
+                                        )}
+                                        {overlayDaySessions.map((session) => (
+                                          <div key={session.id} className="training-calendar-session-card overlay">
+                                            <span>{disciplineLabel(session.layerDiscipline)}</span>
+                                            <strong>{session.title}</strong>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </article>
+                                  );
+                                })}
+                              </div>
+                            </section>
                           );
                         })}
                       </div>
