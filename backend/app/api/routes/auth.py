@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, get_password_hash, password_needs_rehash, verify_password
 from app.db.session import get_db
 from app.models.athlete import Athlete
 from app.models.user import User
@@ -34,6 +34,12 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
     user = db.scalar(select(User).where(User.email == payload.email))
     if user is None or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    if password_needs_rehash(user.hashed_password):
+        user.hashed_password = get_password_hash(payload.password)
+        db.add(user)
+        db.commit()
+
     return TokenResponse(access_token=create_access_token(user.email))
 
 

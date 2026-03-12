@@ -11,6 +11,9 @@ export type Athlete = {
   notes?: string | null;
   strava_athlete_id?: number | null;
   strava_connected: boolean;
+  garmin_user_id?: number | null;
+  garmin_connected: boolean;
+  athlete_level: string;
   created_at: string;
   weights?: Array<{
     id: number;
@@ -153,6 +156,7 @@ export type StravaActivity = {
   >;
   raw_detail: Record<string, unknown>;
   enrichment_error?: string | null;
+  enrichment_notice?: string | null;
 };
 
 export type StravaActivitiesImportResponse = {
@@ -162,6 +166,129 @@ export type StravaActivitiesImportResponse = {
   end_date: string;
   imported_count: number;
   activities: StravaActivity[];
+};
+
+export type GarminActivity = {
+  provider_activity_id: number;
+  name: string;
+  sport_type: string;
+  started_at: string;
+  timezone?: string | null;
+  distance_m: number;
+  moving_time_seconds: number;
+  elapsed_time_seconds: number;
+  average_speed_m_s?: number | null;
+  max_speed_m_s?: number | null;
+  average_heartrate?: number | null;
+  max_heartrate?: number | null;
+  average_watts?: number | null;
+  calories?: number | null;
+  description?: string | null;
+  total_elevation_gain_m?: number | null;
+  average_cadence?: number | null;
+  max_watts?: number | null;
+  start_latlng: number[];
+  end_latlng: number[];
+  device_name?: string | null;
+  laps: Array<{
+    lap_index: number;
+    name: string;
+    distance_m: number;
+    elapsed_time_seconds: number;
+    moving_time_seconds: number;
+    average_speed_m_s?: number | null;
+    average_heartrate?: number | null;
+    max_heartrate?: number | null;
+    average_watts?: number | null;
+    start_date?: string | null;
+  }>;
+  raw_detail: Record<string, unknown>;
+};
+
+export type GarminActivitiesPreviewResponse = {
+  athlete_id: number;
+  athlete_name: string;
+  start_date: string;
+  end_date: string;
+  imported_count: number;
+  activities: GarminActivity[];
+};
+
+export type AthleteHealthProviderStatus = {
+  provider: string;
+  label: string;
+  connected: boolean;
+  status: string;
+  last_sync_at?: string | null;
+  detail?: string | null;
+};
+
+export type AthleteHealthSummary = {
+  activities_count: number;
+  training_days: number;
+  total_duration_seconds: number;
+  total_distance_m: number;
+  most_recent_activity_at?: string | null;
+  primary_sport_label?: string | null;
+  primary_sport_color?: string | null;
+};
+
+export type AthleteHealthMetric = {
+  key: string;
+  label: string;
+  value: string;
+  detail?: string | null;
+};
+
+export type AthleteHealthDaily = {
+  date: string;
+  sleep_score?: number | null;
+  sleep_seconds?: number | null;
+  stress_level?: number | null;
+  hrv_status?: string | null;
+  hrv_last_night_avg?: number | null;
+  steps?: number | null;
+  intensity_minutes?: number | null;
+};
+
+export type AthleteHealthActivity = {
+  provider_activity_id: number;
+  name: string;
+  started_at: string;
+  sport_type: string;
+  sport_label: string;
+  sport_color: string;
+  distance_m: number;
+  moving_time_seconds: number;
+  average_heartrate?: number | null;
+  average_watts?: number | null;
+  source: string;
+};
+
+export type AthleteHealthCalendarDay = {
+  date: string;
+  activity_count: number;
+  total_duration_seconds: number;
+  total_distance_m: number;
+  primary_sport_label?: string | null;
+  primary_sport_color?: string | null;
+};
+
+export type AthleteHealthOverview = {
+  athlete_id: number;
+  athlete_name: string;
+  window_start: string;
+  window_end: string;
+  providers: AthleteHealthProviderStatus[];
+  summary: AthleteHealthSummary;
+  health_metrics: AthleteHealthMetric[];
+  sleep_breakdown: AthleteHealthMetric[];
+  performance_metrics: AthleteHealthMetric[];
+  health_days: AthleteHealthDaily[];
+  recent_activities: AthleteHealthActivity[];
+  activity_calendar: AthleteHealthCalendarDay[];
+  raw_wellness: Record<string, unknown>;
+  notes: string[];
 };
 
 export type AthleteFocusBlock = {
@@ -186,6 +313,7 @@ export type AthleteTarget = {
   discipline: string;
   objective: string;
   distance_label?: string | null;
+  distance_category?: string | null;
   priority_level?: string | null;
   target_pace_label?: string | null;
   target_power_watts?: number | null;
@@ -392,6 +520,21 @@ export type RealThresholdItem = {
   evidence_level?: string | null;
   rationale?: string | null;
   derived_from?: string | null;
+  status?: string | null;
+};
+
+export type ThresholdDetectionStatus = {
+  name: string;
+  state: string;
+  primary_method?: string | null;
+  confirmation_method?: string | null;
+  supporting_methods: string[];
+  compatible: boolean;
+  quality_gate_passed: boolean;
+  anchor_update_recommended: boolean;
+  confidence: number;
+  candidate_threshold?: RealThresholdItem | null;
+  explanation: string;
 };
 
 export type RealThresholds = {
@@ -399,11 +542,15 @@ export type RealThresholds = {
   lt2_real?: RealThresholdItem | null;
   lt1_practical_real?: RealThresholdItem | null;
   lt2_practical_real?: RealThresholdItem | null;
+  lt1_detection?: ThresholdDetectionStatus | null;
+  lt2_detection?: ThresholdDetectionStatus | null;
   data_quality?: {
     stage_count: number;
+    usable_stage_count?: number;
     monotonicity: number;
     protocol_score?: number;
     signal_score?: number;
+    criteria_version?: number;
     sufficient: boolean;
     reason: string;
   } | null;
@@ -423,6 +570,7 @@ export type IndividualThresholdItem = {
   supporting_sessions?: Array<Record<string, unknown>>;
   protocol_score?: number | null;
   signal_score?: number | null;
+  progression_alignment?: number | null;
 };
 
 export type IndividualThresholds = {
@@ -434,6 +582,9 @@ export type IndividualThresholds = {
     monotonicity?: number;
     protocol_score?: number;
     signal_score?: number;
+    progression_alignment?: number | null;
+    min_support_sessions?: number;
+    criteria_version?: number;
     sufficient: boolean;
     reason: string;
   } | null;
@@ -770,6 +921,63 @@ export type BlockCandidate = {
   contraindications: string[];
 };
 
+export type LactateCheckRecommendation = {
+  session_type: string;
+  purpose: string;
+  suggested_timing_within_block: string;
+  minimum_conditions: string[];
+  optional_lactate_points: string[];
+  coach_editable: boolean;
+  priority: string;
+  why_now: string;
+};
+
+export type DurabilityAnalysis = {
+  durability_score?: number | null;
+  lt1_degradation_pct?: number | null;
+  lt2_degradation_pct?: number | null;
+  aerobic_drift_pct?: number | null;
+  durability_confidence: number;
+  durability_source: string;
+  durability_flag: string;
+};
+
+export type BlockRationale = {
+  block_key: string;
+  display_name: string;
+  olbrecht_class: string;
+  summary_coach: string;
+  physiological_goal: string;
+  training_description: string;
+  expected_timeline: string;
+  ideal_context: string;
+  risk_if_wrong: string;
+  min_weeks: number;
+  max_weeks: number;
+  science_refs: string[];
+};
+
+export type ReliabilityWarning = {
+  code: string;
+  severity: 'info' | 'warning' | 'critical';
+  message: string;
+  actionable: string;
+};
+
+export type BlockExplanation = {
+  headline: string;
+  why_now: string;
+  what_to_expect: string;
+  what_to_watch: string;
+  when_to_exit: string;
+  alternative_if_wrong: string;
+  block_key: string;
+  display_name: string;
+  olbrecht_class: string;
+  min_weeks: number;
+  max_weeks: number;
+};
+
 export type MesocycleRecommendation = {
   target_discipline: string;
   recommended_block_type: string;
@@ -791,13 +999,51 @@ export type MesocycleRecommendation = {
   exit_checks: string[];
   risk_flags: string[];
   next_target?: PlanningTargetSummary | null;
+  lactate_check_recommendations?: LactateCheckRecommendation[];
   candidates_scored?: BlockCandidate[];
   scoring_context?: {
+    assignment_mode?: string | null;
+    selection_engine?: string | null;
     robustness: string;
     evaluation_signal: string;
     previous_major: string | null;
     days_to_target: number | null;
   };
+  physiological_analysis?: {
+    data_quality: string;
+    season_phase?: string | null;
+    primary_limiter?: string | null;
+    secondary_limiter?: string | null;
+    lt2_gap_kmh?: number | null;
+    lt1_gap_kmh?: number | null;
+    required_lt2_kmh?: number | null;
+    required_lt1_kmh?: number | null;
+    physiological_block?: string | null;
+    distance_category?: string | null;
+    metric_type?: string | null;
+    lt1_confidence_dynamic?: number | null;
+    lt2_confidence_dynamic?: number | null;
+    glycolytic_confidence?: number | null;
+    overall_decision_confidence?: number | null;
+    confidence_band?: string | null;
+    decision_uncertainty?: string | null;
+    needs_confirmation: boolean;
+    durability?: DurabilityAnalysis | null;
+    contradictory_signals?: string[];
+    confidence_factors?: Array<{
+      label: string;
+      score: number;
+      weight: number;
+      explanation: string;
+    }>;
+    lactate_check_recommendations?: LactateCheckRecommendation[];
+    overrides_temporal_scoring: boolean;
+    reliability_warnings?: ReliabilityWarning[];
+    borderline?: boolean;
+    borderline_note?: string;
+    block_rationale?: BlockRationale | null;
+    block_explanation?: BlockExplanation | null;
+  } | null;
 };
 
 export type PlanningOverview = {

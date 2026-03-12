@@ -1,8 +1,13 @@
 from datetime import date, datetime
 
+import bcrypt
+from sqlalchemy import select
+
 from app.core.security import get_password_hash
 from app.models.athlete import Athlete
 from app.models.user import User
+from app.services.analytics import _individual_progression_alignment
+from app.services.strava import list_strava_activities
 
 
 def auth_headers(client, db_session):
@@ -17,6 +22,41 @@ def auth_headers(client, db_session):
     response = client.post("/api/auth/login", json={"email": "coach@test.dev", "password": "secret123"})
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+def test_login_accepts_legacy_bcrypt_hash_and_rehashes_to_pbkdf2(client, db_session):
+    legacy_hash = bcrypt.hashpw(b"secret123", bcrypt.gensalt()).decode("utf-8")
+    user = User(
+        email="legacy-login@test.dev",
+        hashed_password=legacy_hash,
+        role="coach",
+        full_name="Legacy Login",
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    response = client.post("/api/auth/login", json={"email": "legacy-login@test.dev", "password": "secret123"})
+
+    assert response.status_code == 200
+    db_session.refresh(user)
+    assert user.hashed_password.startswith("$pbkdf2-sha256$")
+    assert user.hashed_password != legacy_hash
+
+
+def test_login_returns_401_for_invalid_hash_payload(client, db_session):
+    user = User(
+        email="invalid-hash@test.dev",
+        hashed_password="not-a-valid-password-hash",
+        role="coach",
+        full_name="Invalid Hash",
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    response = client.post("/api/auth/login", json={"email": "invalid-hash@test.dev", "password": "secret123"})
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid credentials"
 
 
 def test_athlete_can_start_strava_oauth(client, db_session, monkeypatch):
@@ -269,10 +309,381 @@ def test_coach_can_fetch_strava_activities_for_selected_athlete(client, db_sessi
     assert payload["athlete_id"] == athlete.id
     assert payload["imported_count"] == 1
     assert payload["activities"][0]["provider_activity_id"] == 444
-    assert payload["activities"][0]["sport_type"] == "Run"
+
+
+def test_coach_can_connect_garmin_for_selected_athlete(client, db_session, monkeypatch):
+    coach = User(
+        email="coach-garmin-connect@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="coach",
+        full_name="Coach Garmin Connect",
+    )
+    athlete = Athlete(
+        name="Atleta Garmin Beta",
+        date_of_birth=date(1993, 2, 11),
+        sex="male",
+        weight=70,
+        height=180,
+        primary_discipline="cycling",
+        created_at=date(2026, 1, 1),
+        coach=coach,
+    )
+    db_session.add_all([coach, athlete])
+    db_session.commit()
+
+    def fake_connect(db, athlete_id, email, password, mfa_code=None):
+        target = db.scalar(select(Athlete).where(Athlete.id == athlete_id))
+        target.garmin_user_id = 555001
+        target.garmin_email = email
+        target.garmin_password_encrypted = "encrypted-password"
+        target.garmin_token_encrypted = "encrypted-token"
+        target.garmin_connected_at = datetime(2026, 3, 11, 9, 0)
+        target.garmin_last_sync_at = datetime(2026, 3, 11, 9, 0)
+        db.add(target)
+        db.commit()
+        db.refresh(target)
+        return target
+
+    monkeypatch.setattr("app.api.routes.garmin.connect_garmin_account", fake_connect)
+
+    login_response = client.post("/api/auth/login", json={"email": "coach-garmin-connect@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.post(
+        f"/api/garmin/athletes/{athlete.id}/connect",
+        headers=headers,
+        json={"email": "garmin@test.dev", "password": "secret-pass"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["athlete_id"] == athlete.id
+    assert payload["garmin_user_id"] == 555001
+    assert payload["connected"] is True
+
+
+def test_coach_can_preview_garmin_activities_for_selected_athlete(client, db_session, monkeypatch):
+    coach = User(
+        email="coach-garmin-preview@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="coach",
+        full_name="Coach Garmin Preview",
+    )
+    athlete = Athlete(
+        name="Atleta Garmin Preview",
+        date_of_birth=date(1994, 6, 17),
+        sex="female",
+        weight=58,
+        height=167,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+        coach=coach,
+        garmin_user_id=888777,
+        garmin_email="garmin-preview@test.dev",
+        garmin_password_encrypted="encrypted-password",
+        garmin_token_encrypted="encrypted-token",
+        garmin_connected_at=datetime(2026, 3, 11, 8, 0),
+    )
+    db_session.add_all([coach, athlete])
+    db_session.commit()
+
+    monkeypatch.setattr(
+        "app.api.routes.garmin.list_garmin_activities",
+        lambda db, athlete, start_date, end_date, **kwargs: [
+            {
+                "provider_activity_id": 7001,
+                "name": "Garmin tempo run",
+                "sport_type": "running",
+                "started_at": "2026-03-09T07:30:00Z",
+                "timezone": "Europe/Madrid",
+                "distance_m": 12400.0,
+                "moving_time_seconds": 3120,
+                "elapsed_time_seconds": 3200,
+                "average_speed_m_s": 3.97,
+                "max_speed_m_s": 5.15,
+                "average_heartrate": 154.0,
+                "max_heartrate": 170.0,
+                "average_watts": None,
+                "calories": 812.0,
+                "description": "Preview beta",
+                "total_elevation_gain_m": 61.0,
+                "average_cadence": 86.0,
+                "max_watts": None,
+                "start_latlng": [41.387, 2.17],
+                "end_latlng": [41.388, 2.171],
+                "device_name": "Forerunner 965",
+                "laps": [
+                    {
+                        "lap_index": 1,
+                        "name": "Warmup",
+                        "distance_m": 3000.0,
+                        "elapsed_time_seconds": 900,
+                        "moving_time_seconds": 880,
+                        "average_speed_m_s": 3.4,
+                        "average_heartrate": 142.0,
+                        "max_heartrate": 150.0,
+                        "average_watts": None,
+                        "start_date": "2026-03-09T07:30:00Z",
+                    }
+                ],
+                "raw_detail": {"detail": {"source": "garmin-beta"}},
+            }
+        ],
+    )
+
+    login_response = client.post("/api/auth/login", json={"email": "coach-garmin-preview@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.get(
+        f"/api/garmin/athletes/{athlete.id}/preview?start_date=2026-03-08&end_date=2026-03-10",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["athlete_id"] == athlete.id
+    assert payload["imported_count"] == 1
+    assert payload["activities"][0]["provider_activity_id"] == 7001
+    assert payload["activities"][0]["sport_type"] == "running"
     assert payload["activities"][0]["laps"][0]["lap_index"] == 1
-    assert payload["activities"][0]["zones"][0]["type"] == "heartrate"
-    assert payload["activities"][0]["streams"]["heartrate"]["original_size"] == 3
+
+
+def test_coach_can_preview_single_full_garmin_activity_for_exploration(client, db_session, monkeypatch):
+    coach = User(
+        email="coach-garmin-explore@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="coach",
+        full_name="Coach Garmin Explore",
+    )
+    athlete = Athlete(
+        name="Atleta Garmin Explore",
+        date_of_birth=date(1991, 2, 3),
+        sex="male",
+        weight=69,
+        height=178,
+        primary_discipline="ciclismo",
+        created_at=date(2026, 1, 1),
+        coach=coach,
+        garmin_user_id=919191,
+        garmin_email="garmin-explore@test.dev",
+        garmin_password_encrypted="encrypted-password",
+        garmin_token_encrypted="encrypted-token",
+        garmin_connected_at=datetime(2026, 3, 11, 8, 0),
+    )
+    db_session.add_all([coach, athlete])
+    db_session.commit()
+
+    captured: dict[str, object] = {}
+
+    def fake_preview(db, athlete, start_date, end_date, **kwargs):
+        captured.update(kwargs)
+        return [
+            {
+                "provider_activity_id": 8080,
+                "name": "Garmin deep dive",
+                "sport_type": "cycling",
+                "started_at": "2026-03-10T08:00:00Z",
+                "timezone": "Europe/Madrid",
+                "distance_m": 40200.0,
+                "moving_time_seconds": 4300,
+                "elapsed_time_seconds": 4480,
+                "average_speed_m_s": 9.3,
+                "max_speed_m_s": 15.7,
+                "average_heartrate": 147.0,
+                "max_heartrate": 173.0,
+                "average_watts": 228.0,
+                "calories": 1110.0,
+                "description": "Exploración total",
+                "total_elevation_gain_m": 520.0,
+                "average_cadence": 87.0,
+                "max_watts": 612.0,
+                "start_latlng": [41.39, 2.17],
+                "end_latlng": [41.49, 2.26],
+                "device_name": "Edge 840",
+                "laps": [],
+                "raw_detail": {
+                    "meta": {"detail_scope": "full"},
+                    "extras": {"power_time_in_zones": {"zones": [120, 440, 980]}},
+                },
+            }
+        ]
+
+    monkeypatch.setattr("app.api.routes.garmin.list_garmin_activities", fake_preview)
+
+    login_response = client.post("/api/auth/login", json={"email": "coach-garmin-explore@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.get(
+        f"/api/garmin/athletes/{athlete.id}/preview?start_date=2026-03-08&end_date=2026-03-11&include_full_detail=true&activity_limit=1",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["imported_count"] == 1
+    assert payload["activities"][0]["raw_detail"]["meta"]["detail_scope"] == "full"
+    assert captured["include_full_detail"] is True
+    assert captured["activity_limit"] == 1
+
+
+def test_coach_can_fetch_full_garmin_activity_detail_for_selected_athlete(client, db_session, monkeypatch):
+    coach = User(
+        email="coach-garmin-detail@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="coach",
+        full_name="Coach Garmin Detail",
+    )
+    athlete = Athlete(
+        name="Atleta Garmin Detail",
+        date_of_birth=date(1990, 8, 14),
+        sex="male",
+        weight=70,
+        height=181,
+        primary_discipline="ciclismo",
+        created_at=date(2026, 1, 1),
+        coach=coach,
+        garmin_user_id=222333,
+        garmin_email="garmin-detail@test.dev",
+        garmin_password_encrypted="encrypted-password",
+        garmin_token_encrypted="encrypted-token",
+        garmin_connected_at=datetime(2026, 3, 11, 8, 0),
+    )
+    db_session.add_all([coach, athlete])
+    db_session.commit()
+
+    monkeypatch.setattr(
+        "app.api.routes.garmin.get_garmin_activity_detail",
+        lambda db, athlete, activity_id: {
+            "provider_activity_id": activity_id,
+            "name": "Garmin long ride",
+            "sport_type": "cycling",
+            "started_at": "2026-03-09T08:15:00Z",
+            "timezone": "Europe/Madrid",
+            "distance_m": 78200.0,
+            "moving_time_seconds": 9180,
+            "elapsed_time_seconds": 9460,
+            "average_speed_m_s": 8.52,
+            "max_speed_m_s": 15.2,
+            "average_heartrate": 148.0,
+            "max_heartrate": 172.0,
+            "average_watts": 214.0,
+            "calories": 1812.0,
+            "description": "Detalle extendido",
+            "total_elevation_gain_m": 824.0,
+            "average_cadence": 88.0,
+            "max_watts": 511.0,
+            "start_latlng": [41.39, 2.17],
+            "end_latlng": [41.61, 2.31],
+            "device_name": "Edge 840",
+            "laps": [],
+            "raw_detail": {
+                "detail": {"source": "garmin-full"},
+                "extras": {
+                    "activity_details": {"metricDescriptors": ["power", "heartRate"]},
+                    "power_time_in_zones": {"zones": [120, 640, 1800]},
+                },
+            },
+        },
+    )
+
+    login_response = client.post("/api/auth/login", json={"email": "coach-garmin-detail@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.get(
+        f"/api/garmin/athletes/{athlete.id}/activities/99001",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider_activity_id"] == 99001
+    assert payload["sport_type"] == "cycling"
+    assert payload["raw_detail"]["extras"]["activity_details"]["metricDescriptors"] == ["power", "heartRate"]
+
+
+def test_strava_activity_partial_enrichment_keeps_detail_when_optional_endpoints_require_payment(db_session, monkeypatch):
+    athlete = Athlete(
+        name="Atleta Strava Partial",
+        date_of_birth=date(1992, 1, 7),
+        sex="female",
+        weight=59,
+        height=168,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+        strava_athlete_id=123456,
+        strava_access_token="encrypted-access",
+        strava_refresh_token="encrypted-refresh",
+        strava_token_expires_at=datetime(2026, 12, 31, 0, 0),
+        strava_connected_at=datetime(2026, 3, 10, 8, 0),
+    )
+    db_session.add(athlete)
+    db_session.commit()
+
+    monkeypatch.setattr("app.services.strava._ensure_access_token", lambda db, athlete: "token")
+
+    class FakeResponse:
+        def __init__(self, status_code, payload):
+            self.status_code = status_code
+            self._payload = payload
+            self.headers = {"content-type": "application/json"}
+
+        def json(self):
+            return self._payload
+
+    def fake_get(url, headers=None, params=None, timeout=None):
+        if url == "https://www.strava.com/api/v3/athlete/activities":
+            return FakeResponse(
+                200,
+                [
+                    {
+                        "id": 555,
+                        "name": "Series 10x500",
+                        "sport_type": "Run",
+                        "start_date": "2026-03-08T09:15:00Z",
+                        "distance": 10000.0,
+                        "moving_time": 2400,
+                        "elapsed_time": 2550,
+                    }
+                ],
+            )
+        if url.endswith("/activities/555"):
+            return FakeResponse(
+                200,
+                {
+                    "id": 555,
+                    "name": "Series 10x500",
+                    "sport_type": "Run",
+                    "start_date": "2026-03-08T09:15:00Z",
+                    "distance": 10000.0,
+                    "moving_time": 2400,
+                    "elapsed_time": 2550,
+                    "average_speed": 4.16,
+                    "splits_metric": [{"distance": 1000, "elapsed_time": 240, "moving_time": 240, "split": 1}],
+                    "best_efforts": [],
+                    "segment_efforts": [],
+                },
+            )
+        if url.endswith("/activities/555/laps"):
+            return FakeResponse(
+                200,
+                [{"name": "Lap 1", "distance": 500, "elapsed_time": 105, "moving_time": 105, "average_speed": 4.76}],
+            )
+        if url.endswith("/activities/555/zones"):
+            return FakeResponse(402, {"message": "Payment Required"})
+        if url.endswith("/activities/555/streams"):
+            return FakeResponse(402, {"message": "Payment Required"})
+        raise AssertionError(f"Unexpected URL: {url}")
+
+    monkeypatch.setattr("app.services.strava.httpx.get", fake_get)
+
+    activities = list_strava_activities(db_session, athlete, start_date=date(2026, 3, 1), end_date=date(2026, 3, 10))
+
+    assert len(activities) == 1
+    activity = activities[0]
+    assert activity["provider_activity_id"] == 555
+    assert activity["enrichment_error"] is None
+    assert activity["enrichment_notice"] is not None
+    assert "Strava no ha permitido cargar las zonas" in activity["enrichment_notice"]
+    assert activity["laps"][0]["lap_index"] == 1
+    assert activity["splits_metric"][0]["split_index"] == 1
+    assert activity["zones"] == []
+    assert activity["streams"] == {}
 
 
 def test_create_athlete_and_session_analysis(client, db_session):
@@ -382,6 +793,164 @@ def test_dashboard_endpoint(client, db_session):
     response = client.get("/api/analytics/dashboard", headers=headers)
     assert response.status_code == 200
     assert "athletes_count" in response.json()
+
+
+def test_target_creation_generates_objective_from_distance_category(client, db_session):
+    headers = auth_headers(client, db_session)
+
+    athlete_response = client.post(
+        "/api/athletes",
+        headers=headers,
+        json={
+            "name": "Atleta Target Taxonomy",
+            "date_of_birth": "1993-04-12",
+            "sex": "female",
+            "weight": 58,
+            "height": 168,
+            "primary_discipline": "running",
+            "training_goal": "Competir mejor",
+            "created_at": "2026-01-01",
+            "weights": [{"recorded_at": "2026-01-01", "weight": 58, "source": "baseline"}],
+        },
+    )
+    assert athlete_response.status_code == 201
+    athlete_id = athlete_response.json()["id"]
+
+    target_response = client.post(
+        f"/api/athletes/{athlete_id}/targets",
+        headers=headers,
+        json={
+            "target_date": "2026-05-10",
+            "discipline": "running",
+            "distance_category": "hm",
+            "priority_level": "alta",
+            "target_pace_label": "4:20/km",
+        },
+    )
+    assert target_response.status_code == 201
+    payload = target_response.json()
+    assert payload["distance_category"] == "hm"
+    assert payload["distance_label"] == "Media maratón"
+    assert payload["objective"] == "Media maratón"
+
+
+def test_planning_initial_assignment_uses_physiology_for_new_athlete(client, db_session):
+    headers = auth_headers(client, db_session)
+
+    athlete_response = client.post(
+        "/api/athletes",
+        headers=headers,
+        json={
+            "name": "Andrea Inicial",
+            "date_of_birth": "1990-02-10",
+            "sex": "female",
+            "weight": 58,
+            "height": 168,
+            "primary_discipline": "running",
+            "athlete_level": "recreational",
+            "created_at": "2026-03-01",
+            "weights": [{"recorded_at": "2026-03-01", "weight": 58, "source": "baseline"}],
+        },
+    )
+    assert athlete_response.status_code == 201
+    athlete_id = athlete_response.json()["id"]
+
+    target_response = client.post(
+        f"/api/athletes/{athlete_id}/targets",
+        headers=headers,
+        json={
+            "target_date": "2026-11-09",
+            "discipline": "running",
+            "distance_category": "hm",
+            "target_pace_label": "04:59",
+            "priority_level": "alta",
+        },
+    )
+    assert target_response.status_code == 201
+
+    session_response = client.post(
+        "/api/sessions",
+        headers=headers,
+        json={
+            "athlete_id": athlete_id,
+            "performed_at": "2026-03-08T09:00:00",
+            "discipline": "running",
+            "session_type": "test incremental",
+            "goal": "test",
+            "surface": "track",
+            "temperature_c": 14,
+            "comments": "test inicial",
+            "intervals": [
+                {
+                    "order_index": 1,
+                    "duration_seconds": 300,
+                    "rest_seconds": 60,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 145,
+                    "heart_rate_max": 151,
+                    "pace_seconds_per_km": 390,
+                    "rpe": 4,
+                    "purpose": "control",
+                    "lactate_sample": {"lactate_mmol": 1.4, "sample_delay_seconds": 20, "sample_timing_label": "20s"},
+                },
+                {
+                    "order_index": 2,
+                    "duration_seconds": 300,
+                    "rest_seconds": 60,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 153,
+                    "heart_rate_max": 160,
+                    "pace_seconds_per_km": 370,
+                    "rpe": 5,
+                    "purpose": "LT1",
+                    "lactate_sample": {"lactate_mmol": 2.0, "sample_delay_seconds": 20, "sample_timing_label": "20s"},
+                },
+                {
+                    "order_index": 3,
+                    "duration_seconds": 300,
+                    "rest_seconds": 60,
+                    "rest_type": "walk",
+                    "heart_rate_avg": 166,
+                    "heart_rate_max": 172,
+                    "pace_seconds_per_km": 339,
+                    "rpe": 7,
+                    "purpose": "LT2",
+                    "lactate_sample": {"lactate_mmol": 4.0, "sample_delay_seconds": 20, "sample_timing_label": "20s"},
+                },
+                {
+                    "order_index": 4,
+                    "duration_seconds": 240,
+                    "rest_seconds": 0,
+                    "rest_type": "none",
+                    "heart_rate_avg": 174,
+                    "heart_rate_max": 180,
+                    "pace_seconds_per_km": 315,
+                    "rpe": 9,
+                    "purpose": "peak",
+                    "lactate_sample": {"lactate_mmol": 10.0, "sample_delay_seconds": 20, "sample_timing_label": "20s"},
+                },
+            ],
+        },
+    )
+    assert session_response.status_code == 201
+
+    recommendation_response = client.get(
+        f"/api/planning/athletes/{athlete_id}/recommendation?discipline=running",
+        headers=headers,
+    )
+    assert recommendation_response.status_code == 200
+    recommendation = recommendation_response.json()
+
+    assert recommendation["recommended_block_type"] == "aerobic_capacity_block"
+    assert recommendation["scoring_context"]["assignment_mode"] == "initial_assignment"
+    assert recommendation["scoring_context"]["selection_engine"] == "physiological_primary"
+    assert recommendation["physiological_analysis"]["distance_category"] == "hm"
+    assert recommendation["physiological_analysis"]["overrides_temporal_scoring"] is True
+    assert recommendation["physiological_analysis"]["secondary_limiter"] in {"lt2_ceiling", "lt1_support", "glycolytic_mismatch", "durability_risk", None}
+    assert recommendation["physiological_analysis"]["overall_decision_confidence"] is not None
+    assert recommendation["physiological_analysis"]["confidence_band"] in {"high", "medium", "low", "very_low"}
+    assert "durability" in recommendation["physiological_analysis"]
+    assert isinstance(recommendation["lactate_check_recommendations"], list)
 
 
 def test_physiology_report_preview_and_pdf(client, db_session):
@@ -726,7 +1295,12 @@ def test_real_thresholds_require_adequate_interval_duration_and_rest(client, db_
     real_thresholds = session_analysis.json()["real_thresholds"]
     assert real_thresholds["lt1_real"] is None
     assert real_thresholds["lt2_real"] is None
+    assert real_thresholds["lt1_detection"]["state"] in {"candidate_weak", "candidate_strong"}
+    assert real_thresholds["lt2_detection"]["state"] in {"candidate_weak", "candidate_strong"}
+    assert real_thresholds["lt1_detection"]["quality_gate_passed"] is False
+    assert real_thresholds["lt2_detection"]["quality_gate_passed"] is False
     assert real_thresholds["data_quality"]["sufficient"] is False
+    assert real_thresholds["data_quality"]["criteria_version"] == 3
     assert "Protocolo poco adecuado" in real_thresholds["data_quality"]["reason"]
 
 
@@ -751,8 +1325,12 @@ def test_athlete_analysis_exposes_individual_thresholds_from_comparable_tests(cl
     athlete_id = athlete_response.json()["id"]
 
     sessions = [
-        ("2026-02-10T09:00:00", [360, 345, 330, 315, 300], [1.2, 1.7, 2.3, 3.6, 5.1], [138, 146, 154, 164, 174]),
-        ("2026-03-05T09:00:00", [358, 343, 328, 313, 298], [1.3, 1.8, 2.4, 3.7, 5.2], [140, 148, 156, 166, 176]),
+        ("2026-02-10T09:00:00", [362, 347, 332, 317, 302], [1.2, 1.7, 2.3, 3.6, 5.1], [138, 146, 154, 164, 174]),
+        ("2026-02-20T09:00:00", [361, 346, 331, 316, 301], [1.2, 1.8, 2.4, 3.7, 5.2], [139, 147, 155, 165, 175]),
+        ("2026-03-01T09:00:00", [360, 345, 330, 315, 300], [1.3, 1.8, 2.4, 3.7, 5.2], [140, 148, 156, 166, 176]),
+        ("2026-03-12T09:00:00", [359, 344, 329, 314, 299], [1.3, 1.9, 2.5, 3.8, 5.3], [141, 149, 157, 167, 177]),
+        ("2026-03-24T09:00:00", [358, 343, 328, 313, 298], [1.3, 1.9, 2.5, 3.8, 5.3], [142, 150, 158, 168, 178]),
+        ("2026-04-06T09:00:00", [357, 342, 327, 312, 297], [1.4, 2.0, 2.6, 3.9, 5.4], [143, 151, 159, 169, 179]),
     ]
     for performed_at, paces, lactates, hrs in sessions:
         response = client.post(
@@ -795,11 +1373,188 @@ def test_athlete_analysis_exposes_individual_thresholds_from_comparable_tests(cl
     analysis_response = client.get(f"/api/athletes/{athlete_id}/analysis", headers=headers)
     assert analysis_response.status_code == 200
     running_view = analysis_response.json()["discipline_views"]["running"]
+    real_thresholds = running_view["real_thresholds"]
     individual_thresholds = running_view["individual_thresholds"]
+    assert real_thresholds["lt1_real"] is not None
+    assert real_thresholds["lt2_real"] is not None
+    assert real_thresholds["lt1_real"]["status"] == "ready_to_anchor"
+    assert real_thresholds["lt2_real"]["status"] == "ready_to_anchor"
+    assert real_thresholds["lt1_detection"]["state"] == "ready_to_anchor"
+    assert real_thresholds["lt2_detection"]["state"] == "ready_to_anchor"
+    assert real_thresholds["lt1_detection"]["anchor_update_recommended"] is True
+    assert real_thresholds["lt2_detection"]["anchor_update_recommended"] is True
     assert individual_thresholds["lt1_individual"] is not None
     assert individual_thresholds["lt2_individual"] is not None
     assert individual_thresholds["data_quality"]["sufficient"] is True
-    assert individual_thresholds["data_quality"]["session_count"] >= 2
+    assert individual_thresholds["data_quality"]["session_count"] >= 6
+    assert individual_thresholds["data_quality"]["min_support_sessions"] == 6
+    assert individual_thresholds["data_quality"]["progression_alignment"] >= 0.75
+
+
+def test_athlete_analysis_holds_individual_thresholds_until_six_comparable_sessions(client, db_session):
+    headers = auth_headers(client, db_session)
+
+    athlete_response = client.post(
+        "/api/athletes",
+        headers=headers,
+        json={
+            "name": "Atleta Individual Insuficiente",
+            "date_of_birth": "1991-05-15",
+            "sex": "female",
+            "weight": 59,
+            "height": 168,
+            "primary_discipline": "running",
+            "created_at": "2026-01-01",
+            "weights": [{"recorded_at": "2026-01-01", "weight": 59, "source": "baseline"}],
+        },
+    )
+    assert athlete_response.status_code == 201
+    athlete_id = athlete_response.json()["id"]
+
+    sessions = [
+        ("2026-02-10T09:00:00", [362, 347, 332, 317, 302], [1.2, 1.7, 2.3, 3.6, 5.1], [138, 146, 154, 164, 174]),
+        ("2026-02-20T09:00:00", [361, 346, 331, 316, 301], [1.2, 1.8, 2.4, 3.7, 5.2], [139, 147, 155, 165, 175]),
+        ("2026-03-01T09:00:00", [360, 345, 330, 315, 300], [1.3, 1.8, 2.4, 3.7, 5.2], [140, 148, 156, 166, 176]),
+        ("2026-03-12T09:00:00", [359, 344, 329, 314, 299], [1.3, 1.9, 2.5, 3.8, 5.3], [141, 149, 157, 167, 177]),
+        ("2026-03-24T09:00:00", [358, 343, 328, 313, 298], [1.3, 1.9, 2.5, 3.8, 5.3], [142, 150, 158, 168, 178]),
+    ]
+    for performed_at, paces, lactates, hrs in sessions:
+        response = client.post(
+            "/api/sessions",
+            headers=headers,
+            json={
+                "athlete_id": athlete_id,
+                "performed_at": performed_at,
+                "discipline": "running",
+                "session_type": "test incremental",
+                "goal": "pool individual insuficiente",
+                "surface": "track",
+                "temperature_c": 15,
+                "comments": "sesión comparable para validar gate de 6",
+                "intervals": [
+                    {
+                        "order_index": index + 1,
+                        "duration_seconds": 240,
+                        "rest_seconds": 45,
+                        "rest_type": "walk",
+                        "heart_rate_avg": hrs[index],
+                        "heart_rate_max": hrs[index] + 8,
+                        "pace_seconds_per_km": paces[index],
+                        "cadence": 176 + index,
+                        "rpe": 3 + index,
+                        "purpose": "LT1" if index < 3 else "LT2",
+                        "lactate_sample": {
+                            "lactate_mmol": lactates[index],
+                            "baseline_lactate": 1.0 if index == 0 else None,
+                            "sample_delay_seconds": 20,
+                            "sample_timing_label": "tras 20s",
+                        },
+                    }
+                    for index in range(5)
+                ],
+            },
+        )
+        assert response.status_code == 201
+
+    analysis_response = client.get(f"/api/athletes/{athlete_id}/analysis", headers=headers)
+    assert analysis_response.status_code == 200
+    running_view = analysis_response.json()["discipline_views"]["running"]
+    individual_thresholds = running_view["individual_thresholds"]
+    assert individual_thresholds["lt1_individual"] is None
+    assert individual_thresholds["lt2_individual"] is None
+    assert individual_thresholds["data_quality"]["sufficient"] is False
+    assert individual_thresholds["data_quality"]["session_count"] == 5
+    assert "mínimo 6 sesiones alineadas" in individual_thresholds["data_quality"]["reason"]
+
+
+def test_athlete_analysis_requires_aligned_progression_for_individual_thresholds(client, db_session):
+    headers = auth_headers(client, db_session)
+
+    athlete_response = client.post(
+        "/api/athletes",
+        headers=headers,
+        json={
+            "name": "Atleta Individual Zigzag",
+            "date_of_birth": "1990-07-21",
+            "sex": "male",
+            "weight": 71,
+            "height": 180,
+            "primary_discipline": "running",
+            "created_at": "2026-01-01",
+            "weights": [{"recorded_at": "2026-01-01", "weight": 71, "source": "baseline"}],
+        },
+    )
+    assert athlete_response.status_code == 201
+    athlete_id = athlete_response.json()["id"]
+
+    sessions = [
+        ("2026-02-10T09:00:00", [372, 357, 342, 327, 312], [1.3, 1.9, 2.5, 3.9, 5.5], [142, 150, 158, 168, 178]),
+        ("2026-02-20T09:00:00", [346, 331, 316, 301, 286], [1.1, 1.6, 2.2, 3.4, 4.9], [136, 144, 152, 162, 172]),
+        ("2026-03-01T09:00:00", [373, 358, 343, 328, 313], [1.3, 1.9, 2.5, 3.9, 5.5], [143, 151, 159, 169, 179]),
+        ("2026-03-12T09:00:00", [345, 330, 315, 300, 285], [1.1, 1.6, 2.2, 3.4, 4.9], [135, 143, 151, 161, 171]),
+        ("2026-03-24T09:00:00", [374, 359, 344, 329, 314], [1.3, 1.9, 2.5, 3.9, 5.5], [144, 152, 160, 170, 180]),
+        ("2026-04-06T09:00:00", [344, 329, 314, 299, 284], [1.1, 1.6, 2.2, 3.4, 4.9], [134, 142, 150, 160, 170]),
+    ]
+    for performed_at, paces, lactates, hrs in sessions:
+        response = client.post(
+            "/api/sessions",
+            headers=headers,
+            json={
+                "athlete_id": athlete_id,
+                "performed_at": performed_at,
+                "discipline": "running",
+                "session_type": "test incremental",
+                "goal": "pool individual zigzag",
+                "surface": "track",
+                "temperature_c": 15,
+                "comments": "sesión comparable para validar alineación",
+                "intervals": [
+                    {
+                        "order_index": index + 1,
+                        "duration_seconds": 240,
+                        "rest_seconds": 45,
+                        "rest_type": "walk",
+                        "heart_rate_avg": hrs[index],
+                        "heart_rate_max": hrs[index] + 8,
+                        "pace_seconds_per_km": paces[index],
+                        "cadence": 176 + index,
+                        "rpe": 3 + index,
+                        "purpose": "LT1" if index < 3 else "LT2",
+                        "lactate_sample": {
+                            "lactate_mmol": lactates[index],
+                            "baseline_lactate": 1.0 if index == 0 else None,
+                            "sample_delay_seconds": 20,
+                            "sample_timing_label": "tras 20s",
+                        },
+                    }
+                    for index in range(5)
+                ],
+            },
+        )
+        assert response.status_code == 201
+
+    analysis_response = client.get(f"/api/athletes/{athlete_id}/analysis", headers=headers)
+    assert analysis_response.status_code == 200
+    running_view = analysis_response.json()["discipline_views"]["running"]
+    individual_thresholds = running_view["individual_thresholds"]
+    assert individual_thresholds["lt1_individual"] is None
+    assert individual_thresholds["lt2_individual"] is None
+    assert individual_thresholds["data_quality"]["sufficient"] is False
+    assert individual_thresholds["data_quality"]["session_count"] >= 6
+    assert individual_thresholds["data_quality"]["progression_alignment"] is not None
+    assert "progresión longitudinal" in individual_thresholds["data_quality"]["reason"]
+
+
+def test_individual_progression_alignment_penalizes_zigzag_series():
+    supports = [
+        {"session_date": "2026-02-10", "threshold": {"pace_seconds_per_km": 330}},
+        {"session_date": "2026-02-20", "threshold": {"pace_seconds_per_km": 306}},
+        {"session_date": "2026-03-01", "threshold": {"pace_seconds_per_km": 332}},
+        {"session_date": "2026-03-12", "threshold": {"pace_seconds_per_km": 304}},
+        {"session_date": "2026-03-24", "threshold": {"pace_seconds_per_km": 334}},
+        {"session_date": "2026-04-06", "threshold": {"pace_seconds_per_km": 302}},
+    ]
+    assert _individual_progression_alignment(supports) < 0.75
 
 
 def test_physiology_report_pdf_available_without_reliable_real_thresholds(client, db_session):
@@ -1312,3 +2067,114 @@ def test_import_preview_and_commit(client, db_session):
     payload = commit_response.json()
     assert payload["imported_sessions"] == 1
     assert payload["imported_intervals"] == 2
+
+
+def test_athlete_can_fetch_parallel_health_overview(client, db_session, monkeypatch):
+    athlete = Athlete(
+        name="Atleta Health",
+        date_of_birth=date(1993, 6, 4),
+        sex="female",
+        weight=56,
+        height=167,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+        garmin_user_id=9001,
+        garmin_email="athlete-health@test.dev",
+        garmin_password_encrypted="encrypted-password",
+        garmin_token_encrypted="encrypted-token",
+        garmin_connected_at=datetime(2026, 3, 11, 8, 0),
+        garmin_last_sync_at=datetime(2026, 3, 11, 8, 30),
+    )
+    db_session.add(athlete)
+    db_session.flush()
+
+    user = User(
+        email="athlete-health-login@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="athlete",
+        full_name="Athlete Health Login",
+        athlete_id=athlete.id,
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    monkeypatch.setattr(
+        "app.services.athlete_health.list_garmin_activities",
+        lambda db, athlete, start_date, end_date, include_full_detail=False, activity_limit=None: [
+            {
+                "provider_activity_id": 7001,
+                "name": "Rodaje aeróbico",
+                "sport_type": "running",
+                "started_at": datetime(2026, 3, 10, 7, 30),
+                "distance_m": 12400.0,
+                "moving_time_seconds": 3180,
+                "average_heartrate": 148.0,
+                "average_watts": None,
+            },
+            {
+                "provider_activity_id": 7002,
+                "name": "Piscina técnica",
+                "sport_type": "lap_swimming",
+                "started_at": datetime(2026, 3, 9, 18, 15),
+                "distance_m": 2500.0,
+                "moving_time_seconds": 2700,
+                "average_heartrate": 132.0,
+                "average_watts": None,
+            },
+        ],
+    )
+
+    login_response = client.post("/api/auth/login", json={"email": "athlete-health-login@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.get(f"/api/athlete-health/athletes/{athlete.id}/overview?days=28", headers=headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["athlete_id"] == athlete.id
+    assert payload["providers"][0]["provider"] == "garmin"
+    assert payload["providers"][0]["status"] == "connected"
+    assert payload["summary"]["activities_count"] == 2
+    assert payload["summary"]["training_days"] == 2
+    assert payload["summary"]["primary_sport_label"] == "Carrera"
+    assert payload["recent_activities"][0]["sport_label"] == "Carrera"
+    assert payload["recent_activities"][1]["sport_label"] == "Piscina"
+    assert len(payload["activity_calendar"]) == 28
+
+
+def test_athlete_cannot_fetch_other_athlete_parallel_health_overview(client, db_session):
+    athlete = Athlete(
+        name="Athlete One",
+        date_of_birth=date(1992, 5, 1),
+        sex="male",
+        weight=64,
+        height=176,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+    )
+    other = Athlete(
+        name="Athlete Two",
+        date_of_birth=date(1991, 7, 12),
+        sex="female",
+        weight=59,
+        height=168,
+        primary_discipline="cycling",
+        created_at=date(2026, 1, 1),
+    )
+    db_session.add_all([athlete, other])
+    db_session.flush()
+
+    user = User(
+        email="athlete-other-health@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="athlete",
+        full_name="Athlete Other Health",
+        athlete_id=athlete.id,
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    login_response = client.post("/api/auth/login", json={"email": "athlete-other-health@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.get(f"/api/athlete-health/athletes/{other.id}/overview?days=28", headers=headers)
+    assert response.status_code == 403

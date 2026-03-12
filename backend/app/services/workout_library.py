@@ -496,11 +496,12 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="run_e2_steady",
         discipline="running",
-        compatible_block_types=("aerobic_capacity_block", "threshold_development_block", "competition_specific_block"),
+        # E2 = zona entre LT1 y LT2 — eso es THR/transición, NO AEC (Olbrecht: AEC es sub-LT1)
+        compatible_block_types=("threshold_development_block", "competition_specific_block"),
         session_role="support",
         session_family="e2_steady",
         public_label="Aeróbico sostenido E2",
-        summary="Rodaje sostenido algo más vivo que el rodaje base, útil para puentes entre base y umbral.",
+        summary="Rodaje sostenido en zona E2 (entre LT1 y LT2), útil como soporte en semanas de umbral.",
         objective="Aumentar tiempo útil en zona aeróbica alta con control interno.",
         dose_guidance="45-75' sostenidos en E2 o aeróbico medio, sin llegar a umbral.",
         progression_axes=("Subir minutos útiles", "Mejorar estabilidad del ritmo", "Reducir deriva cardiaca"),
@@ -1045,11 +1046,12 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="bike_endurance_tempo",
         discipline="ciclismo",
-        compatible_block_types=("aerobic_capacity_block", "threshold_development_block", "competition_specific_block"),
+        # D2/tempo = zona LT1-LT2 — THR/transición, NO AEC (Olbrecht: AEC = sub-LT1 con spices cortos)
+        compatible_block_types=("threshold_development_block", "competition_specific_block"),
         session_role="key",
         session_family="endurance_tempo",
         public_label="Endurance con bloques tempo",
-        summary="Salida larga con inserciones sostenidas para mejorar resistencia específica sin ir de lleno al umbral.",
+        summary="Salida larga con inserciones D2/tempo para mejorar resistencia específica en zona de transición.",
         objective="Construir durabilidad con soporte de potencia media útil.",
         dose_guidance="2.5-5 h con 1-2 bloques largos tipo D2/tempo dentro de la salida.",
         progression_axes=("Alargar el tiempo de los bloques", "Ajustar el momento del bloque dentro de la salida", "Mejorar estabilidad"),
@@ -1552,11 +1554,12 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="swim_anc_speed_combo",
         discipline="natación",
-        compatible_block_types=("aerobic_power_block", "competition_specific_block"),
+        # Fix: sesiones cortas máximas con descanso largo = ANC (Olbrecht). Añadido anaerobic_capacity_block.
+        compatible_block_types=("anaerobic_capacity_block", "aerobic_power_block", "competition_specific_block"),
         session_role="key",
         session_family="anc_speed_combo",
-        public_label="ANC / velocidad alta",
-        summary="Sesión de velocidad y capacidad anaeróbica muy acotada para elevar la parte alta del sistema en agua.",
+        public_label="ANC natación / series cortas máximas",
+        summary="Series cortas casi-máximas con recuperación suficiente: ANC (construir VLamax) o spice AEP.",
         objective="Mejorar tolerancia a ritmos muy altos y reclutamiento.",
         dose_guidance="Series cortas muy rápidas, con recuperación suficiente para preservar calidad.",
         progression_axes=("Añadir pocas repeticiones", "Mejorar calidad técnica a máxima velocidad", "Mantener recuperación"),
@@ -1769,6 +1772,570 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("solli_2017_xc",),
         csv_examples=("45' caminata", "60' hike suave", "75' paseo activo"),
     ),
+
+    # ════════════════════════════════════════════════════════════════════════
+    # BLOQUE ANC — Anaerobic Capacity Block (Olbrecht)
+    # Objetivo: elevar VLamax (tasa máxima de glucólisis).
+    # Patrón: intervalos MUY CORTOS (15-40s), casi-máximos/máximos, descanso PASIVO ≥ tiempo esfuerzo.
+    # Uso: base_late + perfil diesel (VLamax baja) + prueba corta (5k, 10k, sprint tri, pool 400).
+    # Referencia: Olbrecht SoW cap.2, líneas 1143-1151.
+    # ════════════════════════════════════════════════════════════════════════
+
+    WorkoutTemplate(
+        template_id="run_anc_short_reps",
+        discipline="running",
+        compatible_block_types=("anaerobic_capacity_block", "aerobic_capacity_block"),
+        session_role="key",
+        session_family="anc_short_reps",
+        public_label="ANC running — esfuerzos cortos casi-máximos",
+        summary="Series muy cortas y explosivas (20-40s) para estimular VLamax sin destruir la base aeróbica.",
+        objective="Elevar capacidad glucolítica (VLamax) y tolerancia al esfuerzo corto e intenso.",
+        dose_guidance="6-10 x 20-40'' al 93-98% con descanso PASIVO 45-90''. AL INICIO del entreno, seguido de base sub-LT1.",
+        progression_axes=("Añadir una repetición", "Ajustar intensidad al 95-98%", "Mantener calidad en todas"),
+        control_points=("Velocidad real alta en cada repetición", "Descanso pasivo respetado", "Siguiente serie útil"),
+        expected_adaptations=("Mayor capacidad glucolítica (VLamax)", "Mejor tolerancia al esfuerzo corto e intenso"),
+        cautions=(
+            "Siempre AL INICIO de la sesión — nunca al final (Olbrecht líneas 1066-1067)",
+            "Descanso PASIVO obligatorio: sentado o parado, no trote activo",
+            "Máximo 1-2 sesiones ANC/semana en fase base",
+            "En atletas con VLamax ya alta (ratio LT1/LT2 < 0.79): dosis mínima 3-4 reps",
+            "Olbrecht: 'thin ice' — si la base es débil, el ANC puede destruirla",
+        ),
+        confidence=0.86,
+        evidence_ids=("storen_2011_running_strength", "ronnestad_2016_block"),
+        csv_examples=("5 x 8'' hill sprints 95-98%", "5 x 20'' strides 95%", "8 x 20'' recta casi-máxima", "3 x 20'' + 2 x 30'' progresivos"),
+        fatigue_cost=4,
+        min_spacing_days_after=2,
+        requires_fresh=True,
+        incompatible_adjacent_families=("lt2_cruise_intervals", "threshold_continuous", "vo2_hills"),
+        calentamiento_min=20,
+        calentamiento_template="15-20' rodaje suave + movilidad dinámica ligera.",
+        enfriamiento_min=15,
+        enfriamiento_template="15-20' rodaje sub-LT1 muy suave (la 'cola extensiva' AEC de Olbrecht).",
+        coach_tips=(
+            "Si la última serie es peor que la primera, el descanso era insuficiente.",
+            "Este es el 'spice' AEC de Olbrecht: siempre al inicio, nunca al final.",
+            "En atletas con LT1/LT2 ratio < 0.79 (VLamax alta): reducir a 3 reps o eliminar.",
+        ),
+    ),
+    WorkoutTemplate(
+        template_id="bike_anc_power_sprints",
+        discipline="ciclismo",
+        compatible_block_types=("anaerobic_capacity_block", "aerobic_capacity_block"),
+        session_role="key",
+        session_family="anc_power_sprints",
+        public_label="ANC ciclismo — arrancadas de fuerza cortas",
+        summary="Arrancadas semi-paradas a máxima velocidad para estimular VLamax y fuerza específica de sprint.",
+        objective="Desarrollar capacidad anaeróbica glucolítica (VLamax) con máxima aplicación de fuerza.",
+        dose_guidance="6-12 x 8-15'' semi-parado a velocidad máxima. Descanso PASIVO 2-3'. Seguido de base LT1.",
+        progression_axes=("Añadir repeticiones de 2 en 2", "Mejorar potencia pico", "Mantener recuperación completa"),
+        control_points=("Potencia pico máxima en cada arrancada", "Descanso completo respetado", "Calidad técnica del pedaleo"),
+        expected_adaptations=("Mayor VLamax ciclista", "Más fuerza específica y potencia pico", "Mejor economía de sprint"),
+        cautions=(
+            "AL INICIO de la sesión, nunca al final de un bloque LT1/LT2",
+            "Descanso PASIVO: bajarse de la bici o pedalear muy suave 2-3'",
+            "En atletas con VLamax alta: dosis reducida 4-6 repeticiones",
+            "Separar 48h de sesión LT2 o VO2",
+        ),
+        confidence=0.88,
+        evidence_ids=("ronnestad_2022_strength", "ronnestad_2016_block"),
+        csv_examples=(
+            "6 x 8'' Fuerza Q2 semi-parado",
+            "8 x 8'' Fuerza Q2 máx velocidad",
+            "10 x 8'' Fuerza Q2 máx velocidad",
+            "12 x 10'' arrancadas semi-paradas",
+        ),
+        fatigue_cost=4,
+        min_spacing_days_after=2,
+        requires_fresh=True,
+        incompatible_adjacent_families=("lt2_halfpace", "over_under_threshold", "vo2_power"),
+        calentamiento_min=15,
+        calentamiento_template="15' suave 100-130w cadencia libre.",
+        enfriamiento_min=30,
+        enfriamiento_template="30-45' sub-LT1 muy suave (la 'cola extensiva' AEC de Olbrecht).",
+        coach_tips=(
+            "Semi-parado = cadencia <40-50rpm antes del esfuerzo. El objetivo es máxima fuerza, no velocidad sostenida.",
+            "Si el pico de potencia cae >15% entre sprints: descanso insuficiente.",
+            "Estas arrancadas son las 'Fuerza Q2' del CSV de Nacho — formato de referencia con docenas de sesiones reales.",
+        ),
+        dose_ladder=(
+            DoseStep(1, "6×8'' ANC",   0, 2.0, "ANC",  "fresh", "Introducción; pocas repeticiones, máxima calidad.", 60),
+            DoseStep(2, "8×8'' ANC",   0, 2.0, "ANC",  "fresh", "Primer volumen real ANC en bici.", 70),
+            DoseStep(3, "10×8'' ANC",  0, 2.0, "ANC",  "fresh", "Clásico del CSV — referencia de la mayoría de sesiones.", 80),
+            DoseStep(4, "12×10'' ANC", 0, 3.0, "ANC",  "fresh", "Carga alta; solo atletas robustos con señal positiva.", 90),
+        ),
+    ),
+    WorkoutTemplate(
+        template_id="swim_anc_capacity_sets",
+        discipline="natación",
+        compatible_block_types=("anaerobic_capacity_block", "aerobic_capacity_block"),
+        session_role="key",
+        session_family="anc_capacity_sets",
+        public_label="ANC natación — series cortas glucolíticas",
+        summary="Series muy cortas y casi-máximas para estimular VLamax en agua. Patrón ANC de Olbrecht.",
+        objective="Elevar capacidad anaeróbica glucolítica (VLamax) en natación.",
+        dose_guidance="12-20 x 25m casi-máximos con descanso PASIVO 30-45''. AL INICIO, seguido de volumen LT1.",
+        progression_axes=("Añadir repeticiones de 2 en 2", "Afinar velocidad", "Mantener calidad estable"),
+        control_points=("Velocidad estable en las primeras 8 reps", "Descanso pasivo respetado", "Técnica no colapsa"),
+        expected_adaptations=("Mayor VLamax en natación", "Mejor base para AEP y ANP posteriores"),
+        cautions=(
+            "AL INICIO de la sesión según Olbrecht — nunca al final",
+            "Descanso PASIVO (agarrado al borde), no activo",
+            "Atletas con VLamax alta: reducir a 8-10 repeticiones",
+            "No combinar con CSS/umbral el mismo día",
+        ),
+        confidence=0.87,
+        evidence_ids=("gonzalez_rave_2022_im", "pla_2019_swim"),
+        csv_examples=("12 x 25m ANC c/40'' pasivo", "16 x 25m ANC c/35'' pasivo", "3 x (4 x 25m ANC) c/45''"),
+        fatigue_cost=4,
+        min_spacing_days_after=2,
+        requires_fresh=True,
+        incompatible_adjacent_families=("css_threshold", "vo2_anaerobic"),
+        calentamiento_min=15,
+        calentamiento_template="400-600m suave + 8 x 25m técnica progresiva.",
+        enfriamiento_min=20,
+        enfriamiento_template="400-800m LT1 muy suave — la 'cola extensiva' de Olbrecht.",
+        coach_tips=(
+            "Cada 25m = sprint corto real. Si todos salen al mismo tiempo sin diferencia, están demasiado lentos.",
+            "Control: insertar un all-out en rep 5 — si es >1.5s más rápido, el resto iba demasiado lento.",
+            "Olbrecht: 'puede usarse como spice para AEC' — tiene doble función de ANC puro y spice AEC.",
+        ),
+    ),
+
+    # ════════════════════════════════════════════════════════════════════════
+    # BLOQUE ANP — Anaerobic Power Block (Olbrecht)
+    # Objetivo: tolerancia a la acidosis y expresión máxima de potencia anaeróbica.
+    # Patrón: velocidad MÁXIMA, distancias muy cortas, descanso MUY BREVE (5-15s).
+    # Uso: pre_comp EXCLUSIVAMENTE + pruebas cortas (5k, 10k, sprint tri, pool 400).
+    # Referencia: Olbrecht SoW cap.2, líneas 1303-1331. "sprinters concentrate on ANP in competition period"
+    # IMPORTANTE: máx 2 semanas consecutivas — "carries more risks than advantages" (Olbrecht línea 1321)
+    # ════════════════════════════════════════════════════════════════════════
+
+    WorkoutTemplate(
+        template_id="run_anp_sprint_tolerance",
+        discipline="running",
+        compatible_block_types=("anaerobic_power_block", "competition_specific_block"),
+        session_role="key",
+        session_family="anp_sprint_tolerance",
+        public_label="ANP running — sprints con descanso mínimo",
+        summary="Sprints máximos con descanso muy breve (5-15s) para tolerancia anaeróbica. ANP de Olbrecht.",
+        objective="Maximizar ANP: tolerancia a la acidosis y uso de VLamax en sprint final de carrera.",
+        dose_guidance="8-12 x 30-60m a velocidad máxima con 5-15'' descanso. Total ≤600m de trabajo real.",
+        progression_axes=("Añadir pocas repeticiones", "Reducir marginalmente el descanso", "Mantener velocidad máxima"),
+        control_points=("Velocidad máxima en la primera rep", "Caída controlada ≤5% entre 1ª y última", "Técnica de carrera limpia"),
+        expected_adaptations=("Mayor tolerancia a la acidosis", "Más ANP utilizable en sprint final"),
+        cautions=(
+            "SOLO en periodo de competición (pre_comp) — nunca en base_early o base_late",
+            "Máximo 2-3 semanas consecutivas (Olbrecht línea 1321: 'más riesgo que beneficio')",
+            "ANP baja tanto capacidad aeróbica como anaeróbica — compensar con mucho sub-LT1 en la semana",
+            "5-10s de descanso = ANP; 45-90s = ANC. La diferencia es el descanso.",
+        ),
+        confidence=0.82,
+        evidence_ids=("storen_2011_running_strength", "ronnestad_2016_block"),
+        csv_examples=("8 x 30m máximos c/10''", "10 x 50m sprint c/10''", "6 x 60m c/15'' descansando"),
+        fatigue_cost=5,
+        min_spacing_days_after=2,
+        requires_fresh=True,
+        incompatible_adjacent_families=("lt2_cruise_intervals", "threshold_continuous", "vo2_hills", "vo2_30_30"),
+        calentamiento_min=25,
+        calentamiento_template="20-25' progresivo suave + 4 x 80m aceleraciones 70-85% con recuperación completa.",
+        enfriamiento_min=20,
+        enfriamiento_template="20-30' sub-LT1 muy suave — obligatorio post-ANP (Olbrecht: 'el resto muy lento').",
+        coach_tips=(
+            "ANP real: el primer sprint debe ser el mejor. Si el 5º iguala el 1º, el descanso es demasiado largo (= ANC).",
+            "Olbrecht (línea 1316): atletas con ANC moderada ven efectos en 10-17 días.",
+            "Usar solo las 6-8 semanas antes de competición objetivo o como test de capacidad anaeróbica.",
+        ),
+    ),
+    WorkoutTemplate(
+        template_id="bike_anp_high_intensity",
+        discipline="ciclismo",
+        compatible_block_types=("anaerobic_power_block", "competition_specific_block"),
+        session_role="key",
+        session_family="anp_high_intensity",
+        public_label="ANP ciclismo — sprints densos de velocidad máxima",
+        summary="Sprints máximos con descanso muy breve (10-15s) para tolerancia anaeróbica. ANP en bici.",
+        objective="Elevar ANP: porcentaje de VLamax utilizable durante ataques y finales.",
+        dose_guidance="8-15 x 15-30'' a potencia máxima con 5-15'' descanso activo mínimo. Total ≤600m equivalente.",
+        progression_axes=("Añadir repeticiones de 2 en 2", "Reducir descanso 2-3s", "Mantener potencia máxima"),
+        control_points=("Potencia máxima en primeras reps", "Caída controlada en últimas", "Técnica no colapsa"),
+        expected_adaptations=("Más tolerancia a la acidosis", "Mejor punch y capacidad de ataque repetido"),
+        cautions=(
+            "SOLO periodo específico/pre-competición — no en base general",
+            "Máximo 2 semanas consecutivas — luego semana de baja intensidad",
+            "Las ANP tiran hacia abajo AEC y ANC — compensar con mucho sub-LT1 la misma semana",
+        ),
+        confidence=0.81,
+        evidence_ids=("ronnestad_2022_strength", "mateo_march_2025_wt"),
+        csv_examples=("10 x 20'' MAX c/10'' activo", "12 x 15'' sprint c/10''", "8 x 30'' potencia máxima c/15''"),
+        fatigue_cost=5,
+        min_spacing_days_after=2,
+        requires_fresh=True,
+        incompatible_adjacent_families=("lt2_halfpace", "over_under_threshold", "vo2_power"),
+        calentamiento_min=20,
+        calentamiento_template="20' suave 100-140w + 4 x 15'' activación 80% max potencia c/2' rec completa.",
+        enfriamiento_min=30,
+        enfriamiento_template="30-45' sub-LT1 muy suave obligatorio para contrarrestar impacto en capacidades.",
+        coach_tips=(
+            "Diferencia con ANC: 10'' descanso = ANP; 2-3' descanso = ANC. Mismo estímulo, adaptación diferente.",
+            "Olbrecht: 'ANP baja capacidad aeróbica y anaeróbica si el resto no es suficientemente lento'.",
+            "Ideal para ciclistas de criterium, triatlón sprint/olímpico, para el sprint final de prueba.",
+        ),
+    ),
+    WorkoutTemplate(
+        template_id="swim_anp_tolerance",
+        discipline="natación",
+        compatible_block_types=("anaerobic_power_block", "competition_specific_block"),
+        session_role="key",
+        session_family="anp_tolerance",
+        public_label="ANP natación — sprints máximos con mínimo descanso",
+        summary="Velocidad máxima con descanso muy breve (5-10s) para tolerancia anaeróbica. ANP puro de Olbrecht.",
+        objective="Maximizar ANP: tolerancia a la acidosis y porcentaje de VLamax utilizable en competición.",
+        dose_guidance="10-16 x 25-50m a velocidad máxima con 5-10'' descanso. Total ≤400m de trabajo real.",
+        progression_axes=("Añadir repeticiones de 2 en 2", "Reducir descanso 2-3s", "Mantener velocidad máxima"),
+        control_points=("Velocidad máxima en la primera rep", "Caída controlada", "Técnica básica mantenida"),
+        expected_adaptations=("Toughening contra acidosis", "Mayor uso de VLamax en carrera"),
+        cautions=(
+            "Checklist Olbrecht (líneas 1323-1327): velocidad máxima, distancias cortas, descanso 5-10s",
+            "Total ≤250m para nadadores jóvenes; hasta 600m en élite fraccionado con 10-20' entre bloques",
+            "SOLO en competition training period; máximo 2 semanas consecutivas",
+            "Siempre seguido de trabajo largo y lento sub-LT1 el mismo día o el día siguiente",
+        ),
+        confidence=0.85,
+        evidence_ids=("gonzalez_rave_2022_im", "pla_2019_swim"),
+        csv_examples=("12 x 25m máx c/8'' pasivo", "8 x 50m máx c/10''", "2 x (6 x 25m) c/8'' D.15' entre bloques"),
+        fatigue_cost=5,
+        min_spacing_days_after=2,
+        requires_fresh=True,
+        incompatible_adjacent_families=("css_threshold", "vo2_anaerobic", "anc_speed_combo"),
+        calentamiento_min=20,
+        calentamiento_template="600-800m suave + 8 x 25m progresivos 70-95%.",
+        enfriamiento_min=20,
+        enfriamiento_template="400-600m sub-LT1 muy suave.",
+        coach_tips=(
+            "Olbrecht distingue ANP de ANC SOLO por el descanso: 5-10s = ANP; 30-45s pasivo = ANC.",
+            "Primera rep debe ser la más rápida. Si la 5ª iguala la 1ª, el descanso es demasiado largo.",
+            "Para larga distancia: usar raramente y con dosis mínima (4-6 reps); priorizar AEP.",
+        ),
+    ),
+
+    # ════════════════════════════════════════════════════════════════════════
+    # AEC CON SPICE — Patrón Olbrecht Tipo I
+    # El patrón AEC real de Olbrecht: [esfuerzo ANC corto AL INICIO] + [cola extensiva sub-LT1]
+    # Estimula mitocondrias FTIIa con el spice y construye base aeróbica con la cola.
+    # Referencia: Olbrecht SoW líneas 1053-1067, 1284-1290.
+    # ════════════════════════════════════════════════════════════════════════
+
+    WorkoutTemplate(
+        template_id="run_aec_spiced",
+        discipline="running",
+        compatible_block_types=("aerobic_capacity_block",),
+        session_role="key",
+        session_family="aec_spiced",
+        public_label="AEC con spice al inicio (patrón Olbrecht)",
+        summary="Esfuerzos cortos intensos AL INICIO + cola larga sub-LT1. Patrón AEC Tipo I de Olbrecht.",
+        objective="Estimular mitocondrias FTIIa con el spice y construir base aeróbica ST con la cola extensiva.",
+        dose_guidance="[3-5 x 20-30'' ANC al 93-97% con descanso pasivo 60''] → [25-40' sub-LT1 muy controlado].",
+        progression_axes=("Alargar la cola extensiva", "Añadir 1 repetición de spice", "Mantener calidad del spice"),
+        control_points=("Spice de velocidad real alta", "Cola sub-LT1 limpia sin acelerar", "Sin fatiga acumulada visible al final"),
+        expected_adaptations=("Adaptación mitocondrial dual en ST y FTIIa", "Mejor base aeróbica específica", "Más economía subumbral"),
+        cautions=(
+            "El spice va AL INICIO, nunca al final — Olbrecht líneas 1066-1067",
+            "La cola extensiva debe ser sub-LT1 — no LT1 activo ni E2",
+            "No convertir el spice en sesión ANC completa — es un 'condimento', no el plato principal",
+        ),
+        confidence=0.86,
+        evidence_ids=("kenneally_2022_5000", "solli_2017_xc"),
+        csv_examples=(
+            "4 x 20'' rectas progresivas + 30' suave LT0",
+            "5 x 8'' cuesta + 35' sub-LT1",
+            "3 x 30'' strides 95% + 4 x 10' LT1",
+        ),
+        fatigue_cost=3,
+        min_spacing_days_after=1,
+        calentamiento_min=15,
+        calentamiento_template="15' progresivo muy suave.",
+        enfriamiento_min=5,
+        enfriamiento_template="5' andando o trote mínimo.",
+        coach_tips=(
+            "El spice activa FTIIa; la cola construye base ST — doble estímulo en una sesión.",
+            "Si los strides/cuestas acaban siendo el cuerpo de la sesión, es ANC, no AEC con spice.",
+            "El atleta debe acabar sin fatiga residual — si no, el spice era demasiado o la cola demasiado larga.",
+        ),
+    ),
+    WorkoutTemplate(
+        template_id="bike_aec_spiced",
+        discipline="ciclismo",
+        compatible_block_types=("aerobic_capacity_block",),
+        session_role="key",
+        session_family="aec_spiced_bike",
+        public_label="AEC con spice en bici — arrancadas + base",
+        summary="Arrancadas cortas máximas AL INICIO + base sub-LT1. Patrón AEC Tipo I de Olbrecht en bici.",
+        objective="Estimular mitocondrias FTIIa con las arrancadas y construir base aeróbica con bloque sub-LT1.",
+        dose_guidance="[4-6 x 8-12'' MAX arrancadas semi-paradas] → [45-75' sub-LT1 continuo].",
+        progression_axes=("Añadir 1-2 arrancadas", "Alargar la base sub-LT1", "Mantener calidad de las arrancadas"),
+        control_points=("Potencia pico alta en cada arrancada", "Base sub-LT1 limpia sin deriva", "FC controlada durante la base"),
+        expected_adaptations=("Mejor estimulación mitocondrial dual", "Base aeróbica más robusta", "Más eficiencia sub-LT1"),
+        cautions=(
+            "Arrancadas AL INICIO — nunca en medio ni al final de la salida",
+            "El bloque sub-LT1 debe ser realmente sub-LT1 — no LT1 activo ni sweet spot",
+            "En atletas con VLamax muy alta: reducir arrancadas a 3-4 o eliminar",
+        ),
+        confidence=0.87,
+        evidence_ids=("pinot_2015_grand_tour", "mateo_march_2025_wt"),
+        csv_examples=(
+            "5 x 10'' MAX + 7 x 7' LT1 (170-180w)",
+            "6 x 10'' MAX + 6 x 8' LT1",
+            "4 x 8'' arrancadas + 60' continuo sub-LT1",
+        ),
+        fatigue_cost=3,
+        min_spacing_days_after=1,
+        calentamiento_min=10,
+        calentamiento_template="10' suave 100-130w.",
+        enfriamiento_min=10,
+        enfriamiento_template="10' muy suave para completar sesión.",
+        coach_tips=(
+            "Este es exactamente el formato 'MAX + LT1' que usa Nacho repetidamente en el CSV.",
+            "Olbrecht: las arrancadas son el spice que estimula FTIIa; la base LT1 estimula ST fibers.",
+        ),
+    ),
+    WorkoutTemplate(
+        template_id="swim_aec_spiced",
+        discipline="natación",
+        compatible_block_types=("aerobic_capacity_block",),
+        session_role="key",
+        session_family="aec_spiced_swim",
+        public_label="AEC con spice en agua — series cortas + cola extensiva",
+        summary="ANC corto AL INICIO + volumen sub-LT1. Patrón AEC Tipo I de Olbrecht en natación.",
+        objective="Estimular mitocondrias FTIIa y construir base aeróbica específica en agua.",
+        dose_guidance="[6-10 x 25m ANC casi-máximos c/40'' pasivo] → [800-1500m sub-LT1 continuo].",
+        progression_axes=("Alargar la cola extensiva", "Añadir 1-2 repeticiones ANC", "Mantener calidad del ANC"),
+        control_points=("Velocidad alta en las repeticiones ANC", "Cola extensiva relajada", "Sin espiral de fatiga"),
+        expected_adaptations=("Adaptación mitocondrial dual FTIIa + ST", "Mejor base aeróbica acuática"),
+        cautions=(
+            "ANC al INICIO — Olbrecht líneas 1284-1286: 'especia del entrenamiento de capacidad aeróbica'",
+            "Cola extensiva a LA1 o más lento, no LT1 activo",
+            "No usar si hay test o sesión CSS el día siguiente",
+        ),
+        confidence=0.84,
+        evidence_ids=("gonzalez_rave_2022_im", "pla_2019_swim"),
+        csv_examples=(
+            "8 x 25m ANC c/40'' + 1200m suave",
+            "6 x 25m velocidad + 1500m LT0-LT1",
+            "10 x 25m progresivos + 800m técnica suave",
+        ),
+        fatigue_cost=3,
+        min_spacing_days_after=1,
+        calentamiento_min=10,
+        calentamiento_template="300-400m suave + 4 x 25m técnica.",
+        enfriamiento_min=5,
+        enfriamiento_template="200m suave para completar.",
+        coach_tips=(
+            "Formato directo de Olbrecht (línea 1288-1290): velocidad de competición breve + cola muy lenta.",
+            "La cola extensiva ACTIVA (no pausa) es parte del estímulo AEC — no saltársela.",
+        ),
+    ),
+
+    # ════════════════════════════════════════════════════════════════════════
+    # AEP REAL — Patrón Olbrecht
+    # Diferencia clave vs VO2 intervals: descanso MUY BREVE (5-20s), NO 3-4'.
+    # Distancia cercana a la de competición. Iniciado ≥6 semanas antes de comp.
+    # Referencia: Olbrecht SoW líneas 1269-1298.
+    # ════════════════════════════════════════════════════════════════════════
+
+    WorkoutTemplate(
+        template_id="run_aep_race_pace",
+        discipline="running",
+        compatible_block_types=("aerobic_power_block", "competition_specific_block"),
+        session_role="key",
+        session_family="aep_race_pace",
+        public_label="AEP running — ritmo competición con descanso mínimo",
+        summary="Repeticiones a ritmo de prueba con 10-20'' de descanso. AEP real de Olbrecht en running.",
+        objective="Elevar el porcentaje de VO2max utilizable a ritmo de competición.",
+        dose_guidance="8-12 x 400m a ritmo objetivo con 10-15'' descanso pasivo. Progresar hacia 6-8 x 800m con 15-20''.",
+        progression_axes=("Alargar la repetición", "Reducir el descanso", "Acercar el ritmo al objetivo real"),
+        control_points=("Ritmo de prueba mantenido", "Descanso mínimo respetado", "Última repetición útil"),
+        expected_adaptations=("Mayor % VO2max en carrera", "Mejor economía específica a ritmo objetivo", "Más potencia aeróbica"),
+        cautions=(
+            "Iniciar ≥6 semanas antes de competición — AEP tarda 4+ semanas en mostrar efecto (Olbrecht línea 1267)",
+            "Máximo 1-2 sesiones AEP/semana — 'muy traicionero' en recuperación (Olbrecht línea 1264)",
+            "AEP baja AEC y ANC si el resto de sesiones no son suficientemente lentas",
+            "Añadir sesión extra de regeneración la misma semana",
+        ),
+        confidence=0.84,
+        evidence_ids=("kenneally_2022_5000", "tonnessen_2020_frequency"),
+        csv_examples=(
+            "8 x 400m ritmo objetivo c/12''",
+            "10 x 400m race pace c/15'' pasivo",
+            "6 x 800m a ritmo 10k c/20''",
+        ),
+        fatigue_cost=5,
+        min_spacing_days_after=2,
+        requires_fresh=True,
+        incompatible_adjacent_families=("lt2_cruise_intervals", "threshold_continuous", "vo2_hills"),
+        calentamiento_min=20,
+        calentamiento_template="20' progresivo + 4 x 100m al ritmo objetivo c/1' recuperación completa.",
+        enfriamiento_min=20,
+        enfriamiento_template="20' sub-LT1 muy suave — obligatorio post-AEP.",
+        coach_tips=(
+            "La diferencia con VO2 intervals es el DESCANSO: aquí 10-20s, no 3-4'. Eso es AEP Olbrecht.",
+            "Progresión de Olbrecht: semana 1 = 50x100m c/15s → semana 3 = 10x400m c/15s.",
+            "Si el ritmo cae >3s/km en las últimas reps: acortar el volumen, no forzar el ritmo.",
+        ),
+    ),
+    WorkoutTemplate(
+        template_id="swim_aep_pace_sets",
+        discipline="natación",
+        compatible_block_types=("aerobic_power_block", "competition_specific_block"),
+        session_role="key",
+        session_family="aep_pace_sets",
+        public_label="AEP natación — velocidad de prueba con mínimo descanso",
+        summary="Series a velocidad de competición con descanso de 5-15s. AEP puro de Olbrecht progresivo.",
+        objective="Maximizar el porcentaje de VO2max utilizable en distancias ≥200m.",
+        dose_guidance="Fase 1: 20 x 50m c/15s. Fase 2: 10 x 100m c/15s. Fase 3: 6 x 200m c/15s. Velocidad = ritmo de prueba.",
+        progression_axes=("Alargar repetición manteniendo el descanso", "Acercar la velocidad al objetivo", "Reducir marginalmente el descanso"),
+        control_points=("Velocidad de prueba mantenida", "Descanso 5-15s respetado estrictamente", "Última repetición útil"),
+        expected_adaptations=("Mayor % VO2max en carrera", "Mejor economía a velocidad de prueba", "Más potencia aeróbica"),
+        cautions=(
+            "Solo para distancias ≥200m — no relevante para 50-100m (Olbrecht línea 1256-1259)",
+            "Iniciar ≥6 semanas antes de la competición objetivo",
+            "Máximo 2 sesiones AEP/semana — 'muy traicionero' en recuperación",
+        ),
+        confidence=0.88,
+        evidence_ids=("gonzalez_rave_2022_im", "pla_2019_swim"),
+        csv_examples=(
+            "20 x 50m ritmo prueba c/15s",
+            "10 x 100m race pace c/15s",
+            "6 x 200m c/15s velocidad de prueba",
+            "3 x (3 x 100m ritmo prueba) c/15s D.3' entre bloques",
+        ),
+        fatigue_cost=5,
+        min_spacing_days_after=2,
+        requires_fresh=True,
+        incompatible_adjacent_families=("css_threshold", "vo2_anaerobic", "anp_tolerance"),
+        calentamiento_min=20,
+        calentamiento_template="600-800m suave + 6 x 50m progresivos hasta ritmo de prueba.",
+        enfriamiento_min=15,
+        enfriamiento_template="400-600m muy suave.",
+        coach_tips=(
+            "Olbrecht (líneas 1277-1281): la distancia sube semana a semana pero el descanso no.",
+            "Esta es la sesión 'más traicionera' de Olbrecht: parece fácil al principio pero la recuperación es lenta.",
+        ),
+    ),
+
+    # ════════════════════════════════════════════════════════════════════════
+    # AEC LARGO SUB-LT1 — Patrón Olbrecht Tipo II (regeneración activa de volumen)
+    # ════════════════════════════════════════════════════════════════════════
+
+    WorkoutTemplate(
+        template_id="run_regenerative_long",
+        discipline="running",
+        compatible_block_types=("aerobic_capacity_block", "recovery_consolidation_block"),
+        session_role="support",
+        session_family="regenerative_long",
+        public_label="Tirada larga regenerativa AEC",
+        summary="Rodaje largo puramente sub-LT1 para AEC Tipo II de Olbrecht: regeneración activa de alto volumen.",
+        objective="Construir base aeróbica con volumen sin coste interno relevante. Contrarrestar sesiones intensas.",
+        dose_guidance="90-120' exclusivamente sub-LT1. Respiración nasal como control. Sin zonas medias ni finales vivos.",
+        progression_axes=("Subir tiempo total muy gradualmente", "Mejorar sensación de frescura al acabar", "Practicar nutrición"),
+        control_points=("FC por debajo de LT1 todo el rato", "Sin deriva cardíaca", "Sensación de margen total"),
+        expected_adaptations=("Más durabilidad sub-LT1", "Mejor recuperación entre sesiones intensas", "Soporte del AEC"),
+        cautions=(
+            "Si la FC deriva hacia LT1 activo, bajar el ritmo o caminar tramos",
+            "No usar el 'largo' como entrenamiento duro disfrazado",
+            "Olbrecht: regeneration training = AEC (línea 1100) — es base, no descanso",
+        ),
+        confidence=0.89,
+        evidence_ids=("kenneally_2022_5000", "solli_2017_xc"),
+        csv_examples=("90' E1", "105' E1", "120' aeróbico muy suave", "90' + 20' final controlado"),
+        fatigue_cost=2,
+        min_spacing_days_after=0,
+        calentamiento_min=0,
+        calentamiento_template="Primeros 10' son el calentamiento integrado — empezar muy suave.",
+        enfriamiento_min=0,
+        enfriamiento_template="Última media hora ya es enfriamiento natural.",
+        coach_tips=(
+            "Control: puedes mantener conversación completa durante toda la sesión.",
+            "Respiración nasal como herramienta — si no puedes, baja el ritmo.",
+            "Olbrecht: 'incluso el trabajo de regeneración a muy baja intensidad construye capacidad aeróbica'.",
+        ),
+    ),
+    WorkoutTemplate(
+        template_id="swim_aec_long_session",
+        discipline="natación",
+        compatible_block_types=("aerobic_capacity_block",),
+        session_role="support",
+        session_family="aec_long_session",
+        public_label="AEC largo en agua — volumen sub-LT1",
+        summary="Alto volumen a intensidad muy baja para construir base aeróbica acuática según Olbrecht.",
+        objective="Máxima adaptación cardiovascular y mitocondrial en fibras ST con volumen sostenido a baja intensidad.",
+        dose_guidance="2000-3500m continuos o fraccionados en zona sub-LT1. Variedad de materiales.",
+        progression_axes=("Subir metros útiles gradualmente", "Mantener técnica limpia", "Añadir variedad de estilos"),
+        control_points=("Velocidad estable o levemente progresiva", "Sin picos de FC", "Técnica sostenida"),
+        expected_adaptations=("Base aeróbica amplia", "Más eficiencia cardiovascular", "Mayor tolerancia al volumen"),
+        cautions=(
+            "La intensidad debe ser LA1 o más lento — ni siquiera LT1 activo",
+            "No convertir en 'sesión de calidad disfrazada'",
+            "Puede incluir técnica, variedad de estilos, snorkel — todo a intensidad baja",
+        ),
+        confidence=0.85,
+        evidence_ids=("gonzalez_rave_2022_im", "gonzalez_rave_2023_altitude"),
+        csv_examples=("3000m variado aeróbico", "2500m crol + estilos sub-LT1", "3 x 800m suave c/30s", "4000m fondo aeróbico"),
+        fatigue_cost=2,
+        min_spacing_days_after=0,
+        calentamiento_min=0,
+        calentamiento_template="Primeros 400m integrados como calentamiento.",
+        enfriamiento_min=0,
+        enfriamiento_template="Últimos 200m técnica ligera.",
+        coach_tips=(
+            "Olbrecht (líneas 1003-1008): AEC = 'alto volumen, baja intensidad, poco descanso'. Esta sesión lo materializa.",
+            "Las sesiones '40 x 50m LT0' del CSV son perfectas AEC — continúa con ese formato.",
+        ),
+    ),
+
+    # ════════════════════════════════════════════════════════════════════════
+    # BRICK AEP TRIATLÓN
+    # ════════════════════════════════════════════════════════════════════════
+
+    WorkoutTemplate(
+        template_id="tri_brick_aep",
+        discipline="triatlón",
+        compatible_block_types=("aerobic_power_block", "competition_specific_block"),
+        session_role="key",
+        session_family="brick_aep",
+        public_label="Brick AEP triatlón — bici+carrera a ritmo de prueba",
+        summary="Brick a potencia y ritmo de competición para AEP específico de triatlón.",
+        objective="Transferir AEP a la secuencia real bici-carrera: potencia sostenible + ritmo post-T2.",
+        dose_guidance="45-75' bici a potencia de prueba + T2 + 15-25' carrera a ritmo objetivo. Pausa T2 ≤2'.",
+        progression_axes=("Alargar el segmento de carrera", "Acercar la potencia de bici al objetivo real", "Reducir tiempo T2"),
+        control_points=("Potencia bici estable", "Ritmo carrera post-T2 sostenible", "Buena transición técnica"),
+        expected_adaptations=("Mejor transferencia competitiva", "Reducción del desajuste bici-carrera", "Más AEP específico de triatlón"),
+        cautions=(
+            "Solo fases específicas o pre-competición — no en AEC",
+            "Si la carrera post-T2 colapsa, reducir duración/intensidad de la bici",
+            "No encadenar con otra sesión exigente el día siguiente",
+        ),
+        confidence=0.84,
+        evidence_ids=("cejuela_2022_tri", "vikmoen_2021_tri_strength"),
+        csv_examples=(
+            "60' bici race pace + T2: 20' running a ritmo objetivo",
+            "75' bici LT2 + T2: 15' a ritmo 10k",
+            "2 x 25' potencia prueba + T2: 30' progresivo a ritmo objetivo",
+        ),
+        fatigue_cost=5,
+        min_spacing_days_after=2,
+        requires_fresh=True,
+        incompatible_adjacent_families=("lt2_halfpace", "lt2_cruise_intervals", "threshold_continuous"),
+        calentamiento_min=15,
+        calentamiento_template="15' bici suave previo al bloque principal.",
+        enfriamiento_min=10,
+        enfriamiento_template="10' trote suave post-carrera.",
+        coach_tips=(
+            "La T2 es parte del entrenamiento: practica cambio de zapatillas, no dejes más de 90s.",
+            "Primeros 3' de carrera son críticos: si salen muy rápido o lentos, ajustar la potencia de bici.",
+            "Usar lactato post-T2 al minuto 5 de carrera como referencia fisiológica del coste real.",
+        ),
+    ),
 )
 
 
@@ -1838,6 +2405,44 @@ WORKOUT_BLUEPRINTS: dict[tuple[str, str], dict[str, tuple[DraftSlot, ...]]] = {
         "specific": (DraftSlot(1, "swim_open_water_specific"), DraftSlot(4, "swim_speed_turns"), DraftSlot(6, "recovery_regeneration")),
         "recovery": (DraftSlot(2, "swim_recovery_drills"), DraftSlot(5, "test_profile_anchor")),
     },
+
+    # ── ANC (Anaerobic Capacity Block) ────────────────────────────────────────
+    # Spice ANC AL INICIO de las sesiones + cola extensiva sub-LT1.
+    # Olbrecht: el ANC siempre va al inicio, nunca al final.
+    ("running", "anaerobic_capacity_block"): {
+        "load": (DraftSlot(2, "run_aec_spiced"), DraftSlot(4, "run_lt1_extensive"), DraftSlot(6, "run_long_aerobic")),
+        "build": (DraftSlot(2, "run_anc_short_reps"), DraftSlot(4, "run_lt1_long_reps"), DraftSlot(6, "run_regenerative_long")),
+        "recovery": (DraftSlot(2, "run_lt0_recovery"), DraftSlot(5, "run_economy_strides"), DraftSlot(6, "recovery_regeneration")),
+    },
+    ("ciclismo", "anaerobic_capacity_block"): {
+        "load": (DraftSlot(2, "bike_aec_spiced"), DraftSlot(4, "bike_lt1_blocks"), DraftSlot(6, "bike_long_endurance")),
+        "build": (DraftSlot(2, "bike_anc_power_sprints"), DraftSlot(5, "bike_lt1_blocks"), DraftSlot(6, "bike_fatmax_endurance")),
+        "recovery": (DraftSlot(2, "bike_lt0_recovery"), DraftSlot(5, "bike_lt1_blocks"), DraftSlot(6, "test_profile_anchor")),
+    },
+    ("natación", "anaerobic_capacity_block"): {
+        "load": (DraftSlot(1, "swim_aec_spiced"), DraftSlot(3, "swim_aerobic_continuity"), DraftSlot(5, "swim_technical_alignment")),
+        "build": (DraftSlot(1, "swim_anc_capacity_sets"), DraftSlot(3, "swim_lt1_broken_sets"), DraftSlot(6, "swim_aec_long_session")),
+        "recovery": (DraftSlot(2, "swim_recovery_drills"), DraftSlot(5, "swim_technical_alignment")),
+    },
+
+    # ── ANP (Anaerobic Power Block) ───────────────────────────────────────────
+    # Pre-comp exclusivamente. Pruebas cortas. Máx 2-3 semanas.
+    # Siempre compensar con mucho sub-LT1 en la semana (Olbrecht).
+    ("running", "anaerobic_power_block"): {
+        "load": (DraftSlot(2, "run_anp_sprint_tolerance"), DraftSlot(4, "run_lt1_extensive"), DraftSlot(6, "run_regenerative_long")),
+        "specific": (DraftSlot(2, "run_aep_race_pace"), DraftSlot(5, "run_anp_sprint_tolerance"), DraftSlot(6, "run_lt0_recovery")),
+        "recovery": (DraftSlot(2, "run_lt0_recovery"), DraftSlot(5, "test_profile_anchor")),
+    },
+    ("ciclismo", "anaerobic_power_block"): {
+        "load": (DraftSlot(2, "bike_anp_high_intensity"), DraftSlot(4, "bike_lt1_blocks"), DraftSlot(6, "bike_long_endurance")),
+        "specific": (DraftSlot(2, "bike_anp_high_intensity"), DraftSlot(5, "bike_aero_stability"), DraftSlot(6, "recovery_regeneration")),
+        "recovery": (DraftSlot(2, "bike_lt0_recovery"), DraftSlot(5, "test_profile_anchor")),
+    },
+    ("natación", "anaerobic_power_block"): {
+        "load": (DraftSlot(1, "swim_anp_tolerance"), DraftSlot(3, "swim_aerobic_continuity"), DraftSlot(5, "swim_technical_alignment")),
+        "specific": (DraftSlot(1, "swim_aep_pace_sets"), DraftSlot(4, "swim_anp_tolerance"), DraftSlot(6, "swim_recovery_drills")),
+        "recovery": (DraftSlot(2, "swim_recovery_drills"), DraftSlot(5, "test_profile_anchor")),
+    },
 }
 
 
@@ -1899,13 +2504,15 @@ ROLE_ORDER = {
 }
 
 BLOCK_ORDER = {
-    "aerobic_capacity_block": 0,
-    "threshold_development_block": 1,
-    "aerobic_power_block": 2,
-    "competition_specific_block": 3,
-    "technical_rebuild_block": 4,
-    "recovery_consolidation_block": 5,
-    "testing_decision_block": 6,
+    "aerobic_capacity_block":      0,  # AEC
+    "threshold_development_block": 1,  # AEC→AEP transición
+    "anaerobic_capacity_block":    2,  # ANC — nuevo (Olbrecht)
+    "aerobic_power_block":         3,  # AEP
+    "anaerobic_power_block":       4,  # ANP — nuevo (Olbrecht)
+    "competition_specific_block":  5,  # COMP
+    "technical_rebuild_block":     6,
+    "recovery_consolidation_block":7,
+    "testing_decision_block":      8,
 }
 
 

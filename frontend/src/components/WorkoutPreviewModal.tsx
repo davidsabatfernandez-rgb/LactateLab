@@ -7,6 +7,8 @@ export type WorkoutPreviewSelection = {
   templateId: string;
   label: string;
   notes?: string;
+  prescriptionHint?: string;
+  thresholdBasis?: string;
   totalDurationMin?: number;
   usefulDurationMin?: number;
   restMin?: number;
@@ -420,6 +422,13 @@ export function WorkoutPreviewModal({ template, selection, onClose }: WorkoutPre
               <div><small>Confianza</small><strong>{Math.round(preview.template.confidence * 100)}%</strong></div>
             </div>
             <p className="library-workout-objective">{preview.template.objective}</p>
+            {preview.selection.prescriptionHint ? (
+              <div className="library-workout-threshold-note">
+                <small>Lectura por umbrales</small>
+                <p>{preview.selection.prescriptionHint}</p>
+                {preview.selection.thresholdBasis ? <span>{preview.selection.thresholdBasis}</span> : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="library-workout-timeline-card">
@@ -522,6 +531,18 @@ export function WorkoutPreviewModal({ template, selection, onClose }: WorkoutPre
               <div className="library-workout-copy-grid">
                 <article><small>Resumen</small><p>{preview.template.summary}</p></article>
                 <article><small>Dose guidance</small><p>{preview.template.dose_guidance}</p></article>
+                {preview.selection.prescriptionHint ? (
+                  <article>
+                    <small>Interpretación activa</small>
+                    <p>{preview.selection.prescriptionHint}</p>
+                  </article>
+                ) : null}
+                {preview.selection.thresholdBasis ? (
+                  <article>
+                    <small>Base usada</small>
+                    <p>{preview.selection.thresholdBasis}</p>
+                  </article>
+                ) : null}
               </div>
             </section>
           </div>

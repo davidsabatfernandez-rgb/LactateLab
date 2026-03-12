@@ -22,6 +22,8 @@ import { CurveChart } from "../components/CurveChart";
 import { GeneratePhysiologyReportButton } from "../components/GeneratePhysiologyReportButton";
 import { PhysiologyReportPreview } from "../components/PhysiologyReportPreview";
 import { api } from "../lib/api";
+import { buildTargetObjective, targetCategoryLabel, targetCategoryOptions } from "../lib/targetCatalog";
+import { ResolvedTrainingThreshold, resolveTrainingThreshold } from "../lib/trainingThresholds";
 import {
   AthleteAnalysis,
   AthleteFocusBlock,
@@ -33,8 +35,10 @@ import {
   Estimate,
   HistoricalPoint,
   IndividualThresholds,
+  MesocycleRecommendation,
   PhysiologyReport,
   RealThresholds,
+  ThresholdDetectionStatus,
   Threshold,
 } from "../types";
 
@@ -117,10 +121,9 @@ type AthleteDetailSectionLink = {
 
 function formatPace(seconds?: number | null) {
   if (!seconds) return "-";
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.round(seconds % 60)
-    .toString()
-    .padStart(2, "0");
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  const mins = Math.floor(safeSeconds / 60);
+  const secs = (safeSeconds % 60).toString().padStart(2, "0");
   return `${mins}:${secs}/km`;
 }
 
@@ -142,6 +145,11 @@ function formatSwimPacePer100m(totalSecondsPer100m?: number | null) {
     .toString()
     .padStart(2, "0");
   return `${mins}:${secs}/100m`;
+}
+
+function kmhToPaceSeconds(value?: number | null) {
+  if (value === null || value === undefined || value <= 0) return null;
+  return 3600 / value;
 }
 
 function formatDate(value?: string | null) {
@@ -278,6 +286,91 @@ function dynamicReferenceSecondaryValue(reference?: DynamicReference | null) {
     parts.push(`relativo ${reference.relative_target_from_baseline.toFixed(2)} mmol`);
   }
   return parts.join(" · ") || "-";
+}
+
+function resolvedThresholdToDisplay(
+  threshold?: ResolvedTrainingThreshold | null,
+  powerSource?: string | null,
+): ThresholdDisplay | undefined {
+  if (!threshold) return undefined;
+  return {
+    name: threshold.label,
+    lactate: threshold.lactate ?? null,
+    pace_seconds_per_km: threshold.paceSecondsPerKm ?? null,
+    power_watts: threshold.powerWatts ?? null,
+    heart_rate: threshold.heartRate ?? null,
+    power_source: powerSource ?? null,
+    method: threshold.method ?? threshold.sourceLabel,
+    confidence: threshold.confidence ?? 0,
+    rationale: threshold.rationale ?? threshold.sourceLabel,
+    evidence_level: threshold.evidenceLevel ?? "low",
+    provisional: false,
+  };
+}
+
+function thresholdDetectionToDisplay(
+  detection?: ThresholdDetectionStatus | null,
+  powerSource?: string | null,
+): ThresholdDisplay | undefined {
+  const candidate = detection?.candidate_threshold;
+  if (!candidate) return undefined;
+  return {
+    name: `${detection?.name ?? candidate.name} señal`,
+    lactate: candidate.lactate ?? null,
+    pace_seconds_per_km: candidate.pace_seconds_per_km ?? null,
+    power_watts: candidate.power_watts ?? null,
+    heart_rate: candidate.heart_rate ?? null,
+    power_source: powerSource ?? null,
+    method: candidate.method ?? detection?.primary_method ?? "candidate_detection",
+    confidence: candidate.confidence ?? detection?.confidence ?? 0,
+    rationale: candidate.rationale ?? detection?.explanation ?? "Señal detectada sobre la curva de lactato.",
+    evidence_level: candidate.evidence_level ?? confidenceToEvidenceLevel(candidate.confidence ?? detection?.confidence ?? 0),
+    provisional: detection?.state !== "ready_to_anchor",
+  };
+}
+
+function thresholdDetectionStateLabel(state?: string | null) {
+  if (state === "candidate_weak") return "Candidato débil";
+  if (state === "candidate_strong") return "Candidato fuerte";
+  if (state === "confirmed") return "Confirmado";
+  if (state === "ready_to_anchor") return "Listo para anclar";
+  return "Sin señal";
+}
+
+function thresholdDetectionTone(state?: string | null): "positive" | "neutral" | "negative" {
+  if (state === "ready_to_anchor" || state === "confirmed") return "positive";
+  if (state === "candidate_strong") return "neutral";
+  return "negative";
+}
+
+function thresholdDetectionLineDasharray(state?: string | null) {
+  if (state === "ready_to_anchor") return "12 4";
+  if (state === "confirmed") return "8 5";
+  if (state === "candidate_strong") return "4 5";
+  return "2 6";
+}
+
+function thresholdDetectionTooltip(
+  detection: ThresholdDetectionStatus | null | undefined,
+  threshold: ThresholdDisplay | undefined,
+  discipline: string,
+  athleteWeight?: number | null,
+  support?: PlotSupportPoint | null,
+) {
+  if (!detection || !threshold) return "Sin señal visible.";
+  const methods = [detection.primary_method, detection.confirmation_method].filter(Boolean).join(" + ");
+  const parts = [
+    `${thresholdDetectionStateLabel(detection.state)} · confianza ${Math.round((detection.confidence ?? 0) * 100)}%`,
+    thresholdDetailLine(threshold, discipline, athleteWeight),
+  ];
+  if (methods) {
+    parts.push(`Métodos ${methods}`);
+  }
+  if (support?.sessionDate ?? support?.session_date) {
+    parts.push(`Fecha ${formatDate(support?.sessionDate ?? support?.session_date ?? null)}`);
+  }
+  parts.push(detection.explanation);
+  return parts.join(" · ");
 }
 
 function emptyCurveHistory(): DisciplineView["curve_history"] {
@@ -433,15 +526,6 @@ function formatDuration(seconds?: number | null) {
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
-function csvCell(value: unknown) {
-  if (value === null || value === undefined) return "";
-  const text = String(value);
-  if (text.includes(",") || text.includes('"') || text.includes("\n")) {
-    return `"${text.replace(/"/g, '""')}"`;
-  }
-  return text;
-}
-
 function formatIntervalDuration(seconds?: number | null) {
   if (seconds === null || seconds === undefined) return "-";
   if (seconds >= 60) {
@@ -497,6 +581,8 @@ function estimateVisualRange(estimate: Estimate, athleteWeight?: number | null) 
     return {
       primary: raceSummary.totalTime,
       secondary: raceSummary.pace,
+      bestSecondaryLabel: formatPace(estimate.lower_bound ?? estimate.value),
+      conservativeSecondaryLabel: formatPace(estimate.upper_bound ?? estimate.value),
       conservativeLabel: raceSummary.upperTime,
       bestLabel: raceSummary.lowerTime,
       markerLabel: "Estimado",
@@ -519,6 +605,8 @@ function estimateVisualRange(estimate: Estimate, athleteWeight?: number | null) 
   return {
     primary,
     secondary: estimate.unit,
+    bestSecondaryLabel: formatValue(best, estimate.unit),
+    conservativeSecondaryLabel: formatValue(conservative, estimate.unit),
     conservativeLabel: formatValue(conservative, estimate.unit),
     bestLabel: formatValue(best, estimate.unit),
     markerLabel: estimate.estimate_type === "FTP" || estimate.estimate_type === "VO2max" ? "Actual" : "Estimado",
@@ -706,12 +794,24 @@ function buildObjectiveHints(form: {
   discipline: string;
   objective: string;
   distance_label: string;
+  distance_category?: string;
+  target_pace_label?: string;
+  target_power_watts?: string;
 }) {
   const hints: string[] = [];
-  if (!form.objective.trim()) return hints;
+  const targetLabel = buildTargetObjective({
+    category: form.distance_category,
+    distanceLabel: form.distance_label,
+    fallback: form.objective,
+  });
+  if (!targetLabel.trim()) return hints;
 
-  const distanceKm = parseDistanceKm(form.distance_label || form.objective);
-  const targetSeconds = parseSubTargetSeconds(form.objective, { distanceKm, discipline: form.discipline });
+  const distanceKm = parseDistanceKm(form.distance_label || targetLabel);
+  const explicitPace =
+    form.discipline === "running" || form.discipline === "triatlón"
+      ? parseRunningPaceLabel(form.target_pace_label ?? "")
+      : null;
+  const targetSeconds = explicitPace && distanceKm ? explicitPace * distanceKm : parseSubTargetSeconds(targetLabel, { distanceKm, discipline: form.discipline });
 
   if ((form.discipline === "running" || form.discipline === "triatlón") && distanceKm && targetSeconds) {
     const paceSeconds = targetSeconds / distanceKm;
@@ -719,13 +819,13 @@ function buildObjectiveHints(form: {
   }
 
   if (form.discipline === "ciclismo" || form.discipline === "triatlón") {
-    const ftpWatts = extractFtpWatts(form.objective);
+    const ftpWatts = form.target_power_watts ? Number(form.target_power_watts) : extractFtpWatts(targetLabel);
     if (ftpWatts) {
       hints.push(`Potencia de referencia para cumplir: ${Math.round(ftpWatts)} W`);
     }
   }
 
-  if (form.discipline === "triatlón" && targetSeconds) {
+  if (form.discipline === "triatlón" && targetSeconds && /sub|^\d/.test((form.objective ?? "").trim().toLowerCase())) {
     hints.push(`Tiempo total objetivo detectado: ${formatClock(targetSeconds)}`);
   }
 
@@ -945,6 +1045,75 @@ function targetSummaryForDiscipline(
   return target.target_pace_label || "Sin ritmo objetivo";
 }
 
+function compactTargetLabel(target: Pick<AthleteTarget, "discipline" | "distance_category" | "distance_label" | "objective">) {
+  if (target.distance_category === "hm") return "HM";
+  if (target.distance_category === "marathon") return "Maratón";
+  if (target.distance_category === "10k") return "10K";
+  if (target.distance_category === "5k") return "5K";
+
+  const label = buildTargetObjective({
+    category: target.distance_category,
+    distanceLabel: target.distance_label,
+    fallback: target.objective,
+  });
+  const normalized = label.toLowerCase();
+
+  if (normalized.includes("media marat")) return "HM";
+  if (normalized.includes("marat")) return "Maratón";
+  if (/\b10\s*k\b/.test(normalized)) return "10K";
+  if (/\b5\s*k\b/.test(normalized)) return "5K";
+  if (normalized.includes("ironman")) return "Ironman";
+  if (normalized.includes("half")) return "Half";
+
+  return label;
+}
+
+function targetTotalTimeLabel(target: AthleteTarget, activeDiscipline: string) {
+  const objectiveLabel = buildTargetObjective({
+    category: target.distance_category,
+    distanceLabel: target.distance_label,
+    fallback: target.objective,
+  });
+
+  if (target.discipline === "triatlón") {
+    const totalSeconds = parseSubTargetSeconds(target.objective || objectiveLabel, { discipline: "triatlón" });
+    return totalSeconds ? formatDuration(totalSeconds) : null;
+  }
+
+  if (target.discipline === "running") {
+    const distanceKm = parseDistanceKm(target.distance_label || objectiveLabel);
+    const paceSeconds = parseRunningPaceLabel(target.target_pace_label);
+    if (distanceKm && paceSeconds) {
+      return formatDuration(distanceKm * paceSeconds);
+    }
+    const totalSeconds = parseSubTargetSeconds(target.objective || objectiveLabel, { distanceKm, discipline: target.discipline });
+    return totalSeconds ? formatDuration(totalSeconds) : null;
+  }
+
+  if (target.discipline === "natación") {
+    return null;
+  }
+
+  if (target.discipline === "ciclismo" && activeDiscipline === "ciclismo") {
+    const distanceKm = parseDistanceKm(target.distance_label || objectiveLabel);
+    const totalSeconds = parseSubTargetSeconds(target.objective || objectiveLabel, { distanceKm, discipline: target.discipline });
+    return totalSeconds ? formatDuration(totalSeconds) : null;
+  }
+
+  return null;
+}
+
+function targetMetricDetailLabel(target: AthleteTarget, activeDiscipline: string) {
+  const summary = targetSummaryForDiscipline(target, activeDiscipline);
+  if (summary.startsWith("Sin ")) return null;
+  if (target.discipline === "triatlón" && activeDiscipline === "ciclismo") return `Potencia objetivo ${summary}`;
+  if (target.discipline === "triatlón" && activeDiscipline === "natación") return `Ritmo swim ${summary}`;
+  if (target.discipline === "triatlón" && activeDiscipline === "running") return `Ritmo run ${summary}`;
+  if (target.discipline === "ciclismo") return `Potencia objetivo ${summary}`;
+  if (target.discipline === "natación") return `Ritmo objetivo ${summary}`;
+  return `Ritmo objetivo ${summary}`;
+}
+
 const RUNNING_LT2_TARGET_FACTORS: Record<"5K" | "10K" | "HM" | "Maratón", number> = {
   "5K": 1.03,
   "10K": 1.0,
@@ -1035,11 +1204,16 @@ function buildGoalScenario(
     .sort((a, b) => a.lactate - b.lactate || a.x - b.x);
   const actualCount = usable.filter((point) => point.series === "Actual").length;
   const targetCount = usable.filter((point) => point.series === "Objetivo").length;
-  if (actualCount < 2 || targetCount < 2) return null;
+  if (actualCount < 2 || targetCount < 1) return null;
   return { title, description, xLabel, reversed, points: usable };
 }
 
 function cyclingEnduranceFactor(target: AthleteTarget) {
+  const category = target.distance_category ?? "";
+  if (category === "ironman" || category === "ironman_bike") return 0.72;
+  if (category === "half_tri" || category === "half_bike") return 0.82;
+  if (category === "olympic_tri" || category === "olympic_bike") return 0.88;
+  if (category === "granfondo") return 0.8;
   const normalized = `${target.distance_label ?? ""} ${target.objective}`.toLowerCase();
   if (normalized.includes("ironman") || normalized.includes("140.6")) return 0.72;
   if (normalized.includes("70.3") || normalized.includes("medio ironman") || normalized.includes("media distancia")) return 0.82;
@@ -1049,6 +1223,8 @@ function cyclingEnduranceFactor(target: AthleteTarget) {
 }
 
 function isEnduranceBikeTarget(target: AthleteTarget) {
+  if (target.distance_category && ["half_tri", "half_bike", "ironman", "ironman_bike", "granfondo"].includes(target.distance_category)) return true;
+  if (target.distance_category && ["road_tt_short", "road_tt_medium", "road_tt_long", "hill_climb", "road_race", "olympic_bike", "sprint_bike"].includes(target.distance_category)) return false;
   if (target.discipline === "triatlón") return true;
   const normalized = `${target.distance_label ?? ""} ${target.objective}`.toLowerCase();
   return normalized.includes("gran fondo") || normalized.includes("fondo") || normalized.includes("ultra");
@@ -1061,17 +1237,19 @@ function buildRunningTargetInsight(params: {
   lt2?: ThresholdDisplay;
   dynamicThresholds: DynamicThresholds | null;
   vo2maxEstimate?: Estimate;
+  physiologicalAnalysis?: MesocycleRecommendation["physiological_analysis"] | null;
 }): GoalMovementInsight {
-  const { target, estimatesByType, lt1, lt2, dynamicThresholds, vo2maxEstimate } = params;
+  const { target, estimatesByType, lt1, lt2, dynamicThresholds, vo2maxEstimate, physiologicalAnalysis } = params;
   const triathlonRace = target.discipline === "triatlón" ? parseTriathlonDistanceLabel(target.distance_label) : null;
-  const distanceKm = triathlonRace?.runKm ?? parseDistanceKm(target.distance_label || target.objective);
+  const targetLabel = buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective });
+  const distanceKm = triathlonRace?.runKm ?? parseDistanceKm(target.distance_label || targetLabel);
   const explicitTargetPace =
     target.discipline === "triatlón"
       ? parseRunningPaceLabel(target.target_running_pace_label)
       : parseRunningPaceLabel(target.target_pace_label);
   const derivedTargetSeconds =
     !explicitTargetPace && distanceKm
-      ? parseSubTargetSeconds(target.objective, { distanceKm, discipline: target.discipline })
+      ? parseSubTargetSeconds(targetLabel, { distanceKm, discipline: target.discipline })
       : null;
   const targetPace = explicitTargetPace ?? (derivedTargetSeconds && distanceKm ? derivedTargetSeconds / distanceKm : null);
   const estimateType = runningEstimateTypeFromDistance(distanceKm);
@@ -1085,6 +1263,7 @@ function buildRunningTargetInsight(params: {
   const targetSeconds = targetPace && distanceKm ? targetPace * distanceKm : null;
   const paceGap = currentPace !== null && targetPace !== null ? currentPace - targetPace : null;
   const longEvent = target.discipline === "triatlón" || (distanceKm ?? 0) >= 21;
+  const useBackendTargets = physiologicalAnalysis?.metric_type === "pace_kmh";
   const tone: GoalMovementTone =
     paceGap === null ? "neutral" : paceGap <= 0 ? "positive" : paceGap <= (longEvent ? 8 : 6) ? "neutral" : "negative";
 
@@ -1092,7 +1271,7 @@ function buildRunningTargetInsight(params: {
     return {
       target,
       contextLabel: target.discipline === "triatlón" ? "Segmento run del triatlón" : "Objetivo running",
-      targetValue: target.objective,
+      targetValue: targetLabel,
       currentValue: raceSummary ? `${raceSummary.totalTime} · ${raceSummary.pace}` : currentPace ? formatPace(currentPace) : "Sin referencia actual",
       gapLabel: "Falta ritmo objetivo específico",
       tone: "negative" as GoalMovementTone,
@@ -1111,19 +1290,29 @@ function buildRunningTargetInsight(params: {
     };
   }
 
-  const targetLt2Pace = estimateType ? targetPace * RUNNING_LT2_TARGET_FACTORS[estimateType] : targetPace;
+  const fallbackTargetLt2Pace = estimateType ? targetPace * RUNNING_LT2_TARGET_FACTORS[estimateType] : targetPace;
   const currentLt2Pace = lt2?.pace_seconds_per_km ?? dynamicThresholds?.chronic.practical_lt2?.estimated_pace_seconds_per_km ?? null;
   const currentLt1Pace = lt1?.pace_seconds_per_km ?? dynamicThresholds?.chronic.practical_lt1?.estimated_pace_seconds_per_km ?? null;
-  const targetLt1Pace = targetLt2Pace * (longEvent ? ((distanceKm ?? 0) >= 40 ? 1.15 : 1.11) : 1.08);
+  const targetLt2Pace = useBackendTargets
+    ? kmhToPaceSeconds(physiologicalAnalysis?.required_lt2_kmh ?? null)
+    : fallbackTargetLt2Pace;
+  const targetLt1Pace = useBackendTargets
+    ? kmhToPaceSeconds(physiologicalAnalysis?.required_lt1_kmh ?? null)
+    : targetLt2Pace
+      ? targetLt2Pace * (longEvent ? ((distanceKm ?? 0) >= 40 ? 1.15 : 1.11) : 1.08)
+      : null;
   const mediumEvent = !longEvent && (distanceKm ?? 0) >= 8;
   const currentSupportRatio = currentLt1Pace !== null && currentLt2Pace !== null ? currentLt1Pace / currentLt2Pace : null;
-  const targetSupportRatio = targetLt1Pace / targetLt2Pace;
-  const lt1Gap = currentLt1Pace !== null ? currentLt1Pace - targetLt1Pace : null;
-  const lt2Gap = currentLt2Pace !== null ? currentLt2Pace - targetLt2Pace : null;
+  const targetSupportRatio = targetLt1Pace !== null && targetLt2Pace !== null ? targetLt1Pace / targetLt2Pace : null;
+  const lt1Gap = currentLt1Pace !== null && targetLt1Pace !== null ? currentLt1Pace - targetLt1Pace : null;
+  const lt2Gap = currentLt2Pace !== null && targetLt2Pace !== null ? currentLt2Pace - targetLt2Pace : null;
   const lt1NearTarget = lt1Gap !== null && lt1Gap <= (longEvent ? 4 : 3);
-  const lt1LaggingRelative = currentSupportRatio !== null && currentSupportRatio > targetSupportRatio + (longEvent ? 0.015 : 0.025);
+  const lt1LaggingRelative =
+    currentSupportRatio !== null && targetSupportRatio !== null && currentSupportRatio > targetSupportRatio + (longEvent ? 0.015 : 0.025);
   const prioritizeLt1 =
-    paceGap !== null && paceGap > 0
+    physiologicalAnalysis?.primary_limiter
+      ? physiologicalAnalysis.primary_limiter === "lt1"
+      : paceGap !== null && paceGap > 0
       ? longEvent
         ? currentLt1Pace === null || lt1LaggingRelative || !lt1NearTarget
         : mediumEvent && (currentLt1Pace === null || lt1LaggingRelative) && (lt1Gap ?? 0) >= 6
@@ -1132,17 +1321,25 @@ function buildRunningTargetInsight(params: {
   const lt1Focus: GoalMovementFocus = {
     label: "LT1 y durabilidad",
     current: currentLt1Pace ? formatPace(currentLt1Pace) : "Sin LT1 actual",
-    target: formatPace(targetLt1Pace),
-    delta: currentLt1Pace ? formatPaceGapLabel(currentLt1Pace, targetLt1Pace) : "Falta ancla LT1",
+    target: targetLt1Pace ? formatPace(targetLt1Pace) : useBackendTargets ? "No requerido de forma explícita" : null,
+    delta: currentLt1Pace
+      ? targetLt1Pace
+        ? formatPaceGapLabel(currentLt1Pace, targetLt1Pace)
+        : "El selector no fija un LT1 requerido formal para este objetivo"
+      : "Falta ancla LT1",
     tone:
       currentLt1Pace === null
         ? "negative"
-        : currentLt1Pace <= targetLt1Pace
+        : targetLt1Pace === null
+          ? "neutral"
+          : currentLt1Pace <= targetLt1Pace
           ? "positive"
           : currentLt1Pace - targetLt1Pace <= (longEvent ? 8 : 6)
             ? "neutral"
             : "negative",
-    description: longEvent
+    description: useBackendTargets && targetLt1Pace === null
+      ? "Para este objetivo, el selector de mesociclo no está fijando una referencia LT1 explícita. La decisión fisiológica se apoya sobre todo en LT2 y en el contexto temporal."
+      : longEvent
       ? prioritizeLt1
         ? "En HM, maratón y triatlón, la primera palanca suele ser subir la carga sostenible a baja lactatemia y la durabilidad. Eso reduce la deriva y suele facilitar la siguiente subida de LT2."
         : "LT1 ya acompaña razonablemente al objetivo. Hay que mantener esa base mientras LT2 termina de acercarse."
@@ -1154,12 +1351,14 @@ function buildRunningTargetInsight(params: {
   const lt2Focus: GoalMovementFocus = {
     label: "LT2",
     current: currentLt2Pace ? formatPace(currentLt2Pace) : "Sin LT2 actual",
-    target: formatPace(targetLt2Pace),
-    delta: formatPaceGapLabel(currentLt2Pace, targetLt2Pace),
+    target: targetLt2Pace ? formatPace(targetLt2Pace) : "Sin LT2 requerido",
+    delta: targetLt2Pace ? formatPaceGapLabel(currentLt2Pace, targetLt2Pace) : "El selector no pudo fijar LT2 requerido",
     tone:
       currentLt2Pace === null
         ? "negative"
-        : currentLt2Pace <= targetLt2Pace
+        : targetLt2Pace === null
+          ? "negative"
+          : currentLt2Pace <= targetLt2Pace
           ? "positive"
           : currentLt2Pace - targetLt2Pace <= 8
             ? "neutral"
@@ -1182,25 +1381,26 @@ function buildRunningTargetInsight(params: {
     });
   }
 
-  const actualPracticalPace =
-    dynamicThresholds?.chronic.practical_lt2?.estimated_pace_seconds_per_km ?? interpolateMetric(currentLt1Pace, currentLt2Pace, 0.55);
-  const targetPracticalPace = interpolateMetric(targetLt1Pace, targetLt2Pace, 0.55);
   const scenario = buildGoalScenario(
     "Escenario objetivo de lactato",
-    "Proyección conservadora con anclas LT1, transición subumbral y LT2. La línea objetivo es una referencia de trabajo, no un test medido.",
+    useBackendTargets
+      ? "Visualización directa de los umbrales requeridos que está usando el selector de mesociclo. Si falta alguna ancla, no se inventa."
+      : "Proyección conservadora con anclas LT1 y LT2. La línea objetivo es una referencia de trabajo, no un test medido.",
     "Ritmo",
     true,
     [
       goalScenarioPoint("LT1 actual", "Actual", currentLt1Pace, lt1?.lactate ?? 2.0),
-      goalScenarioPoint("Transición actual", "Actual", actualPracticalPace, 3.1),
       goalScenarioPoint("LT2 actual", "Actual", currentLt2Pace, lt2?.lactate ?? 4.0),
       goalScenarioPoint("LT1 objetivo", "Objetivo", targetLt1Pace, 2.0),
-      goalScenarioPoint("Transición objetivo", "Objetivo", targetPracticalPace, 3.1),
       goalScenarioPoint("LT2 objetivo", "Objetivo", targetLt2Pace, 4.0),
     ],
   );
 
   const notes = [
+    ...(useBackendTargets ? ["Esta tarjeta usa los `required_lt1` y `required_lt2` del motor de mesociclos para mantenerse alineada con la recomendación de bloque."] : []),
+    ...(useBackendTargets && targetLt1Pace === null && targetLt2Pace !== null
+      ? ["Para esta prueba, el motor está fijando solo un LT2 requerido. No hay un LT1 objetivo formal en la recomendación fisiológica actual."]
+      : []),
     "La prioridad cambia con la distancia: cuanto más larga la prueba, más pesa la carga sostenible a lactatos bajos y la durabilidad; cuanto más corta, más manda LT2 y el techo aeróbico.",
     ...(target.discipline === "triatlón" ? ["Lectura aplicada solo al segmento de carrera a pie del triatlón objetivo."] : []),
     ...(raceEstimate?.low_evidence ? ["La estimación específica de esta distancia todavía tiene evidencia limitada."] : []),
@@ -1253,16 +1453,19 @@ function buildCyclingTargetInsight(params: {
   dynamicThresholds: DynamicThresholds | null;
   vo2maxEstimate?: Estimate;
   athleteWeight?: number | null;
+  physiologicalAnalysis?: MesocycleRecommendation["physiological_analysis"] | null;
 }): GoalMovementInsight {
-  const { target, estimatesByType, lt1, lt2, dynamicThresholds, vo2maxEstimate, athleteWeight } = params;
+  const { target, estimatesByType, lt1, lt2, dynamicThresholds, vo2maxEstimate, athleteWeight, physiologicalAnalysis } = params;
+  const targetLabel = buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective });
   const targetPower =
     target.discipline === "triatlón"
-      ? target.target_cycling_power_watts ?? extractFtpWatts(target.objective)
-      : target.target_power_watts ?? extractFtpWatts(target.objective);
+      ? target.target_cycling_power_watts ?? extractFtpWatts(targetLabel)
+      : target.target_power_watts ?? extractFtpWatts(targetLabel);
   const ftpEstimate = estimatesByType.get("FTP");
   const currentFtpPower = ftpEstimate?.value ?? null;
   const currentReferencePower = currentFtpPower ?? dynamicThresholds?.chronic.practical_lt2?.estimated_power_watts ?? lt2?.power_watts ?? null;
   const powerGap = currentReferencePower !== null && targetPower !== null ? targetPower - currentReferencePower : null;
+  const useBackendTargets = physiologicalAnalysis?.metric_type === "power_watts";
   const tone: GoalMovementTone =
     powerGap === null ? "neutral" : powerGap <= 0 ? "positive" : powerGap <= 15 ? "neutral" : "negative";
 
@@ -1270,7 +1473,7 @@ function buildCyclingTargetInsight(params: {
     return {
       target,
       contextLabel: target.discipline === "triatlón" ? "Segmento bike del triatlón" : "Objetivo ciclismo",
-      targetValue: target.objective,
+      targetValue: targetLabel,
       currentValue: currentReferencePower ? formatPowerWithWeight(currentReferencePower, athleteWeight) : "Sin referencia actual",
       gapLabel: "Falta potencia objetivo",
       tone: "negative" as GoalMovementTone,
@@ -1289,19 +1492,27 @@ function buildCyclingTargetInsight(params: {
     };
   }
 
-  const targetLt2Power = targetPower / 0.94;
+  const fallbackTargetLt2Power = targetPower / 0.94;
   const currentLt2Power = lt2?.power_watts ?? dynamicThresholds?.chronic.practical_lt2?.estimated_power_watts ?? null;
   const currentLt1Power = lt1?.power_watts ?? dynamicThresholds?.chronic.practical_lt1?.estimated_power_watts ?? null;
   const enduranceTarget = isEnduranceBikeTarget(target);
-  const targetSupportPower = enduranceTarget ? targetPower * cyclingEnduranceFactor(target) : targetLt2Power * 0.84;
+  const targetLt2Power = useBackendTargets ? physiologicalAnalysis?.required_lt2_kmh ?? null : fallbackTargetLt2Power;
+  const targetSupportPower = useBackendTargets
+    ? physiologicalAnalysis?.required_lt1_kmh ?? null
+    : enduranceTarget
+      ? targetPower * cyclingEnduranceFactor(target)
+      : fallbackTargetLt2Power * 0.84;
   const currentSupportRatio = currentLt1Power !== null && currentLt2Power !== null ? currentLt1Power / currentLt2Power : null;
-  const targetSupportRatio = targetSupportPower / targetLt2Power;
-  const lt1Gap = currentLt1Power !== null ? targetSupportPower - currentLt1Power : null;
-  const lt2Gap = currentLt2Power !== null ? targetLt2Power - currentLt2Power : null;
+  const targetSupportRatio = targetSupportPower !== null && targetLt2Power !== null ? targetSupportPower / targetLt2Power : null;
+  const lt1Gap = currentLt1Power !== null && targetSupportPower !== null ? targetSupportPower - currentLt1Power : null;
+  const lt2Gap = currentLt2Power !== null && targetLt2Power !== null ? targetLt2Power - currentLt2Power : null;
   const lt1NearTarget = lt1Gap !== null && lt1Gap <= (enduranceTarget ? 12 : 10);
-  const lt1LaggingRelative = currentSupportRatio !== null && currentSupportRatio < targetSupportRatio - (enduranceTarget ? 0.04 : 0.06);
+  const lt1LaggingRelative =
+    currentSupportRatio !== null && targetSupportRatio !== null && currentSupportRatio < targetSupportRatio - (enduranceTarget ? 0.04 : 0.06);
   const prioritizeLt1 =
-    powerGap !== null && powerGap > 0
+    physiologicalAnalysis?.primary_limiter
+      ? physiologicalAnalysis.primary_limiter === "lt1"
+      : powerGap !== null && powerGap > 0
       ? enduranceTarget
         ? currentLt1Power === null || lt1LaggingRelative || !lt1NearTarget
         : currentLt1Power !== null && lt1LaggingRelative && (lt1Gap ?? 0) >= 15
@@ -1310,17 +1521,23 @@ function buildCyclingTargetInsight(params: {
   const lt1Focus: GoalMovementFocus = {
     label: "LT1 y durabilidad",
     current: currentLt1Power ? formatPowerWithWeight(currentLt1Power, athleteWeight) : "Sin LT1 actual",
-    target: formatPowerWithWeight(targetSupportPower, athleteWeight),
-    delta: formatPowerGapLabel(currentLt1Power, targetSupportPower),
+    target: targetSupportPower ? formatPowerWithWeight(targetSupportPower, athleteWeight) : useBackendTargets ? "No requerido de forma explícita" : null,
+    delta: targetSupportPower
+      ? formatPowerGapLabel(currentLt1Power, targetSupportPower)
+      : "El selector no fija LT1 requerido formal para este objetivo",
     tone:
       currentLt1Power === null
         ? "negative"
-        : currentLt1Power >= targetSupportPower
+        : targetSupportPower === null
+          ? "neutral"
+          : currentLt1Power >= targetSupportPower
           ? "positive"
           : targetSupportPower - currentLt1Power <= 18
             ? "neutral"
             : "negative",
-    description: enduranceTarget
+    description: useBackendTargets && targetSupportPower === null
+      ? "Para este objetivo, el selector de mesociclo no está fijando una referencia LT1 explícita. La decisión fisiológica se apoya sobre todo en LT2/FTP y en el contexto temporal."
+      : enduranceTarget
       ? prioritizeLt1
         ? "En triatlón y fondo, la primera palanca suele ser elevar la potencia sostenible por debajo del umbral alto y aguantarla durante más tiempo. Esa base suele facilitar después la subida de LT2 y FTP."
         : "La base subumbral ya acompaña bastante. Hay que sostenerla mientras LT2 y la potencia objetivo terminan de subir."
@@ -1332,12 +1549,14 @@ function buildCyclingTargetInsight(params: {
   const lt2Focus: GoalMovementFocus = {
     label: "LT2",
     current: currentLt2Power ? formatPowerWithWeight(currentLt2Power, athleteWeight) : "Sin LT2 actual",
-    target: formatPowerWithWeight(targetLt2Power, athleteWeight),
-    delta: formatPowerGapLabel(currentLt2Power, targetLt2Power),
+    target: targetLt2Power ? formatPowerWithWeight(targetLt2Power, athleteWeight) : "Sin LT2 requerido",
+    delta: targetLt2Power ? formatPowerGapLabel(currentLt2Power, targetLt2Power) : "El selector no pudo fijar LT2 requerido",
     tone:
       currentLt2Power === null
         ? "negative"
-        : currentLt2Power >= targetLt2Power
+        : targetLt2Power === null
+          ? "negative"
+          : currentLt2Power >= targetLt2Power
           ? "positive"
           : targetLt2Power - currentLt2Power <= 18
             ? "neutral"
@@ -1378,25 +1597,26 @@ function buildCyclingTargetInsight(params: {
     });
   }
 
-  const actualPracticalPower =
-    dynamicThresholds?.chronic.practical_lt2?.estimated_power_watts ?? interpolateMetric(currentLt1Power, currentLt2Power, 0.55);
-  const targetPracticalPower = interpolateMetric(targetSupportPower, targetLt2Power, 0.55);
   const scenario = buildGoalScenario(
     "Escenario objetivo de lactato",
-    "Proyección conservadora con LT1, transición subumbral y LT2 para ver qué carga externa debería desplazarse al mismo lactato.",
+    useBackendTargets
+      ? "Visualización directa de los umbrales requeridos que está usando el selector de mesociclo. Si falta alguna ancla, no se inventa."
+      : "Proyección conservadora con LT1 y LT2 para ver qué carga externa debería desplazarse al mismo lactato.",
     "Potencia",
     false,
     [
       goalScenarioPoint("LT1 actual", "Actual", currentLt1Power, lt1?.lactate ?? 2.0),
-      goalScenarioPoint("Transición actual", "Actual", actualPracticalPower, 3.1),
       goalScenarioPoint("LT2 actual", "Actual", currentLt2Power, lt2?.lactate ?? 4.0),
       goalScenarioPoint("LT1 objetivo", "Objetivo", targetSupportPower, 2.0),
-      goalScenarioPoint("Transición objetivo", "Objetivo", targetPracticalPower, 3.1),
       goalScenarioPoint("LT2 objetivo", "Objetivo", targetLt2Power, 4.0),
     ],
   );
 
   const notes = [
+    ...(useBackendTargets ? ["Esta tarjeta usa los `required_lt1` y `required_lt2` del motor de mesociclos para mantenerse alineada con la recomendación de bloque."] : []),
+    ...(useBackendTargets && targetSupportPower === null && targetLt2Power !== null
+      ? ["Para esta prueba, el motor está fijando solo un LT2 requerido. No hay un LT1 objetivo formal en la recomendación fisiológica actual."]
+      : []),
     "La prioridad cambia con la duración: en bike de fondo o triatlón pesa más la potencia sostenible y la durabilidad; en objetivos cortos o de FTP puro manda más LT2/FTP.",
     ...(target.discipline === "triatlón" ? ["Lectura aplicada al segmento de ciclismo del triatlón objetivo."] : []),
     ...(ftpEstimate?.low_evidence ? ["La estimación actual de FTP todavía tiene evidencia limitada."] : []),
@@ -1457,7 +1677,7 @@ function buildSwimmingTargetInsight(params: {
     return {
       target,
       contextLabel: target.discipline === "triatlón" ? "Segmento swim del triatlón" : "Objetivo natación",
-      targetValue: target.objective,
+      targetValue: buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective }),
       currentValue: sampleCount ? `${sampleCount} muestras con lactato` : "Sin base actual",
       gapLabel: "Falta ritmo objetivo",
       tone: "negative" as GoalMovementTone,
@@ -1518,8 +1738,9 @@ function buildTargetMovementInsight(params: {
   dynamicThresholds: DynamicThresholds | null;
   vo2maxEstimate?: Estimate;
   athleteWeight?: number | null;
+  physiologicalAnalysis?: MesocycleRecommendation["physiological_analysis"] | null;
 }): GoalMovementInsight | null {
-  const { targets, activeDiscipline, displayView, estimatesByType, lt1, lt2, dynamicThresholds, vo2maxEstimate, athleteWeight } = params;
+  const { targets, activeDiscipline, displayView, estimatesByType, lt1, lt2, dynamicThresholds, vo2maxEstimate, athleteWeight, physiologicalAnalysis } = params;
   const target = selectRelevantTarget(targets, activeDiscipline);
   if (!target) return null;
 
@@ -1531,6 +1752,7 @@ function buildTargetMovementInsight(params: {
       lt2,
       dynamicThresholds,
       vo2maxEstimate,
+      physiologicalAnalysis,
     });
   }
 
@@ -1543,6 +1765,7 @@ function buildTargetMovementInsight(params: {
       dynamicThresholds,
       vo2maxEstimate,
       athleteWeight,
+      physiologicalAnalysis,
     });
   }
 
@@ -1941,6 +2164,8 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const [thresholdReferenceVisibility, setThresholdReferenceVisibility] = useState({
     lt1: true,
     lt2: true,
+    lt1Candidate: true,
+    lt2Candidate: true,
     practicalLt1: true,
     practicalLt2: true,
     lt1Real: false,
@@ -1948,8 +2173,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     lt1PracticalReal: false,
     lt2PracticalReal: true,
   });
-  const [weightValue, setWeightValue] = useState("");
-  const [weightDate, setWeightDate] = useState(new Date().toISOString().slice(0, 10));
   const [lactateOverlayOpen, setLactateOverlayOpen] = useState(false);
   const [targetsOverlayOpen, setTargetsOverlayOpen] = useState(false);
   const [physiologyReportOpen, setPhysiologyReportOpen] = useState(false);
@@ -1957,6 +2180,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const [physiologyReportLoading, setPhysiologyReportLoading] = useState(false);
   const [physiologyReportPdfLoading, setPhysiologyReportPdfLoading] = useState(false);
   const [physiologyReportError, setPhysiologyReportError] = useState<string | null>(null);
+  const [planningRecommendation, setPlanningRecommendation] = useState<MesocycleRecommendation | null>(null);
   const [deletingMeasurementId, setDeletingMeasurementId] = useState<number | null>(null);
   const [expandedCyclingPanel, setExpandedCyclingPanel] = useState<"cadence" | "history" | "threshold" | null>(null);
   const [targetSubmitting, setTargetSubmitting] = useState(false);
@@ -1966,6 +2190,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     target_date: new Date().toISOString().slice(0, 10),
     discipline: "running",
     distance_label: "",
+    distance_category: "",
     priority_level: "media",
     objective: "",
     target_pace_label: "",
@@ -2044,6 +2269,30 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   }, [analysis?.athlete.id, activeDiscipline, cyclingPowerSourceMode]);
 
   useEffect(() => {
+    if (!analysis?.athlete.id) {
+      setPlanningRecommendation(null);
+      return;
+    }
+    let cancelled = false;
+    setPlanningRecommendation(null);
+    void api
+      .planningRecommendation(token, analysis.athlete.id, activeDiscipline)
+      .then((result) => {
+        if (!cancelled) {
+          setPlanningRecommendation(result as MesocycleRecommendation);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPlanningRecommendation(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [analysis?.athlete.id, activeDiscipline, token]);
+
+  useEffect(() => {
     if (!analysis || activeDiscipline !== "ciclismo") return;
     const sources = Object.keys(analysis.discipline_views?.ciclismo?.power_source_views ?? {});
     if (!sources.length) return;
@@ -2066,9 +2315,9 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     const view =
       (idealSource ? analysis.discipline_views?.[fallbackDisciplineKey]?.power_source_views?.[idealSource] : null) ??
       analysis.discipline_views?.[fallbackDisciplineKey];
-    const lt1Threshold = view?.thresholds.find((threshold) => threshold.name === "LT1");
-    if (lt1Threshold?.power_watts) {
-      setCyclingPowerTarget(String(Math.round(lt1Threshold.power_watts / 5) * 5));
+    const lt1Threshold = resolveTrainingThreshold(view, "LT1");
+    if (lt1Threshold?.powerWatts) {
+      setCyclingPowerTarget(String(Math.round(lt1Threshold.powerWatts / 5) * 5));
       return;
     }
     const ftpEstimate = latestEstimateByType(view?.estimates ?? []).get("FTP");
@@ -2205,25 +2454,9 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   function resolveViewThreshold(
     sourceView: DisciplineView,
     thresholdName: "LT1" | "LT2",
-    disciplineKey: string,
+    _disciplineKey: string,
   ) {
-    if (thresholdName === "LT1") {
-      const dynamicLt1 = dynamicReferenceToDisplay(
-        "LT1",
-        sourceView.dynamic_thresholds?.chronic.reference_2mmol,
-        sourceView.power_source,
-      );
-      if (hasRenderableThreshold(dynamicLt1, disciplineKey)) return dynamicLt1;
-    }
-    if (thresholdName === "LT2") {
-      const dynamicLt2 = dynamicReferenceToDisplay(
-        "LT2",
-        sourceView.dynamic_thresholds?.chronic.reference_4mmol,
-        sourceView.power_source,
-      );
-      if (hasRenderableThreshold(dynamicLt2, disciplineKey)) return dynamicLt2;
-    }
-    return thresholdToDisplay(sourceView.thresholds.find((threshold) => threshold.name === thresholdName));
+    return resolvedThresholdToDisplay(resolveTrainingThreshold(sourceView, thresholdName), sourceView.power_source);
   }
 
   const lt1 = resolveViewThreshold(displayView, "LT1", activeDiscipline);
@@ -2345,11 +2578,17 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     dynamicThresholds,
     vo2maxEstimate,
     athleteWeight,
+    physiologicalAnalysis: planningRecommendation?.physiological_analysis ?? null,
   });
   const latestSnapshotLabel = displayView.latest_snapshot_date ? formatDate(displayView.latest_snapshot_date) : "Sin snapshot";
   const activeTarget = targetMovementInsight?.target ?? selectRelevantTarget(analysis.athlete.targets ?? [], activeDiscipline);
-  const nextTargetLabel = activeTarget ? formatDate(activeTarget.target_date) : "Sin objetivo";
-  const nextTargetValue = activeTarget ? targetSummaryForDiscipline(activeTarget, activeDiscipline) : "Define una meta";
+  const nextTargetLabel = activeTarget ? compactTargetLabel(activeTarget) : "Define una meta";
+  const nextTargetTotalTime = activeTarget ? targetTotalTimeLabel(activeTarget, activeDiscipline) : null;
+  const nextTargetMetric = activeTarget ? targetMetricDetailLabel(activeTarget, activeDiscipline) : null;
+  const nextTargetValue = activeTarget ? [nextTargetLabel, nextTargetTotalTime].filter(Boolean).join(" · ") : "Define una meta";
+  const nextTargetDetail = activeTarget
+    ? [nextTargetMetric, `Objetivo ${formatDate(activeTarget.target_date)}`].filter(Boolean).join(" · ")
+    : "Sin objetivo";
   const sectionLinks: AthleteDetailSectionLink[] = [
     { id: "thresholds", label: "Mapa de umbrales", shortLabel: "Umbrales" },
     ...(targetMovementInsight ? [{ id: "goal-gap", label: "Qué mover para el objetivo", shortLabel: "Objetivo" }] : []),
@@ -2375,7 +2614,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     {
       label: "Objetivo activo",
       value: nextTargetValue,
-      detail: nextTargetLabel,
+      detail: nextTargetDetail,
       tone: activeTarget ? "neutral" : "warning",
     },
     {
@@ -2533,6 +2772,10 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     const practicalLt1Reference = resolvedView.dynamic_thresholds?.chronic.practical_lt1 ?? null;
     const practicalLt2Reference = resolvedView.dynamic_thresholds?.chronic.practical_lt2 ?? null;
     const realThresholds: RealThresholds | null = resolvedView.real_thresholds ?? null;
+    const lt1Detection = realThresholds?.lt1_detection ?? null;
+    const lt2Detection = realThresholds?.lt2_detection ?? null;
+    const lt1Candidate = thresholdDetectionToDisplay(lt1Detection, resolvedView.power_source);
+    const lt2Candidate = thresholdDetectionToDisplay(lt2Detection, resolvedView.power_source);
     const individualThresholds: IndividualThresholds | null = resolvedView.individual_thresholds ?? mapLegacyRealThresholdsToIndividual(realThresholds);
     const visibleMeasurements = (resolvedView.measurement_log ?? []).filter((entry) => {
       if (historyFrom && entry.session_date < historyFrom) return false;
@@ -2574,6 +2817,14 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     const practicalLt2Support = resolveMeasurementMatch(
       disciplineKey === "ciclismo" ? practicalLt2Reference?.estimated_power_watts : practicalLt2Reference?.estimated_pace_seconds_per_km,
       practicalLt2Reference?.target_lactate,
+    );
+    const lt1CandidateSupport = resolveMeasurementMatch(
+      disciplineKey === "ciclismo" ? lt1Candidate?.power_watts : lt1Candidate?.pace_seconds_per_km,
+      lt1Candidate?.lactate,
+    );
+    const lt2CandidateSupport = resolveMeasurementMatch(
+      disciplineKey === "ciclismo" ? lt2Candidate?.power_watts : lt2Candidate?.pace_seconds_per_km,
+      lt2Candidate?.lactate,
     );
     const disciplinePlotData = [disciplineLt1, disciplineLt2]
       .filter((threshold): threshold is ThresholdDisplay => hasRenderableThreshold(threshold, disciplineKey))
@@ -2682,6 +2933,30 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
           }
         : null,
     ].filter(isDefined);
+    const candidatePlotData = [
+      lt1Candidate && hasRenderableThreshold(lt1Candidate, disciplineKey)
+        ? {
+            name: `LT1 señal · ${thresholdDetectionStateLabel(lt1Detection?.state)}`,
+            x: disciplineKey === "ciclismo" ? (lt1Candidate.power_watts as number) : (lt1Candidate.pace_seconds_per_km as number),
+            lactate: lt1Candidate.lactate as number,
+            sessionDate: lt1CandidateSupport?.session_date ?? null,
+            heartRate: lt1Candidate.heart_rate ?? lt1CandidateSupport?.heart_rate_avg ?? null,
+            intervalLabel: lt1CandidateSupport?.interval_label ?? null,
+            powerSource: lt1CandidateSupport?.power_source ?? resolvedView.power_source,
+          }
+        : null,
+      lt2Candidate && hasRenderableThreshold(lt2Candidate, disciplineKey)
+        ? {
+            name: `LT2 señal · ${thresholdDetectionStateLabel(lt2Detection?.state)}`,
+            x: disciplineKey === "ciclismo" ? (lt2Candidate.power_watts as number) : (lt2Candidate.pace_seconds_per_km as number),
+            lactate: lt2Candidate.lactate as number,
+            sessionDate: lt2CandidateSupport?.session_date ?? null,
+            heartRate: lt2Candidate.heart_rate ?? lt2CandidateSupport?.heart_rate_avg ?? null,
+            intervalLabel: lt2CandidateSupport?.interval_label ?? null,
+            powerSource: lt2CandidateSupport?.power_source ?? resolvedView.power_source,
+          }
+        : null,
+    ].filter(isDefined);
     const comparePools = compareViews.map(({ sourceKey, sourceView }) => ({
       sourceKey,
       color: sourceKey === "indoor" ? "#2f7de1" : "#c45b2f",
@@ -2712,13 +2987,20 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       view: resolvedView,
       lt1: disciplineLt1,
       lt2: disciplineLt2,
+      lt1Detection,
+      lt2Detection,
+      lt1Candidate,
+      lt2Candidate,
       lt1Support,
       lt2Support,
+      lt1CandidateSupport,
+      lt2CandidateSupport,
       practicalLt1Support,
       practicalLt2Support,
       provisionalLt1: provisionalLt1Point,
       provisionalLt2: provisionalLt2Point,
       plotData: disciplinePlotData,
+      candidatePlotData,
       practicalPlotData,
       provisionalPlotData,
       pool,
@@ -2877,23 +3159,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     }
   }
 
-  async function saveWeight() {
-    setSaveError(null);
-    setSaveMessage(null);
-    try {
-      await api.addAthleteWeight(token, analysis!.athlete.id, {
-        recorded_at: weightDate,
-        weight: Number(weightValue),
-        source: "manual",
-      });
-      setWeightValue("");
-      setSaveMessage("Peso registrado.");
-      await onSaved();
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "No se pudo guardar el peso.");
-    }
-  }
-
   async function saveAthleteTarget() {
     setSaveError(null);
     setSaveMessage(null);
@@ -2902,8 +3167,13 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       const payload = {
         target_date: targetForm.target_date,
         discipline: targetForm.discipline,
-        objective: targetForm.objective,
-        distance_label: targetForm.distance_label || null,
+        objective: buildTargetObjective({
+          category: targetForm.distance_category,
+          distanceLabel: targetForm.distance_label,
+          fallback: disciplineLabel(targetForm.discipline),
+        }),
+        distance_label: targetForm.distance_label || targetCategoryLabel(targetForm.distance_category) || null,
+        distance_category: targetForm.distance_category || null,
         priority_level: targetForm.priority_level || null,
         target_pace_label: targetForm.target_pace_label || null,
         target_power_watts: targetForm.target_power_watts ? Number(targetForm.target_power_watts) : null,
@@ -2928,6 +3198,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       setTargetForm((current) => ({
         ...current,
         distance_label: "",
+        distance_category: "",
         objective: "",
         target_pace_label: "",
         target_power_watts: "",
@@ -2954,6 +3225,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       target_date: target.target_date,
       discipline: target.discipline,
       distance_label: target.distance_label ?? "",
+      distance_category: target.distance_category ?? "",
       priority_level: target.priority_level ?? "media",
       objective: target.objective,
       target_pace_label: target.target_pace_label ?? "",
@@ -2984,43 +3256,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "No se pudo eliminar el objetivo.");
     }
-  }
-
-  function downloadLactateHistoryCsv() {
-    const rows = displayView.measurement_log.map((entry) => ({
-      fecha: entry.session_date,
-      sesion: entry.session_type,
-      intervalo: entry.interval_label,
-      duracion_segundos: entry.duration_seconds,
-      descanso_segundos: entry.rest_seconds ?? "",
-      lactato_mmol_l: entry.lactate_mmol,
-      ritmo_seg_km: entry.pace_seconds_per_km ?? "",
-      potencia_w: entry.power_watts ?? "",
-      fc_bpm: entry.heart_rate_avg ?? "",
-      cadencia: entry.cadence ?? "",
-      disciplina: activeDiscipline,
-    }));
-    const headers = Object.keys(rows[0] ?? {
-      fecha: "",
-      sesion: "",
-      intervalo: "",
-      duracion_segundos: "",
-      descanso_segundos: "",
-      lactato_mmol_l: "",
-      ritmo_seg_km: "",
-      potencia_w: "",
-      fc_bpm: "",
-      cadencia: "",
-      disciplina: "",
-    });
-    const csv = [headers.join(","), ...rows.map((row) => headers.map((header) => csvCell(row[header as keyof typeof row])).join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${analysis!.athlete.name.toLowerCase().replace(/\s+/g, "-")}-${activeDiscipline}-historico-lactato.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
   }
 
   async function generatePhysiologyReport() {
@@ -3759,7 +3994,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               {(analysis.athlete.targets ?? []).map((target) => (
                 <article key={target.id} className="list-item target-history-item">
                   <div className="status-head">
-                    <strong>{target.objective}</strong>
+                    <strong>{buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective })}</strong>
                     <span className="status-badge neutral">{target.target_date}</span>
                   </div>
                   <p>
@@ -3801,6 +4036,26 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                 </select>
               </label>
               <label>
+                Prueba objetivo
+                <select
+                  value={targetForm.distance_category}
+                  onChange={(event) =>
+                    setTargetForm((current) => ({
+                      ...current,
+                      distance_category: event.target.value,
+                      distance_label: targetCategoryLabel(event.target.value, current.distance_label) ?? current.distance_label,
+                    }))
+                  }
+                >
+                  <option value="">— Selecciona prueba —</option>
+                  {targetCategoryOptions(targetForm.discipline).map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
                 Distancia
                 {targetForm.discipline === "triatlón" ? (
                   <>
@@ -3825,7 +4080,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                     onChange={(event) => setTargetForm({ ...targetForm, distance_label: event.target.value })}
                     placeholder="5K, 10K, maratón, 1500m..."
                   />
-                )}
+                  )}
               </label>
               <label>
                 Prioridad
@@ -3835,10 +4090,11 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                   <option value="baja">Baja</option>
                 </select>
               </label>
-              <label className="full-width">
-                Objetivo
-                <input value={targetForm.objective} onChange={(event) => setTargetForm({ ...targetForm, objective: event.target.value })} placeholder="Sub 1:15 HM, FTP 320, podio M35..." />
-              </label>
+              <div className="full-width card planning-threshold-card policy">
+                <small>Nombre que guardará el sistema</small>
+                <strong>{buildTargetObjective({ category: targetForm.distance_category, distanceLabel: targetForm.distance_label, fallback: disciplineLabel(targetForm.discipline) })}</strong>
+                <p>La categoría de prueba manda en la lógica. El nombre visible solo acompaña.</p>
+              </div>
               {targetHints.length ? (
                 <div className="target-hints full-width target-hints-summary">
                   {targetHints.map((hint) => (
@@ -4005,7 +4261,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                     Cancelar edición
                   </button>
                 ) : null}
-                <button className="primary-button" type="button" onClick={saveAthleteTarget} disabled={targetSubmitting || !targetForm.objective}>
+                <button className="primary-button" type="button" onClick={saveAthleteTarget} disabled={targetSubmitting || !targetForm.distance_category}>
                   {targetSubmitting ? "Guardando..." : editingTargetId ? "Guardar cambios" : "Aceptar y guardar"}
                 </button>
               </div>
@@ -4021,12 +4277,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
             <button className="ghost-button" type="button" onClick={() => setTargetsOverlayOpen(true)}>
               Objetivos y competiciones
             </button>
-            <button className="ghost-button" type="button" onClick={downloadLactateHistoryCsv} disabled={!displayView.measurement_log.length}>
-              Descargar CSV
-            </button>
-            <small className="athlete-vo2-inline">
-              VO2max {vo2maxEstimate ? `${Math.round(vo2maxEstimate.value * 10) / 10} ml/kg/min` : "n/d"}
-            </small>
           </div>
           <p>{analysis.athlete.notes}</p>
           <div className="hero-goal-row">
@@ -4045,22 +4295,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               </div>
             ) : null}
           </div>
-          <details className="inline-weight-entry">
-            <summary>Registrar peso</summary>
-            <div className="inline-weight-form">
-              <label>
-                Fecha
-                <input type="date" value={weightDate} onChange={(event) => setWeightDate(event.target.value)} />
-              </label>
-              <label>
-                Peso (kg)
-                <input type="number" step="0.1" min="0" value={weightValue} onChange={(event) => setWeightValue(event.target.value)} />
-              </label>
-              <button className="ghost-button" type="button" onClick={saveWeight} disabled={!weightValue}>
-                Guardar peso
-              </button>
-            </div>
-          </details>
         </div>
         <div className="hero-focus-stack">
           <article className="hero-focus-card current">
@@ -4183,6 +4417,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
           ))}
           {relevantEstimates.map((estimate, index) => {
             const raceSummary = racePredictionSummary(estimate);
+            const visualRange = estimateVisualRange(estimate, athleteWeight);
             return (
               <article
                 key={`${estimate.estimate_type}-${estimate.discipline}-${estimate.valid_on ?? "na"}-${index}`}
@@ -4200,7 +4435,11 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                       ? formatPowerWithWeight(estimate.value, athleteWeight)
                       : `${estimate.value} ${estimate.unit}`}
                 </strong>
-                <p>{raceSummary ? raceSummary.totalTime : `${formatValue(estimate.lower_bound, estimate.unit)} - ${formatValue(estimate.upper_bound, estimate.unit)}`}</p>
+                <p>{raceSummary ? raceSummary.totalTime : visualRange.primary}</p>
+                <small>
+                  {raceSummary ? "Ritmo " : ""}
+                  Mejor {visualRange.bestSecondaryLabel} · Conservador {visualRange.conservativeSecondaryLabel}
+                </small>
                 {raceSummary ? <small>IC tiempo {raceSummary.lowerTime} - {raceSummary.upperTime}</small> : null}
                 <small>{estimate.low_evidence ? "Evidencia limitada" : "Evidencia suficiente"}</small>
               </article>
@@ -4286,6 +4525,14 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               disciplineKey === "ciclismo"
                 ? plotView.lt2?.power_watts ?? plotView.provisionalLt2?.x ?? null
                 : plotView.lt2?.pace_seconds_per_km ?? plotView.provisionalLt2?.x ?? null;
+            const plotLt1CandidateX =
+              disciplineKey === "ciclismo"
+                ? plotView.lt1Candidate?.power_watts ?? null
+                : plotView.lt1Candidate?.pace_seconds_per_km ?? null;
+            const plotLt2CandidateX =
+              disciplineKey === "ciclismo"
+                ? plotView.lt2Candidate?.power_watts ?? null
+                : plotView.lt2Candidate?.pace_seconds_per_km ?? null;
             const plotLt1RealX =
               disciplineKey === "ciclismo"
                 ? plotView.individualThresholds?.lt1_individual?.power_watts ?? null
@@ -4359,10 +4606,46 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                               ? thresholdDetailLine(plotView.lt2, disciplineKey, athleteWeight)
                               : plotView.provisionalLt2
                                 ? `${disciplineKey === "ciclismo" ? formatPowerWithWeight(plotView.provisionalLt2.x, athleteWeight) : formatPace(plotView.provisionalLt2.x)} · ${plotView.provisionalLt2.lactate.toFixed(1)} mmol/L · estimación provisional`
-                                : "Sin cálculo disponible"}
+                              : "Sin cálculo disponible"}
                           </small>
                         </div>
                       </article>
+                      {plotView.lt1Detection && plotView.lt1Detection.state !== "none" ? (
+                        <article
+                          className={`threshold-legend-card detection ${thresholdDetectionTone(plotView.lt1Detection.state)}`}
+                          title={thresholdDetectionTooltip(plotView.lt1Detection, plotView.lt1Candidate, disciplineKey, athleteWeight, plotView.lt1CandidateSupport)}
+                        >
+                          <span className="threshold-dot detection lt1-candidate" />
+                          <div>
+                            <span className="eyebrow">Señal LT1</span>
+                            <strong>{thresholdDetectionStateLabel(plotView.lt1Detection.state)}</strong>
+                            <p>{plotView.lt1Detection.explanation}</p>
+                            <small>
+                              {plotView.lt1Candidate
+                                ? thresholdDetailLine(plotView.lt1Candidate, disciplineKey, athleteWeight)
+                                : "Sin candidato medible todavía"}
+                            </small>
+                          </div>
+                        </article>
+                      ) : null}
+                      {plotView.lt2Detection && plotView.lt2Detection.state !== "none" ? (
+                        <article
+                          className={`threshold-legend-card detection ${thresholdDetectionTone(plotView.lt2Detection.state)}`}
+                          title={thresholdDetectionTooltip(plotView.lt2Detection, plotView.lt2Candidate, disciplineKey, athleteWeight, plotView.lt2CandidateSupport)}
+                        >
+                          <span className="threshold-dot detection lt2-candidate" />
+                          <div>
+                            <span className="eyebrow">Señal LT2</span>
+                            <strong>{thresholdDetectionStateLabel(plotView.lt2Detection.state)}</strong>
+                            <p>{plotView.lt2Detection.explanation}</p>
+                            <small>
+                              {plotView.lt2Candidate
+                                ? thresholdDetailLine(plotView.lt2Candidate, disciplineKey, athleteWeight)
+                                : "Sin candidato medible todavía"}
+                            </small>
+                          </div>
+                        </article>
+                      ) : null}
                       {dynamicThresholds?.chronic.practical_lt1 ? (
                         <article
                           className="threshold-legend-card practical-lt1"
@@ -4441,6 +4724,26 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                       onClick={() => toggleThresholdReference("lt2")}
                     >
                       LT2 fisiológico
+                    </HoverMetaPill>
+                  ) : null}
+                  {plotLt1CandidateX !== null && plotView.lt1Detection ? (
+                    <HoverMetaPill
+                      className={`threshold-meta-pill line lt1-candidate ${thresholdReferenceVisibility.lt1Candidate ? "active" : "inactive"}`}
+                      tooltip={thresholdDetectionTooltip(plotView.lt1Detection, plotView.lt1Candidate, disciplineKey, athleteWeight, plotView.lt1CandidateSupport)}
+                      pressed={thresholdReferenceVisibility.lt1Candidate}
+                      onClick={() => toggleThresholdReference("lt1Candidate")}
+                    >
+                      LT1 señal
+                    </HoverMetaPill>
+                  ) : null}
+                  {plotLt2CandidateX !== null && plotView.lt2Detection ? (
+                    <HoverMetaPill
+                      className={`threshold-meta-pill line lt2-candidate ${thresholdReferenceVisibility.lt2Candidate ? "active" : "inactive"}`}
+                      tooltip={thresholdDetectionTooltip(plotView.lt2Detection, plotView.lt2Candidate, disciplineKey, athleteWeight, plotView.lt2CandidateSupport)}
+                      pressed={thresholdReferenceVisibility.lt2Candidate}
+                      onClick={() => toggleThresholdReference("lt2Candidate")}
+                    >
+                      LT2 señal
                     </HoverMetaPill>
                   ) : null}
                   {practicalThresholdPlotReferences.lt1 ? (
@@ -4594,6 +4897,22 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                           strokeDasharray={plotView.lt2 ? "10 4" : "4 6"}
                         />
                       ) : null}
+                      {plotLt1CandidateX !== null && thresholdReferenceVisibility.lt1Candidate ? (
+                        <ReferenceLine
+                          x={plotLt1CandidateX}
+                          stroke="#257a4d"
+                          strokeWidth={2.2}
+                          strokeDasharray={thresholdDetectionLineDasharray(plotView.lt1Detection?.state)}
+                        />
+                      ) : null}
+                      {plotLt2CandidateX !== null && thresholdReferenceVisibility.lt2Candidate ? (
+                        <ReferenceLine
+                          x={plotLt2CandidateX}
+                          stroke="#d26a36"
+                          strokeWidth={2.2}
+                          strokeDasharray={thresholdDetectionLineDasharray(plotView.lt2Detection?.state)}
+                        />
+                      ) : null}
                       {practicalThresholdPlotReferences.lt1 && thresholdReferenceVisibility.practicalLt1 ? (
                         <ReferenceLine
                           x={practicalThresholdPlotReferences.lt1}
@@ -4649,6 +4968,8 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                       <Scatter data={plotView.pool} fill="rgba(22, 53, 61, 0.22)" />
                       {plotView.lt1 ? <Scatter data={plotView.plotData.filter((point) => point.name === "LT1")} fill="#257a4d" shape="circle" /> : null}
                       {plotView.lt2 ? <Scatter data={plotView.plotData.filter((point) => point.name === "LT2")} fill="#d26a36" shape="circle" /> : null}
+                      {thresholdReferenceVisibility.lt1Candidate ? <Scatter data={plotView.candidatePlotData.filter((point) => point.name.startsWith("LT1"))} fill="#257a4d" shape="diamond" /> : null}
+                      {thresholdReferenceVisibility.lt2Candidate ? <Scatter data={plotView.candidatePlotData.filter((point) => point.name.startsWith("LT2"))} fill="#d26a36" shape="diamond" /> : null}
                       {thresholdReferenceVisibility.practicalLt1 ? <Scatter data={plotView.practicalPlotData.filter((point) => point.name === "LT1 práctico")} fill="#2d8f5b" shape="circle" /> : null}
                       {thresholdReferenceVisibility.practicalLt2 ? <Scatter data={plotView.practicalPlotData.filter((point) => point.name === "LT2 práctico")} fill="#d26a36" shape="circle" /> : null}
                       {plotView.peakPoint ? <Scatter data={[{ ...plotView.peakPoint, name: "Pico VLaMax" }]} fill="#b84a14" shape="circle" /> : null}

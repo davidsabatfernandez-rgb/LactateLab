@@ -10,6 +10,7 @@ import { AthletePortalPage } from "./pages/AthletePortalPage";
 import { AthleteTargetsPage } from "./pages/AthleteTargetsPage";
 import { AthletesPage } from "./pages/AthletesPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { GarminConnectPage } from "./pages/GarminConnectPage";
 import { LibraryGeneratorPage } from "./pages/LibraryGeneratorPage";
 import { LibraryPage } from "./pages/LibraryPage";
 import { NutritionPage } from "./pages/NutritionPage";
@@ -18,6 +19,8 @@ import { SessionDetailPage } from "./pages/SessionDetailPage";
 import { SessionsPage } from "./pages/SessionsPage";
 import { StravaInformationPage } from "./pages/StravaInformationPage";
 import { Athlete, AthleteAnalysis, AuthUser, DashboardData, SessionAnalysis, SessionSummary } from "./types";
+
+type ThemeMode = "light" | "dark";
 
 function AthleteDetailRoute({ token, onDataChanged }: { token: string; onDataChanged: () => Promise<void> }) {
   const { athleteId } = useParams();
@@ -100,6 +103,10 @@ function SessionDetailRoute({ token }: { token: string }) {
 export default function App() {
   const navigate = useNavigate();
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("lactate-token"));
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    const storedTheme = localStorage.getItem("lactate-theme");
+    return storedTheme === "dark" ? "dark" : "light";
+  });
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -167,6 +174,12 @@ export default function App() {
     setSessionInitError(null);
     refreshData(token);
   }, [token]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+    document.documentElement.style.colorScheme = themeMode === "dark" ? "dark" : "light";
+    localStorage.setItem("lactate-theme", themeMode);
+  }, [themeMode]);
 
   async function handleLogin(email: string, password: string, mode: "coach" | "athlete") {
     const result = await api.login(email, password);
@@ -251,16 +264,21 @@ export default function App() {
   }
 
   return (
-    <Layout onLogout={handleLogout}>
+    <Layout
+      onLogout={handleLogout}
+      themeMode={themeMode}
+      onToggleTheme={() => setThemeMode((currentTheme) => (currentTheme === "dark" ? "light" : "dark"))}
+    >
       {dataLoadError ? <div className="error">{dataLoadError}</div> : null}
       <Routes>
-        <Route path="/" element={<DashboardPage athletes={athletes} token={token} />} />
-        <Route path="/lab" element={<DashboardPage athletes={athletes} token={token} />} />
+        <Route path="/" element={<DashboardPage athletes={athletes} token={token} viewerId={authUser.id} />} />
+        <Route path="/lab" element={<DashboardPage athletes={athletes} token={token} viewerId={authUser.id} />} />
         <Route path="/planning" element={<PlanningPage token={token} />} />
         <Route path="/nutrition" element={<NutritionPage />} />
         <Route path="/library" element={<LibraryPage token={token} />} />
         <Route path="/library-generator" element={<LibraryGeneratorPage />} />
         <Route path="/strava-information" element={<StravaInformationPage token={token} athletes={athletes} />} />
+        <Route path="/garmin-connect" element={<GarminConnectPage token={token} athletes={athletes} onDataChanged={() => refreshData(token)} />} />
         <Route path="/athletes" element={<AthletesPage athletes={athletes} token={token} onRefresh={() => refreshData(token)} />} />
         <Route path="/athletes/:athleteId" element={<AthleteDetailRoute token={token} onDataChanged={() => refreshData(token)} />} />
         <Route path="/athletes/:athleteId/targets" element={<AthleteTargetsRoute token={token} onDataChanged={() => refreshData(token)} />} />

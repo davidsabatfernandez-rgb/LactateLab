@@ -9,8 +9,8 @@ export function AthleteLayout({ onLogout, fullName, children }: AthleteLayoutPro
     <div className="athlete-shell">
       <header className="athlete-topbar">
         <div className="athlete-topbar-meta">
-          <span className="eyebrow">Portal atleta</span>
-          <small>{fullName ? `Vista personal de ${fullName}` : "Vista personal"}</small>
+          <span className="eyebrow">Athlete dashboard</span>
+          <small>{fullName ? `Vista personal de ${fullName}` : "Dashboard personal"}</small>
         </div>
         <button className="ghost-button" onClick={onLogout}>
           Cerrar sesión

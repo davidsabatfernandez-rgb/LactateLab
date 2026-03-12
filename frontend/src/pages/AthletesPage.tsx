@@ -20,6 +20,7 @@ type AthleteFormState = {
   goal_category: string;
   notes: string;
   training_goal: string;
+  athlete_level: string;
 };
 
 const initialForm: AthleteFormState = {
@@ -32,6 +33,7 @@ const initialForm: AthleteFormState = {
   goal_category: "media_distancia",
   notes: "",
   training_goal: "",
+  athlete_level: "trained",
 };
 
 function disciplineLabel(value: string) {
@@ -65,6 +67,7 @@ function athleteToForm(athlete: Athlete): AthleteFormState {
     goal_category: athlete.goal_category ?? "media_distancia",
     notes: athlete.notes ?? "",
     training_goal: athlete.training_goal ?? "",
+    athlete_level: athlete.athlete_level ?? "trained",
   };
 }
 
@@ -82,14 +85,12 @@ export function AthletesPage({ athletes, token, onRefresh }: AthletesPageProps) 
     [athletes, editingAthleteId],
   );
   const rosterStats = useMemo(() => {
-    const activeBlocks = athletes.filter((athlete) => athlete.focus_blocks?.some((block) => block.status === "active")).length;
     const withTargets = athletes.filter((athlete) =>
       (athlete.targets ?? []).some((target) => target.target_date >= new Date().toISOString().slice(0, 10)),
     ).length;
     const triathletes = athletes.filter((athlete) => athlete.primary_discipline === "triatlón").length;
     return [
       { label: "Atletas activos", value: String(athletes.length), tone: "neutral" },
-      { label: "Con foco actual", value: String(activeBlocks), tone: "positive" },
       { label: "Con objetivo visible", value: String(withTargets), tone: "warning" },
       { label: "Triatlón", value: String(triathletes), tone: "neutral" },
     ];
@@ -139,6 +140,7 @@ export function AthletesPage({ athletes, token, onRefresh }: AthletesPageProps) 
       goal_category: currentForm.goal_category,
       training_goal: currentForm.training_goal || null,
       notes: currentForm.notes || null,
+      athlete_level: currentForm.athlete_level || "trained",
     };
   }
 
@@ -208,8 +210,7 @@ export function AthletesPage({ athletes, token, onRefresh }: AthletesPageProps) 
       <section className="page-header athlete-roster-header">
         <div>
           <span className="eyebrow">Athletes</span>
-          <h1>Plantilla</h1>
-          <p className="muted">Vista más limpia para gestionar la base del equipo y entrar rápido a cada ficha.</p>
+          <h1>Tus Atletas</h1>
         </div>
         <div className="athlete-roster-actions">
           <button className="ghost-button" type="button" onClick={handleGenerateDemo} disabled={submitting}>
@@ -401,6 +402,14 @@ export function AthletesPage({ athletes, token, onRefresh }: AthletesPageProps) 
                   <option value="larga_distancia">Larga distancia</option>
                   <option value="media_distancia">Media distancia</option>
                   <option value="corta_distancia">Corta distancia</option>
+                </select>
+              </label>
+              <label>
+                Nivel del atleta
+                <select value={form.athlete_level} onChange={(event) => setForm({ ...form, athlete_level: event.target.value })}>
+                  <option value="recreational">Recreativo</option>
+                  <option value="trained">Entrenado</option>
+                  <option value="competitive">Competitivo</option>
                 </select>
               </label>
               <label className="full-width">

@@ -262,6 +262,51 @@ export const api = {
       `/strava/athletes/${athleteId}/activities?${new URLSearchParams({ start_date: startDate, end_date: endDate }).toString()}`,
       { token },
     ),
+  garminConnect: (token: string, athleteId: number, payload: { email: string; password: string; mfa_code?: string }) =>
+    request<{ athlete_id: number; garmin_user_id: number; garmin_email: string; connected: boolean }>(
+      `/garmin/athletes/${athleteId}/connect`,
+      {
+        token,
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    ),
+  garminPreview: (
+    token: string,
+    athleteId: number,
+    startDate: string,
+    endDate: string,
+    options?: { includeFullDetail?: boolean; activityLimit?: number }
+  ) =>
+    request<{ athlete_id: number; athlete_name: string; start_date: string; end_date: string; imported_count: number; activities: Array<Record<string, unknown>> }>(
+      `/garmin/athletes/${athleteId}/preview?${new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+        ...(options?.includeFullDetail ? { include_full_detail: "true" } : {}),
+        ...(options?.activityLimit ? { activity_limit: String(options.activityLimit) } : {}),
+      }).toString()}`,
+      { token },
+    ),
+  garminActivityDetail: (token: string, athleteId: number, activityId: number) =>
+    request<Record<string, unknown>>(
+      `/garmin/athletes/${athleteId}/activities/${activityId}`,
+      { token },
+    ),
+  athleteHealthOverview: (
+    token: string,
+    athleteId: number,
+    days = 28,
+    options?: { includeActivity?: boolean; includeRawWellness?: boolean; refreshLiveHealth?: boolean }
+  ) =>
+    request(
+      `/athlete-health/athletes/${athleteId}/overview?${new URLSearchParams({
+        days: String(days),
+        ...(options?.includeActivity !== undefined ? { include_activity: String(options.includeActivity) } : {}),
+        ...(options?.includeRawWellness !== undefined ? { include_raw_wellness: String(options.includeRawWellness) } : {}),
+        ...(options?.refreshLiveHealth !== undefined ? { refresh_live_health: String(options.refreshLiveHealth) } : {}),
+      }).toString()}`,
+      { token },
+    ),
   dashboard: (token: string) => request("/analytics/dashboard", { token }),
   athletes: (token: string) => request("/athletes", { token }),
   createAthlete: (token: string, payload: unknown) =>

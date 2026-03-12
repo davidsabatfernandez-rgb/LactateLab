@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine, ResponsiveContainer, Scatter, Tooltip, XAxis, YAxis } from "recharts";
 
 import { api } from "../lib/api";
-import { AthleteAnalysis, AuthUser, CurvePoint, DisciplineView, Estimate, HistoricalPoint, SessionSummary, Threshold } from "../types";
+import { buildTargetObjective } from "../lib/targetCatalog";
+import { ResolvedTrainingThreshold, resolveTrainingThreshold } from "../lib/trainingThresholds";
+import { AthleteAnalysis, AthleteHealthMetric, AthleteHealthOverview, AuthUser, CurvePoint, DisciplineView, Estimate, GarminActivity, GarminActivitiesPreviewResponse, HistoricalPoint, SessionSummary } from "../types";
 
 type AthletePortalPageProps = {
   user: AuthUser | null;
@@ -12,8 +14,8 @@ type AthletePortalPageProps = {
 type DisciplineSnapshot = {
   discipline: string;
   view: DisciplineView;
-  lt1?: Threshold;
-  lt2?: Threshold;
+  lt1?: ResolvedTrainingThreshold | null;
+  lt2?: ResolvedTrainingThreshold | null;
   estimate?: Estimate;
   weeklySessions: number;
   monthlySessions: number;
@@ -41,11 +43,30 @@ type PortalStatus = {
   emphasis: string;
 };
 
+type GarminFieldRow = {
+  key: string;
+  label: string;
+  value: string;
+};
+
 function formatDate(value?: string | null) {
   if (!value) return "Sin fecha";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "Sin fecha";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatSecondsToClock(totalSeconds?: number | null) {
@@ -116,6 +137,127 @@ function formatLactateValue(value?: number | null) {
   return `${value.toFixed(1)} mmol/L`;
 }
 
+function formatDistanceKm(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return "0 km";
+  return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)} km`;
+}
+
+function formatSteps(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "n/d";
+  return value.toLocaleString("es-ES");
+}
+
+function formatMinutes(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "n/d";
+  return `${Math.round(value)} min`;
+}
+
+function formatNumericMetric(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "n/d";
+  return `${Math.round(value)}`;
+}
+
+function parseMetricNumber(value?: string | null) {
+  if (!value) return null;
+  const match = value.replace(",", ".").match(/-?\d+(\.\d+)?/);
+  if (!match) return null;
+  const parsed = Number(match[0]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function recoveryHeadline(score?: number | null) {
+  if (typeof score !== "number" || !Number.isFinite(score)) return "Lectura rápida de recuperación";
+  if (score >= 82) return "Recuperación premium";
+  if (score >= 70) return "Buena base de recuperación";
+  if (score >= 55) return "Recuperación aceptable";
+  return "Noche mejorable";
+}
+
+function recoveryTone(score?: number | null) {
+  if (typeof score !== "number" || !Number.isFinite(score)) return "neutral";
+  if (score >= 82) return "high";
+  if (score >= 65) return "medium";
+  return "low";
+}
+
+function formatGarminFieldValue(value: unknown) {
+  if (value == null) return "n/d";
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return Number.isInteger(value) ? `${value}` : value.toFixed(2);
+  if (typeof value === "boolean") return value ? "Sí" : "No";
+  if (Array.isArray(value)) return `${value.length} items`;
+  if (typeof value === "object") return `${Object.keys(value as Record<string, unknown>).length} campos`;
+  return String(value);
+}
+
+function humanizeGarminFieldKey(key: string) {
+  return key
+    .replace(/\./g, " / ")
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function flattenGarminObject(value: unknown, prefix = "", rows: GarminFieldRow[] = [], limit = 120): GarminFieldRow[] {
+  if (rows.length >= limit) return rows;
+  if (value == null || typeof value !== "object") {
+    if (prefix) {
+      rows.push({ key: prefix, label: humanizeGarminFieldKey(prefix), value: formatGarminFieldValue(value) });
+    }
+    return rows;
+  }
+
+  if (Array.isArray(value)) {
+    if (prefix) {
+      rows.push({ key: prefix, label: humanizeGarminFieldKey(prefix), value: `${value.length} items` });
+    }
+    value.slice(0, 4).forEach((item, index) => {
+      flattenGarminObject(item, prefix ? `${prefix}[${index}]` : `[${index}]`, rows, limit);
+    });
+    return rows;
+  }
+
+  Object.entries(value).forEach(([key, nested]) => {
+    if (rows.length >= limit) return;
+    const nextKey = prefix ? `${prefix}.${key}` : key;
+    if (nested != null && typeof nested === "object") {
+      if (Array.isArray(nested)) {
+        rows.push({ key: nextKey, label: humanizeGarminFieldKey(nextKey), value: `${nested.length} items` });
+        nested.slice(0, 3).forEach((item, index) => {
+          flattenGarminObject(item, `${nextKey}[${index}]`, rows, limit);
+        });
+      } else {
+        rows.push({
+          key: nextKey,
+          label: humanizeGarminFieldKey(nextKey),
+          value: `${Object.keys(nested as Record<string, unknown>).length} campos`,
+        });
+        flattenGarminObject(nested, nextKey, rows, limit);
+      }
+    } else {
+      rows.push({ key: nextKey, label: humanizeGarminFieldKey(nextKey), value: formatGarminFieldValue(nested) });
+    }
+  });
+
+  return rows;
+}
+
+function sportToneClass(sportType: string) {
+  const normalized = sportType.toLowerCase();
+  if (normalized.includes("run")) return "run";
+  if (normalized.includes("cycl") || normalized.includes("bike")) return "ride";
+  if (normalized.includes("swim")) return "swim";
+  if (normalized.includes("strength") || normalized.includes("yoga")) return "strength";
+  return "other";
+}
+
+function sportLabel(sportType: string) {
+  const normalized = sportType.toLowerCase();
+  if (normalized === "running") return "Running";
+  if (normalized === "lap_swimming") return "Pool Swim";
+  return humanizeGarminFieldKey(sportType);
+}
+
 function daysUntil(date?: string | null) {
   if (!date) return null;
   const target = new Date(date);
@@ -153,10 +295,6 @@ function buildDisciplineTrend(view?: DisciplineView | null, discipline?: string)
   }));
 }
 
-function getPrimaryThreshold(view?: DisciplineView | null, name?: string) {
-  return view?.thresholds?.find((threshold) => threshold.name === name);
-}
-
 function getPrimaryEstimate(view?: DisciplineView | null, type?: string) {
   return view?.estimates?.find((estimate) => estimate.estimate_type === type);
 }
@@ -176,19 +314,19 @@ function disciplineAccent(discipline: string) {
   return "#16353d";
 }
 
-function renderThresholdValue(threshold?: Threshold, discipline?: string) {
+function renderThresholdValue(threshold?: ResolvedTrainingThreshold | null, discipline?: string) {
   if (!threshold) return "n/d";
-  if (discipline === "ciclismo" && typeof threshold.power_watts === "number") {
-    return `${Math.round(threshold.power_watts)} W`;
+  if (discipline === "ciclismo" && typeof threshold.powerWatts === "number") {
+    return `${Math.round(threshold.powerWatts)} W`;
   }
-  if (discipline === "natación" && typeof threshold.pace_seconds_per_km === "number") {
-    return formatSwimPace(threshold.pace_seconds_per_km / 10);
+  if (discipline === "natación" && typeof threshold.paceSecondsPerKm === "number") {
+    return formatSwimPace(threshold.paceSecondsPerKm / 10);
   }
-  if (typeof threshold.pace_seconds_per_km === "number") {
-    return formatPace(threshold.pace_seconds_per_km);
+  if (typeof threshold.paceSecondsPerKm === "number") {
+    return formatPace(threshold.paceSecondsPerKm);
   }
-  if (typeof threshold.power_watts === "number") {
-    return `${Math.round(threshold.power_watts)} W`;
+  if (typeof threshold.powerWatts === "number") {
+    return `${Math.round(threshold.powerWatts)} W`;
   }
   return "n/d";
 }
@@ -418,11 +556,29 @@ function volumeSummary(sessions: SessionSummary[]) {
 
 export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
   const [analysis, setAnalysis] = useState<AthleteAnalysis | null>(null);
+  const [athleteHealth, setAthleteHealth] = useState<AthleteHealthOverview | null>(null);
+  const [athleteHealthLoading, setAthleteHealthLoading] = useState(false);
+  const [athleteHealthError, setAthleteHealthError] = useState<string | null>(null);
+  const [athleteHealthStatus, setAthleteHealthStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDiscipline, setSelectedDiscipline] = useState<string>("");
   const [stravaRedirecting, setStravaRedirecting] = useState(false);
   const [stravaFeedback, setStravaFeedback] = useState<string | null>(null);
+  const [garminLoginOpen, setGarminLoginOpen] = useState(false);
+  const [garminEmail, setGarminEmail] = useState("");
+  const [garminPassword, setGarminPassword] = useState("");
+  const [garminMfaCode, setGarminMfaCode] = useState("");
+  const [garminConnectLoading, setGarminConnectLoading] = useState(false);
+  const [garminConnectError, setGarminConnectError] = useState<string | null>(null);
+  const [garminConnectMessage, setGarminConnectMessage] = useState<string | null>(null);
+  const [garminPreviewLoading, setGarminPreviewLoading] = useState(false);
+  const [garminPreviewError, setGarminPreviewError] = useState<string | null>(null);
+  const [garminPreview, setGarminPreview] = useState<GarminActivitiesPreviewResponse | null>(null);
+  const [garminActivityDetails, setGarminActivityDetails] = useState<Record<number, GarminActivity>>({});
+  const [selectedGarminActivityId, setSelectedGarminActivityId] = useState<number | null>(null);
+  const [garminActivityLoading, setGarminActivityLoading] = useState(false);
+  const [garminActivityError, setGarminActivityError] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -477,6 +633,41 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
     };
   }, [token, user?.athlete_id]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAthleteHealth() {
+      if (!user?.athlete_id) return;
+      setAthleteHealthLoading(true);
+      setAthleteHealthError(null);
+      setAthleteHealthStatus(null);
+      try {
+        const result = (await api.athleteHealthOverview(token, user.athlete_id, 28, {
+          includeActivity: false,
+          includeRawWellness: false,
+          refreshLiveHealth: false,
+        })) as AthleteHealthOverview;
+        if (!cancelled) {
+          setAthleteHealth(result);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setAthleteHealth(null);
+          setAthleteHealthError(loadError instanceof Error ? loadError.message : "No se pudo cargar la capa paralela de actividad del atleta.");
+        }
+      } finally {
+        if (!cancelled) {
+          setAthleteHealthLoading(false);
+        }
+      }
+    }
+
+    loadAthleteHealth();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, user?.athlete_id]);
+
   const activeBlock = analysis?.active_focus_block;
   const upcomingTargets = useMemo(
     () =>
@@ -495,8 +686,8 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
       .map(([discipline, view]) => ({
         discipline,
         view,
-        lt1: getPrimaryThreshold(view, "LT1"),
-        lt2: getPrimaryThreshold(view, "LT2"),
+        lt1: resolveTrainingThreshold(view, "LT1"),
+        lt2: resolveTrainingThreshold(view, "LT2"),
         estimate: getPrimaryEstimate(view, discipline === "ciclismo" ? "FTP" : discipline === "running" ? "10K" : "VO2max") ?? view.estimates?.[0],
         weeklySessions: countSessionsWithinDays(view.recent_sessions ?? [], 7),
         monthlySessions: countSessionsWithinDays(view.recent_sessions ?? [], 30),
@@ -563,23 +754,6 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
     hasTarget: Boolean(nextTarget),
   });
   const latestVisibleSession = selectedSnapshot?.latestSession ?? recentFeed[0];
-  const heroHighlights = [
-    {
-      label: "Ahora importa",
-      value: activeBlock?.block_objective ?? disciplineLabel(focusDiscipline),
-      detail: activeBlock?.block_intent ? shortText(activeBlock.block_intent, 84) : "Bloque abierto sin intención operativa visible.",
-    },
-    {
-      label: "Última sesión",
-      value: latestVisibleSession?.session_type ?? "Sin sesión reciente",
-      detail: latestVisibleSession ? `${disciplineLabel(latestVisibleSession.discipline)} · ${formatDate(latestVisibleSession.performed_at)}` : "Todavía no hay actividad reciente vinculada.",
-    },
-    {
-      label: "Referencia útil",
-      value: focusEstimate ? formatTarget(focusEstimate) : renderThresholdValue(selectedSnapshot?.lt2, focusDiscipline),
-      detail: focusEstimate ? `${focusEstimate.estimate_type} · ${disciplineLabel(focusDiscipline)}` : "Referencia LT2 visible en tu disciplina activa.",
-    },
-  ];
   const weeklyBreakdown = disciplineSnapshots
     .map((snapshot) => ({
       discipline: snapshot.discipline,
@@ -588,6 +762,128 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
     }))
     .filter((item) => item.value > 0);
   const weeklyMaxSessions = Math.max(1, ...weeklyBreakdown.map((item) => item.value));
+  const selectedDisciplineLabel = disciplineLabel(selectedSnapshot?.discipline || focusDiscipline);
+  const referenceValue = focusEstimate ? formatTarget(focusEstimate) : renderThresholdValue(selectedSnapshot?.lt2, focusDiscipline);
+  const referenceDetail = focusEstimate ? `${focusEstimate.estimate_type} · ${disciplineLabel(focusDiscipline)}` : "Referencia LT2 visible en tu disciplina activa.";
+  const syncHeadline =
+    analysis?.athlete.strava_connected || analysis?.athlete.garmin_connected ? "Actividad conectada" : "Conecta tu actividad";
+  const syncSummary =
+    analysis?.athlete.strava_connected || analysis?.athlete.garmin_connected
+      ? "Ya hay una fuente real lista para cruzar sesiones y actividad visible."
+      : "Autoriza Strava para que el dashboard conecte lo planificado con lo que realmente haces.";
+  const syncProviders = [
+    { label: "Strava", connected: Boolean(analysis?.athlete.strava_connected) },
+    { label: "Garmin", connected: Boolean(analysis?.athlete.garmin_connected) },
+  ];
+  const dashboardMetrics = [
+    {
+      label: "Próxima cita",
+      value: nextTarget ? relativeCountdownLabel(nextTargetCountdown) : "Sin fecha",
+      detail: nextTarget ? buildTargetObjective({ category: nextTarget.distance_category, distanceLabel: nextTarget.distance_label, fallback: nextTarget.objective }) : "Todavía no hay un objetivo fechado visible.",
+    },
+    {
+      label: "Disciplina foco",
+      value: selectedDisciplineLabel,
+      detail: activeBlock?.phase ? `Fase ${activeBlock.phase}` : "Bloque abierto",
+    },
+    {
+      label: "Referencia",
+      value: referenceValue,
+      detail: referenceDetail,
+    },
+    {
+      label: "Ritmo semanal",
+      value: `${weeklyTotal} sesiones`,
+      detail: `${formatSecondsToClock(visibleVolume.trainingHours * 3600)} visibles en los últimos días`,
+    },
+  ];
+  const focusChecklist = [
+    {
+      label: "Bloque activo",
+      value: activeBlock?.block_objective ?? "Base abierta",
+      detail: activeBlock?.block_intent ? shortText(activeBlock.block_intent, 110) : "Todavía no hay una intención operativa visible para este bloque.",
+    },
+    {
+      label: "Qué mirar hoy",
+      value: portalStatus.emphasis,
+      detail: `Lectura actual: ${confidenceLabel(activeBlock?.evaluation?.confidence)}.`,
+    },
+    {
+      label: "Última sesión",
+      value: latestVisibleSession?.session_type ?? "Sin sesión reciente",
+      detail: latestVisibleSession ? `${disciplineLabel(latestVisibleSession.discipline)} · ${formatDate(latestVisibleSession.performed_at)}` : "Todavía no hay actividad reciente vinculada a este portal.",
+    },
+  ];
+  const athleteHealthSummary = athleteHealth?.summary;
+  const athleteHealthProviders = athleteHealth?.providers ?? [];
+  const athleteHealthMetrics = athleteHealth?.health_metrics ?? [];
+  const athleteSleepBreakdown = athleteHealth?.sleep_breakdown ?? [];
+  const athletePerformanceMetrics = athleteHealth?.performance_metrics ?? [];
+  const athleteHealthDays = athleteHealth?.health_days ?? [];
+  const athleteHealthCalendar = athleteHealth?.activity_calendar ?? [];
+  const athleteHealthRecent = athleteHealth?.recent_activities ?? [];
+  const athleteWellnessPayload = athleteHealth?.raw_wellness ?? {};
+  const athleteWellnessDiagnostics = (athleteWellnessPayload.diagnostics ?? null) as Record<string, unknown> | null;
+  const athleteHealthMetricMap = useMemo(
+    () =>
+      athleteHealthMetrics.reduce<Record<string, AthleteHealthMetric>>((map, metric) => {
+        map[metric.key] = metric;
+        return map;
+      }, {}),
+    [athleteHealthMetrics],
+  );
+  const athleteWellnessDiagnosticCards = athleteWellnessDiagnostics
+    ? [
+        { label: "Sleep raw", value: athleteWellnessDiagnostics.raw_sleep_scores_count },
+        { label: "Steps raw", value: athleteWellnessDiagnostics.raw_steps_count },
+        { label: "Stress raw", value: athleteWellnessDiagnostics.raw_stress_count },
+        { label: "Intensity raw", value: athleteWellnessDiagnostics.raw_intensity_count },
+        { label: "HRV raw", value: athleteWellnessDiagnostics.raw_hrv_count },
+      ].filter((item) => typeof item.value === "number")
+    : [];
+  const athleteWellnessJson = useMemo(() => {
+    if (!Object.keys(athleteWellnessPayload).length) return null;
+    return JSON.stringify(athleteWellnessPayload, null, 2);
+  }, [athleteWellnessPayload]);
+  const athleteWellnessPreviewFields = useMemo(() => flattenGarminObject(athleteWellnessPayload, "", [], 24), [athleteWellnessPayload]);
+  const athleteSleepFeedback = athleteSleepBreakdown.find((metric) => metric.key === "sleep_feedback") ?? null;
+  const sleepScoreValue = athleteHealthMetricMap.sleep_score?.value ?? "n/d";
+  const recoveryScore = parseMetricNumber(sleepScoreValue);
+  const recoveryToneClass = recoveryTone(recoveryScore);
+  const todayPortalLabel = new Date().toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  const portalQuickChips = [
+    { label: "Disciplina", value: selectedDisciplineLabel },
+    { label: "Recovery", value: sleepScoreValue },
+    { label: "Bloque", value: portalStatus.label },
+    { label: "Objetivo", value: nextTarget ? relativeCountdownLabel(nextTargetCountdown) : "Sin fecha" },
+  ];
+  const recoveryRingStyle = {
+    "--progress": `${Math.max(6, Math.min(100, recoveryScore ?? 12))}%`,
+  } as CSSProperties;
+  const recoveryHeroStats = [
+    athleteHealthMetricMap.hrv,
+    athleteHealthMetricMap.stress,
+    athleteHealthMetricMap.body_battery,
+    athleteHealthMetricMap.resting_hr,
+  ].filter(Boolean) as AthleteHealthMetric[];
+  const selectedGarminActivity = useMemo(() => {
+    if (!garminPreview?.activities.length) return null;
+    const previewMatch = garminPreview.activities.find((activity) => activity.provider_activity_id === selectedGarminActivityId) ?? garminPreview.activities[0] ?? null;
+    if (!previewMatch) return null;
+    return garminActivityDetails[previewMatch.provider_activity_id] ?? previewMatch;
+  }, [garminActivityDetails, garminPreview?.activities, selectedGarminActivityId]);
+  const selectedGarminJson = useMemo(() => {
+    if (!selectedGarminActivity?.raw_detail || !Object.keys(selectedGarminActivity.raw_detail).length) return null;
+    return JSON.stringify(selectedGarminActivity.raw_detail, null, 2);
+  }, [selectedGarminActivity]);
+  const selectedGarminFields = useMemo(() => {
+    if (!selectedGarminActivity?.raw_detail) return [];
+    return flattenGarminObject(selectedGarminActivity.raw_detail);
+  }, [selectedGarminActivity]);
 
   if (loading) {
     return <div className="loading">Preparando tu panel...</div>;
@@ -617,8 +913,141 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
     }
   }
 
+  async function handleGarminConnect() {
+    if (!user?.athlete_id) return;
+    setGarminConnectLoading(true);
+    setGarminConnectError(null);
+    setGarminConnectMessage(null);
+    try {
+      const result = await api.garminConnect(token, user.athlete_id, {
+        email: garminEmail,
+        password: garminPassword,
+        ...(garminMfaCode.trim() ? { mfa_code: garminMfaCode.trim() } : {}),
+      });
+      setGarminConnectMessage(`Garmin conectado para ${analysis?.athlete.name ?? "tu atleta"} (${result.garmin_email}).`);
+      setGarminPassword("");
+      setGarminMfaCode("");
+      setGarminLoginOpen(false);
+      const refreshed = (await api.athleteAnalysis(token, user.athlete_id)) as AthleteAnalysis;
+      setAnalysis(refreshed);
+      const healthRefreshed = (await api.athleteHealthOverview(token, user.athlete_id, 28, {
+        includeActivity: false,
+        includeRawWellness: false,
+        refreshLiveHealth: false,
+      })) as AthleteHealthOverview;
+      setAthleteHealth(healthRefreshed);
+    } catch (connectError) {
+      setGarminConnectError(connectError instanceof Error ? connectError.message : "No se pudo conectar Garmin.");
+    } finally {
+      setGarminConnectLoading(false);
+    }
+  }
+
+  async function handleLoadGarminRaw() {
+    if (!user?.athlete_id) return;
+    setGarminPreviewLoading(true);
+    setGarminPreviewError(null);
+    setGarminActivityError(null);
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - 13);
+      const result = (await api.garminPreview(
+        token,
+        user.athlete_id,
+        startDate.toISOString().slice(0, 10),
+        endDate.toISOString().slice(0, 10),
+        { includeFullDetail: false, activityLimit: 6 },
+      )) as GarminActivitiesPreviewResponse;
+      setGarminPreview(result);
+      setGarminActivityDetails({});
+      const firstActivityId = result.activities[0]?.provider_activity_id ?? null;
+      setSelectedGarminActivityId(firstActivityId);
+      if (firstActivityId) {
+        const detail = (await api.garminActivityDetail(token, user.athlete_id, firstActivityId)) as GarminActivity;
+        setGarminActivityDetails({ [firstActivityId]: detail });
+      }
+    } catch (loadError) {
+      setGarminPreview(null);
+      setSelectedGarminActivityId(null);
+      setGarminPreviewError(loadError instanceof Error ? loadError.message : "No se pudo cargar el payload Garmin.");
+    } finally {
+      setGarminPreviewLoading(false);
+    }
+  }
+
+  async function handleRefreshAthleteHealth() {
+    if (!user?.athlete_id) return;
+      setAthleteHealthLoading(true);
+      setAthleteHealthError(null);
+      setAthleteHealthStatus("Consultando Garmin en vivo...");
+      try {
+      const refreshed = (await api.athleteHealthOverview(token, user.athlete_id, 28, {
+        includeActivity: false,
+        includeRawWellness: true,
+        refreshLiveHealth: true,
+      })) as AthleteHealthOverview;
+      setAthleteHealth(refreshed);
+      const diagnostics = (refreshed.raw_wellness?.diagnostics ?? {}) as Record<string, unknown>;
+      const rawCount = [
+        diagnostics.raw_sleep_scores_count,
+        diagnostics.raw_steps_count,
+        diagnostics.raw_stress_count,
+        diagnostics.raw_intensity_count,
+        diagnostics.raw_hrv_count,
+      ].reduce<number>((sum, value) => sum + (typeof value === "number" ? value : 0), 0);
+      const hasVisibleWellness =
+        refreshed.health_metrics.length > 0 ||
+        refreshed.health_days.length > 0 ||
+        Object.keys(refreshed.raw_wellness ?? {}).length > 0;
+      setAthleteHealthStatus(
+        hasVisibleWellness
+          ? "Datos Garmin actualizados."
+          : rawCount > 0
+            ? "Garmin ha devuelto payload crudo, pero no hemos conseguido mapear métricas visibles todavía."
+            : "Garmin ha respondido, pero esta cuenta no ha devuelto métricas de wellness visibles.",
+      );
+      } catch (loadError) {
+        setAthleteHealthError(loadError instanceof Error ? loadError.message : "No se pudo refrescar la salud Garmin.");
+        setAthleteHealthStatus(null);
+      } finally {
+        setAthleteHealthLoading(false);
+      }
+  }
+
+  async function handleOpenGarminActivity(activityId: number) {
+    if (!user?.athlete_id) return;
+    setSelectedGarminActivityId(activityId);
+    setGarminActivityError(null);
+    if (garminActivityDetails[activityId]) return;
+    setGarminActivityLoading(true);
+    try {
+      const result = (await api.garminActivityDetail(token, user.athlete_id, activityId)) as GarminActivity;
+      setGarminActivityDetails((current) => ({ ...current, [activityId]: result }));
+    } catch (loadError) {
+      setGarminActivityError(loadError instanceof Error ? loadError.message : "No se pudo cargar el detalle Garmin.");
+    } finally {
+      setGarminActivityLoading(false);
+    }
+  }
+
   return (
     <div className="page-grid athlete-portal-grid">
+      <section className="athlete-portal-topline">
+        <div className="athlete-portal-topline-main">
+          <span className="eyebrow">Today</span>
+          <strong>{todayPortalLabel}</strong>
+        </div>
+        <div className="athlete-portal-topline-chips">
+          {portalQuickChips.map((chip) => (
+            <article key={chip.label} className="athlete-portal-topline-chip">
+              <span className="athlete-portal-card-label">{chip.label}</span>
+              <strong>{chip.value}</strong>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="card athlete-portal-hero-shell">
         <div className="athlete-portal-hero-copy athlete-portal-stage-main">
           <div className="athlete-portal-status-line">
@@ -627,7 +1056,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
               {nextTarget ? `${relativeCountdownLabel(nextTargetCountdown)} para ${nextTarget.objective}` : "Sin objetivo fechado visible"}
             </span>
           </div>
-          <span className="eyebrow">Portal atleta</span>
+          <span className="eyebrow">Athlete dashboard</span>
           <h1>{analysis.athlete.name}</h1>
           <p className="athlete-portal-stage-headline">{portalStatus.headline}</p>
           <p className="athlete-portal-stage-summary">{portalStatus.summary}</p>
@@ -636,9 +1065,9 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
             {analysis.athlete.goal_category ? <span className="athlete-goal-chip subtle">{analysis.athlete.goal_category}</span> : null}
             {activeBlock?.block_objective ? <span className="athlete-goal-chip subtle">{activeBlock.block_objective}</span> : null}
           </div>
-          <div className="athlete-portal-stage-highlights">
-            {heroHighlights.map((item) => (
-              <article key={item.label} className="athlete-portal-stage-highlight">
+          <div className="athlete-portal-dashboard-strip">
+            {dashboardMetrics.map((item) => (
+              <article key={item.label} className="athlete-portal-dashboard-metric">
                 <span className="athlete-portal-card-label">{item.label}</span>
                 <strong>{item.value}</strong>
                 <p>{item.detail}</p>
@@ -650,10 +1079,40 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
             <strong>{portalStatus.emphasis}</strong>
           </div>
           {stravaFeedback ? <small className="athlete-portal-sync-note">{stravaFeedback}</small> : null}
-          <small className="athlete-portal-sync-note">Cuando conectemos Strava, aquí entrará el plan vs hecho y la actividad real, pero sin ocupar la portada.</small>
+          <small className="athlete-portal-sync-note">Esta portada prioriza lo importante hoy: estado del bloque, referencia útil, actividad reciente y siguiente objetivo.</small>
         </div>
 
         <div className="athlete-portal-hero-aside athlete-portal-stage-aside">
+          <article className="athlete-portal-hero-card athlete-portal-spotlight-card focus">
+            <span className="athlete-portal-card-label">Tablero de hoy</span>
+            <strong>{selectedDisciplineLabel}</strong>
+            <div className="athlete-portal-focus-list">
+              {focusChecklist.map((item) => (
+                <div key={item.label} className="athlete-portal-focus-list-item">
+                  <span className="athlete-portal-card-label">{item.label}</span>
+                  <strong>{item.value}</strong>
+                  <p>{item.detail}</p>
+                </div>
+              ))}
+            </div>
+            <div className="athlete-portal-focus-rail">
+              {disciplineSnapshots.map((snapshot) => (
+                <button
+                  key={snapshot.discipline}
+                  type="button"
+                  className={`athlete-portal-focus-chip ${snapshot.discipline === selectedSnapshot?.discipline ? "active" : ""}`}
+                  onClick={() => setSelectedDiscipline(snapshot.discipline)}
+                >
+                  {disciplineLabel(snapshot.discipline)}
+                </button>
+              ))}
+            </div>
+            <div className="athlete-portal-focus-meta">
+              <small>{activeBlock?.phase ? `Fase ${activeBlock.phase}` : "Fase abierta"}</small>
+              <small>{activeBlock?.block_objective ?? "Sin objetivo de bloque visible"}</small>
+            </div>
+          </article>
+
           <article className="athlete-portal-hero-card athlete-portal-spotlight-card goal standout">
             <span className="athlete-portal-card-label">Próximo objetivo</span>
             <strong>{nextTarget ? nextTarget.objective : "Sin objetivo definido"}</strong>
@@ -700,35 +1159,30 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
             ) : null}
           </article>
 
-          <article className="athlete-portal-hero-card athlete-portal-spotlight-card focus">
-            <span className="athlete-portal-card-label">Foco del bloque</span>
-            <strong>{disciplineLabel(focusDiscipline)}</strong>
-            <p>
-              {activeBlock?.block_intent
-                ? `${shortText(activeBlock.block_intent, 96)} ${disciplineLabel(focusDiscipline)} en foco.`
-                : "Pulsa una disciplina y céntrate en una lectura clara cada vez."}
-            </p>
-            <div className="athlete-portal-focus-rail">
-              {disciplineSnapshots.map((snapshot) => (
-                <button
-                  key={snapshot.discipline}
-                  type="button"
-                  className={`athlete-portal-focus-chip ${snapshot.discipline === focusDiscipline ? "active" : ""}`}
-                  onClick={() => setSelectedDiscipline(snapshot.discipline)}
-                >
-                  {disciplineLabel(snapshot.discipline)}
-                </button>
+          <article className="athlete-portal-hero-card athlete-portal-spotlight-card sync">
+            <span className="athlete-portal-card-label">Sincronización</span>
+            <strong>{syncHeadline}</strong>
+            <p>{syncSummary}</p>
+            <div className="athlete-portal-sync-provider-list">
+              {syncProviders.map((provider) => (
+                <span key={provider.label} className={`athlete-portal-sync-provider ${provider.connected ? "connected" : ""}`}>
+                  {provider.label} · {provider.connected ? "activa" : "pendiente"}
+                </span>
               ))}
             </div>
-            <div className="athlete-portal-focus-meta">
-              <small>{activeBlock?.phase ? `Fase ${activeBlock.phase}` : "Fase abierta"}</small>
-              <small>{activeBlock?.block_objective ?? "Sin objetivo de bloque visible"}</small>
-            </div>
+            <button className="ghost-button" type="button" onClick={handleStravaConnect} disabled={stravaRedirecting}>
+              {stravaRedirecting ? "Redirigiendo..." : analysis.athlete.strava_connected ? "Reconectar Strava" : "Conectar Strava"}
+            </button>
           </article>
         </div>
       </section>
 
-      <section className="athlete-portal-command-grid">
+      <section className="athlete-portal-command-grid athlete-portal-side-shell">
+        <div className="athlete-portal-side-head">
+          <span className="eyebrow">Control deck</span>
+          <h2>Tu día en tres lecturas</h2>
+          <p className="muted">Una columna rápida para saber cómo está el bloque, cuánto has movido la semana y cuál es tu referencia de trabajo ahora mismo.</p>
+        </div>
         <article className={`card athlete-portal-command-card ${portalStatus.tone}`}>
           <span className="athlete-portal-card-label">Estado del bloque</span>
           <strong>{portalStatus.label}</strong>
@@ -821,6 +1275,391 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
         </article>
       </section>
 
+      <section className="card athlete-portal-health-panel athlete-portal-health-bevel-shell">
+        <div className="athlete-portal-section-head athlete-portal-health-bevel-head">
+          <div>
+            <span className="eyebrow">Athlete health</span>
+            <h2>Atlas Garmin de recuperación y performance</h2>
+            <p className="muted">Una capa paralela, estética y legible. No toca el motor del entrenador ni altera tus referencias fisiológicas.</p>
+          </div>
+          <div className="athlete-portal-health-actions athlete-portal-health-actions-bevel">
+            <div className="athlete-portal-health-providers">
+              {athleteHealthProviders.map((provider) => (
+                <span key={provider.provider} className={`athlete-portal-health-provider ${provider.status}`}>
+                  {provider.label} · {provider.status === "connected" ? "activo" : provider.status === "error" ? "error" : "pendiente"}
+                </span>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="ghost-button athlete-portal-health-refresh"
+              onClick={() => void handleRefreshAthleteHealth()}
+              disabled={athleteHealthLoading || !analysis.athlete.garmin_connected}
+            >
+              {athleteHealthLoading ? "Consultando Garmin..." : "Actualizar salud Garmin"}
+            </button>
+            {athleteHealthStatus ? <small className="athlete-portal-health-status">{athleteHealthStatus}</small> : null}
+          </div>
+        </div>
+
+        {athleteHealthLoading ? (
+          <div className="athlete-portal-health-empty">Cargando actividad y salud conectada...</div>
+        ) : athleteHealthError ? (
+          <div className="athlete-portal-health-empty">{athleteHealthError}</div>
+        ) : athleteHealth ? (
+          <>
+            <div className="athlete-portal-health-bevel-grid">
+              <article className={`athlete-portal-health-bevel-hero tone-${recoveryToneClass}`}>
+                <div className="athlete-portal-health-bevel-orb">
+                  <div className="athlete-portal-health-bevel-ring" style={recoveryRingStyle}>
+                    <div className="athlete-portal-health-bevel-ring-core">
+                      <span className="athlete-portal-card-label">Recovery</span>
+                      <strong>{sleepScoreValue}</strong>
+                    </div>
+                  </div>
+                </div>
+                <div className="athlete-portal-health-bevel-copy">
+                  <span className="athlete-portal-card-label">Lectura de hoy</span>
+                  <h3>{recoveryHeadline(recoveryScore)}</h3>
+                  <p>{athleteHealthMetricMap.sleep_score?.detail ?? athleteHealthStatus ?? "Garmin te dará aquí una lectura rápida de recuperación al refrescar en vivo."}</p>
+                  <div className="athlete-portal-health-chip-row">
+                    <span className="athlete-portal-health-chip accent">{athleteHealthMetricMap.hrv?.detail ?? athleteHealthDays[0]?.hrv_status ?? "HRV sin estado visible"}</span>
+                    {athleteSleepFeedback ? <span className="athlete-portal-health-chip">{athleteSleepFeedback.value}</span> : null}
+                    {athleteSleepFeedback?.detail ? <span className="athlete-portal-health-chip soft">{athleteSleepFeedback.detail}</span> : null}
+                  </div>
+                  <div className="athlete-portal-health-hero-stats">
+                    {(recoveryHeroStats.length ? recoveryHeroStats : athleteHealthMetrics.slice(0, 4)).map((metric) => (
+                      <article key={metric.key} className={`athlete-portal-health-hero-stat metric-${metric.key}`}>
+                        <span className="athlete-portal-card-label">{metric.label}</span>
+                        <strong>{metric.value}</strong>
+                        <p>{metric.detail ?? "Último valor visible"}</p>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              </article>
+
+              <article className="athlete-portal-health-bevel-card athlete-portal-health-sleep-card">
+                <div className="athlete-portal-chart-head">
+                  <span className="athlete-portal-card-label">Sleep architecture</span>
+                  <strong>Noche Garmin visible</strong>
+                </div>
+                {athleteSleepBreakdown.length ? (
+                  <div className="athlete-portal-health-bevel-metric-grid">
+                    {athleteSleepBreakdown.map((metric) => (
+                      <article key={metric.key} className={`athlete-portal-health-bevel-metric metric-${metric.key}`}>
+                        <span className="athlete-portal-card-label">{metric.label}</span>
+                        <strong>{metric.value}</strong>
+                        <p>{metric.detail ?? "Señal nocturna Garmin"}</p>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="athlete-portal-health-empty">Al refrescar en vivo aparecerán fases de sueño, body battery, resting HR y respiración nocturna.</div>
+                )}
+              </article>
+
+              <article className="athlete-portal-health-bevel-card athlete-portal-health-performance-card">
+                <div className="athlete-portal-chart-head">
+                  <span className="athlete-portal-card-label">Performance signals</span>
+                  <strong>Lo que Garmin aporta fuera del descanso</strong>
+                </div>
+                {athletePerformanceMetrics.length ? (
+                  <div className="athlete-portal-health-bevel-metric-grid performance">
+                    {athletePerformanceMetrics.map((metric) => (
+                      <article key={metric.key} className={`athlete-portal-health-bevel-metric performance metric-${metric.key}`}>
+                        <span className="athlete-portal-card-label">{metric.label}</span>
+                        <strong>{metric.value}</strong>
+                        <p>{metric.detail ?? "Señal de rendimiento Garmin"}</p>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="athlete-portal-health-empty">Pulsa actualizar salud Garmin para pedir VO2max, LT HR, threshold power, training effect y training load si la cuenta los expone.</div>
+                )}
+              </article>
+            </div>
+
+            <div className="athlete-portal-health-bevel-lower-grid">
+              <article className="athlete-portal-health-bevel-card athlete-portal-health-timeline-card">
+                <div className="athlete-portal-chart-head">
+                  <span className="athlete-portal-card-label">Timeline de salud</span>
+                  <strong>Últimos 7 días Garmin</strong>
+                </div>
+                {athleteHealthDays.length ? (
+                  <div className="athlete-portal-health-days-list bevel">
+                    {athleteHealthDays.map((day, index) => (
+                      <article key={day.date} className={`athlete-portal-health-day health-metric-day bevel ${index === 0 ? "current" : ""}`}>
+                        <div className="athlete-portal-health-day-head">
+                          <strong>{new Date(day.date).toLocaleDateString("es-ES", { weekday: "short", day: "2-digit", month: "short" })}</strong>
+                          <small>
+                            {typeof day.sleep_score === "number" ? `Sleep ${day.sleep_score}` : "Sleep n/d"}
+                            {typeof day.stress_level === "number" ? ` · Stress ${day.stress_level}` : ""}
+                          </small>
+                        </div>
+                        <div className="athlete-portal-health-day-stats">
+                          <span><small>HRV</small><strong>{formatNumericMetric(day.hrv_last_night_avg)}</strong></span>
+                          <span><small>Pasos</small><strong>{formatSteps(day.steps)}</strong></span>
+                          <span><small>Intensidad</small><strong>{formatMinutes(day.intensity_minutes)}</strong></span>
+                        </div>
+                        <p>{day.hrv_status ?? "Sin estado HRV visible."}</p>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="athlete-portal-health-empty">Garmin no ha devuelto todavía una serie diaria de wellness.</div>
+                )}
+              </article>
+
+              <article className="athlete-portal-health-bevel-card athlete-portal-health-raw-card">
+                <div className="athlete-portal-chart-head">
+                  <span className="athlete-portal-card-label">Raw wellness</span>
+                  <strong>Laboratorio Garmin</strong>
+                </div>
+                {athleteHealthStatus ? <div className="athlete-portal-health-inline-status">{athleteHealthStatus}</div> : null}
+                {athleteWellnessDiagnosticCards.length ? (
+                  <div className="athlete-portal-health-diagnostic-grid">
+                    {athleteWellnessDiagnosticCards.map((item) => (
+                      <article key={item.label} className="athlete-portal-health-diagnostic-card">
+                        <span className="athlete-portal-card-label">{item.label}</span>
+                        <strong>{String(item.value)}</strong>
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+                {athleteWellnessPreviewFields.length ? (
+                  <div className="athlete-portal-garmin-parameters athlete-portal-health-parameters bevel">
+                    {athleteWellnessPreviewFields.map((field) => (
+                      <article key={field.key} className="athlete-portal-garmin-parameter-card">
+                        <span className="athlete-portal-card-label">{field.label}</span>
+                        <strong>{field.value}</strong>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="athlete-portal-health-empty">
+                    {athleteHealthStatus ?? "La carga inicial va en modo ligero. Pulsa actualizar para abrir el laboratorio Garmin en vivo."}
+                  </div>
+                )}
+                <details className="athlete-portal-health-raw-drawer" open={Boolean(athleteWellnessJson && athleteWellnessPreviewFields.length === 0)}>
+                  <summary>{athleteWellnessJson ? "Abrir payload crudo" : "Payload crudo aún no disponible"}</summary>
+                  {athleteWellnessJson ? (
+                    <div className="athlete-portal-garmin-json-card athlete-portal-health-json-card">
+                      <pre>{athleteWellnessJson}</pre>
+                    </div>
+                  ) : null}
+                </details>
+                {athleteHealth.notes.length ? (
+                  <div className="athlete-portal-health-notes">
+                    {athleteHealth.notes.map((note) => (
+                      <p key={note}>{note}</p>
+                    ))}
+                  </div>
+                ) : null}
+              </article>
+            </div>
+
+            <div className="athlete-portal-health-bevel-secondary-grid">
+              <article className="athlete-portal-health-bevel-card athlete-portal-health-activity-overview-card">
+                <div className="athlete-portal-chart-head">
+                  <span className="athlete-portal-card-label">Actividad conectada</span>
+                  <strong>Huella de entreno visible</strong>
+                </div>
+                <div className="athlete-portal-health-summary-inline">
+                  <span>
+                    <small>Actividades</small>
+                    <strong>{athleteHealthSummary?.activities_count ?? 0}</strong>
+                  </span>
+                  <span>
+                    <small>Días activos</small>
+                    <strong>{athleteHealthSummary?.training_days ?? 0}</strong>
+                  </span>
+                  <span>
+                    <small>Tiempo</small>
+                    <strong>{formatSecondsToClock(athleteHealthSummary?.total_duration_seconds ?? 0)}</strong>
+                  </span>
+                  <span>
+                    <small>Ventana</small>
+                    <strong>{formatDate(athleteHealth.window_start)} - {formatDate(athleteHealth.window_end)}</strong>
+                  </span>
+                </div>
+                <div className="athlete-portal-health-calendar-grid bevel">
+                  {athleteHealthCalendar.map((day) => (
+                    <article key={day.date} className={`athlete-portal-health-day bevel ${day.activity_count > 0 ? "active" : ""}`}>
+                      <small>{new Date(day.date).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</small>
+                      <strong>{day.activity_count > 0 ? day.activity_count : "·"}</strong>
+                      <span
+                        className="athlete-portal-health-day-bar"
+                        style={{ backgroundColor: day.primary_sport_color ?? "rgba(16, 34, 42, 0.1)" }}
+                      />
+                      <p>{day.primary_sport_label ?? "Sin actividad"}</p>
+                    </article>
+                  ))}
+                </div>
+              </article>
+
+              <article className="athlete-portal-health-bevel-card athlete-portal-health-feed-card-bevel">
+                <div className="athlete-portal-chart-head">
+                  <span className="athlete-portal-card-label">Entrenos Garmin</span>
+                  <strong>Feed reciente</strong>
+                </div>
+                <div className="athlete-portal-health-feed-list">
+                  {athleteHealthRecent.length ? (
+                    athleteHealthRecent.map((activity) => (
+                      <article key={activity.provider_activity_id} className="athlete-portal-health-activity bevel">
+                        <div className="athlete-portal-health-activity-head">
+                          <span className="athlete-portal-health-sport-dot" style={{ backgroundColor: activity.sport_color }} />
+                          <strong>{activity.name}</strong>
+                        </div>
+                        <p>{activity.sport_label} · {formatDate(activity.started_at)}</p>
+                        <small>
+                          {formatDistanceKm(activity.distance_m)} · {formatSecondsToClock(activity.moving_time_seconds)}
+                          {typeof activity.average_heartrate === "number" ? ` · ${Math.round(activity.average_heartrate)} bpm` : ""}
+                          {typeof activity.average_watts === "number" ? ` · ${Math.round(activity.average_watts)} W` : ""}
+                        </small>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="athlete-portal-health-empty">La actividad no se carga en el overview rápido. Si quieres auditarla, usa el bloque Garmin de abajo.</div>
+                  )}
+                </div>
+              </article>
+            </div>
+          </>
+        ) : (
+          <div className="athlete-portal-health-empty">Todavía no hay una capa de salud Garmin conectada disponible.</div>
+        )}
+      </section>
+
+      <section className="card athlete-portal-garmin-panel">
+        <div className="athlete-portal-section-head">
+          <div>
+            <span className="eyebrow">Garmin deep dive</span>
+            <h2>Actividades Garmin en segundo plano</h2>
+            <p className="muted">La parte importante arriba es wellness. Aquí abajo dejamos la exploración de actividades y su payload completo por si quieres auditarlo también.</p>
+          </div>
+          <div className="athlete-portal-garmin-actions">
+            <button type="button" className="ghost-button" onClick={() => setGarminLoginOpen((current) => !current)}>
+              {garminLoginOpen ? "Cerrar login" : analysis.athlete.garmin_connected ? "Cambiar login Garmin" : "Login Garmin"}
+            </button>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => void handleLoadGarminRaw()}
+              disabled={garminPreviewLoading || !analysis.athlete.garmin_connected}
+            >
+              {garminPreviewLoading ? "Cargando Garmin..." : "Cargar lista + 1 detalle completo"}
+            </button>
+          </div>
+        </div>
+
+        {garminLoginOpen ? (
+          <div className="athlete-portal-garmin-login-card">
+            <label>
+              <span className="athlete-portal-card-label">Email Garmin</span>
+              <input type="email" value={garminEmail} onChange={(event) => setGarminEmail(event.target.value)} placeholder="usuario@correo.com" />
+            </label>
+            <label>
+              <span className="athlete-portal-card-label">Password</span>
+              <input type="password" value={garminPassword} onChange={(event) => setGarminPassword(event.target.value)} placeholder="Password Garmin" />
+            </label>
+            <label>
+              <span className="athlete-portal-card-label">MFA</span>
+              <input type="text" value={garminMfaCode} onChange={(event) => setGarminMfaCode(event.target.value)} placeholder="Opcional si Garmin lo pide" />
+            </label>
+            <div className="athlete-portal-garmin-login-actions">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => void handleGarminConnect()}
+                disabled={garminConnectLoading || !garminEmail.trim() || !garminPassword.trim()}
+              >
+                {garminConnectLoading ? "Conectando..." : "Hacer login Garmin"}
+              </button>
+            </div>
+            {garminConnectMessage ? <p>{garminConnectMessage}</p> : null}
+            {garminConnectError ? <p className="error">{garminConnectError}</p> : null}
+          </div>
+        ) : null}
+
+        {!analysis.athlete.garmin_connected ? (
+          <div className="athlete-portal-health-empty">Haz login con Garmin para inspeccionar actividad y salud desde esta capa paralela.</div>
+        ) : (
+          <>
+            {garminPreviewError ? <div className="athlete-portal-health-empty">{garminPreviewError}</div> : null}
+            {garminPreview?.activities.length ? (
+              <div className="athlete-portal-garmin-grid">
+                <div className="athlete-portal-garmin-activity-list">
+                  {garminPreview.activities.map((activity) => (
+                    <button
+                      key={activity.provider_activity_id}
+                      type="button"
+                      className={`athlete-portal-garmin-activity-card ${selectedGarminActivity?.provider_activity_id === activity.provider_activity_id ? "active" : ""}`}
+                      onClick={() => void handleOpenGarminActivity(activity.provider_activity_id)}
+                    >
+                      <div className="athlete-portal-garmin-activity-head">
+                        <span className={`strava-sport-pill ${sportToneClass(activity.sport_type)}`}>{sportLabel(activity.sport_type)}</span>
+                        <small>{formatDateTime(activity.started_at)}</small>
+                      </div>
+                      <strong>{activity.name}</strong>
+                      <p>{formatDistanceKm(activity.distance_m)} · {formatSecondsToClock(activity.moving_time_seconds)}</p>
+                      <small>
+                        {activity.average_heartrate ? `${Math.round(activity.average_heartrate)} bpm` : "FC n/d"}
+                        {activity.average_watts ? ` · ${Math.round(activity.average_watts)} W` : ""}
+                      </small>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="athlete-portal-garmin-detail">
+                  {selectedGarminActivity ? (
+                    <>
+                      <div className="athlete-portal-garmin-hero">
+                        <div>
+                          <span className={`strava-sport-pill ${sportToneClass(selectedGarminActivity.sport_type)}`}>{sportLabel(selectedGarminActivity.sport_type)}</span>
+                          <h3>{selectedGarminActivity.name}</h3>
+                          <p>{formatDateTime(selectedGarminActivity.started_at)}</p>
+                        </div>
+                        <div className="athlete-portal-garmin-kpis">
+                          <span><small>Distancia</small><strong>{formatDistanceKm(selectedGarminActivity.distance_m)}</strong></span>
+                          <span><small>Tiempo</small><strong>{formatSecondsToClock(selectedGarminActivity.moving_time_seconds)}</strong></span>
+                          <span><small>FC media</small><strong>{selectedGarminActivity.average_heartrate ? `${Math.round(selectedGarminActivity.average_heartrate)} bpm` : "n/d"}</strong></span>
+                          <span><small>Potencia</small><strong>{selectedGarminActivity.average_watts ? `${Math.round(selectedGarminActivity.average_watts)} W` : "n/d"}</strong></span>
+                        </div>
+                      </div>
+
+                      {garminActivityLoading ? <div className="athlete-portal-health-empty">Cargando detalle completo Garmin...</div> : null}
+                      {garminActivityError ? <div className="athlete-portal-health-empty">{garminActivityError}</div> : null}
+
+                      <div className="athlete-portal-garmin-parameters">
+                        {selectedGarminFields.map((field) => (
+                          <article key={field.key} className="athlete-portal-garmin-parameter-card">
+                            <span className="athlete-portal-card-label">{field.label}</span>
+                            <strong>{field.value}</strong>
+                          </article>
+                        ))}
+                      </div>
+
+                      <div className="athlete-portal-garmin-json-card">
+                        <div className="athlete-portal-chart-head">
+                          <span className="athlete-portal-card-label">JSON crudo</span>
+                          <strong>Raw Garmin payload</strong>
+                        </div>
+                        <pre>{selectedGarminJson ?? "Sin raw_detail visible en esta actividad."}</pre>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="athlete-portal-health-empty">Carga una actividad Garmin para ver todos sus parámetros.</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="athlete-portal-health-empty">Pulsa “Cargar lista + 1 detalle completo” para traer varias actividades y abrir una con todo el payload real.</div>
+            )}
+          </>
+        )}
+      </section>
+
       <section className="card athlete-portal-performance-panel">
         <div className="athlete-portal-section-head">
           <div>
@@ -871,8 +1710,8 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
         <div className="athlete-portal-section-head">
           <div>
             <span className="eyebrow">Lactato</span>
-            <h2>Entiende tu curva sin abrir una pantalla de entrenador</h2>
-            <p className="muted">Puntos reales, ajuste visual y líneas de referencia para saber qué significa el test en la disciplina que tienes activa.</p>
+            <h2>Curva y umbrales en lenguaje claro</h2>
+            <p className="muted">Puntos reales, ajuste visual y referencias LT1/LT2 para entender qué significa hoy tu test en la disciplina activa.</p>
           </div>
           <div className="athlete-portal-discipline-switch">
             {disciplineSnapshots.map((snapshot) => (
@@ -920,7 +1759,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
                     <Tooltip content={({ active, payload }) => portalCurveTooltip(active, payload as Array<{ payload?: PortalCurvePoint; dataKey?: string }> | undefined, selectedSnapshot?.discipline || focusDiscipline)} />
                     {selectedSnapshot?.lt1 ? (
                       <ReferenceLine
-                        x={selectedSnapshot.discipline === "ciclismo" ? selectedSnapshot.lt1.power_watts ?? undefined : selectedSnapshot.lt1.pace_seconds_per_km ?? undefined}
+                        x={selectedSnapshot.discipline === "ciclismo" ? selectedSnapshot.lt1.powerWatts ?? undefined : selectedSnapshot.lt1.paceSecondsPerKm ?? undefined}
                         stroke="#3156d3"
                         strokeWidth={2.6}
                         strokeDasharray="8 4"
@@ -929,7 +1768,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
                     ) : null}
                     {selectedSnapshot?.lt2 ? (
                       <ReferenceLine
-                        x={selectedSnapshot.discipline === "ciclismo" ? selectedSnapshot.lt2.power_watts ?? undefined : selectedSnapshot.lt2.pace_seconds_per_km ?? undefined}
+                        x={selectedSnapshot.discipline === "ciclismo" ? selectedSnapshot.lt2.powerWatts ?? undefined : selectedSnapshot.lt2.paceSecondsPerKm ?? undefined}
                         stroke="#d26a36"
                         strokeWidth={2.6}
                         strokeDasharray="8 4"
@@ -997,8 +1836,8 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
         <article className="card athlete-portal-week-card">
           <div className="athlete-portal-section-head compact">
             <div>
-              <span className="eyebrow">Semana reciente</span>
-              <h2>Cómo se ha repartido tu trabajo</h2>
+              <span className="eyebrow">Actividad reciente</span>
+              <h2>Lo último que ha entrado en tu dashboard</h2>
             </div>
           </div>
           <div className="athlete-portal-balance-grid">
@@ -1032,7 +1871,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
         <article className="card athlete-portal-guidance-card">
           <div className="athlete-portal-section-head compact">
             <div>
-              <span className="eyebrow">Ahora mismo</span>
+              <span className="eyebrow">Roadmap</span>
               <h2>Lo que no deberías perder de vista</h2>
             </div>
           </div>
@@ -1048,18 +1887,13 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
                 <strong>{signal}</strong>
               </article>
             )) : null}
-            <article className="athlete-portal-guidance-item strava">
-              <span className="athlete-portal-card-label">{analysis.athlete.strava_connected ? "Strava conectado" : "Conecta Strava"}</span>
-              <strong>{analysis.athlete.strava_connected ? "Actividad real disponible" : "Plan vs actividad real"}</strong>
-              <p>
-                {analysis.athlete.strava_connected
-                  ? "La cuenta ya está vinculada. El siguiente paso es activar webhook y matching para que plan y actividad real se crucen automáticamente."
-                  : "Autoriza tu cuenta y dejaremos preparada la entrada de actividad real para cruzarla con las sesiones planificadas."}
-              </p>
-              <button className="ghost-button" type="button" onClick={handleStravaConnect} disabled={stravaRedirecting}>
-                {stravaRedirecting ? "Redirigiendo..." : analysis.athlete.strava_connected ? "Reconectar Strava" : "Conectar Strava"}
-              </button>
-            </article>
+            {upcomingTargets.map((target) => (
+              <article key={target.id} className="athlete-portal-guidance-item">
+                <span className="athlete-portal-card-label">Objetivo</span>
+                <strong>{buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective })}</strong>
+                <p>{`${disciplineLabel(target.discipline)} · ${formatDate(target.target_date)}`}</p>
+              </article>
+            ))}
           </div>
         </article>
       </section>
@@ -1067,7 +1901,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
       <section className="card athlete-portal-section athlete-portal-discipline-section">
         <div className="athlete-portal-section-head">
           <div>
-            <span className="eyebrow">Todas tus disciplinas</span>
+            <span className="eyebrow">Vista por disciplina</span>
             <h2>Referencias y progreso</h2>
           </div>
         </div>
@@ -1144,7 +1978,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
             upcomingTargets.map((target) => (
               <article key={target.id} className="athlete-target-card athlete-target-card-portal">
                 <span className="athlete-target-date">{formatDate(target.target_date)}</span>
-                <strong>{target.objective}</strong>
+                <strong>{buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective })}</strong>
                 <p>{disciplineLabel(target.discipline)}</p>
                 {target.distance_label ? <p>{target.distance_label}</p> : null}
                 {target.target_pace_label ? <p>Ritmo objetivo: {target.target_pace_label}</p> : null}

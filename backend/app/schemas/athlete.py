@@ -84,8 +84,9 @@ class AthleteFocusBlockEvaluationRead(BaseModel):
 class AthleteTargetBase(BaseModel):
     target_date: date
     discipline: str
-    objective: str
+    objective: Optional[str] = None
     distance_label: Optional[str] = None
+    distance_category: Optional[str] = None
     priority_level: Optional[str] = None
     target_pace_label: Optional[str] = None
     target_power_watts: Optional[float] = None
@@ -104,6 +105,7 @@ class AthleteTargetUpdate(BaseModel):
     discipline: Optional[str] = None
     objective: Optional[str] = None
     distance_label: Optional[str] = None
+    distance_category: Optional[str] = None
     priority_level: Optional[str] = None
     target_pace_label: Optional[str] = None
     target_power_watts: Optional[float] = None
@@ -129,6 +131,7 @@ class AthleteBase(BaseModel):
     goal_category: Optional[str] = None
     training_goal: Optional[str] = None
     notes: Optional[str] = None
+    athlete_level: str = "trained"
     created_at: date
 
 
@@ -146,6 +149,7 @@ class AthleteUpdate(BaseModel):
     goal_category: Optional[str] = None
     training_goal: Optional[str] = None
     notes: Optional[str] = None
+    athlete_level: Optional[str] = None
 
 
 class AthleteRead(AthleteBase):
@@ -153,6 +157,8 @@ class AthleteRead(AthleteBase):
     coach_id: Optional[int]
     strava_athlete_id: Optional[int] = None
     strava_connected: bool = False
+    garmin_user_id: Optional[int] = None
+    garmin_connected: bool = False
     weights: list[AthleteWeightHistoryRead] = []
     focus_blocks: list[AthleteFocusBlockRead] = []
     targets: list[AthleteTargetRead] = []

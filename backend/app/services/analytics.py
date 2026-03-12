@@ -521,8 +521,232 @@ _REAL_MIN_MONOTONICITY = 0.60
 _REAL_MIN_AGREEMENT = 0.62
 _REAL_MIN_PROTOCOL_SCORE = 0.68
 _REAL_MIN_SIGNAL_SCORE = 0.70
+_REAL_CANDIDATE_STRONG_MIN_CONFIDENCE = 0.72
 _INDIVIDUAL_MAX_SAMPLE_DELAY_SECONDS = 60
-_INDIVIDUAL_MIN_SUPPORT_SESSIONS = 2
+_INDIVIDUAL_MIN_SUPPORT_SESSIONS = 6
+_INDIVIDUAL_MIN_PROGRESSION_ALIGNMENT = 0.75
+_INDIVIDUAL_PROGRESS_TOLERANCE_RATIO = 0.01
+_INDIVIDUAL_MIN_AGREEMENT = 0.62
+_INDIVIDUAL_MIN_CONFIDENCE = 0.78
+_INDIVIDUAL_RULESET_VERSION = 2
+_REAL_RULESET_VERSION = 3
+
+
+def _method_family(method: str) -> str:
+    families = {
+        "baseline_rise": "baseline_change",
+        "sustained_increase": "slope_change",
+        "moddmax": "geometry",
+        "dmax": "geometry",
+        "ltp_breakpoint": "curve_shape",
+    }
+    return families.get(method, method)
+
+
+def _relative_delta(first: float, second: float) -> float:
+    reference = max(abs(first), abs(second), 1.0)
+    return abs(first - second) / reference
+
+
+def _threshold_lactate_tolerance(name: str) -> float:
+    return 0.6 if name == "LT1" else 0.6
+
+
+def _load_metric_compatible(
+    first: ThresholdMethodEstimate | dict[str, Any],
+    second: ThresholdMethodEstimate | dict[str, Any],
+) -> bool:
+    first_power = first.power_watts if isinstance(first, ThresholdMethodEstimate) else first.get("power_watts")
+    second_power = second.power_watts if isinstance(second, ThresholdMethodEstimate) else second.get("power_watts")
+    if first_power is not None and second_power is not None:
+        return _relative_delta(float(first_power), float(second_power)) <= 0.04
+
+    first_pace = first.pace_seconds_per_km if isinstance(first, ThresholdMethodEstimate) else first.get("pace_seconds_per_km")
+    second_pace = second.pace_seconds_per_km if isinstance(second, ThresholdMethodEstimate) else second.get("pace_seconds_per_km")
+    if first_pace is not None and second_pace is not None:
+        return abs(float(first_pace) - float(second_pace)) <= 15.0
+
+    first_hr = first.heart_rate if isinstance(first, ThresholdMethodEstimate) else first.get("heart_rate")
+    second_hr = second.heart_rate if isinstance(second, ThresholdMethodEstimate) else second.get("heart_rate")
+    if first_hr is not None and second_hr is not None:
+        return abs(int(first_hr) - int(second_hr)) <= 6
+
+    return False
+
+
+def _methods_are_compatible(first: ThresholdMethodEstimate, second: ThresholdMethodEstimate, threshold_name: str) -> bool:
+    if first.threshold_name != threshold_name or second.threshold_name != threshold_name:
+        return False
+    if _method_family(first.method) == _method_family(second.method):
+        return False
+    if first.lactate is None or second.lactate is None:
+        return False
+    if abs(first.lactate - second.lactate) > _threshold_lactate_tolerance(threshold_name) + 1e-9:
+        return False
+    return _load_metric_compatible(first, second)
+
+
+def _real_threshold_payload(name: str, result: ThresholdResult, status: str = "confirmed") -> dict[str, Any]:
+    return {
+        "name": f"{name} REAL",
+        "lactate": result.lactate,
+        "pace_seconds_per_km": result.pace_seconds_per_km,
+        "power_watts": result.power_watts,
+        "heart_rate": result.heart_rate,
+        "confidence": result.confidence,
+        "agreement_score": result.agreement_score,
+        "method": result.method,
+        "evidence_level": result.evidence_level,
+        "rationale": result.rationale,
+        "status": status,
+    }
+
+
+def _build_threshold_detection_status(
+    name: str,
+    result: ThresholdResult,
+    methods: list[ThresholdMethodEstimate],
+    quality_gate_passed: bool,
+    quality_reason: str,
+) -> dict[str, Any]:
+    valid = [method for method in methods if method.threshold_name == name]
+    if not valid:
+        return {
+            "name": name,
+            "state": "none",
+            "primary_method": None,
+            "confirmation_method": None,
+            "supporting_methods": [],
+            "compatible": False,
+            "quality_gate_passed": quality_gate_passed,
+            "anchor_update_recommended": False,
+            "confidence": 0.0,
+            "candidate_threshold": None,
+            "explanation": "No hay suficientes detecciones de método para abrir candidato.",
+        }
+
+    best = max(valid, key=lambda method: method.confidence)
+    compatible_pairs: list[tuple[ThresholdMethodEstimate, ThresholdMethodEstimate]] = []
+    for index, first in enumerate(valid):
+        for second in valid[index + 1 :]:
+            if _methods_are_compatible(first, second, name):
+                compatible_pairs.append((first, second))
+
+    candidate_threshold = {
+        "name": f"{name} candidato",
+        "lactate": result.lactate,
+        "pace_seconds_per_km": result.pace_seconds_per_km,
+        "power_watts": result.power_watts,
+        "heart_rate": result.heart_rate,
+        "confidence": result.confidence,
+        "agreement_score": result.agreement_score,
+        "method": result.method,
+        "evidence_level": result.evidence_level,
+        "rationale": result.rationale,
+    }
+    supporting_methods = [method.method for method in valid]
+
+    if compatible_pairs and quality_gate_passed and result.confidence >= _REAL_MIN_CONFIDENCE and result.agreement_score >= _REAL_MIN_AGREEMENT:
+        confirmation_pair = max(
+            compatible_pairs,
+            key=lambda pair: pair[0].confidence + pair[1].confidence,
+        )
+        return {
+            "name": name,
+            "state": "confirmed",
+            "primary_method": confirmation_pair[0].method,
+            "confirmation_method": confirmation_pair[1].method,
+            "supporting_methods": supporting_methods,
+            "compatible": True,
+            "quality_gate_passed": True,
+            "anchor_update_recommended": False,
+            "confidence": result.confidence,
+            "candidate_threshold": candidate_threshold,
+            "explanation": (
+                f"{name} confirmado por {confirmation_pair[0].method} y {confirmation_pair[1].method} "
+                "con acuerdo compatible dentro de la misma sesión."
+            ),
+        }
+
+    state = "candidate_strong" if quality_gate_passed and best.confidence >= _REAL_CANDIDATE_STRONG_MIN_CONFIDENCE else "candidate_weak"
+    explanation = (
+        f"{best.method} detectó un candidato de {name}, pero aún falta confirmación independiente."
+    )
+    if not quality_gate_passed:
+        explanation = f"{explanation} {quality_reason}"
+    elif compatible_pairs:
+        explanation = (
+            f"Hay más de una señal para {name}, pero el consenso final aún no alcanza los gates "
+            f"de publicación conservadora (confianza {result.confidence:.2f}, acuerdo {result.agreement_score:.2f})."
+        )
+
+    return {
+        "name": name,
+        "state": state,
+        "primary_method": best.method,
+        "confirmation_method": None,
+        "supporting_methods": supporting_methods,
+        "compatible": bool(compatible_pairs),
+        "quality_gate_passed": quality_gate_passed,
+        "anchor_update_recommended": False,
+        "confidence": result.confidence,
+        "candidate_threshold": candidate_threshold,
+        "explanation": explanation,
+    }
+
+
+def _real_item_matches_individual(
+    real_item: Optional[dict[str, Any]],
+    individual_item: Optional[dict[str, Any]],
+    threshold_name: str,
+) -> bool:
+    if not real_item or not individual_item:
+        return False
+    real_lactate = real_item.get("lactate")
+    individual_lactate = individual_item.get("lactate")
+    if real_lactate is None or individual_lactate is None:
+        return False
+    if abs(float(real_lactate) - float(individual_lactate)) > _threshold_lactate_tolerance(threshold_name) + 1e-9:
+        return False
+    return _load_metric_compatible(real_item, individual_item)
+
+
+def _merge_real_threshold_states(
+    real_thresholds: Optional[dict[str, Any]],
+    individual_thresholds: Optional[dict[str, Any]],
+) -> Optional[dict[str, Any]]:
+    if not real_thresholds:
+        return real_thresholds
+
+    payload: dict[str, Any] = {}
+    for key, value in real_thresholds.items():
+        if isinstance(value, dict):
+            payload[key] = dict(value)
+        else:
+            payload[key] = value
+
+    mapping = (
+        ("LT1", "lt1_real", "lt1_detection", "lt1_individual"),
+        ("LT2", "lt2_real", "lt2_detection", "lt2_individual"),
+    )
+    for threshold_name, real_key, detection_key, individual_key in mapping:
+        detection = payload.get(detection_key)
+        real_item = payload.get(real_key)
+        individual_item = (individual_thresholds or {}).get(individual_key)
+        if not isinstance(detection, dict) or detection.get("state") != "confirmed":
+            continue
+        if not _real_item_matches_individual(real_item, individual_item, threshold_name):
+            continue
+        detection["state"] = "ready_to_anchor"
+        detection["anchor_update_recommended"] = True
+        detection["explanation"] = (
+            f"{detection.get('explanation', '').rstrip()} Existe respaldo longitudinal comparable, "
+            "así que el umbral está listo para anclarse."
+        ).strip()
+        if isinstance(real_item, dict):
+            real_item["status"] = "ready_to_anchor"
+
+    return payload
 
 
 def _interpolate_load_from_candidates(
@@ -572,6 +796,8 @@ def _detect_real_thresholds(session: AthleteSession) -> dict[str, Any]:
         "lt2_real": None,
         "lt1_practical_real": None,
         "lt2_practical_real": None,
+        "lt1_detection": None,
+        "lt2_detection": None,
         "data_quality": {
             "stage_count": 0,
             "usable_stage_count": 0,
@@ -579,6 +805,7 @@ def _detect_real_thresholds(session: AthleteSession) -> dict[str, Any]:
             "signal_score": 0.0,
             "sufficient": False,
             "reason": "No hay suficientes etapas",
+            "criteria_version": _REAL_RULESET_VERSION,
         },
     }
 
@@ -589,7 +816,9 @@ def _detect_real_thresholds(session: AthleteSession) -> dict[str, Any]:
     result["data_quality"]["stage_count"] = stage_count
     result["data_quality"]["usable_stage_count"] = usable_stage_count
 
+    quality_gate_passed = True
     if usable_stage_count < _REAL_MIN_STAGES:
+        quality_gate_passed = False
         if stage_count >= _REAL_MIN_STAGES:
             result["data_quality"]["reason"] = (
                 f"Solo {usable_stage_count} etapas con muestra válida para umbral individual "
@@ -597,10 +826,8 @@ def _detect_real_thresholds(session: AthleteSession) -> dict[str, Any]:
             )
         else:
             result["data_quality"]["reason"] = f"Solo {usable_stage_count} etapas con lactato (mínimo {_REAL_MIN_STAGES})"
-        return result
 
-    # Monotonicity check
-    protocol_score = round(median([c.get("protocol_score", 0.7) for c in candidates]), 2)
+    protocol_score = round(median([c.get("protocol_score", 0.7) for c in candidates]), 2) if candidates else 0.0
     monotonicity = _curve_monotonicity(candidates)
     signal_score = _curve_signal_score(candidates)
     result["data_quality"]["monotonicity"] = monotonicity
@@ -608,53 +835,48 @@ def _detect_real_thresholds(session: AthleteSession) -> dict[str, Any]:
     result["data_quality"]["signal_score"] = signal_score
 
     if monotonicity < _REAL_MIN_MONOTONICITY:
+        quality_gate_passed = False
         result["data_quality"]["reason"] = f"Curva muy ruidosa (monotonicity {monotonicity:.0%}, mínimo {_REAL_MIN_MONOTONICITY:.0%})"
-        return result
 
     if protocol_score < _REAL_MIN_PROTOCOL_SCORE:
+        quality_gate_passed = False
         result["data_quality"]["reason"] = (
             f"Protocolo poco adecuado para umbral real "
             f"(protocol_score {protocol_score:.0%}, mínimo {_REAL_MIN_PROTOCOL_SCORE:.0%})"
         )
-        return result
 
     if signal_score < _REAL_MIN_SIGNAL_SCORE:
+        quality_gate_passed = False
         result["data_quality"]["reason"] = (
             f"Señal insuficiente para umbral individual "
             f"(signal_score {signal_score:.0%}, mínimo {_REAL_MIN_SIGNAL_SCORE:.0%})"
         )
-        return result
-
-    result["data_quality"]["sufficient"] = True
-    result["data_quality"]["reason"] = "Datos suficientes para estimación conservadora"
+    if quality_gate_passed:
+        result["data_quality"]["sufficient"] = True
+        result["data_quality"]["reason"] = "Datos suficientes para estimación conservadora"
 
     # Run detection methods
     method_outputs: list[ThresholdMethodEstimate] = []
-    for builder in (_method_baseline_rise, _method_sustained_increase, _method_moddmax):
-        method_outputs.extend(builder(candidates))
+    if len(candidates) >= 3:
+        for builder in (_method_baseline_rise, _method_sustained_increase, _method_moddmax):
+            method_outputs.extend(builder(candidates))
 
     lt1_result = _aggregate_threshold("LT1", method_outputs)
     lt2_result = _aggregate_threshold("LT2", method_outputs)
+    quality_reason = result["data_quality"]["reason"]
+    result["lt1_detection"] = _build_threshold_detection_status("LT1", lt1_result, method_outputs, quality_gate_passed, quality_reason)
+    result["lt2_detection"] = _build_threshold_detection_status("LT2", lt2_result, method_outputs, quality_gate_passed, quality_reason)
 
     # Conservative gates for LT1 REAL
     if (
-        lt1_result.confidence >= _REAL_MIN_CONFIDENCE
+        result["lt1_detection"]["state"] == "confirmed"
+        and quality_gate_passed
+        and lt1_result.confidence >= _REAL_MIN_CONFIDENCE
         and lt1_result.agreement_score >= _REAL_MIN_AGREEMENT
         and (lt1_result.pace_seconds_per_km is not None or lt1_result.power_watts is not None)
         and lt1_result.lactate is not None
     ):
-        result["lt1_real"] = {
-            "name": "LT1 REAL",
-            "lactate": lt1_result.lactate,
-            "pace_seconds_per_km": lt1_result.pace_seconds_per_km,
-            "power_watts": lt1_result.power_watts,
-            "heart_rate": lt1_result.heart_rate,
-            "confidence": lt1_result.confidence,
-            "agreement_score": lt1_result.agreement_score,
-            "method": lt1_result.method,
-            "evidence_level": lt1_result.evidence_level,
-            "rationale": lt1_result.rationale,
-        }
+        result["lt1_real"] = _real_threshold_payload("LT1", lt1_result)
         # LT1 práctico REAL: load at (LT1_real_lactate - 0.3 mmol)
         lt1_practical_target = round(lt1_result.lactate - 0.3, 2)
         if lt1_practical_target > 0.5:
@@ -671,23 +893,14 @@ def _detect_real_thresholds(session: AthleteSession) -> dict[str, Any]:
 
     # Conservative gates for LT2 REAL
     if (
-        lt2_result.confidence >= _REAL_MIN_CONFIDENCE
+        result["lt2_detection"]["state"] == "confirmed"
+        and quality_gate_passed
+        and lt2_result.confidence >= _REAL_MIN_CONFIDENCE
         and lt2_result.agreement_score >= _REAL_MIN_AGREEMENT
         and (lt2_result.pace_seconds_per_km is not None or lt2_result.power_watts is not None)
         and lt2_result.lactate is not None
     ):
-        result["lt2_real"] = {
-            "name": "LT2 REAL",
-            "lactate": lt2_result.lactate,
-            "pace_seconds_per_km": lt2_result.pace_seconds_per_km,
-            "power_watts": lt2_result.power_watts,
-            "heart_rate": lt2_result.heart_rate,
-            "confidence": lt2_result.confidence,
-            "agreement_score": lt2_result.agreement_score,
-            "method": lt2_result.method,
-            "evidence_level": lt2_result.evidence_level,
-            "rationale": lt2_result.rationale,
-        }
+        result["lt2_real"] = _real_threshold_payload("LT2", lt2_result)
         # LT2 práctico REAL: load at (LT2_real_lactate - 0.5 mmol)
         lt2_practical_target = round(lt2_result.lactate - 0.5, 2)
         lt1_lac = result["lt1_real"]["lactate"] if result["lt1_real"] else 0.0
@@ -706,11 +919,52 @@ def _detect_real_thresholds(session: AthleteSession) -> dict[str, Any]:
     return result
 
 
+def _individual_progression_alignment(supports: list[dict[str, Any]]) -> Optional[float]:
+    ordered_supports = sorted(supports, key=lambda entry: entry["session_date"])
+    values: list[float] = []
+    for item in ordered_supports:
+        threshold = item["threshold"]
+        power = threshold.get("power_watts")
+        pace = threshold.get("pace_seconds_per_km")
+        if power is not None:
+            values.append(float(power))
+            continue
+        if pace is not None and pace > 0:
+            values.append(3600 / float(pace))
+    if len(values) < 2:
+        return None
+
+    reference_value = max(abs(median(values)), 1.0)
+    tolerance = max(0.05, reference_value * _INDIVIDUAL_PROGRESS_TOLERANCE_RATIO)
+    directions: list[int] = []
+    for index in range(1, len(values)):
+        delta = values[index] - values[index - 1]
+        if abs(delta) <= tolerance:
+            directions.append(0)
+        elif delta > 0:
+            directions.append(1)
+        else:
+            directions.append(-1)
+
+    if not directions:
+        return None
+
+    positive = directions.count(1)
+    negative = directions.count(-1)
+    flat = directions.count(0)
+    dominant = max(positive, negative)
+    return round((dominant + flat) / len(directions), 2)
+
+
 def _aggregate_individual_threshold(
     name: str,
     supports: list[dict[str, Any]],
 ) -> Optional[dict[str, Any]]:
     if len(supports) < _INDIVIDUAL_MIN_SUPPORT_SESSIONS:
+        return None
+
+    progression_alignment = _individual_progression_alignment(supports)
+    if progression_alignment is None or progression_alignment < _INDIVIDUAL_MIN_PROGRESSION_ALIGNMENT:
         return None
 
     lactates = [item["threshold"]["lactate"] for item in supports if item["threshold"].get("lactate") is not None]
@@ -747,6 +1001,8 @@ def _aggregate_individual_threshold(
         ),
         2,
     )
+    if agreement_score < _INDIVIDUAL_MIN_AGREEMENT or confidence < _INDIVIDUAL_MIN_CONFIDENCE:
+        return None
     evidence_level = "high" if confidence >= 0.82 and len(supports) >= 3 else "medium" if confidence >= 0.68 else "low"
     supporting_sessions = [
         {
@@ -771,11 +1027,14 @@ def _aggregate_individual_threshold(
         "evidence_level": evidence_level,
         "rationale": (
             f"{display_name} agregado desde {len(supports)} sesiones comparables con gates de protocolo, "
-            f"señal de curva y acuerdo entre métodos. Protocol score mediano {protocol_score:.2f}; signal score mediano {signal_score:.2f}."
+            f"señal de curva, progresión longitudinal alineada y acuerdo entre métodos. "
+            f"Protocol score mediano {protocol_score:.2f}; signal score mediano {signal_score:.2f}; "
+            f"progression alignment {progression_alignment:.2f}."
         ),
         "supporting_sessions": supporting_sessions,
         "protocol_score": protocol_score,
         "signal_score": signal_score,
+        "progression_alignment": progression_alignment,
     }
 
 
@@ -821,17 +1080,32 @@ def _build_individual_thresholds(
                 }
             )
 
+    lt1_progression_alignment = _individual_progression_alignment(supports_lt1)
+    lt2_progression_alignment = _individual_progression_alignment(supports_lt2)
     lt1_individual = _aggregate_individual_threshold("LT1", supports_lt1)
     lt2_individual = _aggregate_individual_threshold("LT2", supports_lt2)
     support_session_count = len({item["session_id"] for item in supports_lt1 + supports_lt2})
     sufficient = bool(lt1_individual or lt2_individual)
+    progression_candidates = [value for value in (lt1_progression_alignment, lt2_progression_alignment) if value is not None]
+    progression_alignment = round(min(progression_candidates), 2) if progression_candidates else None
     if sufficient:
         reason = "Pool suficiente para consolidar umbrales individuales longitudinales."
     elif relevant_sessions:
-        reason = (
-            f"Solo {support_session_count} sesiones con señal suficiente para consolidar umbrales individuales "
-            f"(mínimo {_INDIVIDUAL_MIN_SUPPORT_SESSIONS})."
-        )
+        if support_session_count < _INDIVIDUAL_MIN_SUPPORT_SESSIONS:
+            reason = (
+                f"Solo {support_session_count} sesiones con señal suficiente para consolidar umbrales individuales "
+                f"(mínimo {_INDIVIDUAL_MIN_SUPPORT_SESSIONS} sesiones alineadas)."
+            )
+        elif progression_alignment is not None and progression_alignment < _INDIVIDUAL_MIN_PROGRESSION_ALIGNMENT:
+            reason = (
+                "La progresión longitudinal todavía no está suficientemente alineada para publicar LT Individual "
+                f"(alignment {progression_alignment:.0%}, mínimo {_INDIVIDUAL_MIN_PROGRESSION_ALIGNMENT:.0%})."
+            )
+        else:
+            reason = (
+                "Hay sesiones comparables, pero no se ha alcanzado un consenso longitudinal suficientemente robusto "
+                "para publicar LT Individual."
+            )
     else:
         reason = "No hay sesiones comparables para construir umbrales individuales."
 
@@ -842,6 +1116,9 @@ def _build_individual_thresholds(
             "session_count": support_session_count,
             "protocol_score": round(median(protocol_scores), 2) if protocol_scores else 0.0,
             "signal_score": round(median(signal_scores), 2) if signal_scores else 0.0,
+            "progression_alignment": progression_alignment,
+            "min_support_sessions": _INDIVIDUAL_MIN_SUPPORT_SESSIONS,
+            "criteria_version": _INDIVIDUAL_RULESET_VERSION,
             "sufficient": sufficient,
             "reason": reason,
         },
@@ -1496,15 +1773,15 @@ def _discipline_view(
         for snapshot in reversed(sorted_snapshots):
             snap_payload = snapshot.payload or {}
             individual = snap_payload.get("individual_thresholds")
-            if individual and (individual.get("lt1_individual") or individual.get("lt2_individual")) and individual_thresholds is None:
+            if individual and individual_thresholds is None:
                 individual_thresholds = individual
             rt = snap_payload.get("real_thresholds")
             if rt and (rt.get("lt1_real") or rt.get("lt2_real")):
                 real_thresholds = rt
             if real_thresholds is not None and individual_thresholds is not None:
                 break
-    payload["real_thresholds"] = real_thresholds
     payload["individual_thresholds"] = individual_thresholds
+    payload["real_thresholds"] = _merge_real_threshold_states(real_thresholds, individual_thresholds)
     if discipline == "ciclismo" and power_source is None:
         payload["power_source_views"] = {
             source: _discipline_view(athlete, discipline, sessions, snapshots, estimates, power_source=source)
@@ -1619,7 +1896,18 @@ def _needs_recalculation(athlete: Athlete, snapshots: list[PhysiologicalSnapshot
     if not session_keys.issubset(snapshot_keys):
         return True
 
-    return any("dynamic_thresholds" not in (snapshot.payload or {}) for snapshot in snapshots)
+    for snapshot in snapshots:
+        payload = snapshot.payload or {}
+        if "dynamic_thresholds" not in payload:
+            return True
+        real_quality = (payload.get("real_thresholds") or {}).get("data_quality") or {}
+        if real_quality.get("criteria_version") != _REAL_RULESET_VERSION:
+            return True
+        individual_quality = (payload.get("individual_thresholds") or {}).get("data_quality") or {}
+        if individual_quality.get("criteria_version") != _INDIVIDUAL_RULESET_VERSION:
+            return True
+
+    return False
 
 
 def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
@@ -1906,6 +2194,7 @@ def athlete_analysis_payload(db: Session, athlete_id: int) -> dict[str, Any]:
     latest_dynamic_thresholds = latest_snapshot.payload.get("dynamic_thresholds") if latest_snapshot else None
     latest_real_thresholds = latest_snapshot.payload.get("real_thresholds") if latest_snapshot else None
     latest_individual_thresholds = latest_snapshot.payload.get("individual_thresholds") if latest_snapshot else None
+    latest_real_thresholds = _merge_real_threshold_states(latest_real_thresholds, latest_individual_thresholds)
 
     return {
         "athlete": athlete,

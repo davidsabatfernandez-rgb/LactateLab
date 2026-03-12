@@ -220,10 +220,115 @@ class BlockCandidateRead(BaseModel):
 
 
 class ScoringContextRead(BaseModel):
+    assignment_mode: Optional[str] = None
+    selection_engine: Optional[str] = None
     robustness: str
     evaluation_signal: str
     previous_major: Optional[str] = None
     days_to_target: Optional[int] = None
+
+
+class DurabilityAnalysisRead(BaseModel):
+    durability_score: Optional[float] = None
+    lt1_degradation_pct: Optional[float] = None
+    lt2_degradation_pct: Optional[float] = None
+    aerobic_drift_pct: Optional[float] = None
+    durability_confidence: float = 0.0
+    durability_source: str = "none"
+    durability_flag: str = "insufficient_evidence_for_durability"
+
+
+class LactateCheckRecommendationRead(BaseModel):
+    session_type: str
+    purpose: str
+    suggested_timing_within_block: str
+    minimum_conditions: list[str] = []
+    optional_lactate_points: list[str] = []
+    coach_editable: bool = True
+    priority: str
+    why_now: str
+
+
+class ReliabilityWarningRead(BaseModel):
+    """Warning de fiabilidad generado por block_rationale.generate_reliability_warnings().
+
+    Códigos posibles (ver block_rationale.py para constantes W_*):
+      INTERPOLATED_THRESHOLDS, LOW_CONFIDENCE, STALE_DATA_MILD, STALE_DATA_CRITICAL,
+      BORDERLINE_GAP, INSUFFICIENT_WEEKS, NO_TARGET, PROFILE_UNCERTAIN,
+      NO_LT1, IMPLAUSIBLE_RATIO, SINGLE_DISCIPLINE.
+    Severidades: "info" | "warning" | "critical".
+    """
+    code: str
+    severity: str
+    message: str
+    actionable: str
+
+
+class BlockRationaleRead(BaseModel):
+    """Rationale científico de un bloque. Ver BLOCK_RATIONALE en block_rationale.py."""
+    block_key: str
+    display_name: str
+    olbrecht_class: str
+    summary_coach: str
+    physiological_goal: str
+    training_description: str
+    expected_timeline: str
+    ideal_context: str
+    risk_if_wrong: str
+    min_weeks: int
+    max_weeks: int
+    science_refs: list[str] = []
+
+
+class BlockExplanationRead(BaseModel):
+    """Explicación contextual del bloque. Ver generate_block_explanation() en block_rationale.py.
+
+    Generada combinando datos del atleta + rationale científico.
+    Lista para mostrar en UI o enviar al planning engine.
+    """
+    headline: str           # 1 frase: por qué este bloque ahora
+    why_now: str            # párrafo: datos del atleta + justificación científica
+    what_to_expect: str     # qué adaptaciones ver en test y rendimiento
+    what_to_watch: str      # señales de que funciona (✓) o no (⚠)
+    when_to_exit: str       # cuándo terminar y qué bloque sigue
+    alternative_if_wrong: str  # bloque alternativo si datos cambian
+    block_key: str
+    display_name: str
+    olbrecht_class: str
+    min_weeks: int
+    max_weeks: int
+
+
+class PhysiologicalAnalysisRead(BaseModel):
+    data_quality: str
+    season_phase: Optional[str] = None
+    primary_limiter: Optional[str] = None
+    secondary_limiter: Optional[str] = None
+    lt2_gap_kmh: Optional[float] = None
+    lt1_gap_kmh: Optional[float] = None
+    required_lt2_kmh: Optional[float] = None
+    required_lt1_kmh: Optional[float] = None
+    physiological_block: Optional[str] = None
+    distance_category: Optional[str] = None
+    metric_type: Optional[str] = None
+    lt1_confidence_dynamic: Optional[float] = None
+    lt2_confidence_dynamic: Optional[float] = None
+    glycolytic_confidence: Optional[float] = None
+    overall_decision_confidence: Optional[float] = None
+    confidence_band: Optional[str] = None
+    decision_uncertainty: Optional[str] = None
+    needs_confirmation: bool = False
+    durability: Optional[DurabilityAnalysisRead] = None
+    contradictory_signals: list[str] = []
+    confidence_factors: list[dict] = []
+    lactate_check_recommendations: list[LactateCheckRecommendationRead] = []
+    overrides_temporal_scoring: bool = False
+    # ── Fiabilidad y rationale (block_rationale.py) ───────────────────────────
+    reliability_warnings: list[ReliabilityWarningRead] = []
+    borderline: bool = False
+    borderline_note: str = ""
+    block_rationale: Optional[BlockRationaleRead] = None
+    block_explanation: Optional[BlockExplanationRead] = None
 
 
 class MesocycleRecommendationRead(BaseModel):
@@ -249,6 +354,8 @@ class MesocycleRecommendationRead(BaseModel):
     next_target: Optional[PlanningTargetSummaryRead] = None
     candidates_scored: list[BlockCandidateRead] = []
     scoring_context: Optional[ScoringContextRead] = None
+    physiological_analysis: Optional[PhysiologicalAnalysisRead] = None
+    lactate_check_recommendations: list[LactateCheckRecommendationRead] = []
 
 
 class PlanningOverviewRead(BaseModel):

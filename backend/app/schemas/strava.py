@@ -80,6 +80,7 @@ class StravaActivityRead(BaseModel):
     streams: dict[str, StravaActivityStreamRead] = Field(default_factory=dict)
     raw_detail: dict[str, Any] = Field(default_factory=dict)
     enrichment_error: Optional[str] = None
+    enrichment_notice: Optional[str] = None
 
 
 class StravaActivitiesImportResponse(BaseModel):

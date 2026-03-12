@@ -20,11 +20,19 @@ class Athlete(Base):
     goal_category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     training_goal: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    athlete_level: Mapped[str] = mapped_column(String(30), nullable=False, default="trained", server_default="trained")
+    """Nivel del atleta: recreational | trained | competitive. Afecta la relación umbral→ritmo de carrera."""
     strava_athlete_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
     strava_access_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     strava_refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     strava_token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     strava_connected_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    garmin_user_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
+    garmin_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    garmin_password_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    garmin_token_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    garmin_connected_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    garmin_last_sync_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[date] = mapped_column(Date)
     coach_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
 
@@ -45,6 +53,15 @@ class Athlete(Base):
             and self.strava_access_token
             and self.strava_refresh_token
             and self.strava_token_expires_at is not None
+        )
+
+    @property
+    def garmin_connected(self) -> bool:
+        return bool(
+            self.garmin_user_id is not None
+            and self.garmin_email
+            and self.garmin_password_encrypted
+            and self.garmin_connected_at is not None
         )
 
 
@@ -91,6 +108,8 @@ class AthleteTarget(Base):
     discipline: Mapped[str] = mapped_column(String(50), index=True)
     objective: Mapped[str] = mapped_column(String(255))
     distance_label: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    distance_category: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    """Categoría normalizada: 5k | 10k | hm | marathon | sprint_tri | olympic_tri | 70.3 | ironman | road_tt | other"""
     priority_level: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     target_pace_label: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     target_power_watts: Mapped[Optional[float]] = mapped_column(Float, nullable=True)

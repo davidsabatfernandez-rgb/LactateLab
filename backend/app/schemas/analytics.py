@@ -114,6 +114,21 @@ class RealThresholdItemRead(BaseModel):
     evidence_level: Optional[str] = None
     rationale: Optional[str] = None
     derived_from: Optional[str] = None
+    status: Optional[str] = None
+
+
+class ThresholdDetectionStatusRead(BaseModel):
+    name: str
+    state: str
+    primary_method: Optional[str] = None
+    confirmation_method: Optional[str] = None
+    supporting_methods: list[str] = []
+    compatible: bool
+    quality_gate_passed: bool
+    anchor_update_recommended: bool
+    confidence: float
+    candidate_threshold: Optional[RealThresholdItemRead] = None
+    explanation: str
 
 
 class RealThresholdsRead(BaseModel):
@@ -121,6 +136,8 @@ class RealThresholdsRead(BaseModel):
     lt2_real: Optional[RealThresholdItemRead] = None
     lt1_practical_real: Optional[RealThresholdItemRead] = None
     lt2_practical_real: Optional[RealThresholdItemRead] = None
+    lt1_detection: Optional[ThresholdDetectionStatusRead] = None
+    lt2_detection: Optional[ThresholdDetectionStatusRead] = None
     data_quality: Optional[dict] = None
 
 
@@ -138,6 +155,7 @@ class IndividualThresholdItemRead(BaseModel):
     supporting_sessions: list[dict[str, Any]] = []
     protocol_score: Optional[float] = None
     signal_score: Optional[float] = None
+    progression_alignment: Optional[float] = None
 
 
 class IndividualThresholdsRead(BaseModel):
