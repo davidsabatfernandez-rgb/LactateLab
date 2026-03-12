@@ -242,8 +242,8 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
             DoseStep(1, "3×8'",     24, 1.5, "LT1", "any",    "Introducción; volumen moderado y margen técnico.", 57),
             DoseStep(2, "4×8'",     32, 1.5, "LT1", "any",    "Primera progresión de volumen.", 67),
             DoseStep(3, "3×10'",    30, 1.5, "LT1", "any",    "Repeticiones más largas; misma densidad.", 63),
-            DoseStep(4, "4×10'",    40, 1.5, "LT1", "medium", "Primer peldaño de carga media; 40' útiles.", 75),
-            DoseStep(5, "3×12'",    36, 2.0, "LT1", "medium", "Aumenta duración de repetición.", 70),
+            DoseStep(4, "3×12'",    36, 2.0, "LT1", "medium", "Aumenta duración de repetición.", 70),
+            DoseStep(5, "4×10'",    40, 1.5, "LT1", "medium", "Primer peldaño de carga media; 40' útiles.", 75),
             DoseStep(6, "4×12'",    48, 2.0, "LT1", "medium", "Carga alta de intervalos LT1.", 84),
             DoseStep(7, "2×20'",    40, 3.0, "LT1", "medium", "Transición a bloques continuos.", 73),
             DoseStep(8, "40' cont", 40, 0.0, "LT1", "medium", "Continuo: máxima especificidad LT1.", 70),
@@ -266,6 +266,10 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.87,
         evidence_ids=("kenneally_2022_5000", "cejuela_2022_tri"),
         csv_examples=("90' E1", "105' E1", "90' + 20' final controlado", "120' aeróbicos"),
+        calentamiento_min=10,
+        calentamiento_template="10' trote progresivo suave.",
+        enfriamiento_min=10,
+        enfriamiento_template="10' trote muy suave.",
     ),
     WorkoutTemplate(
         template_id="run_lt2_cruise",
@@ -337,8 +341,8 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         dose_ladder=(
             DoseStep(1, "4×3'",  12, 3.0, "VO2", "fresh", "Introducción; volumen bajo para asentar tolerancia al ritmo alto.", 51),
             DoseStep(2, "5×3'",  15, 3.0, "VO2", "fresh", "Añade una repetición; primer estímulo VO2 real.", 57),
-            DoseStep(3, "6×3'",  18, 3.0, "VO2", "fresh", "Seis repeticiones; coste alto pero controlable.", 63),
-            DoseStep(4, "4×4'",  16, 4.0, "VO2", "fresh", "Repeticiones más largas; mayor tiempo en VO2.", 58),
+            DoseStep(3, "4×4'",  16, 4.0, "VO2", "fresh", "Repeticiones más largas; mayor tiempo en VO2.", 58),
+            DoseStep(4, "6×3'",  18, 3.0, "VO2", "fresh", "Seis repeticiones; coste alto pero controlable.", 63),
             DoseStep(5, "5×4'",  20, 4.0, "VO2", "fresh", "20' útiles; reservar para bloques con respuesta clara.", 66),
             DoseStep(6, "6×4'",  24, 4.0, "VO2", "fresh", "Carga máxima; solo atletas robustos con bloque bien respondido.", 74),
         ),
@@ -788,6 +792,63 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
             DoseStep(3, "8'uLT1+2×10×40''+8'uLT1", 47, 0.33, "uLT1+VO2", "fresh", "Carga alta; solo con robustez alta.", 77),
         ),
     ),
+    # ── Half pace progresivo running (patrón Nacho) ────────────────────────────
+    # CSV Nacho: bloques de half-pace con progresión de duración — 3×12' → 3×15' → 2×20'.
+    # Zona LT1+/LT2−: a ritmo de media maratón o ligeramente por debajo.
+    WorkoutTemplate(
+        template_id="run_halfpace_progressive",
+        discipline="running",
+        compatible_block_types=("threshold_development_block", "aerobic_power_block", "competition_specific_block"),
+        session_role="key",
+        session_family="halfpace_progressive",
+        public_label="Half pace progresivo running",
+        summary="Bloques a ritmo de media maratón con progresión de duración. Zona LT1+/LT2−.",
+        objective="Mejorar la capacidad de sostener ritmos subumbrales altos durante períodos prolongados.",
+        dose_guidance="3×12' → 3×15' → 2×20' a ritmo HM con 3-4' rec. Progresión por duración, no por ritmo.",
+        progression_axes=("Alargar bloques", "Reducir descanso", "Mantener ritmo con FC más baja"),
+        control_points=("Ritmo estable dentro del bloque", "FC no se dispara en últimos minutos", "Lactato 2.5-3.5 mmol si se mide"),
+        expected_adaptations=("Mejor economía a ritmo HM", "Mayor capacidad de sostener LT2 alto"),
+        cautions=("No acelerar los últimos minutos — mantener ritmo estable", "Si el ritmo cae >5s/km en el último bloque, la dosis es alta"),
+        confidence=0.85,
+        evidence_ids=("seiler_2013_tid", "stoggl_2014_polarized"),
+        csv_examples=("3×12' HM pace D:3'", "3×15' half pace D:4'", "2×20' half pace D:5'"),
+        fatigue_cost=4,
+        min_spacing_days_after=2,
+        incompatible_adjacent_families=("lt2_cruise_intervals", "threshold_continuous", "halfpace_progressive"),
+        requires_fresh=True,
+        dose_ladder=(
+            DoseStep(1, "3×10'", 30, 3.0, "HM_pace", "fresh", "Introducción al formato.", 55),
+            DoseStep(2, "3×12'", 36, 3.0, "HM_pace", "fresh", "Primer estímulo real — patrón CSV Nacho.", 62),
+            DoseStep(3, "3×15'", 45, 4.0, "HM_pace", "fresh", "Progresión en duración, no en ritmo.", 70),
+            DoseStep(4, "2×20'", 40, 5.0, "HM_pace", "fresh", "Bloques largos — exige umbral consolidado.", 75),
+            DoseStep(5, "2×25'", 50, 5.0, "HM_pace", "fresh", "Dosis máxima. Solo con robustez alta.", 82),
+        ),
+    ),
+    # ── Openers / Activación pre-competición (patrón Nacho) ────────────────────
+    # CSV Nacho: sesión corta de activación 24-48h antes de test/competición.
+    # Patrón: calentamiento + 3-5 progresivos cortos + rectas rápidas.
+    WorkoutTemplate(
+        template_id="run_openers",
+        discipline="running",
+        compatible_block_types=("competition_specific_block", "anaerobic_power_block", "testing_decision_block"),
+        session_role="support",
+        session_family="openers",
+        public_label="Openers / activación pre-competición",
+        summary="Sesión corta de activación 24-48h antes de test o competición. Progresivos cortos + rectas.",
+        objective="Preparar el sistema neuromuscular para rendir al máximo sin acumular fatiga.",
+        dose_guidance="20-30' total: 10' calentamiento + 3-5×1' progresivo + 4-6 rectas 80m + 5' vuelta calma.",
+        progression_axes=("No aplica — sesión de activación, no progresa"),
+        control_points=("Sensación de ligereza al acabar", "Nunca fatiga residual", "Ritmo fácil en los progresivos"),
+        expected_adaptations=("Activación neuromuscular", "Confianza pre-competición"),
+        cautions=("NO es un entrenamiento — si sale exigente, fue demasiado", "Mínima duración, máxima calidad"),
+        confidence=0.90,
+        evidence_ids=("mujika_2010_taper", "tonnessen_2014_openers"),
+        csv_examples=("10'E1 + 4×1' progresivo + 6 rectas + 5'E1", "15'E1 + 3×90'' progresivo + 4 rectas"),
+        fatigue_cost=1,
+        min_spacing_days_after=0,
+        incompatible_adjacent_families=(),
+        requires_fresh=False,
+    ),
     WorkoutTemplate(
         template_id="bike_lt1_blocks",
         discipline="ciclismo",
@@ -808,13 +869,13 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         fatigue_cost=3,
         min_spacing_days_after=1,
         dose_ladder=(
-            DoseStep(1, "3×10'",    30, 2.0, "LT1", "any",    "Introducción conservadora; bloques manejables con buena comparabilidad."),
-            DoseStep(2, "4×10'",    40, 2.0, "LT1", "any",    "Primera progresión de volumen; 40 minutos útiles estables."),
-            DoseStep(3, "3×15'",    45, 2.0, "LT1", "any",    "Bloques más largos; primer peldaño de carga media."),
-            DoseStep(4, "4×15'",    60, 2.0, "LT1", "medium", "60 minutos útiles; carga alta de bloques LT1 en bici."),
-            DoseStep(5, "2×25'",    50, 4.0, "LT1", "medium", "Transición a bloques continuos largos; buena especificidad LT1."),
-            DoseStep(6, "45' cont", 45, 0.0, "LT1", "medium", "Continuo: máxima especificidad subumbral en bici."),
-            DoseStep(7, "60' cont", 60, 0.0, "LT1", "medium", "Carga máxima continua LT1; solo atletas robustos con respuesta positiva."),
+            DoseStep(1, "3×10'",    30, 2.0, "LT1", "any",    "Introducción conservadora; bloques manejables con buena comparabilidad.", total_duration_min=65),
+            DoseStep(2, "4×10'",    40, 2.0, "LT1", "any",    "Primera progresión de volumen; 40 minutos útiles estables.", total_duration_min=75),
+            DoseStep(3, "3×15'",    45, 2.0, "LT1", "any",    "Bloques más largos; primer peldaño de carga media.", total_duration_min=80),
+            DoseStep(4, "4×15'",    60, 2.0, "LT1", "medium", "60 minutos útiles; carga alta de bloques LT1 en bici.", total_duration_min=95),
+            DoseStep(5, "2×25'",    50, 4.0, "LT1", "medium", "Transición a bloques continuos largos; buena especificidad LT1.", total_duration_min=85),
+            DoseStep(6, "45' cont", 45, 0.0, "LT1", "medium", "Continuo: máxima especificidad subumbral en bici.", total_duration_min=75),
+            DoseStep(7, "60' cont", 60, 0.0, "LT1", "medium", "Carga máxima continua LT1; solo atletas robustos con respuesta positiva.", total_duration_min=90),
         ),
     ),
     WorkoutTemplate(
@@ -834,6 +895,11 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.88,
         evidence_ids=("pinot_2015_grand_tour", "mateo_march_2025_wt"),
         csv_examples=("2h30 E1", "3h E1", "4h fondo aeróbico", "3h15 continuo"),
+        fatigue_cost=4,
+        calentamiento_min=15,
+        calentamiento_template="15' progresivo suave hasta E1 estable.",
+        enfriamiento_min=15,
+        enfriamiento_template="15' rodaje muy suave.",
     ),
     WorkoutTemplate(
         template_id="bike_lt2_halfpace",
@@ -857,12 +923,12 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         incompatible_adjacent_families=("lt2_halfpace", "over_under_threshold", "vo2_power", "vo2_30_30"),
         requires_fresh=True,
         dose_ladder=(
-            DoseStep(1, "2×12'",    24, 3.0, "LT2", "fresh", "Introducción; dos bloques comparables con margen de lectura interno."),
-            DoseStep(2, "3×12'",    36, 3.0, "LT2", "fresh", "Añade un bloque; primer volumen real de umbral en bici."),
-            DoseStep(3, "2×20'",    40, 4.0, "LT2", "fresh", "Bloques más largos; referencia clásica 2×20' de FTP."),
-            DoseStep(4, "3×15'",    45, 3.0, "LT2", "fresh", "Más repeticiones de duración media; buen equilibrio densidad/calidad."),
-            DoseStep(5, "2×25'",    50, 5.0, "LT2", "fresh", "Bloques largos; alta especificidad de umbral sostenido."),
-            DoseStep(6, "3×20'",    60, 4.0, "LT2", "fresh", "Carga máxima de umbral; solo con robustez alta y señal positiva."),
+            DoseStep(1, "2×12'",    24, 3.0, "LT2", "fresh", "Introducción; dos bloques comparables con margen de lectura interno.", total_duration_min=62),
+            DoseStep(2, "3×12'",    36, 3.0, "LT2", "fresh", "Añade un bloque; primer volumen real de umbral en bici.", total_duration_min=76),
+            DoseStep(3, "2×20'",    40, 4.0, "LT2", "fresh", "Bloques más largos; referencia clásica 2×20' de FTP.", total_duration_min=78),
+            DoseStep(4, "3×15'",    45, 3.0, "LT2", "fresh", "Más repeticiones de duración media; buen equilibrio densidad/calidad.", total_duration_min=85),
+            DoseStep(5, "2×25'",    50, 5.0, "LT2", "fresh", "Bloques largos; alta especificidad de umbral sostenido.", total_duration_min=88),
+            DoseStep(6, "3×20'",    60, 4.0, "LT2", "fresh", "Carga máxima de umbral; solo con robustez alta y señal positiva.", total_duration_min=100),
         ),
     ),
     WorkoutTemplate(
@@ -959,6 +1025,43 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.87,
         evidence_ids=("pinot_2015_grand_tour", "mateo_march_2025_wt"),
         csv_examples=("3h Fatmax", "2h30 E1 estable", "4h fondo controlado"),
+        fatigue_cost=4,
+        calentamiento_min=20,
+        calentamiento_template="20' progresivo (E0→E1).",
+        enfriamiento_min=15,
+        enfriamiento_template="15' suave.",
+    ),
+    # ── Fatmax + Intervalos (patrón Nacho) ─────────────────────────────────────
+    # CSV Nacho: fondo Fatmax con bloques de LT1/LT2 insertados dentro.
+    # Patrón: 20'E1 + 3-4×8'LT1 dentro de fondo largo + 20'E1 final.
+    # Objetivo: volumen aeróbico con estímulo de intensidad integrado.
+    WorkoutTemplate(
+        template_id="bike_fatmax_intervals",
+        discipline="ciclismo",
+        compatible_block_types=("aerobic_capacity_block", "threshold_development_block", "recovery_consolidation_block"),
+        session_role="key",
+        session_family="fatmax_intervals",
+        public_label="Fatmax + intervalos LT1 integrados",
+        summary="Fondo Fatmax con bloques de LT1 insertados. Combina volumen aeróbico con estímulo subumbral.",
+        objective="Volumen aeróbico eficiente con estímulo de umbral integrado — más adaptación por hora invertida.",
+        dose_guidance="2-3h: 20'E1 + 3-4×8' LT1 (D:4') + fondo E1 entre bloques + 20'E1 final.",
+        progression_axes=("Más bloques LT1", "Alargar bloques LT1", "Más duración total"),
+        control_points=("Potencia estable en bloques LT1", "E1 entre bloques sin subir HR", "No convertirlo en sesión umbral"),
+        expected_adaptations=("Mejor oxidación de grasas", "Transición E1→LT1 más limpia"),
+        cautions=("Los bloques LT1 son subumbrales — no subir a LT2", "Si la FC no baja entre bloques, acortar"),
+        confidence=0.82,
+        evidence_ids=("seiler_2006_tid", "stoggl_2014_polarized"),
+        csv_examples=("20'E1 + 4×8'LT1 D:4' + 20'E1", "30'E1 + 3×10'LT1 D:5' + 30'E1", "2h30 Fatmax con 3×8' LT1"),
+        fatigue_cost=3,
+        min_spacing_days_after=1,
+        incompatible_adjacent_families=("lt2_halfpace", "over_under_threshold"),
+        dose_ladder=(
+            DoseStep(1, "20'E1+3×6'LT1+20'E1", 78, 4.0, "E1+LT1", "any",    "Introducción al formato.", 90),
+            DoseStep(2, "20'E1+3×8'LT1+20'E1", 84, 4.0, "E1+LT1", "any",    "Patrón base Nacho.", 100),
+            DoseStep(3, "20'E1+4×8'LT1+20'E1", 92, 4.0, "E1+LT1", "any",    "Bloque extra: más estímulo.", 110),
+            DoseStep(4, "30'E1+3×10'LT1+30'E1", 110, 5.0, "E1+LT1", "medium", "Versión larga con bloques mayores.", 130),
+            DoseStep(5, "30'E1+4×10'LT1+30'E1", 120, 5.0, "E1+LT1", "medium", "Dosis máxima — 2h30+ total.", 150),
+        ),
     ),
     WorkoutTemplate(
         template_id="bike_cadence_efficiency",
@@ -1000,11 +1103,11 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         incompatible_adjacent_families=("lt2_halfpace", "vo2_power", "vo2_30_30"),
         requires_fresh=True,
         dose_ladder=(
-            DoseStep(1, "2×10' O/U",  20, 5.0, "LT1-LT2", "fresh", "Introducción; dos bloques con alternancia LT1 alto / LT2 controlado."),
-            DoseStep(2, "3×10' O/U",  30, 5.0, "LT1-LT2", "fresh", "Tres bloques; primer volumen real de over-under."),
-            DoseStep(3, "2×15' O/U",  30, 5.0, "LT1-LT2", "fresh", "Bloques más largos; mayor tiempo en la zona de transición."),
-            DoseStep(4, "3×12' O/U",  36, 4.0, "LT1-LT2", "fresh", "Densidad media-alta; buen estímulo de tolerancia al cambio."),
-            DoseStep(5, "2×20' O/U",  40, 5.0, "LT1-LT2", "fresh", "Carga alta; reservar para atletas robustos con señal positiva."),
+            DoseStep(1, "2×10' O/U",  20, 5.0, "LT1-LT2", "fresh", "Introducción; dos bloques con alternancia LT1 alto / LT2 controlado.", total_duration_min=55),
+            DoseStep(2, "3×10' O/U",  30, 5.0, "LT1-LT2", "fresh", "Tres bloques; primer volumen real de over-under.", total_duration_min=70),
+            DoseStep(3, "2×15' O/U",  30, 5.0, "LT1-LT2", "fresh", "Bloques más largos; mayor tiempo en la zona de transición.", total_duration_min=65),
+            DoseStep(4, "3×12' O/U",  36, 4.0, "LT1-LT2", "fresh", "Densidad media-alta; buen estímulo de tolerancia al cambio.", total_duration_min=74),
+            DoseStep(5, "2×20' O/U",  40, 5.0, "LT1-LT2", "fresh", "Carga alta; reservar para atletas robustos con señal positiva.", total_duration_min=75),
         ),
     ),
     WorkoutTemplate(
@@ -1061,6 +1164,11 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.86,
         evidence_ids=("pinot_2015_grand_tour", "mateo_march_2025_wt"),
         csv_examples=("3h con 2 x 25' tempo", "4h con 1 x 40' D2", "3h30 con 3 x 20' tempo"),
+        fatigue_cost=4,
+        calentamiento_min=20,
+        calentamiento_template="20' progresivo hasta E2.",
+        enfriamiento_min=15,
+        enfriamiento_template="15' suave.",
     ),
     WorkoutTemplate(
         template_id="bike_lt2_long_reps",
@@ -1097,6 +1205,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.81,
         evidence_ids=("ronnestad_2016_block", "cejuela_2022_tri"),
         csv_examples=("20' LT2 + 4 x 3' VO2", "2 x 12' LT2 + 8 x 30''/30''", "15' LT2 + 5 x 2' VO2"),
+        fatigue_cost=5,
     ),
     WorkoutTemplate(
         template_id="bike_vo2_30_30",
@@ -1115,6 +1224,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.86,
         evidence_ids=("ronnestad_2016_block", "tonnessen_2020_frequency"),
         csv_examples=("2 x 8 x 30''/30'' VO2", "12 x 30''/30'' VO2", "10 x 40''/20'' VO2"),
+        fatigue_cost=5,
     ),
     WorkoutTemplate(
         template_id="bike_cadmax_neuro",
@@ -1297,15 +1407,16 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.86,
         evidence_ids=("gonzalez_rave_2022_im", "pla_2019_swim"),
         csv_examples=("3 x 400m LT1 c/30''", "1500m continuo aeróbico", "4 x 300m LT1 c/20''"),
+        calentamiento_template="400m suave + 6×50m técnica (25m drill + 25m nado completo).",
         fatigue_cost=3,
         min_spacing_days_after=1,
         dose_ladder=(
-            DoseStep(1, "3×400m c/30''",       24, 0.5,  "LT1", "any",    "Introducción conservadora; series largas con pausa generosa."),
-            DoseStep(2, "4×400m c/30''",       32, 0.5,  "LT1", "any",    "Añade una serie; primer volumen real de base continua."),
-            DoseStep(3, "3×500m c/30''",       30, 0.5,  "LT1", "any",    "Series más largas; mejor continuidad de brazada."),
-            DoseStep(4, "4×500m c/30''",       40, 0.5,  "LT1", "medium", "40 minutos útiles; carga media-alta de base acuática."),
-            DoseStep(5, "1500m cont aeróbico", 23, 0.0,  "sub-LT1", "any", "Continuo: máxima especificidad de base y lectura de deriva."),
-            DoseStep(6, "2000m AEC frac.",     30, 0.25, "LT1", "medium", "Volumen alto fraccionado; reservar para atletas consolidados."),
+            DoseStep(1, "3×400m c/30''",       24, 0.5,  "LT1", "any",    "Introducción conservadora; series largas con pausa generosa.", total_duration_min=46),
+            DoseStep(2, "4×400m c/30''",       32, 0.5,  "LT1", "any",    "Añade una serie; primer volumen real de base continua.", total_duration_min=54),
+            DoseStep(3, "3×500m c/30''",       30, 0.5,  "LT1", "any",    "Series más largas; mejor continuidad de brazada.", total_duration_min=52),
+            DoseStep(4, "4×500m c/30''",       40, 0.5,  "LT1", "medium", "40 minutos útiles; carga media-alta de base acuática.", total_duration_min=62),
+            DoseStep(5, "1500m cont aeróbico", 23, 0.0,  "sub-LT1", "any", "Continuo: máxima especificidad de base y lectura de deriva.", total_duration_min=43),
+            DoseStep(6, "2000m AEC frac.",     30, 0.25, "LT1", "medium", "Volumen alto fraccionado; reservar para atletas consolidados.", total_duration_min=51),
         ),
     ),
     WorkoutTemplate(
@@ -1325,17 +1436,18 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.9,
         evidence_ids=("gonzalez_rave_2022_im", "pla_2019_swim"),
         csv_examples=("10 x 100m CSS c/15''", "6 x 200m LT2 c/20''", "4 x 300m CSS c/30''"),
+        calentamiento_template="400m suave + 4×50m drills técnicos + 2×100m progresivos.",
         fatigue_cost=4,
         min_spacing_days_after=2,
         incompatible_adjacent_families=("css_threshold", "vo2_anaerobic", "anc_speed_combo"),
         requires_fresh=True,
         dose_ladder=(
-            DoseStep(1, "8×100m CSS c/15''",  14, 0.25, "CSS", "fresh", "Introducción; volumen contenido con referencia clara de ritmo."),
-            DoseStep(2, "10×100m CSS c/15''", 17, 0.25, "CSS", "fresh", "Añade dos repeticiones; primer estímulo de umbral real."),
-            DoseStep(3, "6×150m CSS c/20''",  16, 0.33, "CSS", "fresh", "Repeticiones más largas; mejor especificidad metabólica."),
-            DoseStep(4, "6×200m CSS c/25''",  21, 0.42, "CSS", "fresh", "Mayor volumen por repetición; referencia clásica de umbral en natación."),
-            DoseStep(5, "4×300m CSS c/30''",  22, 0.5,  "CSS", "fresh", "Repeticiones largas; alta especificidad para distancias medias."),
-            DoseStep(6, "3×400m CSS c/45''",  23, 0.75, "CSS", "fresh", "Carga máxima; solo atletas con técnica estable y robustez alta."),
+            DoseStep(1, "8×100m CSS c/15''",  14, 0.25, "CSS", "fresh", "Introducción; volumen contenido con referencia clara de ritmo.", total_duration_min=36),
+            DoseStep(2, "10×100m CSS c/15''", 17, 0.25, "CSS", "fresh", "Añade dos repeticiones; primer estímulo de umbral real.", total_duration_min=40),
+            DoseStep(3, "6×150m CSS c/20''",  16, 0.33, "CSS", "fresh", "Repeticiones más largas; mejor especificidad metabólica.", total_duration_min=38),
+            DoseStep(4, "6×200m CSS c/25''",  21, 0.42, "CSS", "fresh", "Mayor volumen por repetición; referencia clásica de umbral en natación.", total_duration_min=44),
+            DoseStep(5, "4×300m CSS c/30''",  22, 0.5,  "CSS", "fresh", "Repeticiones largas; alta especificidad para distancias medias.", total_duration_min=44),
+            DoseStep(6, "3×400m CSS c/45''",  23, 0.75, "CSS", "fresh", "Carga máxima; solo atletas con técnica estable y robustez alta.", total_duration_min=45),
         ),
     ),
     WorkoutTemplate(
@@ -1355,6 +1467,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.84,
         evidence_ids=("gonzalez_rave_2022_im",),
         csv_examples=("3 x (4 x 100m ritmo prueba) c/20''", "2 x 600m open water pace", "8 x 50m salida + ritmo"),
+        calentamiento_template="300m suave + 4×50m drills técnicos + 2×50m activación.",
     ),
     WorkoutTemplate(
         template_id="swim_lt1_broken_sets",
@@ -1373,21 +1486,22 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.87,
         evidence_ids=("gonzalez_rave_2022_im", "pla_2019_swim"),
         csv_examples=("3 x (4 x 100m LT1) c/15''", "6 x 200m LT1 c/20''", "4 x 300m LT1 c/25''"),
+        calentamiento_template="400m suave + 4×50m técnica variada (drill a elegir).",
         fatigue_cost=3,
         min_spacing_days_after=1,
         dose_ladder=(
-            DoseStep(1, "3×(4×100m) c/15''", 24, 0.25, "LT1", "any",    "Series rotas; técnica limpia y lectura fácil del coste."),
-            DoseStep(2, "4×(4×100m) c/15''", 32, 0.25, "LT1", "any",    "Añade un bloque; primer volumen serio de base acuática."),
-            DoseStep(3, "3×(4×150m) c/20''", 30, 0.33, "LT1", "any",    "Repeticiones más largas; mayor continuidad de brazada."),
-            DoseStep(4, "4×(4×150m) c/20''", 40, 0.33, "LT1", "medium", "Carga media-alta; 40 minutos útiles en zona subumbral."),
-            DoseStep(5, "6×200m LT1 c/20''", 32, 0.33, "LT1", "medium", "Series medianas; transición hacia formato más específico."),
-            DoseStep(6, "4×300m LT1 c/25''", 32, 0.42, "LT1", "medium", "Series largas; máxima especificidad subumbral en piscina."),
+            DoseStep(1, "3×(4×100m) c/15''", 24, 0.25, "LT1", "any",    "Series rotas; técnica limpia y lectura fácil del coste.", total_duration_min=47),
+            DoseStep(2, "4×(4×100m) c/15''", 32, 0.25, "LT1", "any",    "Añade un bloque; primer volumen serio de base acuática.", total_duration_min=56),
+            DoseStep(3, "3×(4×150m) c/20''", 30, 0.33, "LT1", "any",    "Repeticiones más largas; mayor continuidad de brazada.", total_duration_min=53),
+            DoseStep(4, "4×(4×150m) c/20''", 40, 0.33, "LT1", "medium", "Carga media-alta; 40 minutos útiles en zona subumbral.", total_duration_min=64),
+            DoseStep(5, "6×200m LT1 c/20''", 32, 0.33, "LT1", "medium", "Series medianas; transición hacia formato más específico.", total_duration_min=54),
+            DoseStep(6, "4×300m LT1 c/25''", 32, 0.42, "LT1", "medium", "Series largas; máxima especificidad subumbral en piscina.", total_duration_min=54),
         ),
     ),
     WorkoutTemplate(
         template_id="swim_pull_snorkel_alignment",
         discipline="natación",
-        compatible_block_types=("technical_rebuild_block", "aerobic_capacity_block"),
+        compatible_block_types=("technical_rebuild_block", "aerobic_capacity_block", "threshold_development_block", "anaerobic_capacity_block", "anaerobic_power_block"),
         session_role="support",
         session_family="pull_snorkel_alignment",
         public_label="Snorkel, pull y alineación",
@@ -1401,6 +1515,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.9,
         evidence_ids=("gonzalez_rave_2023_altitude", "gonzalez_rave_2022_im"),
         csv_examples=("10 x 50 snorkel técnico", "6 x 100 pull + alineación", "8 x 75 un brazo + nado completo"),
+        calentamiento_template="200m suave + 4×50m nado completo progresivo.",
     ),
     WorkoutTemplate(
         template_id="swim_vo2_anaerobic",
@@ -1419,6 +1534,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.82,
         evidence_ids=("pla_2019_swim", "ronnestad_2016_block"),
         csv_examples=("16 x 50m VO2 c/30''", "10 x 100m fuertes c/45''", "8 x 75m VO2 c/40''"),
+        calentamiento_template="400m suave + 4×50m drills + 4×50m progresivos hasta 85%.",
         fatigue_cost=5,
         min_spacing_days_after=2,
         requires_fresh=True,
@@ -1440,6 +1556,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.81,
         evidence_ids=("gonzalez_rave_2022_im",),
         csv_examples=("12 x 25m rápidos con viraje", "8 x 50m salida + viraje", "16 x 15m breakout + transferencia"),
+        calentamiento_template="300m suave + 4×50m drills + 2×50m activación progresiva.",
     ),
     WorkoutTemplate(
         template_id="swim_open_water_specific",
@@ -1458,6 +1575,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.83,
         evidence_ids=("cejuela_2022_tri", "gonzalez_rave_2023_altitude"),
         csv_examples=("3 x 600m sighting controlado", "2 x 1000m open water pace", "20' continuo con cambios de orientación"),
+        calentamiento_template="400m suave + 4×50m drills de alineación y sighting.",
     ),
     WorkoutTemplate(
         template_id="swim_recovery_drills",
@@ -1514,6 +1632,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.8,
         evidence_ids=("gonzalez_rave_2022_im", "gonzalez_rave_2023_altitude"),
         csv_examples=("400 variado + 8 x 100 crol LT1", "3 x (200 estilos + 200 crol)", "1800m variado aeróbico"),
+        calentamiento_template="300m suave + 4×50m técnica variada.",
     ),
     WorkoutTemplate(
         template_id="swim_aec_base",
@@ -1532,6 +1651,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.84,
         evidence_ids=("gonzalez_rave_2022_im", "pla_2019_swim"),
         csv_examples=("3 x 500m aeróbico continuo", "2000m AEC fraccionado", "4 x 400m LT1 c/20''"),
+        calentamiento_template="400m suave + 6×50m técnica (25m drill + 25m nado).",
     ),
     WorkoutTemplate(
         template_id="swim_team_quality",
@@ -1550,6 +1670,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.79,
         evidence_ids=("gonzalez_rave_2022_im", "cejuela_2022_tri"),
         csv_examples=("Calentamiento + 12 x 100m CSS + técnica", "Club set: 20 x 50m ritmo", "Sesión compartida con bloque principal LT2"),
+        calentamiento_template="300m suave + técnica ligera integrada.",
     ),
     WorkoutTemplate(
         template_id="swim_anc_speed_combo",
@@ -1569,6 +1690,8 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.8,
         evidence_ids=("pla_2019_swim", "ronnestad_2016_block"),
         csv_examples=("12 x 25m ANC c/45''", "8 x 50m máximos c/1'", "2 x (6 x 25m ANC) c/40''"),
+        calentamiento_template="400m suave + 4×50m drills + 4×25m activación progresiva.",
+        fatigue_cost=4,
     ),
     WorkoutTemplate(
         template_id="swim_restart_rebuild",
@@ -1605,6 +1728,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.79,
         evidence_ids=("gonzalez_rave_2022_im", "cejuela_2022_tri"),
         csv_examples=("8 x 50m palas fuertes + 8 x 25m rápidos", "6 x 100m pull fuerte + 6 x 50m transfer", "12 x 25m resistencia + velocidad"),
+        calentamiento_template="400m suave + 4×50m drills + 2×50m activación progresiva.",
     ),
     WorkoutTemplate(
         template_id="strength_general_support",
@@ -1998,7 +2122,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
             "6 x 1' LT2 @55rpm + 2' Z1 @95rpm",
             "5 x 90'' LT2 torque + 2' Z1",
         ),
-        fatigue_cost=4, min_spacing_days_after=2,
+        fatigue_cost=4, min_spacing_days_after=2, requires_fresh=True,
         calentamiento_min=15, calentamiento_template="15' progresivo suave + 4 x 20'' activación 80%.",
         enfriamiento_min=15, enfriamiento_template="15' suave cadencia libre.",
         coach_tips=(
@@ -2097,7 +2221,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
             "3 x 30' HALF PACE (210-225W)", "3 x 30' Half pace D:5'",
             "3 x 25' Half pace + 1 x 15' LT1",
         ),
-        fatigue_cost=4, min_spacing_days_after=2,
+        fatigue_cost=4, min_spacing_days_after=2, requires_fresh=True,
         calentamiento_min=15, calentamiento_template="15' suave 100-140w.",
         enfriamiento_min=15, enfriamiento_template="15' muy suave para bajar FC.",
         coach_tips=(
@@ -2700,10 +2824,18 @@ WORKOUT_BLUEPRINTS: dict[tuple[str, str], dict[str, tuple[DraftSlot, ...]]] = {
         "recovery": (DraftSlot(2, "run_lt0_recovery"),        DraftSlot(5, "test_profile_anchor")),
     },
     ("running", "technical_rebuild_block"): {
-        "load":     (DraftSlot(2, "run_economy_strides"), DraftSlot(4, "run_progressive_aerobic"), DraftSlot(1, "strength_general_support")),
-        "recovery": (DraftSlot(2, "run_lt0_recovery"),    DraftSlot(5, "run_hill_sprints")),
+        "load":       (DraftSlot(2, "run_economy_strides"), DraftSlot(4, "run_progressive_aerobic"), DraftSlot(1, "strength_general_support")),
+        "build":      (DraftSlot(2, "run_economy_strides"), DraftSlot(4, "run_lt1_extensive"),       DraftSlot(6, "run_long_aerobic")),
+        "build_peak": (DraftSlot(2, "run_hill_sprints"),    DraftSlot(4, "run_economy_strides"),     DraftSlot(6, "run_progressive_aerobic")),
+        "recovery":   (DraftSlot(2, "run_lt0_recovery"),    DraftSlot(5, "run_hill_sprints")),
     },
     # ── Ciclismo ──────────────────────────────────────────────────────────────
+    ("ciclismo", "technical_rebuild_block"): {
+        "load":       (DraftSlot(2, "bike_cadence_efficiency"), DraftSlot(4, "bike_torque_support"),  DraftSlot(1, "strength_general_support")),
+        "build":      (DraftSlot(2, "bike_cadence_efficiency"), DraftSlot(4, "bike_lt1_blocks"),      DraftSlot(6, "bike_long_endurance")),
+        "build_peak": (DraftSlot(2, "bike_torque_support"),     DraftSlot(4, "bike_cadence_efficiency"), DraftSlot(6, "bike_fatmax_endurance")),
+        "recovery":   (DraftSlot(2, "bike_lt0_recovery"),       DraftSlot(5, "bike_lt1_blocks")),
+    },
     ("ciclismo", "aerobic_capacity_block"): {
         "load":       (DraftSlot(2, "bike_lt1_blocks"),        DraftSlot(4, "bike_torque_support"),    DraftSlot(6, "bike_long_endurance"), DraftSlot(1, "strength_general_support")),
         "build":      (DraftSlot(2, "bike_fatmax_endurance"),  DraftSlot(5, "bike_cadence_efficiency"),DraftSlot(6, "bike_long_endurance")),
@@ -2729,9 +2861,10 @@ WORKOUT_BLUEPRINTS: dict[tuple[str, str], dict[str, tuple[DraftSlot, ...]]] = {
     },
     # ── Natación ──────────────────────────────────────────────────────────────
     ("natación", "technical_rebuild_block"): {
-        "load":     (DraftSlot(1, "swim_technical_alignment"), DraftSlot(3, "swim_pull_snorkel_alignment"), DraftSlot(5, "strength_general_support")),
-        "build":    (DraftSlot(1, "swim_technical_alignment"), DraftSlot(4, "swim_aerobic_continuity"),      DraftSlot(6, "swim_speed_turns")),
-        "recovery": (DraftSlot(2, "swim_recovery_drills"),     DraftSlot(5, "test_profile_anchor")),
+        "load":       (DraftSlot(1, "swim_technical_alignment"), DraftSlot(3, "swim_pull_snorkel_alignment"), DraftSlot(5, "strength_general_support")),
+        "build":      (DraftSlot(1, "swim_technical_alignment"), DraftSlot(4, "swim_aerobic_continuity"),      DraftSlot(6, "swim_speed_turns")),
+        "build_peak": (DraftSlot(1, "swim_pull_snorkel_alignment"), DraftSlot(4, "swim_technical_alignment"), DraftSlot(6, "swim_aerobic_continuity")),
+        "recovery":   (DraftSlot(2, "swim_recovery_drills"),     DraftSlot(5, "test_profile_anchor")),
     },
     ("natación", "aerobic_capacity_block"): {
         "load":       (DraftSlot(1, "swim_aerobic_continuity"), DraftSlot(3, "swim_technical_alignment"),    DraftSlot(5, "swim_lt1_broken_sets")),
@@ -2741,14 +2874,37 @@ WORKOUT_BLUEPRINTS: dict[tuple[str, str], dict[str, tuple[DraftSlot, ...]]] = {
     },
     ("natación", "threshold_development_block"): {
         "load":       (DraftSlot(1, "swim_css_threshold"),    DraftSlot(3, "swim_technical_alignment"), DraftSlot(5, "swim_lt1_broken_sets")),
-        "build":      (DraftSlot(1, "swim_css_threshold"),    DraftSlot(4, "swim_speed_turns"),          DraftSlot(6, "swim_aerobic_continuity")),
+        "build":      (DraftSlot(1, "swim_css_threshold"),    DraftSlot(4, "swim_pull_snorkel_alignment"), DraftSlot(6, "swim_aerobic_continuity")),
         "build_peak": (DraftSlot(1, "swim_aep_pace_sets"),    DraftSlot(3, "swim_css_threshold"),        DraftSlot(6, "swim_aerobic_continuity")),
-        "recovery":   (DraftSlot(2, "swim_recovery_drills"),  DraftSlot(5, "test_profile_anchor")),
+        "recovery":   (DraftSlot(2, "swim_recovery_drills"),  DraftSlot(5, "swim_technical_alignment")),
+    },
+    ("natación", "aerobic_power_block"): {
+        "load":       (DraftSlot(1, "swim_vo2_anaerobic"),       DraftSlot(3, "swim_technical_alignment"),    DraftSlot(5, "swim_aerobic_continuity")),
+        "build":      (DraftSlot(1, "swim_vo2_anaerobic"),       DraftSlot(3, "swim_pull_snorkel_alignment"), DraftSlot(6, "swim_lt1_broken_sets")),
+        "build_peak": (DraftSlot(1, "swim_aep_pace_sets"),       DraftSlot(3, "swim_vo2_anaerobic"),          DraftSlot(6, "swim_aerobic_continuity")),
+        "recovery":   (DraftSlot(2, "swim_recovery_drills"),     DraftSlot(5, "swim_technical_alignment")),
     },
     ("natación", "competition_specific_block"): {
-        "load":     (DraftSlot(1, "swim_css_threshold"),       DraftSlot(3, "swim_race_pace_specific"), DraftSlot(5, "swim_open_water_specific")),
+        "load":     (DraftSlot(1, "swim_css_threshold"),       DraftSlot(3, "swim_race_pace_specific"), DraftSlot(5, "swim_pull_snorkel_alignment")),
         "specific": (DraftSlot(1, "swim_open_water_specific"), DraftSlot(4, "swim_speed_turns"),        DraftSlot(6, "recovery_regeneration")),
-        "recovery": (DraftSlot(2, "swim_recovery_drills"),     DraftSlot(5, "test_profile_anchor")),
+        "recovery": (DraftSlot(2, "swim_recovery_drills"),     DraftSlot(5, "swim_technical_alignment")),
+    },
+
+    # ── Testing Decision Block ──────────────────────────────────────────────
+    # Semana de testeo: patrón Nacho — test principal + recovery + sesión ancla ligera.
+    # Duración típica: 1 semana. No es un mesociclo productivo, es relectura del estado.
+    # CSV Nacho: test en martes/miércoles, recovery entre tests, vuelta a entrenar el lunes.
+    ("running", "testing_decision_block"): {
+        "load":     (DraftSlot(3, "test_profile_anchor"), DraftSlot(5, "run_lt0_recovery"), DraftSlot(6, "run_economy_strides")),
+        "recovery": (DraftSlot(3, "test_profile_anchor"), DraftSlot(5, "run_lt0_recovery")),
+    },
+    ("ciclismo", "testing_decision_block"): {
+        "load":     (DraftSlot(3, "test_profile_anchor"), DraftSlot(5, "bike_lt0_recovery"), DraftSlot(6, "bike_lt1_blocks")),
+        "recovery": (DraftSlot(3, "test_profile_anchor"), DraftSlot(5, "bike_lt0_recovery")),
+    },
+    ("natación", "testing_decision_block"): {
+        "load":     (DraftSlot(3, "test_profile_anchor"), DraftSlot(5, "swim_recovery_drills"), DraftSlot(6, "swim_technical_alignment")),
+        "recovery": (DraftSlot(3, "test_profile_anchor"), DraftSlot(5, "swim_recovery_drills")),
     },
 
     # ── ANC (Anaerobic Capacity Block) ────────────────────────────────────────
@@ -2791,6 +2947,27 @@ WORKOUT_BLUEPRINTS: dict[tuple[str, str], dict[str, tuple[DraftSlot, ...]]] = {
         "specific": (DraftSlot(1, "swim_aep_pace_sets"), DraftSlot(4, "swim_anp_tolerance"), DraftSlot(6, "swim_recovery_drills")),
         "recovery": (DraftSlot(2, "swim_recovery_drills"), DraftSlot(5, "test_profile_anchor")),
     },
+
+    # ── Recovery Consolidation Block ─────────────────────────────────────────
+    # Bloque de consolidación + recuperación activa.
+    # Objetivo: absorber carga acumulada sin perder adaptaciones.
+    # Olbrecht: tras bloques intensos (AEP, ANP), consolidar con volumen sub-LT1
+    # antes de volver a cargar. 2-3 sesiones/semana, baja intensidad, técnica.
+    ("running", "recovery_consolidation_block"): {
+        "load":     (DraftSlot(2, "run_lt0_recovery"),       DraftSlot(4, "run_progressive_aerobic"), DraftSlot(6, "run_long_aerobic")),
+        "build":    (DraftSlot(2, "run_lt1_extensive"),      DraftSlot(5, "run_economy_strides"),     DraftSlot(6, "run_regenerative_long")),
+        "recovery": (DraftSlot(2, "run_lt0_recovery"),       DraftSlot(5, "recovery_regeneration")),
+    },
+    ("ciclismo", "recovery_consolidation_block"): {
+        "load":     (DraftSlot(2, "bike_lt0_recovery"),      DraftSlot(4, "bike_fatmax_endurance"),   DraftSlot(6, "bike_long_endurance")),
+        "build":    (DraftSlot(2, "bike_lt1_blocks"),         DraftSlot(5, "bike_cadence_efficiency"), DraftSlot(6, "bike_fatmax_endurance")),
+        "recovery": (DraftSlot(2, "bike_lt0_recovery"),      DraftSlot(5, "recovery_regeneration")),
+    },
+    ("natación", "recovery_consolidation_block"): {
+        "load":     (DraftSlot(1, "swim_recovery_drills"),   DraftSlot(3, "swim_aerobic_continuity"), DraftSlot(5, "swim_technical_alignment")),
+        "build":    (DraftSlot(1, "swim_lt1_broken_sets"),   DraftSlot(4, "swim_pull_snorkel_alignment"), DraftSlot(6, "swim_aerobic_continuity")),
+        "recovery": (DraftSlot(2, "swim_recovery_drills"),   DraftSlot(5, "swim_lt0_50s")),
+    },
 }
 
 
@@ -2828,7 +3005,10 @@ def validate_microcycle_spacing(
                 )
 
             # Familias declaradas incompatibles en días consecutivos
-            if gap == 1 and tmpl_j.session_family in tmpl_i.incompatible_adjacent_families:
+            if gap == 1 and (
+                tmpl_j.session_family in tmpl_i.incompatible_adjacent_families
+                or tmpl_i.session_family in tmpl_j.incompatible_adjacent_families
+            ):
                 warnings.append(
                     f"Día {day_i} ({tmpl_i.session_family}) es incompatible con "
                     f"día {day_j} ({tmpl_j.session_family}) en días consecutivos."

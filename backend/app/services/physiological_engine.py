@@ -104,7 +104,7 @@ LT1_RACE_FACTOR: dict[str, dict[str, float]] = {
     "half_tri": {"recreational": 0.88, "trained": 0.95, "competitive": 1.02},
     "half_run": {"recreational": 0.90, "trained": 0.97, "competitive": 1.04},
     "half_bike": {"recreational": 0.86, "trained": 0.93, "competitive": 1.00},
-    "ironman":   {"recreational": 0.82, "trained": 0.90, "competitive": 0.97},
+    "ironman":   {"recreational": 0.82, "trained": 0.85, "competitive": 0.97},
     "ironman_run": {"recreational": 0.84, "trained": 0.91, "competitive": 0.98},
     "ironman_bike": {"recreational": 0.83, "trained": 0.90, "competitive": 0.97},
     "road_tt_long": {"recreational": 0.86, "trained": 0.93, "competitive": 1.00},
@@ -352,26 +352,40 @@ def _pace_label_to_kmh(pace_label: Optional[str]) -> Optional[float]:
 _BASE_PHASES = {"base_early", "base_late"}
 
 
-def _season_phase(weeks_to_goal: Optional[int]) -> str:
-    """Devuelve la fase de temporada según semanas al objetivo.
+def _season_phase(weeks_to_goal: Optional[int], athlete_level: str = "trained") -> str:
+    """Devuelve la fase de temporada según semanas al objetivo y nivel del atleta.
 
-    base_early (>28s): construcción de base — prioridad capacidad aeróbica.
-    base_late (20-28s): final del base — puede empezar a mover LT2 si la base acompaña.
-        Olbrecht: "en el último mesociclo del base, re-boostear capacidad aeróbica
-        justo antes de entrar en fase específica" (Triathlon PDF, 2011).
-    specific (12-20s): trabajo de umbral y potencia.
-    pre_comp (3-12s): afinado y transferencia.
-    taper (<3s): mantener, reducir volumen. Olbrecht: taper típico 2-3 semanas.
+    Boundaries adaptativas (Olbrecht SoW):
+    - Recreational: base más largo (+4s), specific más largo — necesitan más
+      tiempo de construcción aeróbica antes de intensificar.
+    - Competitive: base más corto (-2s), transiciones más rápidas — ya tienen
+      base aeróbica consolidada y pueden intensificar antes.
+    - Trained: boundaries estándar (default).
+
+    base_early: construcción de base — prioridad capacidad aeróbica.
+    base_late: final del base — puede empezar a mover LT2 si la base acompaña.
+    specific: trabajo de umbral y potencia.
+    pre_comp: afinado y transferencia.
+    taper (<3s): mantener, reducir volumen.
     """
     if weeks_to_goal is None:
         return "base_early"
-    if weeks_to_goal > 28:
+
+    # Boundaries: (base_early/base_late, base_late/specific, specific/pre_comp, pre_comp/taper)
+    if athlete_level == "recreational":
+        boundaries = (32, 23, 14, 3)
+    elif athlete_level == "competitive":
+        boundaries = (26, 18, 10, 3)
+    else:  # trained (default)
+        boundaries = (28, 20, 12, 3)
+
+    if weeks_to_goal > boundaries[0]:
         return "base_early"
-    if weeks_to_goal > 20:
+    if weeks_to_goal > boundaries[1]:
         return "base_late"
-    if weeks_to_goal > 12:
+    if weeks_to_goal > boundaries[2]:
         return "specific"
-    if weeks_to_goal > 3:
+    if weeks_to_goal > boundaries[3]:
         return "pre_comp"
     return "taper"
 
@@ -392,12 +406,15 @@ def _extract_lt_from_analysis(
     analysis: dict[str, Any],
     discipline: str,
     raw_curve_points: Optional[list[dict]] = None,
+    dynamic_thresholds: Optional[dict[str, Any]] = None,
 ) -> tuple[Optional[float], Optional[float], Optional[float], Optional[float], float, float, Optional[int]]:
     """Extrae LT1 y LT2 en km/h desde el payload de analytics.
 
     Jerarquía de fuentes (en orden de confianza):
     1. LT real detectado (real_thresholds) — mayor calidad.
     2. LT básico detectado (thresholds) — calidad media.
+    2.5 Modelo dinámico multi-sesión (reference_2mmol / reference_4mmol) — mejora
+        la sensibilidad a progresión entre pasos discretos (Faude 2009).
     3. Interpolación a 2.0 mmol (LT1) y 4.0 mmol (LT2) desde curva cruda — fallback.
 
     Los 1.6 / 3.1 mmol (prácticos de entrenamiento) NO se usan aquí.
@@ -460,6 +477,54 @@ def _extract_lt_from_analysis(
         if isinstance(lt2_power, (int, float)) and lt2_power > 0:
             lt2_power_watts = float(lt2_power)
             lt2_conf = max(lt2_conf, float(lt2_threshold.get("confidence") or 0.6))
+
+    # ── Prioridad 2.5: modelo dinámico multi-sesión ───────────────────────
+    # El modelo dinámico integra múltiples sesiones con ponderación por recencia
+    # (half-life 18d) y detecta mejoras sub-paso que la detección per-sesión
+    # no captura por la discretización de ritmos/potencias.
+    # Usamos el modelo agudo (10d) que refleja la forma reciente.
+    # Solo se usa cuando per-session no detectó o cuando el dinámico muestra
+    # una mejora (threshold más alto = atleta más rápido a mismo lactato).
+    if dynamic_thresholds:
+        dyn_acute = dynamic_thresholds.get("acute") or {}
+        dyn_reliability = dyn_acute.get("reliability_score", 0)
+        if dyn_reliability >= 0.45:
+            # ref_2mmol → proxy LT1, ref_4mmol → proxy LT2
+            ref_2 = dyn_acute.get("reference_2mmol") or {}
+            ref_4 = dyn_acute.get("reference_4mmol") or {}
+            dyn_lt1_kmh = ref_2.get("estimated_speed_kph")
+            dyn_lt2_kmh = ref_4.get("estimated_speed_kph")
+            dyn_lt1_power = ref_2.get("estimated_power_watts")
+            dyn_lt2_power = ref_4.get("estimated_power_watts")
+            dyn_conf = min(0.70, round(0.40 + dyn_reliability * 0.35, 2))
+
+            # Rellenar huecos (per-session no detectó)
+            if lt1_kmh is None and isinstance(dyn_lt1_kmh, (int, float)) and dyn_lt1_kmh > 0:
+                lt1_kmh = round(dyn_lt1_kmh, 3)
+                lt1_conf = max(lt1_conf, dyn_conf)
+            if lt2_kmh is None and isinstance(dyn_lt2_kmh, (int, float)) and dyn_lt2_kmh > 0:
+                lt2_kmh = round(dyn_lt2_kmh, 3)
+                lt2_conf = max(lt2_conf, dyn_conf)
+            if lt1_power_watts is None and isinstance(dyn_lt1_power, (int, float)) and dyn_lt1_power > 0:
+                lt1_power_watts = float(dyn_lt1_power)
+                lt1_conf = max(lt1_conf, dyn_conf)
+            if lt2_power_watts is None and isinstance(dyn_lt2_power, (int, float)) and dyn_lt2_power > 0:
+                lt2_power_watts = float(dyn_lt2_power)
+                lt2_conf = max(lt2_conf, dyn_conf)
+
+            # Mejora detectada: si el modelo dinámico muestra un umbral MEJOR
+            # (mayor velocidad o potencia al mismo lactato) que el per-sesión,
+            # blend hacia el valor dinámico para capturar la progresión.
+            # Peso del dinámico: 40% (conservador, Faude 2009: no sobrerreaccionar).
+            _DYN_BLEND = 0.40
+            if lt1_kmh is not None and isinstance(dyn_lt1_kmh, (int, float)) and dyn_lt1_kmh > lt1_kmh:
+                lt1_kmh = round(lt1_kmh * (1 - _DYN_BLEND) + dyn_lt1_kmh * _DYN_BLEND, 3)
+            if lt2_kmh is not None and isinstance(dyn_lt2_kmh, (int, float)) and dyn_lt2_kmh > lt2_kmh:
+                lt2_kmh = round(lt2_kmh * (1 - _DYN_BLEND) + dyn_lt2_kmh * _DYN_BLEND, 3)
+            if lt1_power_watts is not None and isinstance(dyn_lt1_power, (int, float)) and dyn_lt1_power > lt1_power_watts:
+                lt1_power_watts = round(lt1_power_watts * (1 - _DYN_BLEND) + dyn_lt1_power * _DYN_BLEND, 1)
+            if lt2_power_watts is not None and isinstance(dyn_lt2_power, (int, float)) and dyn_lt2_power > lt2_power_watts:
+                lt2_power_watts = round(lt2_power_watts * (1 - _DYN_BLEND) + dyn_lt2_power * _DYN_BLEND, 1)
 
     # ── Prioridad 3: interpolación fisiológica desde curva cruda ──────────
     # Cuando la detección falla, interpolamos en los anclajes 2.0 y 4.0 mmol.
@@ -696,14 +761,19 @@ def build_physiological_context(
     weeks_to_goal: Optional[int],
     peak_lactate_1km: Optional[float] = None,
     raw_curve_points: Optional[list[dict]] = None,
+    dynamic_thresholds: Optional[dict[str, Any]] = None,
 ) -> PhysiologicalContext:
     """Construye el contexto fisiológico para la selección de mesociclo.
 
     Si LT1/LT2 no se detectaron automáticamente pero hay puntos de curva crudos,
     se interpolan a los anclajes fisiológicos 2.0 mmol (LT1) y 4.0 mmol (LT2).
+
+    Cuando dynamic_thresholds está disponible (modelo multi-sesión), se usa
+    como fuente intermedia para capturar mejoras sub-paso (Faude 2009).
     """
     lt1_kmh, lt2_kmh, lt1_power_watts, lt2_power_watts, lt1_conf, lt2_conf, test_age = _extract_lt_from_analysis(
-        analysis, discipline, raw_curve_points=raw_curve_points
+        analysis, discipline, raw_curve_points=raw_curve_points,
+        dynamic_thresholds=dynamic_thresholds,
     )
 
     # Convertir target pace a km/h
@@ -755,7 +825,7 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
     """
     reasons: list[str] = []
     contra: list[str] = []
-    season = _season_phase(ctx.weeks_to_goal)
+    season = _season_phase(ctx.weeks_to_goal, athlete_level=ctx.athlete_level)
     metric_label = "W" if ctx.metric_type == "power_watts" else "km/h"
     lt1_value = ctx.lt1_power_watts if ctx.metric_type == "power_watts" else ctx.lt1_kmh
     lt2_value = ctx.lt2_power_watts if ctx.metric_type == "power_watts" else ctx.lt2_kmh
@@ -891,7 +961,7 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
     if ctx.peak_lactate_1km is not None and has_lt2:
         # High glycolytic solo penaliza en pruebas largas/medio-largas donde la sostenibilidad
         # es clave. En pruebas cortas (5k, 10k, sprint_tri...) un pico alto es normal y no penaliza.
-        if ctx.peak_lactate_1km >= 12.0 and (dist in long_duration_events or dist == "hm"):
+        if ctx.peak_lactate_1km >= 10.0 and (dist in long_duration_events or dist == "hm"):
             glycolytic_signal = "high_glycolytic"
             reasons.append(
                 f"Pico de lactato alto ({ctx.peak_lactate_1km:.1f} mmol/L) para la demanda prevista "
@@ -906,12 +976,22 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
 
     # ── Decisión de bloque ─────────────────────────────────────────────────
     recommended = "aerobic_capacity_block"  # default conservador
-    significant_gap = 0.5 if ctx.metric_type != "power_watts" else 18.0
-    moderate_gap = 0.25 if ctx.metric_type != "power_watts" else 8.0
+    # Gap relativo al LT2 del atleta (~4% pace, ~6% power) con suelo absoluto.
+    # Un corredor con LT2@15km/h tiene significant_gap=0.60; uno con LT2@12km/h tiene 0.48.
+    # En watts un ciclista con LT2@280W tiene significant_gap=16.8W.
+    # Suelos: 0.3 km/h / 10W evitan gaps absurdamente pequeños en atletas muy entrenados.
+    if ctx.metric_type == "power_watts":
+        _lt2_ref = lt2_value if lt2_value and lt2_value > 0 else 250.0
+        significant_gap = max(10.0, round(_lt2_ref * 0.06, 1))
+        moderate_gap = max(5.0, round(significant_gap * 0.5, 1))
+    else:
+        _lt2_ref = lt2_value if lt2_value and lt2_value > 0 else 12.0
+        significant_gap = max(0.3, round(_lt2_ref * 0.04, 2))
+        moderate_gap = max(0.15, round(significant_gap * 0.5, 2))
     # F4: para eventos donde LT1 ES el limitante primario (no "both"), el atleta compite
-    # cerca de LT1 → un gap de 0.35 km/h ya representa penalización real de rendimiento.
+    # cerca de LT1 → un gap relativo menor ya es penalización real.
     # Fuente: Coyle 1988 (marathon/LT1); Laursen 2002 (ironman); Olbrecht 2000 (OW long)
-    significant_gap_lt1_primary = 0.35 if ctx.metric_type != "power_watts" else 12.0
+    significant_gap_lt1_primary = max(0.25, round(significant_gap * 0.7, 2)) if ctx.metric_type != "power_watts" else max(8.0, round(significant_gap * 0.7, 1))
     lt1_priority = limiter == "lt1" or dist in long_duration_events
     lt2_priority = limiter == "lt2" or dist in short_intense_events or limiter == "both"
     hm_lt1_guardrail = dist == "hm" and lt1_gap is not None and lt1_gap > moderate_gap
@@ -932,11 +1012,15 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
         and lt1_gap > significant_gap
         and not _lt1_base_ok
     )
+    # lt1_led_flat_profile: atleta diesel (VLamax baja) en evento ultra-largo.
+    # LT1 ok + LT2 corto → mover el techo (threshold). Olbrecht: perfil plano necesita LT2.
+    # Umbral: moderate_gap (no significant) porque en ironman incluso 0.3 km/h de gap LT2
+    # es significativo dado el volumen de carrera del segmento final.
     lt1_led_flat_profile = (
         dist in {"ironman", "ironman_run", "ironman_bike", "open_water_long"}
         and glycolytic_signal == "low_glycolytic"
         and lt2_gap is not None
-        and lt2_gap > significant_gap
+        and lt2_gap > moderate_gap
         and (lt1_gap is None or lt1_gap <= moderate_gap)
     )
     half_flat_profile = (

@@ -1127,6 +1127,7 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
             weeks_to_goal=weeks_to_goal,
             peak_lactate_1km=peak_lactate_proxy,
             raw_curve_points=raw_curve_points,
+            dynamic_thresholds=analysis.get("dynamic_thresholds"),
         )
         physio_gap = analyse_physiological_gap(physio_ctx)
 
@@ -1257,6 +1258,97 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
             selection_engine = f"{selection_engine}_durability_guardrail"
             reasoning.extend(durability_reasons)
             risk_flags.extend(durability_flags)
+    # ── AEC stagnation guardrail ──────────────────────────────────────────
+    # Si el atleta lleva 3+ bloques AEC consecutivos, considerar THR.
+    # Olbrecht: capacity training is foundational but must eventually give way
+    # to power training. Diminishing returns after 3 consecutive AEC blocks.
+    _season = physio_gap.season_phase if physio_gap else None
+    if (
+        recommended_type == "aerobic_capacity_block"
+        and athlete.focus_blocks
+        and _season != "base_early"  # En base_early AEC siempre es correcto (Olbrecht R1)
+    ):
+        _recent_blocks = sorted(athlete.focus_blocks, key=lambda b: b.start_date, reverse=True)
+        _aec_streak = 0
+        for _fb in _recent_blocks:
+            if _fb.energy_system_focus == "aerobic_capacity_block":
+                _aec_streak += 1
+            else:
+                break
+        if _aec_streak >= 3:
+            recommended_type = "threshold_development_block"
+            reasoning.append(
+                "Guardrail de estancamiento: 3+ bloques AEC consecutivos sin progresión suficiente. "
+                "Olbrecht: la capacidad tiene rendimientos decrecientes — es momento de estimular "
+                "el umbral para progresar por otra vía, incluso si LT1 no está completamente resuelto."
+            )
+            risk_flags.append("Transición forzada AEC→THR por rendimientos decrecientes tras 3 bloques AEC.")
+
+    # ── ANP max 2 semanas consecutivas (Olbrecht) ──────────────────────────
+    # Olbrecht SoW: "ANP training should not exceed 2 consecutive weeks."
+    # Con bloques ANP de max 2 semanas (1+1), 1 bloque = 2 semanas = límite.
+    # Tras 1 bloque ANP → insertar buffer aeróbico antes de poder repetir.
+    # La redirección depende del contexto:
+    #   - taper (≤3 semanas): COMP (única opción lógica)
+    #   - gap cerrado/negativo: AEP (consolidar potencia aeróbica)
+    #   - gap abierto: THR (volver a trabajar umbral como buffer)
+    if recommended_type == "anaerobic_power_block" and athlete.focus_blocks:
+        _recent_blocks = sorted(athlete.focus_blocks, key=lambda b: b.start_date, reverse=True)
+        _anp_streak = 0
+        for _fb in _recent_blocks:
+            if _fb.energy_system_focus == "anaerobic_power_block":
+                _anp_streak += 1
+            else:
+                break
+        if _anp_streak >= 1:
+            _anp_weeks = weeks_to_goal
+            _anp_gap = physio_gap.lt2_gap_kmh if physio_gap else None
+            if _anp_weeks is not None and _anp_weeks <= 3:
+                recommended_type = "competition_specific_block"
+                reasoning.append(
+                    "Guardrail Olbrecht: 2 ANP consecutivos + taper (≤3 semanas). "
+                    "Transición a especificidad competitiva."
+                )
+            elif _anp_gap is not None and _anp_gap <= 0:
+                recommended_type = "aerobic_power_block"
+                reasoning.append(
+                    "Guardrail Olbrecht: 2 ANP consecutivos con gap cerrado. "
+                    "Bloque AEP como buffer aeróbico para consolidar sin más carga anaeróbica."
+                )
+            else:
+                recommended_type = "threshold_development_block"
+                reasoning.append(
+                    "Guardrail Olbrecht: 2 ANP consecutivos con gap aún abierto. "
+                    "Bloque THR como buffer aeróbico antes de poder retomar ANP."
+                )
+            risk_flags.append("ANP limitado a 2 bloques consecutivos (Olbrecht). Bloque buffer aeróbico insertado.")
+
+    # ── AEC re-boost al final de base_late (Olbrecht) ─────────────────────
+    # Olbrecht SoW: "re-boost aerobic capacity in the last mesocycle of the
+    # base period before entering specific phase."
+    # Si estamos en base_late, a ≤23 semanas del objetivo (justo antes de specific),
+    # y el atleta NO hizo AEC en los últimos 2 bloques → insertar AEC.
+    if (
+        _season == "base_late"
+        and recommended_type not in {"aerobic_capacity_block", "testing_decision_block"}
+        and athlete.focus_blocks
+    ):
+        _recent_blocks_reboost = sorted(athlete.focus_blocks, key=lambda b: b.start_date, reverse=True)
+        _had_recent_aec = any(
+            fb.energy_system_focus == "aerobic_capacity_block"
+            for fb in _recent_blocks_reboost[:2]
+        )
+        _weeks = (next_target_obj.target_date - today).days // 7 if next_target_obj and hasattr(next_target_obj, "target_date") else None
+        if not _had_recent_aec and _weeks is not None and _weeks <= 23:
+            recommended_type = "aerobic_capacity_block"
+            reasoning.append(
+                "Re-boost Olbrecht: último mesociclo del base — consolidar capacidad aeróbica "
+                "antes de entrar en fase específica. Sin AEC reciente en los últimos 2 bloques."
+            )
+            risk_flags.append(
+                "Re-boost AEC forzado en transición base_late→specific (Olbrecht: proteger base antes de intensificar)."
+            )
+
     control_points: list[str] = []
     progression_rules: list[str] = []
 
