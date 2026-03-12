@@ -5314,28 +5314,7 @@ textarea {
     linear-gradient(135deg, #f4efe7 0%, #eef4f2 40%, #edf3f8 100%);
 }
 
-.athlete-topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 28px 0;
-}
-
-.athlete-topbar-meta {
-  display: grid;
-  gap: 2px;
-}
-
-.athlete-topbar-meta small {
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.athlete-topbar .ghost-button {
-  padding: 10px 14px;
-  border-radius: 14px;
-}
+/* topbar removed — logout is now a fixed icon button */
 
 .athlete-content {
   padding-top: 14px;
@@ -17637,28 +17616,25 @@ h4 {
   color: var(--dk-text);
 }
 
-/* ── Topbar ───────────────────────────────────────────────────── */
-.athlete-shell .athlete-topbar {
-  border-bottom: 1px solid var(--dk-border);
-}
-
-.athlete-shell .athlete-topbar-meta .eyebrow {
+/* ── Logout button (subtle, top-right) ─────────────────────── */
+.athlete-shell .ap-logout-btn {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 50;
+  background: transparent;
+  border: none;
   color: var(--dk-muted);
+  opacity: 0.35;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: opacity 0.2s, background 0.2s;
 }
 
-.athlete-shell .athlete-topbar-meta small {
-  color: var(--dk-text-secondary);
-}
-
-.athlete-shell .athlete-topbar .ghost-button {
-  color: var(--dk-text-secondary);
-  border: 1px solid var(--dk-border-accent);
-  background: var(--dk-surface);
-}
-
-.athlete-shell .athlete-topbar .ghost-button:hover {
-  background: var(--dk-card);
-  color: var(--dk-text);
+.athlete-shell .ap-logout-btn:hover {
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 /* ── Page grid text defaults ──────────────────────────────────── */
@@ -18731,61 +18707,170 @@ h4 {
   padding: 40px 36px;
 }
 
-.athlete-shell .ap-hero-top {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 32px;
-  align-items: start;
-  margin-bottom: 32px;
+/* Hero date — pinned top-left */
+.athlete-shell .ap-hero > .ap-hero-date {
+  margin: 0 0 16px;
+  font-size: 0.78rem;
+  color: var(--dk-text-secondary);
+  text-transform: capitalize;
 }
 
-.athlete-shell .ap-hero-greeting {
-  display: grid;
-  gap: 8px;
+.athlete-shell .ap-hero-weather {
+  margin-left: 12px;
+  font-size: 0.82rem;
+  color: var(--dk-text-secondary);
+  font-weight: 400;
 }
 
-.athlete-shell .ap-hero-greeting h1 {
+/* Hero center — name + phrase */
+.athlete-shell .ap-hero-center {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.athlete-shell .ap-hero-center .ap-hero-name {
   font-family: "Space Grotesk", sans-serif;
   font-size: clamp(2.2rem, 4vw, 3.2rem);
   font-weight: 700;
   line-height: 0.95;
   letter-spacing: -0.03em;
   color: var(--dk-text);
-  margin: 0;
+  margin: 0 0 10px;
 }
 
-.athlete-shell .ap-hero-greeting .ap-hero-subtitle {
-  font-size: 1.05rem;
+.athlete-shell .ap-hero-phrase {
+  font-size: 0.92rem;
   color: var(--dk-text-secondary);
-  max-width: 38ch;
+  font-style: italic;
+  margin: 0;
   line-height: 1.4;
 }
 
-.athlete-shell .ap-hero-status-badge {
-  display: inline-flex;
+/* 3-ring row: VO2max — Predisposición — Estado */
+.athlete-shell .ap-rings-row {
+  display: flex;
   align-items: center;
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 800;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 20px;
+}
+
+.athlete-shell .ap-metric-ring-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.athlete-shell .ap-metric-ring-block.main {
+  /* slightly larger spacing */
+}
+
+.athlete-shell .ap-metric-ring-title {
+  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
+  color: var(--dk-text-secondary);
+  font-weight: 600;
 }
 
-.athlete-shell .ap-hero-status-badge.surging {
-  background: rgba(79, 180, 107, 0.18);
-  color: var(--dk-green);
+.athlete-shell .ap-metric-ring-wrap.small {
+  position: relative;
+  width: 72px;
+  height: 72px;
 }
 
-.athlete-shell .ap-hero-status-badge.steady {
-  background: rgba(232, 147, 90, 0.18);
-  color: var(--dk-orange);
+.athlete-shell .ap-metric-ring-wrap.small svg {
+  width: 72px;
+  height: 72px;
+  transform: rotate(-90deg);
 }
 
-.athlete-shell .ap-hero-status-badge.building {
-  background: rgba(90, 156, 245, 0.18);
-  color: var(--dk-blue);
+.athlete-shell .ap-metric-ring-wrap.small .ap-ring-track {
+  fill: none;
+  stroke: rgba(145, 128, 212, 0.12);
+  stroke-width: 5;
 }
+
+.athlete-shell .ap-metric-ring-wrap.small .ap-ring-fill {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s ease;
+}
+
+/* VO2 ring color — gradient from red (low) to green (high) */
+.athlete-shell .ap-metric-ring-wrap.small .ap-ring-fill.vo2 { stroke: #4fb46b; }
+
+/* Status ring colors */
+.athlete-shell .ap-metric-ring-wrap.small .ap-ring-fill.status-good { stroke: #4fb46b; }
+.athlete-shell .ap-metric-ring-wrap.small .ap-ring-fill.status-neutral { stroke: #8a8a9a; }
+.athlete-shell .ap-metric-ring-wrap.small .ap-ring-fill.status-warning { stroke: #e6a03c; }
+.athlete-shell .ap-metric-ring-wrap.small .ap-ring-fill.status-alert { stroke: #dc5046; }
+.athlete-shell .ap-metric-ring-wrap.small .ap-ring-fill.status-low { stroke: #666; }
+
+.athlete-shell .ap-metric-ring-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--dk-text);
+  pointer-events: none;
+}
+
+.athlete-shell .ap-metric-ring-value.small {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.athlete-shell .ap-metric-ring-sub {
+  font-size: 0.66rem;
+  color: var(--dk-muted);
+}
+
+/* Events inline (no card bg) */
+.athlete-shell .ap-events-inline {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .athlete-shell .ap-rings-row {
+    gap: 20px;
+  }
+  .athlete-shell .ap-events-inline {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+.athlete-shell .ap-readiness-label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.athlete-shell .ap-readiness-label-text {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.athlete-shell .ap-readiness-label-text.high { color: #4fb46b; }
+.athlete-shell .ap-readiness-label-text.good { color: #6bc77a; }
+.athlete-shell .ap-readiness-label-text.mid { color: #e6a03c; }
+.athlete-shell .ap-readiness-label-text.low { color: #d97040; }
+.athlete-shell .ap-readiness-label-text.critical { color: #dc5046; }
 
 /* Recovery ring */
 .athlete-shell .ap-recovery-ring {
@@ -18818,7 +18903,14 @@ h4 {
   stroke: var(--dk-purple);
   stroke-width: 8;
   stroke-linecap: round;
-  transition: stroke-dashoffset 0.8s ease;
+  transition: stroke-dashoffset 0.8s ease, stroke 0.3s ease;
+}
+
+.athlete-shell .ap-recovery-ring-wrap .ap-ring-fill.readiness-high { stroke: #4fb46b; }
+.athlete-shell .ap-recovery-ring-wrap .ap-ring-fill.readiness-good { stroke: #6bc77a; }
+.athlete-shell .ap-recovery-ring-wrap .ap-ring-fill.readiness-mid { stroke: #e6a03c; }
+.athlete-shell .ap-recovery-ring-wrap .ap-ring-fill.readiness-low { stroke: #d97040; }
+.athlete-shell .ap-recovery-ring-wrap .ap-ring-fill.readiness-critical { stroke: #dc5046;
 }
 
 .athlete-shell .ap-recovery-ring-value {
@@ -18827,17 +18919,11 @@ h4 {
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
   font-family: "Space Grotesk", sans-serif;
   font-size: 2rem;
   font-weight: 700;
-  color: var(--dk-purple);
-}
-
-.athlete-shell .ap-recovery-ring-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--dk-text-secondary);
-  text-align: center;
+  color: var(--dk-text);
 }
 
 /* Vitals row */
@@ -18881,26 +18967,1201 @@ h4 {
   color: var(--dk-muted);
 }
 
-/* Hero message */
-.athlete-shell .ap-hero-message {
-  padding: 18px 22px;
-  border-radius: 18px;
-  background: var(--dk-card);
-  border: 1px solid var(--dk-border);
+/* Hero trio row — uses ap-vital-chips grid, 3 cols */
+.athlete-shell .ap-trio-row {
+  grid-template-columns: repeat(3, 1fr);
 }
 
-.athlete-shell .ap-hero-message strong {
+/* Training Status tone accents on trio cards */
+.athlete-shell .ap-trio-card.status-good { border-color: rgba(79, 180, 107, 0.35); }
+.athlete-shell .ap-trio-card.status-good .ap-vital-chip-value { color: #4fb46b; }
+.athlete-shell .ap-trio-card.status-neutral { border-color: rgba(180, 170, 130, 0.3); }
+.athlete-shell .ap-trio-card.status-warning { border-color: rgba(230, 160, 60, 0.35); }
+.athlete-shell .ap-trio-card.status-warning .ap-vital-chip-value { color: #e6a03c; }
+.athlete-shell .ap-trio-card.status-alert { border-color: rgba(220, 80, 70, 0.35); }
+.athlete-shell .ap-trio-card.status-alert .ap-vital-chip-value { color: #dc5046; }
+.athlete-shell .ap-trio-card.status-low { border-color: rgba(120, 120, 140, 0.3); }
+.athlete-shell .ap-trio-card.status-low .ap-vital-chip-value { color: var(--dk-text-secondary); }
+
+/* VO2max gauge bar */
+.athlete-shell .ap-vo2-gauge {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.athlete-shell .ap-vo2-gauge-track {
+  position: relative;
+  height: 12px;
+  border-radius: 6px;
+  overflow: visible;
+  background: var(--dk-surface);
+}
+
+.athlete-shell .ap-vo2-gauge-zones {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.athlete-shell .ap-vo2-gauge-zones .zone {
+  flex: 1;
+  opacity: 0.7;
+}
+
+.athlete-shell .ap-vo2-gauge-zones .zone.poor { background: #c23028; }
+.athlete-shell .ap-vo2-gauge-zones .zone.fair { background: #d06030; }
+.athlete-shell .ap-vo2-gauge-zones .zone.good { background: #d4942a; }
+.athlete-shell .ap-vo2-gauge-zones .zone.excellent { background: #50a858; }
+.athlete-shell .ap-vo2-gauge-zones .zone.superior { background: #2e9440; }
+
+/* VO2max marker arrow */
+.athlete-shell .ap-vo2-gauge-marker {
+  position: absolute;
+  top: -9px;
+  transform: translateX(-50%);
+  z-index: 2;
+  transition: left 0.5s ease;
+}
+
+.athlete-shell .ap-vo2-gauge-arrow {
+  display: block;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 9px solid #fff;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+}
+
+.athlete-shell .ap-vo2-gauge-labels {
+  display: flex;
+  font-size: 0.54rem;
+  color: var(--dk-muted);
+  margin-top: 3px;
+}
+
+.athlete-shell .ap-vo2-gauge-labels span {
+  flex: 1;
+  text-align: center;
+}
+
+/* Status trend sparkline */
+.athlete-shell .ap-status-spark {
+  width: 100%;
+  margin-top: 2px;
+}
+
+/* Events card */
+.athlete-shell .ap-events-card {
+  justify-content: flex-start;
+}
+
+.athlete-shell .ap-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.athlete-shell .ap-event-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.athlete-shell .ap-event-icon {
+  flex-shrink: 0;
+  color: var(--dk-text-secondary);
+  display: flex;
+  align-items: center;
+  margin-top: 2px;
+  opacity: 0.6;
+}
+
+.athlete-shell .ap-event-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.athlete-shell .ap-event-name {
+  font-size: 0.78rem;
+  color: var(--dk-text);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.athlete-shell .ap-event-detail {
+  font-size: 0.68rem;
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-event-countdown {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 1.02rem;
-  line-height: 1.3;
+  font-size: 0.82rem;
+  font-weight: 700;
   color: var(--dk-text);
 }
 
-.athlete-shell .ap-hero-message p {
-  margin: 6px 0 0;
+.athlete-shell .ap-event-goal {
+  font-size: 0.66rem;
+  color: var(--dk-muted);
+  font-style: italic;
+}
+
+/* Readiness ring inside chip */
+.athlete-shell .ap-trio-card.readiness {
+  align-items: center;
+}
+
+.athlete-shell .ap-readiness-ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.athlete-shell .ap-readiness-ring svg {
+  transform: rotate(-90deg);
+}
+
+.athlete-shell .ap-readiness-track {
+  fill: none;
+  stroke: var(--dk-border);
+  stroke-width: 5;
+}
+
+.athlete-shell .ap-readiness-fill {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+.athlete-shell .ap-readiness-ring.high .ap-readiness-fill { stroke: #4fb46b; }
+.athlete-shell .ap-readiness-ring.good .ap-readiness-fill { stroke: #6bc77a; }
+.athlete-shell .ap-readiness-ring.mid .ap-readiness-fill { stroke: #e6a03c; }
+.athlete-shell .ap-readiness-ring.low .ap-readiness-fill { stroke: #d97040; }
+.athlete-shell .ap-readiness-ring.critical .ap-readiness-fill { stroke: #dc5046; }
+
+.athlete-shell .ap-readiness-value {
+  position: absolute;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dk-text);
+}
+
+/* ─── Lower row: weight+zones (left) + fitness (right) ─── */
+.athlete-shell .ap-lower-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.athlete-shell .ap-lower-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.athlete-shell .ap-fitness {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .athlete-shell .ap-lower-row {
+    flex-direction: column;
+  }
+}
+
+/* ─── Hoy te toca — rest day fallback ─── */
+.athlete-shell .ap-today-rest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 4px;
   color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-today-rest svg {
+  color: var(--dk-accent);
+  flex-shrink: 0;
+}
+
+.athlete-shell .ap-today-rest p {
+  margin: 0;
   font-size: 0.88rem;
-  line-height: 1.45;
+}
+
+/* ─── Tab navigation ─── */
+.athlete-shell .ap-tab-nav {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 0 20px;
+}
+
+.athlete-shell .ap-tab-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--dk-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.athlete-shell .ap-tab-btn:hover {
+  background: rgba(255,255,255,0.04);
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-tab-btn.active {
+  background: rgba(79, 180, 107, 0.08);
+  border-color: rgba(79, 180, 107, 0.2);
+  color: #4fb46b;
+}
+
+.athlete-shell .ap-tab-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Compliance card ─── */
+.athlete-shell .ap-compliance-body {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 0 4px;
+}
+
+.athlete-shell .ap-compliance-ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.athlete-shell .ap-compliance-pct {
+  position: absolute;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #4fb46b;
+}
+
+.athlete-shell .ap-compliance-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.athlete-shell .ap-compliance-detail strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.1rem;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-compliance-detail span {
+  font-size: 0.78rem;
+  color: var(--dk-text-secondary);
+}
+
+/* ─── Next test reminder ─── */
+.athlete-shell .ap-next-test-body {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0 0;
+}
+
+.athlete-shell .ap-next-test-body strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.3rem;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-next-test-body span {
+  font-size: 0.82rem;
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-next-test.warn .ap-next-test-body strong {
+  color: #e6a03c;
+}
+
+.athlete-shell .ap-next-test.urgent .ap-next-test-body strong {
+  color: #e6707a;
+}
+
+/* ─── Nutrition placeholder ─── */
+.athlete-shell .ap-nutrition-placeholder {
+  padding: 32px 0 12px;
+  text-align: center;
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-nutrition-placeholder svg {
+  margin-bottom: 12px;
+  color: var(--dk-accent);
+}
+
+.athlete-shell .ap-nutrition-placeholder p {
+  font-size: 0.88rem;
+  margin: 4px 0 0;
+}
+
+/* ─── Fitness / Fatigue / Form ─── */
+.athlete-shell .ap-fitness {
+  padding: 20px 22px;
+}
+
+.athlete-shell .ap-fitness-kpis {
+  display: flex;
+  gap: 20px;
+  margin: 10px 0 14px;
+}
+
+.athlete-shell .ap-fitness-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.athlete-shell .ap-fitness-kpi small {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-fitness-kpi strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.2rem;
+}
+
+.athlete-shell .ap-fitness-kpi.ctl strong { color: #4fb46b; }
+.athlete-shell .ap-fitness-kpi.atl strong { color: #e6707a; }
+.athlete-shell .ap-fitness-kpi.tsb.positive strong { color: #5b9bd5; }
+.athlete-shell .ap-fitness-kpi.tsb.negative strong { color: #e6a03c; }
+
+/* ─── Lactate curve mini ─── */
+.athlete-shell .ap-lactate-mini {
+  padding: 20px 22px;
+}
+
+.athlete-shell .ap-lactate-thresholds-row {
+  display: flex;
+  gap: 16px;
+  margin: 8px 0 12px;
+}
+
+.athlete-shell .ap-lactate-th {
+  font-size: 0.76rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.athlete-shell .ap-lactate-th.lt1 {
+  color: #4fb46b;
+}
+
+.athlete-shell .ap-lactate-th.lt2 {
+  color: #e6707a;
+}
+
+.athlete-shell .ap-lactate-th strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+}
+
+/* 12-week volume chart — centered full-width */
+.athlete-shell .ap-volume-chart {
+  width: 100%;
+  margin: 8px 0 4px;
+}
+
+.athlete-shell .ap-volume-chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.athlete-shell .ap-volume-chart-title {
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dk-text-secondary);
+}
+
+/* Discipline toggle icon buttons */
+.athlete-shell .ap-volume-disc-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.athlete-shell .ap-volume-disc-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--dk-muted);
+  border-radius: 8px;
+  padding: 4px 6px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.athlete-shell .ap-volume-disc-btn:hover {
+  opacity: 0.7;
+  background: rgba(255,255,255,0.04);
+}
+
+.athlete-shell .ap-volume-disc-btn.active {
+  opacity: 1;
+  color: var(--dk-text);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.1);
+}
+
+@media (max-width: 768px) {
+  .athlete-shell .ap-trio-row {
+    grid-template-columns: 1fr;
+  }
+  .athlete-shell .ap-volume-chart {
+    margin: 12px 0;
+  }
+}
+
+/* ─── Hoy te toca ─── */
+.athlete-shell .ap-today {
+  padding: 20px 22px;
+}
+
+.athlete-shell .ap-today-sessions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.athlete-shell .ap-today-card {
+  flex: 1;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--dk-surface);
+  border-left: 4px solid var(--dk-border);
+}
+
+.athlete-shell .ap-today-card.key {
+  border-left-color: #e6a03c;
+  background: rgba(230, 160, 60, 0.06);
+}
+
+.athlete-shell .ap-today-card.support {
+  border-left-color: #5b9bd5;
+  background: rgba(91, 155, 213, 0.06);
+}
+
+.athlete-shell .ap-today-card.long {
+  border-left-color: #9b6bc7;
+  background: rgba(155, 107, 199, 0.06);
+}
+
+.athlete-shell .ap-today-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.athlete-shell .ap-today-role {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.athlete-shell .ap-today-role.key { color: #e6a03c; }
+.athlete-shell .ap-today-role.support { color: #5b9bd5; }
+.athlete-shell .ap-today-role.long { color: #9b6bc7; }
+
+.athlete-shell .ap-today-dur {
+  font-size: 0.78rem;
+  color: var(--dk-text-secondary);
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.athlete-shell .ap-today-label {
+  font-size: 1rem;
+  color: var(--dk-text);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.athlete-shell .ap-today-dose {
+  font-size: 0.8rem;
+  color: var(--dk-text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.athlete-shell .ap-today-obj {
+  font-size: 0.75rem;
+  color: var(--dk-muted);
+  margin: 4px 0 0;
+  line-height: 1.3;
+}
+
+@media (max-width: 640px) {
+  .athlete-shell .ap-today-sessions {
+    flex-direction: column;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   CALENDARS ROW — Monthly + Weekly side by side
+   ═════════════════════════════════════════════════════════════════ */
+.athlete-shell .ap-calendars-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.athlete-shell .ap-calendars-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 280px;
+  max-width: 320px;
+  flex-shrink: 0;
+}
+
+/* ─── Monthly activity calendar (Garmin-style) ─── */
+.athlete-shell .ap-month-cal {
+  padding: 20px 22px;
+}
+
+.athlete-shell .ap-month-cal-header {
+  margin-bottom: 12px;
+}
+
+.athlete-shell .ap-month-cal-title {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+  color: var(--dk-text);
+  text-transform: capitalize;
+}
+
+.athlete-shell .ap-month-cal-streak {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 14px;
+}
+
+.athlete-shell .ap-month-cal-streak-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.athlete-shell .ap-month-cal-streak-item small {
+  font-size: 0.68rem;
+  color: var(--dk-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.athlete-shell .ap-month-cal-streak-item strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.1rem;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-month-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.athlete-shell .ap-month-cal-wd {
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--dk-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 0;
+}
+
+.athlete-shell .ap-month-cal-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.athlete-shell .ap-month-cal-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.athlete-shell .ap-month-cal-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  position: relative;
+}
+
+.athlete-shell .ap-month-cal-cell.today {
+  box-shadow: 0 0 0 2px #4fb46b;
+}
+
+.athlete-shell .ap-month-cal-cell.outside {
+  opacity: 0.25;
+}
+
+.athlete-shell .ap-month-cal-num {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.72rem;
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-month-cal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.athlete-shell .ap-month-cal-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.athlete-shell .ap-month-summary-chart {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--dk-border);
+}
+
+.athlete-shell .ap-activity-sum-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dk-text-secondary);
+  margin-bottom: 6px;
+}
+
+.athlete-shell .ap-month-summary-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dk-text-secondary);
+  font-weight: 600;
+}
+
+.athlete-shell .ap-activity-sum-total {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.3rem;
+  color: var(--dk-text);
+  display: block;
+  line-height: 1.2;
+}
+
+.athlete-shell .ap-activity-sum-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.athlete-shell .ap-activity-sum-range {
+  font-size: 0.7rem;
+  color: var(--dk-muted);
+}
+
+.athlete-shell .ap-activity-sum-delta {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.athlete-shell .ap-activity-sum-delta.up {
+  color: #4fb46b;
+}
+
+.athlete-shell .ap-activity-sum-delta.down {
+  color: #e6707a;
+}
+
+@media (max-width: 900px) {
+  .athlete-shell .ap-calendars-row {
+    flex-direction: column;
+  }
+  .athlete-shell .ap-calendars-left-col {
+    max-width: 100%;
+    min-width: auto;
+  }
+}
+
+/* ─── Weight card ─── */
+.athlete-shell .ap-weight-card {
+  padding: 16px 20px;
+}
+
+.athlete-shell .ap-weight-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dk-text-secondary);
+  margin-bottom: 8px;
+}
+
+.athlete-shell .ap-weight-label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-weight-value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.athlete-shell .ap-weight-value strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.3rem;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-weight-delta {
+  font-size: 0.76rem;
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-weight-delta.up {
+  color: #e6a03c;
+}
+
+.athlete-shell .ap-weight-delta.down {
+  color: #4fb46b;
+}
+
+.athlete-shell .ap-weight-spark {
+  margin-top: 8px;
+}
+
+.athlete-shell .ap-weight-preview-chart {
+  margin-top: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(167, 139, 250, 0.04);
+}
+
+.athlete-shell .ap-weight-card {
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s;
+  max-width: 280px;
+  padding: 16px 20px;
+}
+
+.athlete-shell .ap-weight-card:hover {
+  border-color: rgba(167, 139, 250, 0.3);
+}
+
+/* ─── Training zones ─── */
+.athlete-shell .ap-zones-card {
+  max-width: 280px;
+  padding: 16px 20px;
+}
+
+.athlete-shell .ap-zones-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dk-text-secondary);
+  margin-bottom: 10px;
+}
+
+.athlete-shell .ap-zones-title {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: var(--dk-text-secondary);
+  flex: 1;
+}
+
+.athlete-shell .ap-zones-total {
+  font-size: 0.72rem;
+  color: var(--dk-muted);
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.athlete-shell .ap-zones-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  gap: 1px;
+  margin-bottom: 8px;
+}
+
+.athlete-shell .ap-zone.z1 { background: #6bb8a0; }
+.athlete-shell .ap-zone.z2 { background: #4fb46b; }
+.athlete-shell .ap-zone.z3 { background: #e6a03c; }
+.athlete-shell .ap-zone.z4 { background: #e6707a; }
+.athlete-shell .ap-zone.z5 { background: #c74b5a; }
+
+.athlete-shell .ap-zones-labels {
+  display: flex;
+  justify-content: space-between;
+}
+
+.athlete-shell .ap-zone-lbl {
+  font-size: 0.62rem;
+  color: var(--dk-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.athlete-shell .ap-zone-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.athlete-shell .ap-zone-dot.z1 { background: #6bb8a0; }
+.athlete-shell .ap-zone-dot.z2 { background: #4fb46b; }
+.athlete-shell .ap-zone-dot.z3 { background: #e6a03c; }
+.athlete-shell .ap-zone-dot.z4 { background: #e6707a; }
+.athlete-shell .ap-zone-dot.z5 { background: #c74b5a; }
+
+/* Weight modal */
+.athlete-shell .ap-weight-modal-body {
+  padding: 0 20px 20px;
+}
+
+.athlete-shell .ap-weight-input-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.athlete-shell .ap-weight-input {
+  flex: 1;
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 1.1rem;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--dk-text);
+  outline: none;
+}
+
+.athlete-shell .ap-weight-input:focus {
+  border-color: #a78bfa;
+}
+
+.athlete-shell .ap-weight-save-btn {
+  background: #a78bfa;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.athlete-shell .ap-weight-save-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.athlete-shell .ap-weight-save-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.athlete-shell .ap-weight-trend-chart {
+  margin-bottom: 16px;
+}
+
+.athlete-shell .ap-weight-trend-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dk-text-secondary);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.athlete-shell .ap-weight-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.athlete-shell .ap-weight-history-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--dk-border);
+  font-size: 0.8rem;
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-weight-history-row strong {
+  color: var(--dk-text);
+  font-family: "Space Grotesk", sans-serif;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   WEEKLY CALENDAR
+   ═════════════════════════════════════════════════════════════════ */
+.athlete-shell .ap-week-cal {
+  padding: 20px 22px;
+  flex: 1;
+  min-width: 0;
+}
+
+.athlete-shell .ap-week-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.athlete-shell .ap-week-cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.athlete-shell .ap-week-cal-range {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-week-cal-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.athlete-shell .ap-week-cal-btn {
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  color: var(--dk-text-secondary);
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.athlete-shell .ap-week-cal-btn:hover {
+  background: var(--dk-border);
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-week-cal-summary {
+  font-size: 0.78rem;
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-week-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.athlete-shell .ap-week-cal-day {
+  display: flex;
+  flex-direction: column;
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  border-radius: 12px;
+  min-height: 100px;
+  overflow: hidden;
+}
+
+.athlete-shell .ap-week-cal-day.today {
+  border-color: rgba(79, 180, 107, 0.4);
+}
+
+.athlete-shell .ap-week-cal-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 4px;
+}
+
+.athlete-shell .ap-week-cal-day-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dk-text-secondary);
+  font-weight: 600;
+}
+
+.athlete-shell .ap-week-cal-day-num {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.82rem;
+  color: var(--dk-text-secondary);
+  font-weight: 600;
+}
+
+.athlete-shell .ap-week-cal-day-num.today {
+  background: #4fb46b;
+  color: #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.76rem;
+}
+
+.athlete-shell .ap-week-cal-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 6px 8px;
+  flex: 1;
+}
+
+.athlete-shell .ap-week-cal-session {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 3px solid var(--dk-border);
+}
+
+.athlete-shell .ap-week-cal-session.key {
+  border-left-color: #e6a03c;
+  background: rgba(230, 160, 60, 0.06);
+}
+
+.athlete-shell .ap-week-cal-session.support {
+  border-left-color: #5b9bd5;
+  background: rgba(91, 155, 213, 0.06);
+}
+
+.athlete-shell .ap-week-cal-session.long {
+  border-left-color: #9b6bc7;
+  background: rgba(155, 107, 199, 0.06);
+}
+
+.athlete-shell .ap-week-cal-session-role {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dk-text-secondary);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.athlete-shell .ap-week-cal-session-label {
+  font-size: 0.76rem;
+  color: var(--dk-text);
+  display: block;
+  line-height: 1.25;
+}
+
+.athlete-shell .ap-week-cal-session-dose {
+  font-size: 0.68rem;
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-week-cal-session-dur {
+  font-size: 0.68rem;
+  color: var(--dk-muted);
+}
+
+.athlete-shell .ap-week-cal-session-obj {
+  font-size: 0.66rem;
+  color: var(--dk-text-secondary);
+  display: block;
+  margin-top: 2px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.athlete-shell .ap-week-cal-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+}
+
+@media (max-width: 768px) {
+  .athlete-shell .ap-week-cal-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .athlete-shell .ap-week-cal-day {
+    flex-direction: row;
+    min-height: auto;
+  }
+  .athlete-shell .ap-week-cal-day-head {
+    flex-direction: column;
+    padding: 8px;
+    min-width: 50px;
+  }
+  .athlete-shell .ap-week-cal-sessions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 6px;
+  }
 }
 
 /* ═════════════════════════════════════════════════════════════════
@@ -19749,20 +21010,6 @@ h4 {
 
 /* ── Missing structural classes ─────────────────────────────── */
 
-.athlete-shell .ap-hero-name {
-  font-family: "Plus Jakarta Sans", sans-serif;
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--dk-text);
-  margin: 0;
-  line-height: 1.15;
-}
-
-.athlete-shell .ap-hero-date {
-  color: var(--dk-muted);
-  font-size: 0.82rem;
-  font-weight: 500;
-}
 
 .athlete-shell .ap-hero-actions {
   display: flex;
@@ -20040,10 +21287,639 @@ h4 {
   color: var(--dk-muted);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   LAYERED UX SYSTEM — Drawers, Chips, Controls
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Drawer / Side Panel ─────────────────────────────────────── */
+
+.ap-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: ap-fade-in 0.18s ease-out;
+}
+
+@keyframes ap-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ap-drawer {
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  animation: ap-modal-in 0.22s ease-out;
+  overflow: hidden;
+}
+
+@keyframes ap-modal-in {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.ap-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--dk-border);
+  flex-shrink: 0;
+}
+
+.ap-drawer-header h2 {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--dk-text);
+  margin: 0;
+}
+
+.ap-drawer-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--dk-border);
+  background: transparent;
+  color: var(--dk-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s, color 0.15s;
+}
+.ap-drawer-close:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--dk-text);
+}
+
+.ap-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Drawer content sections ─────────────────────────────────── */
+
+.ap-drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ap-drawer-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dk-muted);
+}
+
+.ap-drawer-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.ap-drawer-kpi {
+  background: var(--dk-card-inset);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ap-drawer-kpi small {
+  font-size: 0.7rem;
+  color: var(--dk-muted);
+  font-weight: 600;
+}
+
+.ap-drawer-kpi strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--dk-text);
+}
+
+.ap-drawer-chart {
+  background: var(--dk-card-inset);
+  border-radius: 16px;
+  padding: 16px 12px;
+  min-height: 180px;
+}
+
+.ap-drawer-relations {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.ap-drawer-relation {
+  background: var(--dk-card-inset);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ap-drawer-relation small {
+  font-size: 0.68rem;
+  color: var(--dk-muted);
+  font-weight: 600;
+}
+
+.ap-drawer-relation strong {
+  font-size: 0.85rem;
+  color: var(--dk-text-secondary);
+}
+
+/* ── Vital Chips (Hero compact) ──────────────────────────────── */
+
+.athlete-shell .ap-vital-chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.athlete-shell .ap-vital-chip {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  text-align: left;
+}
+
+.athlete-shell .ap-vital-chip:hover {
+  background: var(--dk-card-hover);
+  border-color: var(--dk-border-accent);
+  transform: translateY(-1px);
+}
+
+.athlete-shell .ap-vital-chip .ap-vital-chip-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dk-muted);
+}
+
+.athlete-shell .ap-vital-chip .ap-vital-chip-value {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--dk-text);
+  line-height: 1.1;
+}
+
+.athlete-shell .ap-vital-chip .ap-vital-chip-status {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.athlete-shell .ap-vital-chip .ap-vital-chip-status.green { color: var(--dk-green); }
+.athlete-shell .ap-vital-chip .ap-vital-chip-status.orange { color: var(--dk-orange); }
+.athlete-shell .ap-vital-chip .ap-vital-chip-status.blue { color: var(--dk-blue); }
+.athlete-shell .ap-vital-chip .ap-vital-chip-status.purple { color: var(--dk-purple); }
+.athlete-shell .ap-vital-chip .ap-vital-chip-status.red { color: var(--dk-red); }
+.athlete-shell .ap-vital-chip .ap-vital-chip-status.neutral { color: var(--dk-text-secondary); }
+
+.athlete-shell .ap-vital-chip .ap-vital-chip-delta {
+  font-size: 0.68rem;
+  color: var(--dk-muted);
+}
+
+/* ── Enhanced vital cards (Sleep, HRV, RHR, Stress) ─────────── */
+
+/* Shared icon+label header row */
+.athlete-shell .ap-sleep-card-head,
+.athlete-shell .ap-hrv-card-head,
+.athlete-shell .ap-card-icon-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-sleep-card-head svg,
+.athlete-shell .ap-hrv-card-head svg,
+.athlete-shell .ap-card-icon-head svg {
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* Sleep time range */
+.athlete-shell .ap-sleep-time-range {
+  font-size: 0.7rem;
+  color: var(--dk-muted);
+}
+
+/* Garmin-style hypnogram */
+.athlete-shell .ap-hypnogram-wrap {
+  width: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Sleep composition bar */
+.athlete-shell .ap-sleep-comp {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.athlete-shell .ap-sleep-comp-bar {
+  display: flex;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  gap: 1px;
+}
+
+.athlete-shell .ap-sleep-comp-seg {
+  min-width: 2px;
+  border-radius: 1px;
+}
+
+.athlete-shell .ap-sleep-comp-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+}
+
+.athlete-shell .ap-sleep-comp-lbl {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+/* HRV value + unit */
+.athlete-shell .ap-hrv-value-row {
+  display: flex;
+  align-items: baseline;
+}
+
+.athlete-shell .ap-hrv-unit {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--dk-text-secondary);
+  margin-left: 2px;
+}
+
+/* HRV / RHR status badge */
+.athlete-shell .ap-hrv-status {
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.athlete-shell .ap-hrv-status.good { color: #4fb46b; }
+.athlete-shell .ap-hrv-status.high { color: #4fb46b; }
+.athlete-shell .ap-hrv-status.neutral { color: var(--dk-text-secondary); }
+.athlete-shell .ap-hrv-status.warning { color: #e6a03c; }
+.athlete-shell .ap-hrv-status.alert { color: #dc5046; }
+
+/* Mini sparkline container */
+.athlete-shell .ap-hrv-spark {
+  width: 100%;
+}
+
+/* RHR card heart icon */
+.athlete-shell .ap-rhr-card .ap-card-icon-head svg {
+  color: #dc5046;
+  opacity: 0.6;
+}
+
+/* Stress card bolt icon */
+.athlete-shell .ap-stress-card .ap-card-icon-head svg {
+  color: #e6a03c;
+  opacity: 0.6;
+}
+
+/* ── Time Range Selector ─────────────────────────────────────── */
+
+.ap-range-pills {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--dk-card-inset);
+  border-radius: 12px;
+  padding: 3px;
+}
+
+.ap-range-pill {
+  padding: 5px 14px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--dk-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ap-range-pill:hover {
+  color: var(--dk-text-secondary);
+}
+
+.ap-range-pill.active {
+  background: var(--dk-card);
+  color: var(--dk-text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ── View Mode Toggle ────────────────────────────────────────── */
+
+.athlete-shell .ap-view-toggle {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--dk-card-inset);
+  border: 1px solid var(--dk-border);
+  border-radius: 14px;
+  padding: 3px;
+  align-self: flex-end;
+}
+
+.athlete-shell .ap-view-btn {
+  padding: 6px 18px;
+  border-radius: 11px;
+  border: none;
+  background: transparent;
+  color: var(--dk-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.athlete-shell .ap-view-btn:hover {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-view-btn.active {
+  background: var(--dk-card);
+  color: var(--dk-text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Why Button ──────────────────────────────────────────────── */
+
+.ap-why-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.ap-why-btn {
+  padding: 2px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--dk-border);
+  background: transparent;
+  color: var(--dk-muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.ap-why-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--dk-text-secondary);
+}
+
+.ap-why-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  padding: 12px 14px;
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border-accent);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  animation: ap-fade-in 0.12s ease-out;
+}
+
+.ap-why-popover p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--dk-text-secondary);
+  line-height: 1.45;
+}
+
+/* ── Insight Card ────────────────────────────────────────────── */
+
+.athlete-shell .ap-insight {
+  border-radius: 14px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--dk-border-accent);
+}
+
+.athlete-shell .ap-insight.info {
+  background: rgba(90, 156, 245, 0.06);
+  border-left-color: var(--dk-blue);
+}
+
+.athlete-shell .ap-insight.warning {
+  background: rgba(232, 147, 90, 0.06);
+  border-left-color: var(--dk-orange);
+}
+
+.athlete-shell .ap-insight.positive {
+  background: rgba(79, 180, 107, 0.06);
+  border-left-color: var(--dk-green);
+}
+
+.athlete-shell .ap-insight p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--dk-text-secondary);
+  line-height: 1.5;
+}
+
+/* ── Hero refined ────────────────────────────────────────────── */
+
+.athlete-shell .ap-hero-subtitle {
+  font-size: 0.82rem;
+  color: var(--dk-muted);
+}
+
+/* ── Sleep composition bar (horizontal stacked) ──────────────── */
+
+.ap-sleep-comp-bar {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--dk-card-inset);
+}
+
+.ap-sleep-comp-segment {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.ap-sleep-comp-segment.deep { background: var(--dk-purple); }
+.ap-sleep-comp-segment.rem { background: rgba(145, 128, 212, 0.55); }
+.ap-sleep-comp-segment.light { background: rgba(145, 128, 212, 0.25); }
+.ap-sleep-comp-segment.awake { background: rgba(255, 255, 255, 0.1); }
+
+.ap-sleep-comp-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.ap-sleep-comp-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  color: var(--dk-text-secondary);
+}
+
+.ap-sleep-comp-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.ap-sleep-comp-legend i.deep { background: var(--dk-purple); }
+.ap-sleep-comp-legend i.rem { background: rgba(145, 128, 212, 0.55); }
+.ap-sleep-comp-legend i.light { background: rgba(145, 128, 212, 0.25); }
+.ap-sleep-comp-legend i.awake { background: rgba(255, 255, 255, 0.1); }
+
+/* ── Balance bar (performance block) ─────────────────────────── */
+
+.athlete-shell .ap-balance-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 18px;
+}
+
+.athlete-shell .ap-balance-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: var(--dk-muted);
+  font-weight: 600;
+}
+
+.athlete-shell .ap-balance-bar-track {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    rgba(90, 156, 245, 0.2) 0%,
+    rgba(79, 180, 107, 0.3) 35%,
+    rgba(79, 180, 107, 0.4) 50%,
+    rgba(232, 147, 90, 0.3) 70%,
+    rgba(232, 90, 90, 0.2) 100%
+  );
+}
+
+.athlete-shell .ap-balance-bar-marker {
+  position: absolute;
+  top: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--dk-text);
+  border: 2px solid var(--dk-surface);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: translateX(-50%);
+  transition: left 0.3s ease;
+}
+
+.athlete-shell .ap-balance-bar-label {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dk-text-secondary);
+}
+
+/* ── Recovery single-metric mode ─────────────────────────────── */
+
+.athlete-shell .ap-recovery-metric-selector {
+  display: flex;
+  gap: 2px;
+  background: var(--dk-card-inset);
+  border-radius: 12px;
+  padding: 3px;
+  flex-wrap: wrap;
+}
+
+.athlete-shell .ap-recovery-metric-btn {
+  padding: 6px 14px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--dk-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.athlete-shell .ap-recovery-metric-btn:hover {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-recovery-metric-btn.active {
+  background: var(--dk-card);
+  color: var(--dk-text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.athlete-shell .ap-recovery-main-chart {
+  background: var(--dk-card-inset);
+  border-radius: 18px;
+  padding: 16px 12px;
+  min-height: 220px;
+}
+
 /* ── Responsive ───────────────────────────────────────────────── */
 @media (max-width: 1180px) {
   .athlete-shell .ap-hero-vitals {
     grid-template-columns: repeat(3, 1fr);
+  }
+  .athlete-shell .ap-vital-chips {
+    grid-template-columns: repeat(2, 1fr);
   }
   .athlete-shell .ap-load-kpis {
     grid-template-columns: repeat(2, 1fr);
@@ -20071,10 +21947,8 @@ h4 {
   .athlete-shell .ap-hero {
     padding: 24px 20px;
   }
-  .athlete-shell .ap-hero-top {
-    grid-template-columns: 1fr;
-    text-align: center;
-    justify-items: center;
+  .athlete-shell .ap-hero-center .ap-hero-name {
+    font-size: 2rem;
   }
   .athlete-shell .ap-hero-vitals {
     grid-template-columns: repeat(2, 1fr);
@@ -20109,4 +21983,120 @@ h4 {
   .athlete-shell .ap-roadmap-grid {
     grid-template-columns: 1fr;
   }
+  .athlete-shell .ap-vital-chips {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ap-drawer {
+    max-width: 100% !important;
+    max-height: 95vh;
+    border-radius: 16px;
+  }
+  .ap-drawer-backdrop {
+    padding: 12px;
+  }
+  .ap-drawer-kpis {
+    grid-template-columns: 1fr 1fr;
+  }
 }
+
+/* ─── Personal Bests ─── */
+.athlete-shell .ap-pbs {
+  padding: 20px 22px;
+}
+
+.athlete-shell .ap-pbs-grid {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.athlete-shell .ap-pb-card {
+  flex: 1;
+  min-width: 120px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.athlete-shell .ap-pb-category {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dk-text-secondary);
+  font-weight: 600;
+}
+
+.athlete-shell .ap-pb-value {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.2rem;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-pb-detail {
+  font-size: 0.74rem;
+  color: var(--dk-muted);
+}
+
+.athlete-shell .ap-pb-date {
+  font-size: 0.66rem;
+  color: var(--dk-muted);
+  opacity: 0.7;
+}
+
+/* ─── Predicciones ─── */
+.athlete-shell .ap-predictions {
+  padding: 20px 22px;
+}
+
+.athlete-shell .ap-predictions-grid {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.athlete-shell .ap-pred-card {
+  flex: 1;
+  min-width: 110px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.athlete-shell .ap-pred-type {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dk-text-secondary);
+  font-weight: 600;
+}
+
+.athlete-shell .ap-pred-value {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.2rem;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-pred-range {
+  font-size: 0.68rem;
+  color: var(--dk-muted);
+}
+
+.athlete-shell .ap-pred-conf {
+  font-size: 0.64rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.athlete-shell .ap-pred-conf.high { color: #4fb46b; }
+.athlete-shell .ap-pred-conf.mid { color: #e6a03c; }
+.athlete-shell .ap-pred-conf.low { color: #e6707a; }
