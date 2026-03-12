@@ -244,6 +244,10 @@ export type AthleteHealthDaily = {
   date: string;
   sleep_score?: number | null;
   sleep_seconds?: number | null;
+  resting_hr?: number | null;
+  body_battery_change?: number | null;
+  respiration_rate?: number | null;
+  breathing_events?: number | null;
   stress_level?: number | null;
   hrv_status?: string | null;
   hrv_last_night_avg?: number | null;

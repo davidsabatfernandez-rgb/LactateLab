@@ -334,21 +334,23 @@ def _load_garmin_health_snapshot(
         )
         sleep_detail = None
         raw_sleep_detail = None
+        daily_sleep_detail_map: dict[date, dict[str, Any]] = {}
         latest_sleep_day = next(
             (_item_calendar_date(item) for item in reversed(sleep_scores) if _field(item, "value") is not None),
             None,
         )
-        if include_raw_wellness and latest_sleep_day:
+        if latest_sleep_day:
             sleep_detail = _best_effort_item(lambda: garth.SleepData.get(latest_sleep_day))
             username = getattr(getattr(garth, "client", None), "username", None)
             raw_sleep_detail = _best_effort_connectapi(
                 garth,
                 f"/wellness-service/wellness/dailySleepData/{username}?date={latest_sleep_day}&nonSleepBufferMinutes=60",
             ) if username else None
+            daily_sleep_detail_map = _load_daily_sleep_detail_map(garth, username, sleep_scores, window_end) if username else {}
         user_settings = _best_effort_connectapi(garth, "/userprofile-service/userprofile/user-settings")
         latest_activity_summary, latest_activity_detail = _load_latest_activity_performance_payloads(garth, window_end)
 
-    health_days = _build_health_days(sleep_scores, steps, stress, intensity, hrv)[:7]
+    health_days = _build_health_days(sleep_scores, steps, stress, intensity, hrv, daily_sleep_detail_map)[:7]
     health_metrics = _build_health_metrics(sleep_scores, steps, stress, intensity, hrv, sleep_detail, raw_sleep_detail)
     sleep_breakdown = _build_sleep_breakdown(sleep_detail, raw_sleep_detail)
     performance_metrics = _build_performance_metrics(user_settings, latest_activity_summary, latest_activity_detail)
@@ -361,6 +363,7 @@ def _load_garmin_health_snapshot(
             "hrv": [_serialize_dataclass(item) for item in hrv],
             "sleep_detail": _serialize_dataclass(sleep_detail),
             "sleep_connectapi": raw_sleep_detail or {},
+            "sleep_daily_connectapi": {item_date.isoformat(): payload for item_date, payload in daily_sleep_detail_map.items()},
             "user_settings": user_settings if isinstance(user_settings, dict) else {},
             "latest_activity_summary": latest_activity_summary or {},
             "latest_activity_detail": latest_activity_detail or {},
@@ -390,6 +393,7 @@ def _build_health_days(
     stress: list[Any],
     intensity: list[Any],
     hrv: list[Any],
+    sleep_detail_map: dict[date, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     by_date: dict[date, dict[str, Any]] = {}
     for item in sleep_scores:
@@ -398,6 +402,11 @@ def _build_health_days(
             continue
         by_date.setdefault(item_date, {"date": item_date})
         by_date[item_date]["sleep_score"] = _field(item, "value")
+        by_date[item_date]["sleep_seconds"] = (
+            _field(item, "sleep_time_seconds")
+            or _field(item, "sleep_seconds")
+            or by_date[item_date].get("sleep_seconds")
+        )
     for item in steps:
         item_date = _item_calendar_date(item)
         if not item_date:
@@ -423,6 +432,13 @@ def _build_health_days(
         by_date.setdefault(item_date, {"date": item_date})
         by_date[item_date]["hrv_status"] = _field(item, "status")
         by_date[item_date]["hrv_last_night_avg"] = _field(item, "last_night_avg")
+    if sleep_detail_map:
+        for item_date, payload in sleep_detail_map.items():
+            by_date.setdefault(item_date, {"date": item_date})
+            by_date[item_date]["resting_hr"] = _coerce_int(_first_value(payload, ("restingHeartRate",)))
+            by_date[item_date]["body_battery_change"] = _coerce_int(_first_value(payload, ("bodyBatteryChange",)))
+            by_date[item_date]["respiration_rate"] = _coerce_float(_first_value(payload, ("avgWakingRespirationValue",), ("averageRespirationValue",)))
+            by_date[item_date]["breathing_events"] = _payload_count(_first_value(payload, ("breathingDisruptionData",)))
     return [by_date[key] for key in sorted(by_date.keys(), reverse=True)]
 
 
@@ -449,7 +465,7 @@ def _build_health_metrics(
     metrics: list[dict[str, Any]] = [
         {
             "key": "sleep_score",
-            "label": "Sleep score",
+            "label": "Calidad del sueño",
             "value": str(latest_sleep_score) if latest_sleep_score is not None else "n/d",
             "detail": sleep_feedback or (_format_duration_short(sleep_seconds) if isinstance(sleep_seconds, int) and sleep_seconds > 0 else None),
         },
@@ -473,7 +489,7 @@ def _build_health_metrics(
         },
         {
             "key": "intensity",
-            "label": "Intensity minutes",
+            "label": "Minutos de intensidad",
             "value": str(((_field(latest_intensity, "moderate_value", 0) or 0) + (_field(latest_intensity, "vigorous_value", 0) or 0))) if latest_intensity else "n/d",
             "detail": "Moderado + vigoroso",
         },
@@ -482,7 +498,7 @@ def _build_health_metrics(
         metrics.append(
             {
                 "key": "body_battery",
-                "label": "Body battery",
+                "label": "Batería corporal",
                 "value": str(body_battery_change),
                 "detail": "Recarga nocturna visible",
             }
@@ -491,7 +507,7 @@ def _build_health_metrics(
         metrics.append(
             {
                 "key": "resting_hr",
-                "label": "Resting HR",
+                "label": "Frecuencia en reposo",
                 "value": f"{resting_hr}",
                 "detail": "Pulso de reposo Garmin",
             }
@@ -535,7 +551,7 @@ def _build_sleep_breakdown(
         rows.append(
             {
                 "key": "body_battery_change",
-                "label": "Body battery",
+                "label": "Batería corporal",
                 "value": f"+{body_battery_change}" if body_battery_change >= 0 else str(body_battery_change),
                 "detail": "Cambio nocturno visible",
             }
@@ -544,7 +560,7 @@ def _build_sleep_breakdown(
         rows.append(
             {
                 "key": "resting_hr",
-                "label": "Resting HR",
+                "label": "Frecuencia en reposo",
                 "value": f"{resting_hr} bpm",
                 "detail": "Pulso de reposo nocturno",
             }
@@ -607,7 +623,7 @@ def _build_performance_metrics(
         metrics.append(
             {
                 "key": "vo2max_running",
-                "label": "VO2max run",
+                "label": "VO2max carrera",
                 "value": _format_compact_number(vo2max_running),
                 "detail": "Estimacion Garmin para carrera",
             }
@@ -616,7 +632,7 @@ def _build_performance_metrics(
         metrics.append(
             {
                 "key": "vo2max_cycling",
-                "label": "VO2max bike",
+                "label": "VO2max ciclismo",
                 "value": _format_compact_number(vo2max_cycling),
                 "detail": "Estimacion Garmin para ciclismo",
             }
@@ -625,7 +641,7 @@ def _build_performance_metrics(
         metrics.append(
             {
                 "key": "lt_hr",
-                "label": "LT HR",
+                "label": "FC umbral",
                 "value": f"{lt_hr} bpm",
                 "detail": "Umbral de lactato detectado por Garmin",
             }
@@ -634,7 +650,7 @@ def _build_performance_metrics(
         metrics.append(
             {
                 "key": "ftp",
-                "label": "Threshold power",
+                "label": "Potencia umbral",
                 "value": f"{int(round(functional_threshold_power))} W",
                 "detail": "Auto-detectado por Garmin" if ftp_auto else activity_context,
             }
@@ -643,7 +659,7 @@ def _build_performance_metrics(
         metrics.append(
             {
                 "key": "training_effect",
-                "label": "Training effect",
+                "label": "Efecto del entreno",
                 "value": f"{training_effect:.1f}",
                 "detail": f"{training_effect_label or 'Ultima sesion'} · {activity_context}",
             }
@@ -652,7 +668,7 @@ def _build_performance_metrics(
         metrics.append(
             {
                 "key": "training_load",
-                "label": "Training load",
+                "label": "Carga del entreno",
                 "value": _format_compact_number(training_load),
                 "detail": activity_context,
             }
@@ -661,7 +677,7 @@ def _build_performance_metrics(
         metrics.append(
             {
                 "key": "training_stress",
-                "label": "Training stress",
+                "label": "Estrés del entreno",
                 "value": _format_compact_number(training_stress),
                 "detail": activity_context,
             }
@@ -670,7 +686,7 @@ def _build_performance_metrics(
         metrics.append(
             {
                 "key": "anaerobic_effect",
-                "label": "Anaerobic effect",
+                "label": "Efecto anaeróbico",
                 "value": f"{anaerobic_training_effect:.1f}",
                 "detail": "Impacto anaerobico de la ultima sesion",
             }
@@ -696,6 +712,39 @@ def _load_latest_activity_performance_payloads(garth: Any, window_end: date) -> 
         detail = _best_effort_connectapi(garth, f"activity-service/activity/{activity_id}")
         return item, detail if isinstance(detail, dict) else None
     return None, None
+
+
+def _load_daily_sleep_detail_map(
+    garth: Any,
+    username: str,
+    sleep_scores: list[Any],
+    window_end: date,
+) -> dict[date, dict[str, Any]]:
+    candidate_dates = [
+        item_date
+        for item_date in (_item_calendar_date(item) for item in reversed(sleep_scores))
+        if item_date is not None
+    ]
+    if not candidate_dates:
+        candidate_dates = [window_end - timedelta(days=offset) for offset in range(7)]
+
+    unique_dates: list[date] = []
+    for item_date in candidate_dates:
+        if item_date in unique_dates:
+            continue
+        unique_dates.append(item_date)
+        if len(unique_dates) >= 7:
+            break
+
+    payloads: dict[date, dict[str, Any]] = {}
+    for item_date in unique_dates:
+        payload = _best_effort_connectapi(
+            garth,
+            f"/wellness-service/wellness/dailySleepData/{username}?date={item_date.isoformat()}&nonSleepBufferMinutes=60",
+        )
+        if isinstance(payload, dict):
+            payloads[item_date] = payload
+    return payloads
 
 
 def _best_effort_list(loader):

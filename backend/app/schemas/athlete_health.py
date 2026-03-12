@@ -34,6 +34,10 @@ class AthleteHealthDailyRead(BaseModel):
     date: date
     sleep_score: Optional[int] = None
     sleep_seconds: Optional[int] = None
+    resting_hr: Optional[int] = None
+    body_battery_change: Optional[int] = None
+    respiration_rate: Optional[float] = None
+    breathing_events: Optional[int] = None
     stress_level: Optional[int] = None
     hrv_status: Optional[str] = None
     hrv_last_night_avg: Optional[int] = None

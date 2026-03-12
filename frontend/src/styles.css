@@ -1720,12 +1720,21 @@ textarea {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
+.threshold-disclaimer.positive {
+  border-color: rgba(43, 122, 67, 0.18);
+  background: linear-gradient(135deg, rgba(43, 122, 67, 0.1), rgba(255, 255, 255, 0.72));
+}
+
 .threshold-disclaimer strong {
   display: block;
   margin-bottom: 4px;
   font-family: "Space Grotesk", sans-serif;
   font-size: 0.96rem;
   color: #a24217;
+}
+
+.threshold-disclaimer.positive strong {
+  color: #1f6a3a;
 }
 
 .threshold-disclaimer p {
@@ -1787,6 +1796,19 @@ textarea {
   color: var(--primary);
   font-weight: 600;
   font-size: 0.92rem;
+}
+
+.threshold-legend-card small.threshold-detection-usage {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.threshold-legend-card small.threshold-detection-usage.warning {
+  color: #8d2e0f;
+}
+
+.threshold-legend-card small.threshold-detection-usage.positive {
+  color: #1f6a3a;
 }
 
 .threshold-legend-card small.evaluation-delta {
@@ -3147,6 +3169,13 @@ textarea {
   gap: 12px;
 }
 
+.training-calendar-week-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 16px;
+  align-items: start;
+}
+
 .training-calendar-week-column {
   display: grid;
   gap: 10px;
@@ -3208,6 +3237,131 @@ textarea {
   display: grid;
   gap: 10px;
   align-content: start;
+}
+
+.training-calendar-week-summary {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 247, 251, 0.94));
+}
+
+.training-calendar-week-summary-positive {
+  border-color: rgba(37, 122, 77, 0.14);
+  background:
+    radial-gradient(circle at top right, rgba(37, 122, 77, 0.1), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 249, 246, 0.94));
+}
+
+.training-calendar-week-summary-warning {
+  border-color: rgba(210, 106, 54, 0.16);
+  background:
+    radial-gradient(circle at top right, rgba(210, 106, 54, 0.11), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 246, 242, 0.94));
+}
+
+.training-calendar-week-summary-top {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.training-calendar-week-summary-kpi {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.training-calendar-week-summary-kpi span,
+.training-calendar-week-metric-head span,
+.training-calendar-week-summary-foot span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.training-calendar-week-summary-kpi strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.96rem;
+  line-height: 1.05;
+}
+
+.training-calendar-week-summary-kpi.load strong {
+  color: #173556;
+}
+
+.training-calendar-week-summary-kpi small,
+.training-calendar-week-metric-row small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.training-calendar-week-summary-bars {
+  display: grid;
+  gap: 10px;
+}
+
+.training-calendar-week-metric-row {
+  display: grid;
+  gap: 6px;
+}
+
+.training-calendar-week-metric-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.training-calendar-week-metric-head strong,
+.training-calendar-week-summary-foot strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.98rem;
+  color: var(--primary);
+}
+
+.training-calendar-week-metric-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(155, 168, 184, 0.28);
+  overflow: hidden;
+}
+
+.training-calendar-week-metric-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #173556;
+}
+
+.training-calendar-week-metric-fill.positive {
+  background: #257a4d;
+}
+
+.training-calendar-week-metric-fill.warning {
+  background: #d26a36;
+}
+
+.training-calendar-week-metric-fill.neutral {
+  background: #6e7a88;
+}
+
+.training-calendar-week-summary-foot {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.training-calendar-week-summary-empty {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .training-calendar-session-card {
@@ -3280,6 +3434,10 @@ textarea {
 }
 
 @media (max-width: 1200px) {
+  .training-calendar-week-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .training-calendar-week-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -3297,6 +3455,11 @@ textarea {
   .training-calendar-week-section-head {
     display: grid;
     gap: 4px;
+  }
+
+  .training-calendar-week-summary-top,
+  .training-calendar-week-summary-foot {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .training-calendar-week-grid {
@@ -4958,6 +5121,12 @@ textarea {
   justify-content: center;
 }
 
+.secondary-access-link {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
 .mode-button {
   min-width: 180px;
   padding: 16px 22px;
@@ -4987,6 +5156,29 @@ textarea {
   box-shadow: 0 18px 34px rgba(6, 16, 22, 0.34);
 }
 
+.secondary-access-button {
+  min-width: 180px;
+  padding: 13px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(241, 140, 74, 0.16);
+  backdrop-filter: blur(10px);
+  color: #fff4eb;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.96rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 16px 34px rgba(4, 12, 18, 0.16);
+  transition: transform 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.secondary-access-button:hover {
+  transform: translateY(-1px);
+  background: rgba(241, 140, 74, 0.22);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 20px 40px rgba(4, 12, 18, 0.24);
+}
+
 .access-card {
   align-content: start;
 }
@@ -5010,6 +5202,66 @@ textarea {
   width: min(560px, 100%);
   border-radius: 28px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 244, 238, 0.94));
+}
+
+.virtual-ride-screen {
+  align-items: center;
+}
+
+.virtual-ride-hero {
+  max-width: 700px;
+}
+
+.virtual-ride-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.virtual-ride-launch,
+.virtual-ride-back {
+  min-width: 200px;
+  justify-content: center;
+}
+
+.virtual-ride-card {
+  width: min(640px, 100%);
+  margin: 0 auto;
+  padding: 28px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 243, 238, 0.92));
+}
+
+.virtual-ride-checklist {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.virtual-ride-checklist div {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(20, 45, 54, 0.04);
+  border: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.virtual-ride-checklist p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.virtual-ride-links {
+  display: flex;
+  gap: 16px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+
+.virtual-ride-links a {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 .login-credit {
@@ -5753,6 +6005,43 @@ textarea {
   grid-column: 2;
 }
 
+.athlete-portal-topline {
+  order: 1;
+}
+
+.athlete-portal-health-panel {
+  grid-column: 1 / -1;
+  order: 2;
+}
+
+.athlete-portal-hero-shell {
+  order: 3;
+}
+
+.athlete-portal-command-grid {
+  order: 4;
+}
+
+.athlete-portal-lactate-panel {
+  order: 5;
+}
+
+.athlete-portal-performance-panel {
+  order: 6;
+}
+
+.athlete-portal-story-grid {
+  order: 7;
+}
+
+.athlete-portal-section {
+  order: 8;
+}
+
+.athlete-portal-garmin-panel {
+  order: 9;
+}
+
 .athlete-portal-topline,
 .athlete-portal-command-grid,
 .athlete-portal-story-grid {
@@ -6357,6 +6646,10 @@ textarea {
   flex-wrap: wrap;
 }
 
+.athlete-portal-health-providers.compact {
+  justify-content: end;
+}
+
 .athlete-portal-health-actions {
   display: grid;
   gap: 10px;
@@ -6631,8 +6924,8 @@ textarea {
 }
 
 .athlete-portal-health-bevel-shell {
-  gap: 20px;
-  padding: 26px;
+  gap: 16px;
+  padding: 18px;
   border-radius: 36px;
   background:
     radial-gradient(circle at top left, rgba(252, 243, 200, 0.88), transparent 24%),
@@ -6650,11 +6943,13 @@ textarea {
 }
 
 .athlete-portal-health-actions-bevel {
-  gap: 12px;
+  gap: 10px;
+  align-items: end;
 }
 
 .athlete-portal-health-refresh {
   border-color: rgba(16, 34, 42, 0.06);
+  padding: 10px 16px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(238, 236, 231, 0.92));
   box-shadow:
@@ -6664,8 +6959,398 @@ textarea {
 
 .athlete-portal-health-bevel-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.88fr) minmax(300px, 0.92fr);
+  grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.88fr);
+  grid-template-areas: "hero side";
+  gap: 14px;
+  align-items: stretch;
+}
+
+.athlete-portal-health-support-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 14px;
+}
+
+.athlete-portal-body-battery-banner {
+  display: grid;
+  gap: 6px;
+  width: min(240px, 100%);
+  padding: 12px 14px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(118, 196, 103, 0.18), transparent 32%),
+    linear-gradient(180deg, rgba(247, 250, 243, 0.98), rgba(233, 239, 228, 0.94));
+  justify-self: start;
+}
+
+.athlete-portal-body-battery-banner .athlete-portal-chart-head {
+  gap: 2px;
+}
+
+.athlete-portal-body-battery-banner strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.32rem;
+  line-height: 1;
+}
+
+.athlete-portal-body-battery-banner p,
+.athlete-portal-body-battery-banner small {
+  margin: 0;
+  color: rgba(22, 53, 61, 0.66);
+}
+
+.athlete-portal-body-battery-banner p {
+  font-size: 0.9rem;
+  color: #68ad57;
+  font-weight: 700;
+}
+
+.athlete-portal-body-battery-banner .athlete-portal-wellness-mini-chart {
+  min-height: 28px;
+}
+
+.athlete-portal-wellness-side-stack {
+  grid-area: side;
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  min-height: 296px;
+}
+
+.athlete-portal-health-advanced {
+  display: grid;
   gap: 18px;
+}
+
+.athlete-portal-health-advanced > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  color: #18373e;
+  font-weight: 700;
+  background:
+    linear-gradient(180deg, rgba(248, 247, 244, 0.98), rgba(234, 232, 227, 0.94));
+  box-shadow:
+    inset 8px 8px 14px rgba(198, 192, 183, 0.14),
+    inset -8px -8px 14px rgba(255, 255, 255, 0.88);
+}
+
+.athlete-portal-health-advanced > summary::after {
+  content: "Mostrar";
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(22, 53, 61, 0.56);
+}
+
+.athlete-portal-health-advanced[open] > summary::after {
+  content: "Ocultar";
+}
+
+.athlete-portal-health-advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.athlete-portal-wellness-hero,
+.athlete-portal-wellness-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    12px 12px 24px rgba(185, 179, 170, 0.14),
+    -10px -10px 18px rgba(255, 255, 255, 0.78),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.92),
+    inset -2px -2px 6px rgba(195, 190, 181, 0.16);
+}
+
+.athlete-portal-wellness-hero {
+  grid-area: hero;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  min-height: 296px;
+  background:
+    radial-gradient(circle at top left, rgba(118, 133, 228, 0.14), transparent 26%),
+    radial-gradient(circle at 80% 18%, rgba(155, 177, 238, 0.12), transparent 22%),
+    linear-gradient(180deg, rgba(246, 243, 248, 0.98), rgba(236, 233, 240, 0.96));
+  color: #18373e;
+  position: relative;
+  overflow: hidden;
+}
+
+.athlete-portal-wellness-hero::after {
+  display: none;
+}
+
+.athlete-portal-wellness-card {
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.82), transparent 32%),
+    linear-gradient(160deg, rgba(249, 247, 243, 0.98), rgba(238, 235, 229, 0.96));
+  align-content: start;
+  min-height: 228px;
+}
+
+.athlete-portal-wellness-side-stack .athlete-portal-wellness-card {
+  min-height: 0;
+  padding: 12px 13px;
+  gap: 6px;
+  border-radius: 20px;
+}
+
+.athlete-portal-wellness-card-hrv {
+  grid-area: hrv;
+  background:
+    radial-gradient(circle at top right, rgba(133, 197, 148, 0.11), transparent 34%),
+    linear-gradient(180deg, rgba(248, 247, 243, 0.98), rgba(237, 240, 234, 0.95));
+}
+
+.athlete-portal-wellness-card-resting {
+  grid-area: resting;
+  background:
+    radial-gradient(circle at top right, rgba(126, 162, 221, 0.11), transparent 34%),
+    linear-gradient(180deg, rgba(248, 247, 243, 0.98), rgba(234, 237, 243, 0.95));
+}
+
+.athlete-portal-wellness-card-stress {
+  grid-area: stress;
+  background:
+    radial-gradient(circle at top right, rgba(233, 186, 108, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(248, 245, 241, 0.98), rgba(240, 234, 226, 0.95));
+  color: #18373e;
+}
+
+.athlete-portal-wellness-card-stress .athlete-portal-card-label,
+.athlete-portal-wellness-card-stress small,
+.athlete-portal-wellness-card-stress .recharts-cartesian-axis-tick-value {
+  color: rgba(22, 53, 61, 0.56);
+}
+
+.athlete-portal-wellness-card-stress .athlete-portal-chart-head strong,
+.athlete-portal-wellness-card-stress .athlete-portal-health-chip {
+  color: #18373e;
+}
+
+.athlete-portal-wellness-card .athlete-portal-chart-head {
+  gap: 4px;
+}
+
+.athlete-portal-wellness-card .athlete-portal-chart-head strong {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.athlete-portal-wellness-orb-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(22, 53, 61, 0.68);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: none;
+}
+
+.athlete-portal-wellness-hero .athlete-portal-health-bevel-ring {
+  width: 112px;
+  padding: 10px;
+  background:
+    conic-gradient(from 220deg, #7b66ef 0 var(--progress), rgba(177, 188, 227, 0.3) var(--progress) 100%),
+    radial-gradient(circle at top left, rgba(198, 205, 241, 0.26), transparent 34%),
+    linear-gradient(180deg, rgba(235, 236, 246, 0.9), rgba(217, 220, 238, 0.8));
+  box-shadow:
+    10px 10px 18px rgba(118, 104, 232, 0.14),
+    -8px -8px 14px rgba(255, 255, 255, 0.78),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.76);
+}
+
+.athlete-portal-health-bevel-orb.compact .athlete-portal-health-bevel-ring {
+  width: 92px;
+  padding: 8px;
+}
+
+.athlete-portal-wellness-hero .athlete-portal-health-bevel-ring-core {
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.64), transparent 34%),
+    linear-gradient(180deg, rgba(96, 110, 191, 0.96), rgba(79, 94, 171, 0.94));
+  box-shadow:
+    inset 8px 8px 16px rgba(67, 80, 145, 0.18),
+    inset -8px -8px 16px rgba(210, 217, 247, 0.16);
+}
+
+.athlete-portal-wellness-hero .athlete-portal-health-bevel-ring-core small,
+.athlete-portal-wellness-hero .athlete-portal-card-label {
+  color: rgba(22, 53, 61, 0.64);
+}
+
+.athlete-portal-wellness-hero .athlete-portal-health-bevel-ring-core strong {
+  color: #ffffff;
+  font-size: 2.3rem;
+}
+
+.athlete-portal-health-bevel-orb.compact .athlete-portal-health-bevel-ring-core strong {
+  font-size: 1.95rem;
+}
+
+.athlete-portal-wellness-hero .athlete-portal-health-bevel-ring-core small {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.athlete-portal-wellness-hero-copy {
+  display: grid;
+  grid-template-columns: 102px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.athlete-portal-wellness-sleep-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.athlete-portal-wellness-hero-copy h3 {
+  margin: 0;
+  font-size: clamp(1.45rem, 1.9vw, 1.9rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.athlete-portal-wellness-hero-copy p {
+  margin: 0;
+  max-width: 34ch;
+  color: rgba(22, 53, 61, 0.72);
+  line-height: 1.42;
+  font-size: 0.88rem;
+}
+
+.athlete-portal-wellness-sleep-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.athlete-portal-wellness-sleep-stats.compact {
+  grid-column: 1 / -1;
+}
+
+.athlete-portal-wellness-sleep-stat {
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(248, 247, 245, 0.9), rgba(235, 232, 238, 0.84));
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.52),
+    inset -1px -1px 0 rgba(160, 164, 180, 0.16);
+}
+
+.athlete-portal-wellness-sleep-stat.primary {
+  background:
+    linear-gradient(180deg, rgba(251, 249, 247, 0.92), rgba(233, 230, 237, 0.86));
+}
+
+.athlete-portal-wellness-sleep-stat strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.22rem;
+  line-height: 1;
+  color: #18373e;
+}
+
+.athlete-portal-wellness-sleep-stat p {
+  margin: 0;
+  color: rgba(22, 53, 61, 0.66);
+  line-height: 1.32;
+  font-size: 0.84rem;
+}
+
+.athlete-portal-health-chip.tone-high {
+  background: rgba(82, 201, 122, 0.18);
+  color: #d4ffe0;
+}
+
+.athlete-portal-health-chip.tone-good {
+  background: rgba(77, 199, 135, 0.16);
+  color: #157f66;
+}
+
+.athlete-portal-health-chip.tone-neutral {
+  background: rgba(255, 255, 255, 0.88);
+  color: #18373e;
+}
+
+.athlete-portal-health-chip.tone-warning {
+  background: rgba(255, 196, 96, 0.16);
+  color: #8f5f15;
+}
+
+.athlete-portal-health-chip.tone-alert {
+  background: rgba(241, 126, 91, 0.16);
+  color: #b14a2d;
+}
+
+.athlete-portal-wellness-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.athlete-portal-wellness-card-meta small {
+  color: rgba(22, 53, 61, 0.66);
+  font-weight: 600;
+  font-size: 0.74rem;
+}
+
+.athlete-portal-wellness-card-stress .athlete-portal-wellness-card-meta small {
+  color: rgba(22, 53, 61, 0.62);
+}
+
+.athlete-portal-wellness-mini-chart,
+.athlete-portal-wellness-stress-chart {
+  min-height: 74px;
+}
+
+.athlete-portal-wellness-stress-chart {
+  min-height: 86px;
+}
+
+.athlete-portal-wellness-side-stack .athlete-portal-wellness-mini-chart {
+  min-height: 30px;
+}
+
+.athlete-portal-wellness-side-stack .athlete-portal-wellness-stress-chart {
+  min-height: 34px;
+}
+
+.athlete-portal-wellness-tooltip {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(17, 27, 35, 0.92);
+  color: #f8fafc;
+  box-shadow: 18px 18px 28px rgba(8, 15, 22, 0.24);
+}
+
+.athlete-portal-wellness-tooltip strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.98rem;
 }
 
 .athlete-portal-health-bevel-hero,
@@ -6721,7 +7406,13 @@ textarea {
 
 .athlete-portal-health-bevel-orb {
   display: grid;
+  gap: 6px;
   place-items: center;
+}
+
+.athlete-portal-health-bevel-orb.compact {
+  gap: 4px;
+  place-items: start;
 }
 
 .athlete-portal-health-bevel-ring {
@@ -6787,22 +7478,22 @@ textarea {
 .athlete-portal-health-chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .athlete-portal-health-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
-  padding: 9px 14px;
+  min-height: 32px;
+  padding: 7px 11px;
   border-radius: 999px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(236, 234, 229, 0.9));
   box-shadow:
-    10px 10px 18px rgba(187, 181, 172, 0.18),
-    -8px -8px 14px rgba(255, 255, 255, 0.82);
+    8px 8px 14px rgba(187, 181, 172, 0.14),
+    -6px -6px 12px rgba(255, 255, 255, 0.78);
   color: #18373e;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   font-weight: 700;
 }
 
@@ -6862,6 +7553,204 @@ textarea {
 
 .athlete-portal-health-bevel-metric-grid.performance {
   align-content: start;
+}
+
+.athlete-portal-sleep-architecture-layout {
+  display: grid;
+  gap: 14px;
+}
+
+.athlete-portal-sleep-stage-chart {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(119, 140, 235, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(247, 246, 251, 0.98), rgba(234, 232, 241, 0.94));
+  box-shadow:
+    inset 9px 9px 18px rgba(197, 191, 181, 0.14),
+    inset -8px -8px 16px rgba(255, 255, 255, 0.88);
+}
+
+.athlete-portal-sleep-stage-head {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.athlete-portal-sleep-stage-head span {
+  display: grid;
+  gap: 4px;
+}
+
+.athlete-portal-sleep-stage-head small {
+  color: rgba(22, 53, 61, 0.56);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.athlete-portal-sleep-stage-head strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.athlete-portal-sleep-stage-grid {
+  position: relative;
+  display: grid;
+  grid-template-rows: repeat(4, 58px);
+  border-radius: 22px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(16, 34, 42, 0.06);
+}
+
+.athlete-portal-sleep-stage-row {
+  position: relative;
+  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.athlete-portal-sleep-stage-row:last-child {
+  border-bottom: 0;
+}
+
+.athlete-portal-sleep-stage-label {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  z-index: 2;
+  color: rgba(22, 53, 61, 0.7);
+  font-weight: 700;
+}
+
+.athlete-portal-sleep-stage-segment {
+  position: absolute;
+  height: 44px;
+  border-radius: 14px;
+  opacity: 0.94;
+}
+
+.athlete-portal-sleep-stage-segment.stage-awake {
+  top: 7px;
+  background: linear-gradient(180deg, rgba(247, 120, 101, 0.98), rgba(233, 88, 76, 0.86));
+}
+
+.athlete-portal-sleep-stage-segment.stage-rem {
+  top: calc(58px + 7px);
+  background: linear-gradient(180deg, rgba(91, 210, 255, 0.98), rgba(55, 173, 232, 0.86));
+}
+
+.athlete-portal-sleep-stage-segment.stage-light {
+  top: calc(116px + 7px);
+  background: linear-gradient(180deg, rgba(46, 147, 255, 0.98), rgba(32, 107, 228, 0.86));
+}
+
+.athlete-portal-sleep-stage-segment.stage-deep {
+  top: calc(174px + 7px);
+  background: linear-gradient(180deg, rgba(74, 79, 217, 0.98), rgba(59, 52, 172, 0.92));
+}
+
+.athlete-portal-sleep-phase-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.athlete-portal-sleep-phase-button {
+  appearance: none;
+  border: 1px solid transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.athlete-portal-sleep-phase-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(97, 112, 197, 0.18);
+}
+
+.athlete-portal-sleep-phase-button.active {
+  border-color: rgba(97, 112, 197, 0.24);
+  box-shadow:
+    inset 9px 9px 18px rgba(197, 191, 181, 0.14),
+    inset -8px -8px 16px rgba(255, 255, 255, 0.88),
+    0 0 0 1px rgba(122, 102, 231, 0.08);
+}
+
+.athlete-portal-sleep-focus {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(132, 116, 224, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(247, 245, 251, 0.98), rgba(234, 231, 241, 0.94));
+  box-shadow:
+    inset 9px 9px 18px rgba(197, 191, 181, 0.14),
+    inset -8px -8px 16px rgba(255, 255, 255, 0.88);
+}
+
+.athlete-portal-sleep-focus-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.athlete-portal-sleep-focus-head strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: #18373e;
+}
+
+.athlete-portal-sleep-focus p {
+  margin: 0;
+  color: rgba(22, 53, 61, 0.68);
+  line-height: 1.42;
+}
+
+.athlete-portal-sleep-focus-progress {
+  display: grid;
+  gap: 8px;
+}
+
+.athlete-portal-sleep-focus-bar {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 6px 6px 12px rgba(195, 190, 181, 0.14),
+    inset -6px -6px 12px rgba(255, 255, 255, 0.82);
+}
+
+.athlete-portal-sleep-focus-bar span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7565e8, #9588f0);
+}
+
+.athlete-portal-sleep-support-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.athlete-portal-sleep-support-card.metric-sleep_feedback {
+  grid-column: 1 / -1;
+}
+
+.athlete-portal-health-respiration-card {
+  align-content: start;
+  background:
+    radial-gradient(circle at top right, rgba(144, 109, 223, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(248, 246, 250, 0.98), rgba(236, 232, 242, 0.95));
 }
 
 .athlete-portal-health-bevel-lower-grid,
@@ -7015,6 +7904,32 @@ textarea {
   background:
     radial-gradient(circle at top right, rgba(161, 135, 255, 0.16), transparent 34%),
     linear-gradient(180deg, rgba(247, 245, 252, 0.98), rgba(233, 229, 243, 0.94));
+}
+
+.athlete-portal-health-bevel-metric.metric-deep_sleep,
+.athlete-portal-health-bevel-metric.metric-rem_sleep,
+.athlete-portal-sleep-focus.metric-deep_sleep,
+.athlete-portal-sleep-focus.metric-rem_sleep {
+  background:
+    radial-gradient(circle at top right, rgba(122, 102, 231, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(247, 245, 252, 0.98), rgba(233, 229, 243, 0.94));
+}
+
+.athlete-portal-health-bevel-metric.metric-light_sleep,
+.athlete-portal-health-bevel-metric.metric-sleep_time,
+.athlete-portal-sleep-focus.metric-light_sleep,
+.athlete-portal-sleep-focus.metric-sleep_time {
+  background:
+    radial-gradient(circle at top right, rgba(104, 137, 228, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(244, 247, 252, 0.98), rgba(229, 234, 243, 0.94));
+}
+
+.athlete-portal-health-bevel-metric.metric-awake_sleep,
+.athlete-portal-sleep-focus.metric-awake_sleep,
+.athlete-portal-health-bevel-metric.metric-respiration {
+  background:
+    radial-gradient(circle at top right, rgba(229, 178, 96, 0.15), transparent 34%),
+    linear-gradient(180deg, rgba(252, 248, 242, 0.98), rgba(242, 236, 226, 0.94));
 }
 
 .athlete-portal-health-feed-card-bevel .athlete-portal-health-feed-list,
@@ -7314,9 +8229,13 @@ textarea {
   .athlete-portal-dashboard-strip,
   .athlete-portal-stage-highlights,
   .athlete-portal-health-summary-grid,
-  .athlete-portal-garmin-login-card,
+  .athlete-portal-garmin-login-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .athlete-portal-health-bevel-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: "hero side";
   }
 
   .athlete-portal-command-card:first-child {
@@ -7326,7 +8245,10 @@ textarea {
   .athlete-portal-health-summary-inline,
   .athlete-portal-health-day-stats,
   .athlete-portal-health-diagnostic-grid,
-  .athlete-portal-health-hero-stats {
+  .athlete-portal-health-hero-stats,
+  .athlete-portal-wellness-sleep-stats,
+  .athlete-portal-health-support-grid,
+  .athlete-portal-sleep-support-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -7369,9 +8291,16 @@ textarea {
 
 @media (max-width: 1024px) {
   .athlete-portal-health-bevel-grid,
+  .athlete-portal-health-support-grid,
   .athlete-portal-health-bevel-lower-grid,
   .athlete-portal-health-bevel-secondary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .athlete-portal-health-bevel-grid {
+    grid-template-areas:
+      "hero"
+      "side";
   }
 
   .athlete-portal-health-bevel-hero {
@@ -7380,12 +8309,46 @@ textarea {
     text-align: center;
   }
 
+  .athlete-portal-wellness-hero {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    min-height: auto;
+  }
+
+  .athlete-portal-wellness-hero-copy {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
   .athlete-portal-health-bevel-copy {
     justify-items: center;
   }
 
+  .athlete-portal-wellness-hero-copy {
+    justify-items: center;
+  }
+
+  .athlete-portal-wellness-hero-copy p {
+    max-width: 42ch;
+  }
+
   .athlete-portal-health-actions-bevel {
     justify-items: start;
+  }
+
+  .athlete-portal-wellness-side-stack,
+  .athlete-portal-sleep-phase-grid,
+  .athlete-portal-sleep-support-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .athlete-portal-sleep-stage-head {
+    grid-template-columns: 1fr;
+  }
+
+  .athlete-portal-sleep-focus-head {
+    flex-direction: column;
   }
 }
 
@@ -7405,7 +8368,9 @@ textarea {
   }
 
   .athlete-portal-health-bevel-hero,
-  .athlete-portal-health-bevel-card {
+  .athlete-portal-health-bevel-card,
+  .athlete-portal-wellness-hero,
+  .athlete-portal-wellness-card {
     padding: 18px;
     border-radius: 28px;
   }
@@ -7414,7 +8379,9 @@ textarea {
   .athlete-portal-health-bevel-metric-grid,
   .athlete-portal-health-summary-inline,
   .athlete-portal-health-day-stats,
-  .athlete-portal-health-diagnostic-grid {
+  .athlete-portal-health-diagnostic-grid,
+  .athlete-portal-wellness-sleep-stats,
+  .athlete-portal-health-support-grid {
     grid-template-columns: 1fr;
   }
 
@@ -14427,6 +15394,7 @@ h4 {
   justify-content: center;
   gap: 10px;
   flex: 1;
+  flex-wrap: wrap;
 }
 
 .planning-calendar-app-tab {
@@ -14438,11 +15406,21 @@ h4 {
   padding: 10px 16px;
   font: inherit;
   font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.planning-calendar-app-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
 }
 
 .planning-calendar-app-tab.active {
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 .planning-calendar-app-user {
@@ -14457,42 +15435,17 @@ h4 {
 
 .planning-calendar-app-body {
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
+  height: 100%;
   min-height: 0;
-}
-
-.planning-calendar-app-rail {
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  padding: 18px 10px;
-  background: #f8fafc;
-  border-right: 1px solid rgba(16, 34, 42, 0.08);
-}
-
-.planning-calendar-rail-item {
-  appearance: none;
-  border: 0;
-  border-radius: 16px;
-  background: transparent;
-  color: #61707c;
-  padding: 12px 8px;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 600;
-  line-height: 1.15;
-  text-align: center;
-}
-
-.planning-calendar-rail-item.active {
-  background: rgba(23, 101, 193, 0.12);
-  color: #0b4c9c;
+  overflow: hidden;
 }
 
 .planning-calendar-app-workspace {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 .planning-calendar-app-toolbar {
@@ -14558,6 +15511,241 @@ h4 {
   grid-template-columns: minmax(0, 1fr) 320px;
   min-height: 0;
   overflow: hidden;
+}
+
+.planning-calendar-app-content.calendar-full {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.planning-calendar-month-stream {
+  display: grid;
+  gap: 24px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 18px 42px;
+  scroll-behavior: smooth;
+  background: #f2f5f8;
+}
+
+.planning-calendar-month-section {
+  display: grid;
+  gap: 10px;
+}
+
+.planning-calendar-month-section.active .planning-calendar-month-section-head strong {
+  color: #173556;
+}
+
+.planning-calendar-month-section-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 2px 8px;
+  background: linear-gradient(180deg, rgba(242, 245, 248, 0.98), rgba(242, 245, 248, 0.84));
+  backdrop-filter: blur(10px);
+}
+
+.planning-calendar-month-section-head strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.52rem;
+  color: #223745;
+}
+
+.planning-calendar-month-section-head small {
+  color: #5f6d79;
+}
+
+.planning-calendar-month-board {
+  display: grid;
+  gap: 0;
+  border-radius: 26px;
+  overflow: hidden;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: #ffffff;
+  box-shadow: 0 14px 28px rgba(16, 34, 42, 0.06);
+}
+
+.planning-calendar-month-header {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) 260px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.planning-calendar-month-summary-heading {
+  padding: 8px 12px;
+  border-left: 1px solid rgba(16, 34, 42, 0.08);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #526170;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.planning-calendar-month-rows {
+  display: grid;
+}
+
+.planning-calendar-month-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  min-height: 208px;
+  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.planning-calendar-month-row.selected {
+  background: rgba(232, 240, 251, 0.42);
+}
+
+.planning-calendar-month-row-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.planning-calendar-month-row-grid > .planning-calendar-app-day,
+.planning-calendar-month-row-grid > .planning-calendar-app-spacer {
+  min-height: 208px;
+}
+
+.planning-calendar-month-row-summary {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-left: 1px solid rgba(16, 34, 42, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.planning-calendar-month-row-summary.positive {
+  background: linear-gradient(180deg, rgba(241, 250, 242, 0.98), rgba(255, 255, 255, 0.96));
+}
+
+.planning-calendar-month-row-summary.warning {
+  background: linear-gradient(180deg, rgba(255, 247, 238, 0.98), rgba(255, 255, 255, 0.96));
+}
+
+.planning-calendar-month-row-summary.selected {
+  box-shadow: inset 3px 0 0 rgba(39, 72, 216, 0.72);
+}
+
+.planning-calendar-month-row-summary-head {
+  display: grid;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.planning-calendar-month-row-summary-head span,
+.planning-calendar-month-row-metric-head span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.planning-calendar-month-row-summary-head strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.28rem;
+  line-height: 1;
+  color: #223745;
+}
+
+.planning-calendar-month-row-summary-head small {
+  color: #60707c;
+  line-height: 1.35;
+}
+
+.planning-calendar-month-row-metrics {
+  display: grid;
+  gap: 10px;
+}
+
+.planning-calendar-month-row-metric {
+  display: grid;
+  gap: 6px;
+}
+
+.planning-calendar-month-row-metric-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.planning-calendar-month-row-metric-head strong {
+  font-size: 0.88rem;
+  color: #223745;
+}
+
+.planning-calendar-month-row-metric-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(152, 165, 181, 0.3);
+  overflow: hidden;
+}
+
+.planning-calendar-month-row-metric-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #7b8a96;
+}
+
+.planning-calendar-month-row-metric-fill.positive {
+  background: #257a4d;
+}
+
+.planning-calendar-month-row-metric-fill.warning {
+  background: #d26a36;
+}
+
+.planning-calendar-month-row-metric-fill.neutral {
+  background: #728091;
+}
+
+.planning-summary-threshold-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.planning-summary-threshold-row {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(245, 248, 251, 0.92);
+  border: 1px solid rgba(16, 34, 42, 0.06);
+}
+
+.planning-summary-threshold-row small {
+  color: #d26a36;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.planning-summary-threshold-row strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+}
+
+.planning-summary-threshold-row span {
+  color: #657481;
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 .planning-calendar-composer-shell {
@@ -14812,7 +16000,13 @@ h4 {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   background: #f2f5f8;
+  height: 100%;
   min-height: 0;
+  overflow: hidden;
+}
+
+.planning-calendar-app-main.month-mode {
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .planning-calendar-app-header-row {
@@ -15117,9 +16311,131 @@ h4 {
   background: linear-gradient(180deg, rgba(255, 246, 232, 0.98), rgba(255, 255, 255, 0.96));
 }
 
+.planning-summary-card.rich {
+  align-content: start;
+}
+
+.planning-summary-quickviews {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.planning-summary-quickview {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(16, 34, 42, 0.07);
+  background: rgba(248, 250, 252, 0.92);
+}
+
+.planning-summary-quickview-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.planning-summary-quickview-head span {
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.planning-summary-quickview-head strong {
+  font-size: 0.92rem;
+}
+
+.planning-summary-quickview.thresholds {
+  align-content: start;
+}
+
+.planning-summary-threshold-stack.compact {
+  gap: 8px;
+}
+
+.planning-summary-mini-bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+  min-height: 78px;
+}
+
+.planning-summary-mini-bars.compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-height: 72px;
+}
+
+.planning-summary-mini-bar {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  align-items: end;
+}
+
+.planning-summary-mini-bar span {
+  width: 100%;
+  min-height: 14px;
+  border-radius: 999px;
+  background: rgba(123, 138, 150, 0.28);
+}
+
+.planning-summary-mini-bar.positive span {
+  background: linear-gradient(180deg, rgba(85, 171, 102, 0.95), rgba(48, 133, 71, 0.88));
+}
+
+.planning-summary-mini-bar.warning span {
+  background: linear-gradient(180deg, rgba(214, 139, 71, 0.95), rgba(196, 103, 48, 0.88));
+}
+
+.planning-summary-mini-bar.neutral span {
+  background: linear-gradient(180deg, rgba(134, 151, 165, 0.9), rgba(105, 121, 135, 0.82));
+}
+
+.planning-summary-mini-bar small {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.planning-summary-quickview-note {
+  margin: 0;
+  color: #556572;
+  line-height: 1.45;
+}
+
+.planning-summary-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 1180px) {
   .planning-calendar-app-content {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .planning-calendar-month-stream {
+    padding-inline: 14px;
+  }
+
+  .planning-calendar-month-header {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .planning-calendar-month-summary-heading {
+    display: none;
+  }
+
+  .planning-calendar-month-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .planning-calendar-month-row-summary {
+    border-left: 0;
+    border-top: 1px solid rgba(16, 34, 42, 0.08);
   }
 
   .planning-calendar-app-summary {
@@ -15129,18 +16445,6 @@ h4 {
 }
 
 @media (max-width: 900px) {
-  .planning-calendar-app-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .planning-calendar-app-rail {
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(110px, 1fr);
-    overflow-x: auto;
-    border-right: 0;
-    border-bottom: 1px solid rgba(16, 34, 42, 0.08);
-  }
-
   .planning-calendar-app-toolbar {
     display: grid;
   }
@@ -15156,10 +16460,26 @@ h4 {
     display: none;
   }
 
+  .planning-calendar-month-header {
+    display: none;
+  }
+
+  .planning-calendar-month-stream {
+    padding: 12px 10px 28px;
+  }
+
+  .planning-calendar-month-section-head {
+    position: static;
+    display: grid;
+    gap: 2px;
+  }
+
   .planning-calendar-app-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .planning-calendar-month-row-grid,
+  .planning-summary-quickviews,
   .planning-calendar-composer-insight-grid,
   .planning-calendar-composer-option-columns {
     grid-template-columns: minmax(0, 1fr);
@@ -15363,6 +16683,7 @@ h4 {
   .planning-sidebar-metrics {
     grid-template-columns: minmax(0, 1fr);
   }
+
 }
 
 .planning-source-modal {
