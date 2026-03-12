@@ -329,16 +329,28 @@ function thresholdDetectionToDisplay(
   };
 }
 
+function joinLabels(labels: string[]) {
+  if (!labels.length) return "";
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} y ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")} y ${labels[labels.length - 1]}`;
+}
+
+function thresholdDetectionIsConfirmed(state?: string | null) {
+  return state === "ready_to_anchor";
+}
+
 function thresholdDetectionStateLabel(state?: string | null) {
-  if (state === "candidate_weak") return "Candidato débil";
-  if (state === "candidate_strong") return "Candidato fuerte";
-  if (state === "confirmed") return "Confirmado";
-  if (state === "ready_to_anchor") return "Listo para anclar";
+  if (state === "candidate_weak") return "Señal débil";
+  if (state === "candidate_strong") return "Señal fuerte";
+  if (state === "confirmed") return "Consenso de sesión";
+  if (state === "ready_to_anchor") return "Confirmado";
   return "Sin señal";
 }
 
 function thresholdDetectionTone(state?: string | null): "positive" | "neutral" | "negative" {
-  if (state === "ready_to_anchor" || state === "confirmed") return "positive";
+  if (state === "ready_to_anchor") return "positive";
+  if (state === "confirmed") return "neutral";
   if (state === "candidate_strong") return "neutral";
   return "negative";
 }
@@ -348,6 +360,28 @@ function thresholdDetectionLineDasharray(state?: string | null) {
   if (state === "confirmed") return "8 5";
   if (state === "candidate_strong") return "4 5";
   return "2 6";
+}
+
+function thresholdDetectionUsageMessage(state?: string | null) {
+  if (state === "ready_to_anchor") {
+    return "Confirmado, válido para cálculos y con respaldo suficiente para anclarlo al histórico.";
+  }
+  if (state === "confirmed") {
+    return "Hay acuerdo entre métodos en esta sesión, pero todavía espera confirmación antes de usarlo para cálculos.";
+  }
+  if (state === "candidate_strong" || state === "candidate_weak") {
+    return "Solo señal por ahora: espera confirmación antes de usarlo como umbral o para cálculos.";
+  }
+  return "Sin señal visible.";
+}
+
+function thresholdDetectionCoachExplanation(detection: ThresholdDetectionStatus | null | undefined) {
+  if (!detection) return "Sin señal visible.";
+  if (detection.state === "ready_to_anchor") return detection.explanation;
+  if (detection.state === "confirmed") {
+    return "Hay consenso interno entre métodos dentro de esta sesión, pero todavía falta validación operativa para cerrarlo como umbral.";
+  }
+  return detection.explanation;
 }
 
 function thresholdDetectionTooltip(
@@ -369,7 +403,8 @@ function thresholdDetectionTooltip(
   if (support?.sessionDate ?? support?.session_date) {
     parts.push(`Fecha ${formatDate(support?.sessionDate ?? support?.session_date ?? null)}`);
   }
-  parts.push(detection.explanation);
+  parts.push(thresholdDetectionUsageMessage(detection.state));
+  parts.push(thresholdDetectionCoachExplanation(detection));
   return parts.join(" · ");
 }
 
@@ -4512,6 +4547,22 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               (threshold) =>
                 (threshold?.evidence_level ?? "").toLowerCase() === "low" || (threshold?.confidence ?? 0) < 0.6,
             ).length;
+            const detectionSummary = [
+              { label: "LT1", detection: plotView.lt1Detection },
+              { label: "LT2", detection: plotView.lt2Detection },
+            ].filter(
+              (entry): entry is { label: string; detection: ThresholdDetectionStatus } =>
+                Boolean(entry.detection && entry.detection.state && entry.detection.state !== "none"),
+            );
+            const pendingDetectionLabels = detectionSummary
+              .filter((entry) => !thresholdDetectionIsConfirmed(entry.detection.state))
+              .map((entry) => entry.label);
+            const confirmedDetectionLabels = detectionSummary
+              .filter((entry) => thresholdDetectionIsConfirmed(entry.detection.state))
+              .map((entry) => entry.label);
+            const readyToAnchorLabels = detectionSummary
+              .filter((entry) => entry.detection.state === "ready_to_anchor")
+              .map((entry) => entry.label);
             const sparseEvidence =
               evidenceSampleCount <= 4 ||
               plotView.plotData.length < 2 ||
@@ -4619,11 +4670,16 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                           <div>
                             <span className="eyebrow">Señal LT1</span>
                             <strong>{thresholdDetectionStateLabel(plotView.lt1Detection.state)}</strong>
-                            <p>{plotView.lt1Detection.explanation}</p>
+                            <p>{thresholdDetectionCoachExplanation(plotView.lt1Detection)}</p>
                             <small>
                               {plotView.lt1Candidate
                                 ? thresholdDetailLine(plotView.lt1Candidate, disciplineKey, athleteWeight)
                                 : "Sin candidato medible todavía"}
+                            </small>
+                            <small
+                              className={`threshold-detection-usage ${thresholdDetectionIsConfirmed(plotView.lt1Detection.state) ? "positive" : "warning"}`}
+                            >
+                              {thresholdDetectionUsageMessage(plotView.lt1Detection.state)}
                             </small>
                           </div>
                         </article>
@@ -4637,11 +4693,16 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                           <div>
                             <span className="eyebrow">Señal LT2</span>
                             <strong>{thresholdDetectionStateLabel(plotView.lt2Detection.state)}</strong>
-                            <p>{plotView.lt2Detection.explanation}</p>
+                            <p>{thresholdDetectionCoachExplanation(plotView.lt2Detection)}</p>
                             <small>
                               {plotView.lt2Candidate
                                 ? thresholdDetailLine(plotView.lt2Candidate, disciplineKey, athleteWeight)
                                 : "Sin candidato medible todavía"}
+                            </small>
+                            <small
+                              className={`threshold-detection-usage ${thresholdDetectionIsConfirmed(plotView.lt2Detection.state) ? "positive" : "warning"}`}
+                            >
+                              {thresholdDetectionUsageMessage(plotView.lt2Detection.state)}
                             </small>
                           </div>
                         </article>
@@ -4675,6 +4736,38 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                     </>
                   )}
                 </div>
+                {pendingDetectionLabels.length ? (
+                  <div className="threshold-disclaimer warning">
+                    <strong>Señal pendiente de confirmación</strong>
+                    <p>
+                      {joinLabels(pendingDetectionLabels)} {pendingDetectionLabels.length === 1 ? "aparece" : "aparecen"} como
+                      señal fisiológica, pero {pendingDetectionLabels.length === 1 ? "debe" : "deben"} esperar confirmación
+                      antes de que el coach {pendingDetectionLabels.length === 1 ? "la use" : "las use"} como umbral cerrado.
+                      {" "}Todavía no {pendingDetectionLabels.length === 1 ? "es válida" : "son válidas"} para cálculos.
+                    </p>
+                    <div className="threshold-disclaimer-meta">
+                      <span>Solo orientación</span>
+                      <span>Esperar confirmación</span>
+                      <span>No válido para cálculos</span>
+                    </div>
+                  </div>
+                ) : null}
+                {confirmedDetectionLabels.length ? (
+                  <div className="threshold-disclaimer positive">
+                    <strong>Umbral confirmado</strong>
+                    <p>
+                      {joinLabels(confirmedDetectionLabels)} {confirmedDetectionLabels.length === 1 ? "ya está confirmado y es válido" : "ya están confirmados y son válidos"} para cálculos fisiológicos.
+                      {readyToAnchorLabels.length
+                        ? ` ${joinLabels(readyToAnchorLabels)} ${readyToAnchorLabels.length === 1 ? "además está listo" : "además están listos"} para anclarse al histórico.`
+                        : ""}
+                    </p>
+                    <div className="threshold-disclaimer-meta">
+                      <span>Confirmado</span>
+                      <span>Válido para cálculos</span>
+                      {readyToAnchorLabels.length ? <span>Listo para anclar</span> : null}
+                    </div>
+                  </div>
+                ) : null}
                 {sparseEvidence ? (
                   <div className="threshold-disclaimer warning">
                     <strong>Lectura provisional</strong>

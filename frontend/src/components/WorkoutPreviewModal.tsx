@@ -94,6 +94,10 @@ function inferDurationMinutes(value: string): number | null {
   const directMinutes = normalized.match(/(\d+)\s*'/i);
   if (directMinutes) return Number(directMinutes[1]);
 
+  // Short unnamed reps: "4 progresivos", "6 strides", "8 rectas" (~2 min each including recovery)
+  const progressives = normalized.match(/(\d+)\s*(?:progresivos?|strides?|rectas?|aceleraciones?)/i);
+  if (progressives) return Math.round(Number(progressives[1]) * 2);
+
   return null;
 }
 

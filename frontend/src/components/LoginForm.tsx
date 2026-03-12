@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 type LoginMode = "coach" | "athlete";
 
@@ -87,6 +88,11 @@ export function LoginForm({ onLogin }: LoginFormProps) {
             >
               Atleta
             </button>
+          </div>
+          <div className="secondary-access-link">
+            <Link to="/virtual-ride" className="secondary-access-button">
+              Virtual Ride
+            </Link>
           </div>
         </section>
       </div>

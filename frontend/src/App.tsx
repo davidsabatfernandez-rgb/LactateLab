@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { AthleteLayout } from "./components/AthleteLayout";
 import { Layout } from "./components/Layout";
@@ -18,6 +18,7 @@ import { PlanningPage } from "./pages/PlanningPage";
 import { SessionDetailPage } from "./pages/SessionDetailPage";
 import { SessionsPage } from "./pages/SessionsPage";
 import { StravaInformationPage } from "./pages/StravaInformationPage";
+import { VirtualRidePage } from "./pages/VirtualRidePage";
 import { Athlete, AthleteAnalysis, AuthUser, DashboardData, SessionAnalysis, SessionSummary } from "./types";
 
 type ThemeMode = "light" | "dark";
@@ -101,6 +102,7 @@ function SessionDetailRoute({ token }: { token: string }) {
 }
 
 export default function App() {
+  const location = useLocation();
   const navigate = useNavigate();
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("lactate-token"));
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
@@ -205,6 +207,9 @@ export default function App() {
   }
 
   if (!token) {
+    if (location.pathname === "/virtual-ride") {
+      return <VirtualRidePage />;
+    }
     return <LoginForm onLogin={handleLogin} />;
   }
 
@@ -279,6 +284,7 @@ export default function App() {
         <Route path="/library-generator" element={<LibraryGeneratorPage />} />
         <Route path="/strava-information" element={<StravaInformationPage token={token} athletes={athletes} />} />
         <Route path="/garmin-connect" element={<GarminConnectPage token={token} athletes={athletes} onDataChanged={() => refreshData(token)} />} />
+        <Route path="/virtual-ride" element={<VirtualRidePage />} />
         <Route path="/athletes" element={<AthletesPage athletes={athletes} token={token} onRefresh={() => refreshData(token)} />} />
         <Route path="/athletes/:athleteId" element={<AthleteDetailRoute token={token} onDataChanged={() => refreshData(token)} />} />
         <Route path="/athletes/:athleteId/targets" element={<AthleteTargetsRoute token={token} onDataChanged={() => refreshData(token)} />} />

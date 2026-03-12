@@ -209,6 +209,22 @@ BLOCK_TAXONOMY: dict[str, CanonicalBlockType] = {
         typical_structure="Más corto, más fino y más condicionado por la fecha objetivo.",
         olbrecht_rationale="La especificidad sube al acercarse la prueba, sin perder de vista el equilibrio entre sistemas.",
     ),
+    "anaerobic_capacity_block": CanonicalBlockType(
+        key="anaerobic_capacity_block",
+        public_label="Bloque de capacidad anaeróbica",
+        purpose="Desarrollar la capacidad glicolítica (VLamax) en atletas diésel que necesitan más potencia para pruebas cortas.",
+        typical_structure="4-6 semanas con inserciones de sprints y trabajo neuromuscular dentro de bloques aeróbicos.",
+        olbrecht_rationale="Olbrecht: en atletas con VLamax baja y prueba corta, la capacidad anaeróbica es el limitante — "
+                          "estimular la glucólisis controladamente sin destruir la base aeróbica.",
+    ),
+    "anaerobic_power_block": CanonicalBlockType(
+        key="anaerobic_power_block",
+        public_label="Bloque de potencia anaeróbica",
+        purpose="Tolerancia a la acidosis y potencia de sprint en las últimas semanas antes de competición.",
+        typical_structure="2 semanas máximo de trabajo intenso pre-competitivo.",
+        olbrecht_rationale="Olbrecht: el ANP tiene ventana corta de efecto (10-17 días) y no debe exceder 2 semanas consecutivas "
+                          "para evitar sobrepasar la tolerancia y perder la base aeróbica construida.",
+    ),
 }
 
 

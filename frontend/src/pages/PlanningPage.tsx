@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { WorkoutPreviewModal, WorkoutPreviewSelection } from "../components/WorkoutPreviewModal";
 import { api } from "../lib/api";
 import { resolveAnalysisDisciplineView, resolveTrainingThreshold } from "../lib/trainingThresholds";
-import { Athlete, AthleteAnalysis, AthleteTarget, DynamicReference, PlanningMesocycleDraftSession, PlanningMesocycleTemplate, PlanningOverview, PlanningPlannedSession, PlanningWorkoutTemplate } from "../types";
+import { Athlete, AthleteAnalysis, AthleteFocusBlockEvaluation, AthleteTarget, DynamicReference, PlanningMesocycleDraftSession, PlanningMesocycleTemplate, PlanningOverview, PlanningPlannedSession, PlanningWorkoutTemplate, SessionSummary } from "../types";
 
 type PlanningPageProps = {
   token: string;
@@ -39,6 +39,9 @@ type PlanningCalendarSource = {
   startDate: string;
   endDate: string;
   discipline: string;
+  templateId?: string | null;
+  blockType?: string | null;
+  status?: string | null;
   title: string;
   objective: string;
   energySystemFocus?: string | null;
@@ -66,14 +69,6 @@ type CalendarSession = {
 type CalendarEntry = CalendarSession & {
   layerDiscipline: string;
   isOverlay: boolean;
-};
-
-type CalendarWarningCard = {
-  id: string;
-  severity: "high" | "medium" | "low";
-  title: string;
-  explanation: string;
-  suggestion?: string;
 };
 
 type CalendarMesocycleOption = {
@@ -108,6 +103,12 @@ type CalendarQuickAddState = {
 
 type CalendarWorkspaceTab = "athletes" | "library" | "calendar" | "summary";
 
+type SummaryQuickBar = {
+  label: string;
+  value: number;
+  tone: PlanTone;
+};
+
 type RosterProgressRow = {
   athlete: Athlete;
   tone: PlanTone;
@@ -117,6 +118,62 @@ type RosterProgressRow = {
   confidenceLabel: string;
   currentBlock: string;
   nextTarget: string;
+  quickLoadBars: SummaryQuickBar[];
+  confidenceBars: SummaryQuickBar[];
+  blockMetricLabel: string;
+  blockMetricHint: string;
+  thresholdDisciplineLabel: string;
+  lt1Label: string;
+  lt1Hint: string;
+  lt2Label: string;
+  lt2Hint: string;
+};
+
+type CalendarWeekDisciplineMetric = {
+  discipline: string;
+  minutes: number;
+  distanceMeters: number | null;
+  distanceEstimated: boolean;
+  sessions: number;
+};
+
+type CalendarWeekLoadProfile = {
+  label: string;
+  tone: PlanTone;
+  hint: string;
+  intensityPct: number;
+};
+
+type CalendarWeekSnapshot = {
+  totalMinutes: number;
+  totalSessions: number;
+  keySessions: number;
+  supportSessions: number;
+  recoverySessions: number;
+  disciplineMetrics: CalendarWeekDisciplineMetric[];
+  primaryDiscipline: string | null;
+  peakDay: { date: string; minutes: number } | null;
+  totalDistanceMeters: number | null;
+  loadProfile: CalendarWeekLoadProfile;
+};
+
+type CalendarMonthRow = {
+  weekStart: string;
+  weekEnd: string;
+  cells: Array<{ id: string; date: string | null }>;
+  inMonthDays: number;
+  snapshot: CalendarWeekSnapshot;
+};
+
+type CalendarMonthSection = {
+  monthStart: string;
+  rows: CalendarMonthRow[];
+  scale: {
+    totalMinutes: number;
+    disciplineMinutes: Record<string, number>;
+  };
+  totalMinutes: number;
+  totalSessions: number;
 };
 
 function parseDateValue(value: string) {
@@ -168,6 +225,20 @@ function disciplineLabel(value?: string | null) {
   if (value === "natación") return "Natación";
   if (value === "triatlón") return "Triatlón";
   return value || "Disciplina";
+}
+
+function planningDisciplineAccent(value?: string | null) {
+  if (value === "running") return "#285fe7";
+  if (value === "ciclismo") return "#257a4d";
+  if (value === "natación") return "#1f7c8b";
+  return "#8a98a8";
+}
+
+function normalizeDisciplineKey(value?: string | null) {
+  if (!value) return "running";
+  if (value === "triatlón") return "running";
+  if (value === "carrera" || value === "carrera a pie") return "running";
+  return value;
 }
 
 function quickAddKindSlug(kind: QuickAddKind | "library") {
@@ -355,6 +426,128 @@ function averageConfidenceLabel(analysis?: AthleteAnalysis | null) {
   return `${Math.round(average * 100)}%`;
 }
 
+function normalizeConfidenceScore(score?: number | null) {
+  if (typeof score !== "number" || Number.isNaN(score)) return 0;
+  if (score > 1) return Math.max(0, Math.min(score / 100, 1));
+  return Math.max(0, Math.min(score, 1));
+}
+
+function shortConfidenceLabel(label?: string | null) {
+  const normalized = label?.trim();
+  if (!normalized) return "SIG";
+  return normalized.split(/\s+/).slice(0, 1).join("").slice(0, 3).toUpperCase();
+}
+
+function shortMetricLabel(metric?: string | null) {
+  const normalized = metric?.trim().toLowerCase() ?? "";
+  if (normalized.includes("lt1")) return "LT1";
+  if (normalized.includes("lt2")) return "LT2";
+  if (normalized.includes("lact")) return "LAC";
+  if (normalized.includes("dur")) return "DUR";
+  if (normalized.includes("ftp")) return "FTP";
+  if (normalized.includes("css")) return "CSS";
+  return (metric || "MET").slice(0, 3).toUpperCase();
+}
+
+function toneFromScore(score: number): PlanTone {
+  if (score >= 0.72) return "positive";
+  if (score <= 0.42) return "warning";
+  return "neutral";
+}
+
+function buildRecentLoadBars(sessions?: SessionSummary[] | null): SummaryQuickBar[] {
+  const today = isoDateFromToday();
+  const labels = ["L", "M", "X", "J", "V", "S", "D"];
+  const days = Array.from({ length: 7 }, (_, index) => addDays(today, index - 6));
+  const counts = new Map<string, number>();
+
+  (sessions ?? []).forEach((session) => {
+    const key = formatDateKey(parseDateValue(session.performed_at));
+    if (!days.includes(key)) return;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  });
+
+  const maxCount = Math.max(1, ...days.map((day) => counts.get(day) ?? 0));
+  return days.map((day) => {
+    const parsed = parseDateValue(day);
+    const weekday = parsed.getDay();
+    const label = labels[weekday === 0 ? 6 : weekday - 1] ?? "·";
+    const count = counts.get(day) ?? 0;
+    return {
+      label,
+      value: count / maxCount,
+      tone: count >= maxCount && count > 0 ? "positive" : count === 0 ? "neutral" : "warning",
+    };
+  });
+}
+
+function buildConfidenceBars(analysis?: AthleteAnalysis | null): SummaryQuickBar[] {
+  const summary = analysis?.confidence_summary?.slice(0, 4) ?? [];
+  if (!summary.length) {
+    return [
+      { label: "SIG", value: 0.18, tone: "neutral" },
+      { label: "DAT", value: 0.14, tone: "neutral" },
+      { label: "CTL", value: 0.16, tone: "neutral" },
+    ];
+  }
+  return summary.map((item) => {
+    const value = normalizeConfidenceScore(item.score);
+    return {
+      label: shortConfidenceLabel(item.label),
+      value,
+      tone: toneFromScore(value),
+    };
+  });
+}
+
+function formatBlockMetricQuickview(evaluation?: AthleteFocusBlockEvaluation | null) {
+  if (!evaluation) {
+    return {
+      label: "Sin métrica activa",
+      hint: "Todavía no hay una lectura comparativa del bloque.",
+    };
+  }
+
+  const delta = evaluation.delta_relative ?? evaluation.delta;
+  const unit = evaluation.relative_unit ?? evaluation.unit ?? "";
+  const deltaLabel = typeof delta === "number"
+    ? `${delta > 0 ? "+" : ""}${delta.toFixed(Math.abs(delta) >= 10 ? 0 : 1)} ${unit}`.trim()
+    : "sin delta";
+
+  return {
+    label: shortMetricLabel(evaluation.key_metric),
+    hint: `${deltaLabel} · ${evaluation.recommendation || evaluation.summary}`,
+  };
+}
+
+function formatThresholdSecondaryMetric(
+  threshold: ReturnType<typeof resolveTrainingThreshold>,
+  discipline: string,
+) {
+  if (!threshold) return "Sin referencia visible";
+  const details = [threshold.sourceLabel];
+  const primaryMetric = formatThresholdPrimaryMetric(threshold, discipline);
+  if (typeof threshold.heartRate === "number" && !primaryMetric.includes("bpm")) {
+    details.unshift(`${Math.round(threshold.heartRate)} bpm`);
+  }
+  return details.join(" · ");
+}
+
+function formatThresholdQuickRows(
+  source: AthleteAnalysis | ReturnType<typeof resolveAnalysisDisciplineView> | null | undefined,
+  discipline: string,
+) {
+  const lt1 = resolveTrainingThreshold(source, "LT1");
+  const lt2 = resolveTrainingThreshold(source, "LT2");
+
+  return {
+    lt1Label: formatThresholdPrimaryMetric(lt1, discipline),
+    lt1Hint: formatThresholdSecondaryMetric(lt1, discipline),
+    lt2Label: formatThresholdPrimaryMetric(lt2, discipline),
+    lt2Hint: formatThresholdSecondaryMetric(lt2, discipline),
+  };
+}
+
 function nextTargetLabelFromAthlete(athlete: Athlete) {
   const nextTarget = (athlete.targets ?? [])
     .slice()
@@ -493,6 +686,235 @@ function buildPlanningPrescriptionHint(
     : "Sesión con intensidad mixta sin rango LT1-LT2 completo.";
 }
 
+function averageThresholdPaceSeconds(
+  left?: number | null,
+  right?: number | null,
+) {
+  if (typeof left === "number" && typeof right === "number") return (left + right) / 2;
+  if (typeof left === "number") return left;
+  if (typeof right === "number") return right;
+  return null;
+}
+
+function estimatedPaceForCalendarSession(
+  session: CalendarEntry,
+  lt1: ReturnType<typeof resolveTrainingThreshold>,
+  lt2: ReturnType<typeof resolveTrainingThreshold>,
+) {
+  const family = objectiveFamily(`${session.sessionType} ${session.objective} ${session.title}`);
+  if (family === "lt2" || family === "vo2") {
+    return lt2?.paceSecondsPerKm ?? lt1?.paceSecondsPerKm ?? null;
+  }
+  if (family === "technique") {
+    return lt1?.paceSecondsPerKm ?? averageThresholdPaceSeconds(lt1?.paceSecondsPerKm, lt2?.paceSecondsPerKm);
+  }
+  if (family === "recovery") {
+    return lt1?.paceSecondsPerKm ?? null;
+  }
+  return averageThresholdPaceSeconds(lt1?.paceSecondsPerKm, lt2?.paceSecondsPerKm) ?? lt1?.paceSecondsPerKm ?? lt2?.paceSecondsPerKm ?? null;
+}
+
+function parseDistanceMetersFromText(text?: string | null) {
+  if (!text) return null;
+  const normalized = text.toLowerCase().replace(/,/g, ".");
+  const patterns: Array<{ regex: RegExp; resolve: (match: RegExpMatchArray) => number }> = [
+    {
+      regex: /(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*km\b/i,
+      resolve: (match) => Number(match[1]) * ((Number(match[2]) + Number(match[3])) / 2) * 1000,
+    },
+    {
+      regex: /(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*km\b/i,
+      resolve: (match) => Number(match[1]) * Number(match[2]) * 1000,
+    },
+    {
+      regex: /(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*km\b/i,
+      resolve: (match) => ((Number(match[1]) + Number(match[2])) / 2) * 1000,
+    },
+    {
+      regex: /(\d+(?:\.\d+)?)\s*km\b/i,
+      resolve: (match) => Number(match[1]) * 1000,
+    },
+    {
+      regex: /(\d+)\s*x\s*(\d+)\s*-\s*(\d+)\s*m\b/i,
+      resolve: (match) => Number(match[1]) * ((Number(match[2]) + Number(match[3])) / 2),
+    },
+    {
+      regex: /(\d+)\s*x\s*(\d+)\s*m\b/i,
+      resolve: (match) => Number(match[1]) * Number(match[2]),
+    },
+    {
+      regex: /(\d+)\s*-\s*(\d+)\s*m\b/i,
+      resolve: (match) => (Number(match[1]) + Number(match[2])) / 2,
+    },
+    {
+      regex: /(\d+)\s*m\b/i,
+      resolve: (match) => Number(match[1]),
+    },
+  ];
+
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern.regex);
+    if (!match) continue;
+    return pattern.resolve(match);
+  }
+
+  return null;
+}
+
+function estimateCalendarSessionDistanceMeters(
+  session: CalendarEntry,
+  thresholdSource: ReturnType<typeof resolveAnalysisDisciplineView> | AthleteAnalysis | null,
+) {
+  const explicitDistance = parseDistanceMetersFromText(session.dose || session.title || session.objective);
+  if (typeof explicitDistance === "number" && Number.isFinite(explicitDistance) && explicitDistance > 0) {
+    return { distanceMeters: explicitDistance, estimated: true };
+  }
+
+  const discipline = normalizeDisciplineKey(session.layerDiscipline || session.discipline);
+  if (discipline !== "running" && discipline !== "natación") {
+    return { distanceMeters: null, estimated: false };
+  }
+
+  const minutes = session.estimatedMinutes ?? estimateMinutesFromDose(session.dose);
+  if (!minutes) {
+    return { distanceMeters: null, estimated: false };
+  }
+
+  const lt1 = resolveTrainingThreshold(thresholdSource, "LT1");
+  const lt2 = resolveTrainingThreshold(thresholdSource, "LT2");
+  const paceSecondsPerKm = estimatedPaceForCalendarSession(session, lt1, lt2);
+  if (typeof paceSecondsPerKm !== "number" || !Number.isFinite(paceSecondsPerKm) || paceSecondsPerKm <= 0) {
+    return { distanceMeters: null, estimated: false };
+  }
+
+  return {
+    distanceMeters: (minutes * 60 / paceSecondsPerKm) * 1000,
+    estimated: true,
+  };
+}
+
+function calendarWeekLoadProfile(totalMinutes: number, keySessions: number, totalSessions: number): CalendarWeekLoadProfile {
+  if (!totalSessions) {
+    return {
+      label: "Semana vacía",
+      tone: "neutral",
+      hint: "Sin sesiones visibles todavía.",
+      intensityPct: 0,
+    };
+  }
+  if (totalMinutes >= 420 || keySessions >= 3) {
+    return {
+      label: "Carga alta",
+      tone: "warning",
+      hint: "Semana densa: conviene vigilar recuperación y orden de estímulos.",
+      intensityPct: 100,
+    };
+  }
+  if (totalMinutes >= 240 || keySessions >= 2) {
+    return {
+      label: "Construcción",
+      tone: "positive",
+      hint: "Carga útil para mover el bloque sin perder comparabilidad.",
+      intensityPct: Math.max(48, Math.min(88, (totalMinutes / 420) * 100)),
+    };
+  }
+  return {
+    label: "Carga ligera",
+    tone: "neutral",
+    hint: "Semana de soporte, técnica o asimilación.",
+    intensityPct: Math.max(18, Math.min(44, (totalMinutes / 420) * 100)),
+  };
+}
+
+function buildCalendarWeekSnapshot(
+  entries: CalendarEntry[],
+  athleteAnalysis: AthleteAnalysis | null,
+  selectedDiscipline: string,
+): CalendarWeekSnapshot {
+  const buckets = new Map<string, CalendarWeekDisciplineMetric>();
+  const dayMinutes = new Map<string, number>();
+  let totalMinutes = 0;
+  let totalSessions = 0;
+  let keySessions = 0;
+  let supportSessions = 0;
+  let recoverySessions = 0;
+
+  entries.forEach((session) => {
+    const discipline = normalizeDisciplineKey(session.layerDiscipline || session.discipline);
+    const current = buckets.get(discipline) ?? {
+      discipline,
+      minutes: 0,
+      distanceMeters: null,
+      distanceEstimated: false,
+      sessions: 0,
+    };
+    const minutes = session.estimatedMinutes ?? estimateMinutesFromDose(session.dose);
+    const thresholdSource = resolveAnalysisDisciplineView(athleteAnalysis, discipline)
+      ?? (discipline === normalizeDisciplineKey(selectedDiscipline) ? athleteAnalysis : null);
+    const distance = estimateCalendarSessionDistanceMeters(session, thresholdSource);
+    const sessionType = (session.sessionType || "").toLowerCase();
+
+    totalMinutes += minutes;
+    totalSessions += 1;
+    if (sessionType.includes("clave") || sessionType.includes("test")) {
+      keySessions += 1;
+    } else if (sessionType.includes("recuper")) {
+      recoverySessions += 1;
+    } else {
+      supportSessions += 1;
+    }
+
+    dayMinutes.set(session.date, (dayMinutes.get(session.date) ?? 0) + minutes);
+
+    current.minutes += minutes;
+    current.sessions += 1;
+    if (typeof distance.distanceMeters === "number" && Number.isFinite(distance.distanceMeters)) {
+      current.distanceMeters = (current.distanceMeters ?? 0) + distance.distanceMeters;
+      current.distanceEstimated = current.distanceEstimated || distance.estimated;
+    }
+    buckets.set(discipline, current);
+  });
+
+  const disciplineMetrics = Array.from(buckets.values()).sort((left, right) => right.minutes - left.minutes);
+  const peakDayEntry = Array.from(dayMinutes.entries()).sort((left, right) => right[1] - left[1])[0] ?? null;
+  const totalDistance = disciplineMetrics.reduce<number | null>((sum, metric) => {
+    if (typeof metric.distanceMeters !== "number" || !Number.isFinite(metric.distanceMeters)) return sum;
+    return (sum ?? 0) + metric.distanceMeters;
+  }, null);
+
+  return {
+    totalMinutes,
+    totalSessions,
+    keySessions,
+    supportSessions,
+    recoverySessions,
+    disciplineMetrics,
+    primaryDiscipline: disciplineMetrics[0]?.discipline ?? null,
+    peakDay: peakDayEntry ? { date: peakDayEntry[0], minutes: peakDayEntry[1] } : null,
+    totalDistanceMeters: totalDistance,
+    loadProfile: calendarWeekLoadProfile(totalMinutes, keySessions, totalSessions),
+  };
+}
+
+function formatMinutesCompact(totalMinutes: number) {
+  if (!totalMinutes) return "0h";
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = Math.round(totalMinutes % 60);
+  if (!hours) return `${minutes} min`;
+  if (!minutes) return `${hours}h`;
+  return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+}
+
+function formatDistanceCompact(distanceMeters?: number | null) {
+  if (typeof distanceMeters !== "number" || !Number.isFinite(distanceMeters) || distanceMeters <= 0) {
+    return "n/d";
+  }
+  if (distanceMeters >= 1000) {
+    return `${(distanceMeters / 1000).toFixed(distanceMeters >= 10000 ? 0 : 1)} km`;
+  }
+  return `${Math.round(distanceMeters)} m`;
+}
+
 function estimateMinutesFromDose(dose?: string | null) {
   if (!dose) return 0;
   const rangeRepeat = dose.match(/(\d+)\s*x\s*(\d+)\s*-\s*(\d+)\s*'/i);
@@ -514,32 +936,6 @@ function estimateMinutesFromDose(dose?: string | null) {
   return 0;
 }
 
-function isDemandingSession(session: CalendarSession) {
-  const text = `${session.title} ${session.objective} ${session.sessionType}`.toLowerCase();
-  return session.sessionType === "clave"
-    || text.includes("lt2")
-    || text.includes("vo2")
-    || text.includes("ftp")
-    || text.includes("compet")
-    || text.includes("css");
-}
-
-function isLongSession(session: CalendarSession) {
-  const text = `${session.title} ${session.objective}`.toLowerCase();
-  return (session.estimatedMinutes ?? 0) >= 75
-    || text.includes("fondo")
-    || text.includes("tirada")
-    || text.includes("continuidad");
-}
-
-function daysBetween(start?: string | null, end?: string | null) {
-  if (!start || !end) return null;
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return null;
-  return Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 86400000) + 1);
-}
-
 function startOfMonth(isoDate: string) {
   const value = parseDateValue(isoDate);
   if (Number.isNaN(value.getTime())) return isoDate;
@@ -556,6 +952,61 @@ function monthLabel(isoDate: string) {
 function monthHeading(isoDate: string) {
   const label = monthLabel(isoDate);
   return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function diffCalendarMonths(start: string, end: string) {
+  const startDate = parseDateValue(start);
+  const endDate = parseDateValue(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return 0;
+  return (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+}
+
+function buildCalendarMonthCells(monthStart: string) {
+  const totalDays = daysInMonth(monthStart);
+  const offset = weekdayOffset(monthStart);
+  return [
+    ...Array.from({ length: offset }, (_, index) => ({ id: `empty-${monthStart}-${index}`, date: null as string | null })),
+    ...Array.from({ length: totalDays }, (_, index) => ({
+      id: `day-${monthStart}-${index + 1}`,
+      date: addDays(monthStart, index),
+    })),
+  ];
+}
+
+function buildCalendarMonthRows(
+  monthStart: string,
+  sessionsByDate: Map<string, CalendarEntry[]>,
+  athleteAnalysis: AthleteAnalysis | null,
+  selectedDiscipline: string,
+): CalendarMonthRow[] {
+  const firstWeekStart = startOfWeek(monthStart);
+  const paddedCells = [...buildCalendarMonthCells(monthStart)];
+  const remainder = paddedCells.length % 7;
+
+  if (remainder) {
+    paddedCells.push(
+      ...Array.from({ length: 7 - remainder }, (_, index) => ({
+        id: `tail-empty-${monthStart}-${index}`,
+        date: null as string | null,
+      })),
+    );
+  }
+
+  return Array.from({ length: paddedCells.length / 7 }, (_, index) => {
+    const cells = paddedCells.slice(index * 7, index * 7 + 7);
+    const visibleDates = cells.flatMap((cell) => (cell.date ? [cell.date] : []));
+    const weekStart = addDays(firstWeekStart, index * 7);
+    const weekEnd = addDays(weekStart, 6);
+    const weekEntries = visibleDates.flatMap((date) => sessionsByDate.get(date) ?? []);
+
+    return {
+      weekStart,
+      weekEnd,
+      cells,
+      inMonthDays: visibleDates.length,
+      snapshot: buildCalendarWeekSnapshot(weekEntries, athleteAnalysis, selectedDiscipline),
+    };
+  });
 }
 
 function weekHeading(startIsoDate: string, endIsoDate: string) {
@@ -663,6 +1114,29 @@ function describePlanningSource(source: PlanningCalendarSource) {
     summary,
     details,
   };
+}
+
+function mesocycleTemplateMatchesDiscipline(template: PlanningMesocycleTemplate, discipline: string) {
+  return template.discipline === discipline || template.discipline === "all";
+}
+
+function resolveMesocycleTemplateForSource(
+  source: PlanningCalendarSource,
+  templates: PlanningMesocycleTemplate[],
+) {
+  if (source.templateId) {
+    const byId = templates.find((template) => template.template_id === source.templateId);
+    if (byId) return byId;
+  }
+
+  if (source.blockType) {
+    return templates.find((template) => (
+      template.block_type === source.blockType
+      && mesocycleTemplateMatchesDiscipline(template, source.discipline)
+    )) ?? null;
+  }
+
+  return null;
 }
 
 function buildWorkoutBlueprints(source: PlanningCalendarSource) {
@@ -1222,10 +1696,6 @@ export function PlanningPage({ token }: PlanningPageProps) {
   const [athleteAnalysis, setAthleteAnalysis] = useState<AthleteAnalysis | null>(null);
   const [rosterAnalyses, setRosterAnalyses] = useState<Record<number, AthleteAnalysis | null>>({});
   const [rosterAnalysesLoading, setRosterAnalysesLoading] = useState(false);
-  const [blaCheckLoading, setBlaCheckLoading] = useState<number | null>(null);
-  const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
-  const [editNote, setEditNote] = useState("");
-  const [editNoteLoading, setEditNoteLoading] = useState(false);
   const [disciplineOverviews, setDisciplineOverviews] = useState<Record<string, PlanningOverview>>({});
   const [loading, setLoading] = useState(Boolean(athleteId));
   const [error, setError] = useState<string | null>(null);
@@ -1247,6 +1717,7 @@ export function PlanningPage({ token }: PlanningPageProps) {
   const [saving, setSaving] = useState(false);
   const [deletingBlockId, setDeletingBlockId] = useState<number | null>(null);
   const [calendarVisualMode, setCalendarVisualMode] = useState<"month" | "week">("month");
+  const [selectedLibrarySourceId, setSelectedLibrarySourceId] = useState<string>("");
   const [selectedCalendarSourceId, setSelectedCalendarSourceId] = useState<string>("");
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(isoDateFromToday()));
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
@@ -1261,6 +1732,10 @@ export function PlanningPage({ token }: PlanningPageProps) {
   const calendarWeekScrollFrameRef = useRef<number | null>(null);
   const calendarWeekAutoCenteredRef = useRef(false);
   const calendarWeekSectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const calendarMonthScrollerRef = useRef<HTMLDivElement | null>(null);
+  const calendarMonthScrollFrameRef = useRef<number | null>(null);
+  const calendarMonthAutoCenteredRef = useRef(false);
+  const calendarMonthSectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -1281,43 +1756,6 @@ export function PlanningPage({ token }: PlanningPageProps) {
       cancelled = true;
     };
   }, [token]);
-
-  const handleBlaToggle = useCallback(
-    async (sessionId: number, current: boolean) => {
-      if (!athleteId) return;
-      setBlaCheckLoading(sessionId);
-      try {
-        await api.toggleBlaCheck(token, sessionId, !current);
-        // Refrescar el overview para que el estado quede actualizado
-        const updated = await api.planningOverview(token, athleteId, selectedDiscipline);
-        setOverview(updated as PlanningOverview);
-      } catch {
-        // error silencioso — el toggle es reversible
-      } finally {
-        setBlaCheckLoading(null);
-      }
-    },
-    [athleteId, token, selectedDiscipline],
-  );
-
-  const handleSaveCoachNote = useCallback(
-    async (sessionId: number) => {
-      if (!athleteId) return;
-      setEditNoteLoading(true);
-      try {
-        await api.coachEditSession(token, sessionId, { coach_note: editNote });
-        const updated = await api.planningOverview(token, athleteId, selectedDiscipline);
-        setOverview(updated as PlanningOverview);
-        setEditingSessionId(null);
-        setEditNote("");
-      } catch {
-        // error silencioso
-      } finally {
-        setEditNoteLoading(false);
-      }
-    },
-    [athleteId, token, selectedDiscipline, editNote],
-  );
 
   const updatePlanningRoute = useCallback(
     (nextAthleteId: string, nextDiscipline: string) => {
@@ -1581,6 +2019,14 @@ export function PlanningPage({ token }: PlanningPageProps) {
     () => templateLibrary.find((template) => template.template_id === selectedTemplateId) ?? templateLibrary[0] ?? null,
     [selectedTemplateId, templateLibrary],
   );
+  const plannedBlocksById = useMemo(
+    () => new Map((overview?.planned_blocks ?? []).map((block) => [String(block.id), block])),
+    [overview?.planned_blocks],
+  );
+  const detectedMesocyclesById = useMemo(
+    () => new Map((overview?.detected_mesocycles ?? []).map((block) => [`historical-${block.start_date}-${block.block_type}`, block])),
+    [overview?.detected_mesocycles],
+  );
   const quickAddDiscipline = calendarQuickAdd?.selectedDiscipline ?? "running";
   const quickAddDisciplineLibrary = useMemo(() => {
     const recommendedIds = new Set(
@@ -1792,6 +2238,16 @@ export function PlanningPage({ token }: PlanningPageProps) {
     }
   }, [planningSourceModal]);
 
+  const openMesocycleLibraryFromSource = useCallback((source: PlanningCalendarSource) => {
+    const linkedTemplate = resolveMesocycleTemplateForSource(source, templateLibrary);
+    setSelectedLibrarySourceId(source.id);
+    if (linkedTemplate) {
+      setSelectedTemplateId(linkedTemplate.template_id);
+    }
+    setPlanningSourceModal(null);
+    openCalendarWorkspaceTab("library");
+  }, [openCalendarWorkspaceTab, templateLibrary]);
+
   const timelineItems = useMemo(() => {
     const items: Array<{
       id: string;
@@ -1860,6 +2316,9 @@ export function PlanningPage({ token }: PlanningPageProps) {
       startDate: blockStartDate,
       endDate: addDays(blockStartDate, durationWeeks * 7 - 1),
       discipline: selectedDiscipline,
+      templateId: selectedTemplate?.template_id || overview?.next_recommendation.template_id || null,
+      blockType: selectedTemplate?.block_type || overview?.next_recommendation.recommended_block_type || null,
+      status: "draft",
       title: selectedTemplate?.public_label || overview?.next_recommendation.recommended_block_label || "Borrador",
       objective: blockObjective,
       energySystemFocus: selectedTemplate?.primary_focus || overview?.next_recommendation.primary_focus || null,
@@ -1921,6 +2380,9 @@ export function PlanningPage({ token }: PlanningPageProps) {
       startDate: block.start_date,
       endDate: block.end_date || block.target_date || block.start_date,
       discipline: block.priority_discipline || selectedDiscipline,
+      templateId: block.template_id ?? null,
+      blockType: (templateLibrary.find((template) => template.template_id === block.template_id)?.block_type) ?? null,
+      status: block.status,
       title: `${block.energy_system_focus} · ${block.block_objective}`,
       objective: block.block_objective,
       energySystemFocus: block.energy_system_focus,
@@ -1936,6 +2398,21 @@ export function PlanningPage({ token }: PlanningPageProps) {
       startDate: block.start_date,
       endDate: block.end_date,
       discipline: block.discipline,
+      templateId: resolveMesocycleTemplateForSource({
+        id: "",
+        kind: "historical",
+        focusBlockId: null,
+        startDate: block.start_date,
+        endDate: block.end_date,
+        discipline: block.discipline,
+        templateId: null,
+        blockType: block.block_type,
+        status: "historical",
+        title: block.block_label,
+        objective: block.block_label,
+      }, templateLibrary)?.template_id ?? null,
+      blockType: block.block_type,
+      status: "historical",
       title: block.block_label,
       objective: block.block_label,
       energySystemFocus: block.block_type,
@@ -1945,7 +2422,7 @@ export function PlanningPage({ token }: PlanningPageProps) {
       density: "media",
     }));
     return [...planned, ...historical];
-  }, [overview?.detected_mesocycles, overview?.planned_blocks, selectedDiscipline]);
+  }, [overview?.detected_mesocycles, overview?.planned_blocks, selectedDiscipline, templateLibrary]);
 
   const primaryCalendarSource = useMemo(
     () => overview?.planned_blocks?.[0] ? calendarSources.find((source) => source.kind === "planned") ?? calendarSources[0] ?? null : calendarSources[0] ?? null,
@@ -1956,6 +2433,61 @@ export function PlanningPage({ token }: PlanningPageProps) {
     () => calendarSources.find((source) => source.id === selectedCalendarSourceId) ?? primaryCalendarSource ?? draftCalendarSource,
     [calendarSources, draftCalendarSource, primaryCalendarSource, selectedCalendarSourceId],
   );
+  const selectedLibrarySource = useMemo(
+    () => calendarSources.find((source) => source.id === selectedLibrarySourceId) ?? null,
+    [calendarSources, selectedLibrarySourceId],
+  );
+  const selectedLibrarySourceTemplate = useMemo(
+    () => (selectedLibrarySource ? resolveMesocycleTemplateForSource(selectedLibrarySource, templateLibrary) : null),
+    [selectedLibrarySource, templateLibrary],
+  );
+  const activeLibraryTemplate = selectedLibrarySourceTemplate ?? selectedTemplate;
+  const selectedLibraryCompatibleWorkouts = useMemo(() => {
+    const activeTemplate = activeLibraryTemplate;
+    if (!activeTemplate) return [];
+    const targetDiscipline = selectedLibrarySource?.discipline ?? selectedDiscipline;
+    return workoutLibrary
+      .filter((template) => (
+        template.compatible_block_types.includes(activeTemplate.block_type)
+        && (template.discipline === targetDiscipline || template.discipline === "all")
+      ))
+      .sort((left, right) => {
+        const roleWeight = (value: string) => (value === "key" ? 0 : value === "support" ? 1 : value === "recovery" ? 2 : 3);
+        return roleWeight(left.session_role) - roleWeight(right.session_role) || left.public_label.localeCompare(right.public_label);
+      });
+  }, [activeLibraryTemplate, selectedDiscipline, selectedLibrarySource?.discipline, workoutLibrary]);
+  const selectedLibraryPlannedSessions = useMemo(
+    () => selectedLibrarySource?.focusBlockId
+      ? (overview?.planned_sessions ?? [])
+        .filter((session) => session.focus_block_id === selectedLibrarySource.focusBlockId)
+        .sort((left, right) => dateValue(left.scheduled_date) - dateValue(right.scheduled_date))
+      : [],
+    [overview?.planned_sessions, selectedLibrarySource],
+  );
+  const selectedLibraryHistoricalBlock = useMemo(
+    () => (selectedLibrarySource ? detectedMesocyclesById.get(selectedLibrarySource.id) ?? null : null),
+    [detectedMesocyclesById, selectedLibrarySource],
+  );
+  const selectedLibraryCandidate = useMemo(() => {
+    const blockType = activeLibraryTemplate?.block_type ?? selectedLibrarySource?.blockType ?? null;
+    if (!blockType) return null;
+    return overview?.next_recommendation.candidates_scored?.find((candidate) => candidate.block_type === blockType) ?? null;
+  }, [activeLibraryTemplate?.block_type, overview?.next_recommendation.candidates_scored, selectedLibrarySource?.blockType]);
+  const selectedLibraryWhyNow = useMemo(() => {
+    const blockType = activeLibraryTemplate?.block_type ?? selectedLibrarySource?.blockType ?? null;
+    if (!blockType) return [];
+    if (blockType === overview?.next_recommendation.recommended_block_type) {
+      return overview?.next_recommendation.reasoning ?? [];
+    }
+    return selectedLibraryCandidate?.reasons ?? selectedLibraryHistoricalBlock?.explanation ?? [];
+  }, [
+    overview?.next_recommendation.reasoning,
+    overview?.next_recommendation.recommended_block_type,
+    selectedLibraryCandidate?.reasons,
+    selectedLibraryHistoricalBlock?.explanation,
+    activeLibraryTemplate?.block_type,
+    selectedLibrarySource?.blockType,
+  ]);
 
   const overlayOptions = useMemo(
     () => availableDisciplines.filter((discipline) => discipline !== selectedDiscipline),
@@ -2014,6 +2546,12 @@ export function PlanningPage({ token }: PlanningPageProps) {
   }, [calendarSources, primaryCalendarSource?.id, selectedCalendarSourceId]);
 
   useEffect(() => {
+    if (selectedLibrarySourceId && !calendarSources.some((source) => source.id === selectedLibrarySourceId)) {
+      setSelectedLibrarySourceId("");
+    }
+  }, [calendarSources, selectedLibrarySourceId]);
+
+  useEffect(() => {
     setCalendarMonth(startOfMonth(selectedCalendarSource.startDate));
   }, [selectedCalendarSource.startDate]);
 
@@ -2045,19 +2583,6 @@ export function PlanningPage({ token }: PlanningPageProps) {
     [plannedSessions, selectedCalendarSource.discipline],
   );
 
-  const calendarCells = useMemo(() => {
-    const monthStart = startOfMonth(calendarMonth);
-    const totalDays = daysInMonth(monthStart);
-    const offset = weekdayOffset(monthStart);
-    return [
-      ...Array.from({ length: offset }, (_, index) => ({ id: `empty-${index}`, date: null as string | null })),
-      ...Array.from({ length: totalDays }, (_, index) => ({
-        id: `day-${index + 1}`,
-        date: addDays(monthStart, index),
-      })),
-    ];
-  }, [calendarMonth]);
-
   const sessionsByDate = useMemo(() => {
     const map = new Map<string, CalendarEntry[]>();
     [...primaryEntries, ...overlayEntries].forEach((session) => {
@@ -2077,21 +2602,6 @@ export function PlanningPage({ token }: PlanningPageProps) {
     if (calendarVisualMode !== "week" || !selectedCalendarDate) return;
     setCalendarMonth(startOfMonth(selectedCalendarDate));
   }, [calendarVisualMode, selectedCalendarDate]);
-
-  const selectedDaySessions = useMemo(
-    () => (selectedCalendarDate ? sessionsByDate.get(selectedCalendarDate) ?? [] : []),
-    [selectedCalendarDate, sessionsByDate],
-  );
-
-  const selectedPrimarySessions = useMemo(
-    () => selectedDaySessions.filter((session) => !session.isOverlay),
-    [selectedDaySessions],
-  );
-
-  const selectedOverlaySessions = useMemo(
-    () => selectedDaySessions.filter((session) => session.isOverlay),
-    [selectedDaySessions],
-  );
 
   const planningThresholdSource = useMemo(
     () => resolveAnalysisDisciplineView(athleteAnalysis, selectedDiscipline) ?? athleteAnalysis,
@@ -2204,6 +2714,10 @@ export function PlanningPage({ token }: PlanningPageProps) {
   }, [selectedAthlete]);
   const rosterProgressRows = useMemo<RosterProgressRow[]>(() => athletes.map((athlete) => {
     const analysis = athlete.id === selectedAthlete?.id ? athleteAnalysis : rosterAnalyses[athlete.id] ?? null;
+    const thresholdDiscipline = normalizeDisciplineKey(athlete.primary_discipline);
+    const thresholdSource = resolveAnalysisDisciplineView(analysis, thresholdDiscipline)
+      ?? (normalizeDisciplineKey(selectedDiscipline) === thresholdDiscipline ? analysis : null)
+      ?? analysis;
     const evaluation = analysis?.active_focus_block?.evaluation ?? analysis?.focus_block_evaluations?.[0] ?? null;
     const direction = evaluation?.direction ?? analysis?.trends?.[0]?.direction ?? null;
     const summary = evaluation?.summary
@@ -2212,6 +2726,8 @@ export function PlanningPage({ token }: PlanningPageProps) {
       ?? athlete.training_goal
       ?? "Sin suficiente señal longitudinal todavía.";
     const activeBlock = athlete.focus_blocks?.find((block) => block.status === "active");
+    const blockMetric = formatBlockMetricQuickview(evaluation);
+    const thresholdRows = formatThresholdQuickRows(thresholdSource, thresholdDiscipline);
 
     return {
       athlete,
@@ -2222,8 +2738,21 @@ export function PlanningPage({ token }: PlanningPageProps) {
       confidenceLabel: averageConfidenceLabel(analysis),
       currentBlock: activeBlock ? `${activeBlock.energy_system_focus} · ${activeBlock.block_objective}` : "Sin bloque activo",
       nextTarget: nextTargetLabelFromAthlete(athlete),
+      quickLoadBars: buildRecentLoadBars(analysis?.recent_sessions),
+      confidenceBars: buildConfidenceBars(analysis),
+      blockMetricLabel: blockMetric.label,
+      blockMetricHint: blockMetric.hint,
+      thresholdDisciplineLabel: disciplineLabel(thresholdDiscipline),
+      lt1Label: thresholdRows.lt1Label,
+      lt1Hint: thresholdRows.lt1Hint,
+      lt2Label: thresholdRows.lt2Label,
+      lt2Hint: thresholdRows.lt2Hint,
     };
-  }), [athleteAnalysis, athletes, rosterAnalyses, selectedAthlete]);
+  }), [athleteAnalysis, athletes, rosterAnalyses, selectedAthlete, selectedDiscipline]);
+  const selectedRosterRow = useMemo(
+    () => rosterProgressRows.find((row) => row.athlete.id === selectedAthlete?.id) ?? rosterProgressRows[0] ?? null,
+    [rosterProgressRows, selectedAthlete?.id],
+  );
   const rosterProgressStats = useMemo(() => {
     const improving = rosterProgressRows.filter((row) => row.tone === "positive").length;
     const warning = rosterProgressRows.filter((row) => row.tone === "warning").length;
@@ -2238,30 +2767,63 @@ export function PlanningPage({ token }: PlanningPageProps) {
     [selectedCalendarDate, selectedCalendarSource.startDate],
   );
   const selectedWeekEnd = useMemo(() => addDays(selectedWeekStart, 6), [selectedWeekStart]);
-  const selectedWeekPrimarySessions = useMemo(
-    () => primaryEntries.filter((session) => dateValue(session.date) >= dateValue(selectedWeekStart) && dateValue(session.date) <= dateValue(selectedWeekEnd)),
-    [primaryEntries, selectedWeekEnd, selectedWeekStart],
+  const selectedWeekVisibleEntries = useMemo(
+    () => [...primaryEntries, ...overlayEntries]
+      .filter((session) => dateValue(session.date) >= dateValue(selectedWeekStart) && dateValue(session.date) <= dateValue(selectedWeekEnd)),
+    [overlayEntries, primaryEntries, selectedWeekEnd, selectedWeekStart],
   );
-  const selectedWeekOverlaySessions = useMemo(
-    () => overlayEntries.filter((session) => dateValue(session.date) >= dateValue(selectedWeekStart) && dateValue(session.date) <= dateValue(selectedWeekEnd)),
-    [overlayEntries, selectedWeekEnd, selectedWeekStart],
-  );
-  const selectedWeekKeySessions = useMemo(
-    () => selectedWeekPrimarySessions.filter((session) => session.sessionType === "clave" || session.sessionType === "key").length,
-    [selectedWeekPrimarySessions],
-  );
-  const selectedWeekSupportSessions = useMemo(
-    () => selectedWeekPrimarySessions.filter((session) => session.sessionType === "soporte" || session.sessionType === "support").length,
-    [selectedWeekPrimarySessions],
-  );
-  const selectedBlockDurationDays = useMemo(
-    () => daysBetween(selectedCalendarSource.startDate, selectedCalendarSource.endDate),
-    [selectedCalendarSource.endDate, selectedCalendarSource.startDate],
+  const selectedWeekSnapshot = useMemo(
+    () => buildCalendarWeekSnapshot(selectedWeekVisibleEntries, athleteAnalysis, selectedDiscipline),
+    [athleteAnalysis, selectedDiscipline, selectedWeekVisibleEntries],
   );
   const selectedWeekdayOffset = useMemo(() => {
     if (!selectedCalendarDate) return 0;
     return Math.max(0, Math.min(6, Math.round((dateValue(selectedCalendarDate) - dateValue(selectedWeekStart)) / 86400000)));
   }, [selectedCalendarDate, selectedWeekStart]);
+  const continuousMonthStarts = useMemo(() => {
+    const allDates = [
+      selectedCalendarSource.startDate,
+      selectedCalendarSource.endDate,
+      selectedCalendarDate,
+      calendarMonth,
+      isoDateFromToday(),
+      ...primaryEntries.map((session) => session.date),
+      ...overlayEntries.map((session) => session.date),
+    ].filter(Boolean) as string[];
+
+    const sorted = allDates
+      .map((value) => startOfMonth(value))
+      .sort((left, right) => dateValue(left) - dateValue(right));
+
+    const minMonth = sorted[0] ?? startOfMonth(isoDateFromToday());
+    const maxMonth = sorted[sorted.length - 1] ?? minMonth;
+    const rangeStart = startOfMonth(addMonths(minMonth, -6));
+    const rangeEnd = startOfMonth(addMonths(maxMonth, 6));
+    const totalMonths = Math.max(1, diffCalendarMonths(rangeStart, rangeEnd) + 1);
+
+    return Array.from({ length: totalMonths }, (_, index) => startOfMonth(addMonths(rangeStart, index)));
+  }, [calendarMonth, overlayEntries, primaryEntries, selectedCalendarDate, selectedCalendarSource.endDate, selectedCalendarSource.startDate]);
+  const continuousMonthSections = useMemo<CalendarMonthSection[]>(() => continuousMonthStarts.map((monthStart) => {
+    const rows = buildCalendarMonthRows(monthStart, sessionsByDate, athleteAnalysis, selectedDiscipline);
+    const totalMinutes = rows.reduce((sum, row) => sum + row.snapshot.totalMinutes, 0);
+    const totalSessions = rows.reduce((sum, row) => sum + row.snapshot.totalSessions, 0);
+    return {
+      monthStart,
+      rows,
+      scale: {
+        totalMinutes: Math.max(1, ...rows.map((row) => row.snapshot.totalMinutes)),
+        disciplineMinutes: ["running", "ciclismo", "natación"].reduce<Record<string, number>>((acc, discipline) => {
+          acc[discipline] = Math.max(
+            1,
+            ...rows.map((row) => row.snapshot.disciplineMetrics.find((metric) => metric.discipline === discipline)?.minutes ?? 0),
+          );
+          return acc;
+        }, {}),
+      },
+      totalMinutes,
+      totalSessions,
+    };
+  }), [athleteAnalysis, continuousMonthStarts, selectedDiscipline, sessionsByDate]);
   const calendarToolbarHeading = useMemo(
     () => (calendarVisualMode === "week" ? weekHeading(selectedWeekStart, selectedWeekEnd) : monthHeading(calendarMonth)),
     [calendarMonth, calendarVisualMode, selectedWeekEnd, selectedWeekStart],
@@ -2271,10 +2833,6 @@ export function PlanningPage({ token }: PlanningPageProps) {
       ? `${compactPlanningSourceTitle(selectedCalendarSource)} · ${disciplineLabel(selectedCalendarSource.discipline)} · Semana visible`
       : `${compactPlanningSourceTitle(selectedCalendarSource)} · ${disciplineLabel(selectedCalendarSource.discipline)}`),
     [calendarVisualMode, selectedCalendarSource],
-  );
-  const selectedWeekEstimatedMinutes = useMemo(
-    () => selectedWeekPrimarySessions.reduce((total, session) => total + (session.estimatedMinutes ?? 0), 0),
-    [selectedWeekPrimarySessions],
   );
   const continuousWeekStarts = useMemo(() => {
     const allDates = [
@@ -2342,63 +2900,6 @@ export function PlanningPage({ token }: PlanningPageProps) {
   );
   const recommendedBlockExplanation = overview?.next_recommendation.physiological_analysis?.block_explanation;
   const recommendedReliabilityWarnings = overview?.next_recommendation.physiological_analysis?.reliability_warnings ?? [];
-  const selectedWeekDisciplineMix = useMemo(() => {
-    const counts = new Map<string, number>();
-    [...selectedWeekPrimarySessions, ...selectedWeekOverlaySessions].forEach((session) => {
-      const key = session.layerDiscipline || session.discipline;
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    });
-    return Array.from(counts.entries())
-      .sort((left, right) => right[1] - left[1])
-      .map(([discipline, count]) => `${disciplineLabel(discipline)} ${count}`);
-  }, [selectedWeekOverlaySessions, selectedWeekPrimarySessions]);
-  const calendarWarningCards = useMemo<CalendarWarningCard[]>(() => {
-    const warnings: CalendarWarningCard[] = [];
-    const demandingSessions = selectedWeekPrimarySessions.filter(isDemandingSession);
-    const longSessions = selectedWeekPrimarySessions.filter(isLongSession);
-
-    for (let index = 1; index < demandingSessions.length; index += 1) {
-      const previous = demandingSessions[index - 1];
-      const current = demandingSessions[index];
-      if (dateValue(current.date) - dateValue(previous.date) <= 86400000) {
-        warnings.push({
-          id: `demanding-${previous.id}-${current.id}`,
-          severity: "high",
-          title: "Dos estímulos exigentes demasiado juntos",
-          explanation: `${previous.title} y ${current.title} quedan en días consecutivos dentro de la misma semana.`,
-          suggestion: "Valora dejar un día más limpio entre ambos para proteger la calidad.",
-        });
-        break;
-      }
-    }
-
-    if (longSessions.length && demandingSessions.length) {
-      const longSession = longSessions[0];
-      const nearbyDemanding = demandingSessions.find((session) => Math.abs(dateValue(session.date) - dateValue(longSession.date)) <= 86400000);
-      if (nearbyDemanding) {
-        warnings.push({
-          id: `long-${longSession.id}-${nearbyDemanding.id}`,
-          severity: "medium",
-          title: "La sesión larga está demasiado cerca de una sesión intensa",
-          explanation: `${longSession.title} comparte una ventana demasiado pegada con ${nearbyDemanding.title}.`,
-          suggestion: "Revisa si quieres proteger mejor la tirada larga o la sesión clave.",
-        });
-      }
-    }
-
-    if (selectedWeekKeySessions === 0 && selectedCalendarSource.kind !== "historical") {
-      warnings.push({
-        id: "missing-key",
-        severity: "low",
-        title: "No aparece una sesión clave clara esta semana",
-        explanation: "La semana visible tiene soporte y continuidad, pero no un ancla principal evidente.",
-        suggestion: "Puede ser intencional. Si no lo es, marca la sesión dominante o añade una sesión clave.",
-      });
-    }
-
-    return warnings.slice(0, 4);
-  }, [selectedCalendarSource.kind, selectedWeekKeySessions, selectedWeekPrimarySessions]);
-
   useEffect(() => {
     if (!calendarPanelOpen) return undefined;
     const previousOverflow = document.body.style.overflow;
@@ -2408,11 +2909,34 @@ export function PlanningPage({ token }: PlanningPageProps) {
     };
   }, [calendarPanelOpen]);
 
+  const scrollCalendarWeekIntoView = useCallback((weekStart: string, behavior: ScrollBehavior = "smooth") => {
+    const scroller = calendarWeekScrollerRef.current;
+    const section = calendarWeekSectionRefs.current[weekStart];
+    if (!scroller || !section) return;
+    const targetTop = Math.max(0, section.offsetTop - scroller.clientHeight * 0.18);
+    scroller.scrollTo({ top: targetTop, behavior });
+  }, []);
+
+  const scrollCalendarMonthIntoView = useCallback((monthStart: string, behavior: ScrollBehavior = "smooth") => {
+    const scroller = calendarMonthScrollerRef.current;
+    const section = calendarMonthSectionRefs.current[monthStart];
+    if (!scroller || !section) return;
+    const targetTop = Math.max(0, section.offsetTop - scroller.clientHeight * 0.08);
+    scroller.scrollTo({ top: targetTop, behavior });
+  }, []);
+
   const jumpCalendarToToday = useCallback(() => {
     const today = isoDateFromToday();
-    setCalendarMonth(startOfMonth(today));
+    const targetMonth = startOfMonth(today);
+    const targetWeek = startOfWeek(today);
+    setCalendarMonth(targetMonth);
     setSelectedCalendarDate(today);
-  }, []);
+    if (calendarVisualMode === "month") {
+      window.requestAnimationFrame(() => scrollCalendarMonthIntoView(targetMonth));
+      return;
+    }
+    window.requestAnimationFrame(() => scrollCalendarWeekIntoView(targetWeek));
+  }, [calendarVisualMode, scrollCalendarMonthIntoView, scrollCalendarWeekIntoView]);
 
   const openCalendarMesocycleComposer = useCallback((date: string) => {
     setSelectedCalendarDate(date);
@@ -2451,20 +2975,26 @@ export function PlanningPage({ token }: PlanningPageProps) {
       const nextDate = addDays(selectedWeekStart, -7);
       setSelectedCalendarDate(nextDate);
       setCalendarMonth(startOfMonth(nextDate));
+      window.requestAnimationFrame(() => scrollCalendarWeekIntoView(startOfWeek(nextDate)));
       return;
     }
-    setCalendarMonth(startOfMonth(addMonths(calendarMonth, -1)));
-  }, [calendarMonth, calendarVisualMode, selectedWeekStart]);
+    const targetMonth = startOfMonth(addMonths(calendarMonth, -1));
+    setCalendarMonth(targetMonth);
+    window.requestAnimationFrame(() => scrollCalendarMonthIntoView(targetMonth));
+  }, [calendarMonth, calendarVisualMode, scrollCalendarMonthIntoView, scrollCalendarWeekIntoView, selectedWeekStart]);
 
   const shiftCalendarForward = useCallback(() => {
     if (calendarVisualMode === "week") {
       const nextDate = addDays(selectedWeekStart, 7);
       setSelectedCalendarDate(nextDate);
       setCalendarMonth(startOfMonth(nextDate));
+      window.requestAnimationFrame(() => scrollCalendarWeekIntoView(startOfWeek(nextDate)));
       return;
     }
-    setCalendarMonth(startOfMonth(addMonths(calendarMonth, 1)));
-  }, [calendarMonth, calendarVisualMode, selectedWeekStart]);
+    const targetMonth = startOfMonth(addMonths(calendarMonth, 1));
+    setCalendarMonth(targetMonth);
+    window.requestAnimationFrame(() => scrollCalendarMonthIntoView(targetMonth));
+  }, [calendarMonth, calendarVisualMode, scrollCalendarMonthIntoView, scrollCalendarWeekIntoView, selectedWeekStart]);
 
   const syncCalendarWeekSelectionFromScroll = useCallback(() => {
     const scroller = calendarWeekScrollerRef.current;
@@ -2499,9 +3029,46 @@ export function PlanningPage({ token }: PlanningPageProps) {
     });
   }, [syncCalendarWeekSelectionFromScroll]);
 
+  const syncCalendarMonthSelectionFromScroll = useCallback(() => {
+    const scroller = calendarMonthScrollerRef.current;
+    if (!scroller) return;
+
+    const viewportFocus = scroller.scrollTop + scroller.clientHeight * 0.2;
+    let closestMonth = calendarMonth;
+    let closestDistance = Number.POSITIVE_INFINITY;
+
+    continuousMonthStarts.forEach((monthStart) => {
+      const section = calendarMonthSectionRefs.current[monthStart];
+      if (!section) return;
+      const distance = Math.abs(section.offsetTop - viewportFocus);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestMonth = monthStart;
+      }
+    });
+
+    if (closestMonth !== calendarMonth) {
+      setCalendarMonth(closestMonth);
+    }
+  }, [calendarMonth, continuousMonthStarts]);
+
+  const handleContinuousMonthScroll = useCallback(() => {
+    if (calendarMonthScrollFrameRef.current != null) return;
+    calendarMonthScrollFrameRef.current = window.requestAnimationFrame(() => {
+      calendarMonthScrollFrameRef.current = null;
+      syncCalendarMonthSelectionFromScroll();
+    });
+  }, [syncCalendarMonthSelectionFromScroll]);
+
   useEffect(() => () => {
     if (calendarWeekScrollFrameRef.current != null) {
       window.cancelAnimationFrame(calendarWeekScrollFrameRef.current);
+    }
+  }, []);
+
+  useEffect(() => () => {
+    if (calendarMonthScrollFrameRef.current != null) {
+      window.cancelAnimationFrame(calendarMonthScrollFrameRef.current);
     }
   }, []);
 
@@ -2529,6 +3096,30 @@ export function PlanningPage({ token }: PlanningPageProps) {
     }
   }, [calendarVisualMode, continuousWeekStarts, selectedWeekStart]);
 
+  useEffect(() => {
+    if (calendarVisualMode !== "month") {
+      calendarMonthAutoCenteredRef.current = false;
+      return;
+    }
+
+    const scroller = calendarMonthScrollerRef.current;
+    const selectedSection = calendarMonthSectionRefs.current[calendarMonth];
+    if (!scroller || !selectedSection) return;
+
+    const targetTop = Math.max(0, selectedSection.offsetTop - scroller.clientHeight * 0.08);
+    const alreadyNearTarget = Math.abs(scroller.scrollTop - targetTop) < 40;
+
+    if (!calendarMonthAutoCenteredRef.current) {
+      scroller.scrollTo({ top: targetTop, behavior: "auto" });
+      calendarMonthAutoCenteredRef.current = true;
+      return;
+    }
+
+    if (!alreadyNearTarget) {
+      scroller.scrollTo({ top: targetTop, behavior: "smooth" });
+    }
+  }, [calendarMonth, calendarVisualMode, continuousMonthStarts]);
+
   if (loading) {
     return <div className="loading">Preparando planificación...</div>;
   }
@@ -2549,7 +3140,34 @@ export function PlanningPage({ token }: PlanningPageProps) {
           <div className="planning-calendar-app-brand">PeakAerobic</div>
           <nav className="planning-calendar-app-nav">
             <button type="button" className="planning-calendar-app-tab" onClick={closeCalendarPanel}>Planificación</button>
-            <button type="button" className="planning-calendar-app-tab active">Calendario</button>
+            <button
+              type="button"
+              className={`planning-calendar-app-tab ${calendarWorkspaceTab === "athletes" ? "active" : ""}`}
+              onClick={() => openCalendarWorkspaceTab("athletes")}
+            >
+              Atletas
+            </button>
+            <button
+              type="button"
+              className={`planning-calendar-app-tab ${calendarWorkspaceTab === "library" ? "active" : ""}`}
+              onClick={() => openCalendarWorkspaceTab("library")}
+            >
+              Biblioteca
+            </button>
+            <button
+              type="button"
+              className={`planning-calendar-app-tab ${calendarWorkspaceTab === "calendar" ? "active" : ""}`}
+              onClick={() => openCalendarWorkspaceTab("calendar")}
+            >
+              Calendario
+            </button>
+            <button
+              type="button"
+              className={`planning-calendar-app-tab ${calendarWorkspaceTab === "summary" ? "active" : ""}`}
+              onClick={() => openCalendarWorkspaceTab("summary")}
+            >
+              Resumen
+            </button>
             <button type="button" className="planning-calendar-app-tab">Panel de control</button>
           </nav>
           <div className="planning-calendar-app-user">
@@ -2561,37 +3179,6 @@ export function PlanningPage({ token }: PlanningPageProps) {
         </header>
 
         <div className="planning-calendar-app-body">
-          <aside className="planning-calendar-app-rail">
-            <button
-              type="button"
-              className={`planning-calendar-rail-item ${calendarWorkspaceTab === "athletes" ? "active" : ""}`}
-              onClick={() => openCalendarWorkspaceTab("athletes")}
-            >
-              Atletas
-            </button>
-            <button
-              type="button"
-              className={`planning-calendar-rail-item ${calendarWorkspaceTab === "library" ? "active" : ""}`}
-              onClick={() => openCalendarWorkspaceTab("library")}
-            >
-              Biblioteca
-            </button>
-            <button
-              type="button"
-              className={`planning-calendar-rail-item ${calendarWorkspaceTab === "calendar" ? "active" : ""}`}
-              onClick={() => openCalendarWorkspaceTab("calendar")}
-            >
-              Calendario
-            </button>
-            <button
-              type="button"
-              className={`planning-calendar-rail-item ${calendarWorkspaceTab === "summary" ? "active" : ""}`}
-              onClick={() => openCalendarWorkspaceTab("summary")}
-            >
-              Resumen
-            </button>
-          </aside>
-
           <section className="planning-calendar-app-workspace">
             {calendarWorkspaceTab === "athletes" ? (
               <>
@@ -2738,7 +3325,10 @@ export function PlanningPage({ token }: PlanningPageProps) {
                               key={template.template_id}
                               type="button"
                               className={`planning-workspace-card planning-library-card ${isSelected ? "selected" : ""}`}
-                              onClick={() => setSelectedTemplateId(template.template_id)}
+                              onClick={() => {
+                                setSelectedTemplateId(template.template_id);
+                                setSelectedLibrarySourceId("");
+                              }}
                             >
                               <div className="planning-athlete-selection-head">
                                 <div>
@@ -2776,8 +3366,23 @@ export function PlanningPage({ token }: PlanningPageProps) {
                         <strong>{overview?.detected_mesocycles.length ?? 0} bloques en el histórico</strong>
                       </div>
                       <div className="planning-workspace-grid planning-history-grid">
-                        {(overview?.detected_mesocycles ?? []).length ? (overview?.detected_mesocycles ?? []).map((block) => (
-                          <article key={`${block.start_date}-${block.block_type}`} className="planning-workspace-card planning-history-card">
+                        {(overview?.detected_mesocycles ?? []).length ? (overview?.detected_mesocycles ?? []).map((block) => {
+                          const sourceId = `historical-${block.start_date}-${block.block_type}`;
+                          const matchingSource = calendarSources.find((source) => source.id === sourceId);
+                          const isSelected = selectedLibrarySourceId === sourceId;
+                          return (
+                          <button
+                            key={`${block.start_date}-${block.block_type}`}
+                            type="button"
+                            className={`planning-workspace-card planning-history-card ${isSelected ? "selected" : ""}`}
+                            onClick={() => {
+                              if (matchingSource) {
+                                openMesocycleLibraryFromSource(matchingSource);
+                                return;
+                              }
+                              setSelectedLibrarySourceId(sourceId);
+                            }}
+                          >
                             <span className="planning-kicker">{disciplineLabel(block.discipline)}</span>
                             <strong>{block.block_label}</strong>
                             <p>{block.explanation[0] || "Mesociclo detectado a partir del patrón de sesiones."}</p>
@@ -2795,8 +3400,9 @@ export function PlanningPage({ token }: PlanningPageProps) {
                                 <strong>{block.session_count}</strong>
                               </article>
                             </div>
-                          </article>
-                        )) : (
+                          </button>
+                        );
+                        }) : (
                           <article className="planning-empty-state">
                             <strong>Sin histórico suficiente todavía.</strong>
                             <p>Cuando el atleta acumule sesiones comparables aparecerán aquí los mesociclos detectados.</p>
@@ -2812,39 +3418,126 @@ export function PlanningPage({ token }: PlanningPageProps) {
                       <div className="planning-calendar-summary-stats">
                         <article>
                           <small>Bloque</small>
-                          <strong>{selectedTemplate?.public_label || "Sin selección"}</strong>
+                          <strong>{activeLibraryTemplate?.public_label || "Sin selección"}</strong>
                         </article>
+                        {selectedLibrarySource ? (
+                          <article>
+                            <small>Abierto desde</small>
+                            <strong>{selectedLibrarySource.kind === "planned" ? "Bloque real" : selectedLibrarySource.kind === "historical" ? "Histórico detectado" : "Borrador"}</strong>
+                          </article>
+                        ) : null}
                         <article>
                           <small>Foco primario</small>
-                          <strong>{selectedTemplate?.primary_focus || "Sin foco"}</strong>
+                          <strong>{activeLibraryTemplate?.primary_focus || "Sin foco"}</strong>
                         </article>
                         <article>
                           <small>Regla principal</small>
-                          <strong>{selectedTemplate?.progression_rules[0] || "Sin regla"}</strong>
+                          <strong>{activeLibraryTemplate?.progression_rules[0] || "Sin regla"}</strong>
                         </article>
                         <article>
                           <small>Entrada</small>
-                          <strong>{selectedTemplate?.entry_checks[0] || "Sin chequeo"}</strong>
+                          <strong>{activeLibraryTemplate?.entry_checks[0] || "Sin chequeo"}</strong>
                         </article>
                       </div>
                     </div>
 
                     <div className="planning-calendar-warning-panel">
-                      <span className="planning-kicker">Por qué encaja ahora</span>
+                      <span className="planning-kicker">{selectedLibrarySource ? "Lectura del bloque abierto" : "Por qué encaja ahora"}</span>
                       <div className="planning-day-stack">
-                        {(overview?.next_recommendation.reasoning ?? []).slice(0, 3).map((reason) => (
+                        {selectedLibraryWhyNow.slice(0, 4).map((reason) => (
                           <article key={reason} className="planning-day-card">
                             <strong>{reason}</strong>
                           </article>
                         ))}
-                        {!(overview?.next_recommendation.reasoning ?? []).length ? (
+                        {!selectedLibraryWhyNow.length ? (
                           <article className="planning-day-card empty">
                             <strong>Sin explicación disponible</strong>
-                            <p>La recomendación no devolvió razones adicionales para este atleta.</p>
+                            <p>No hay razones adicionales guardadas para este mesociclo.</p>
                           </article>
                         ) : null}
                       </div>
                     </div>
+
+                    {activeLibraryTemplate ? (
+                      <div className="planning-calendar-day-panel">
+                        <span className="planning-kicker">Explicación del mesociclo</span>
+                        <div className="planning-day-stack">
+                          <article className="planning-day-card">
+                            <strong>Resumen</strong>
+                            <p>{activeLibraryTemplate.summary}</p>
+                          </article>
+                          <article className="planning-day-card">
+                            <strong>Rationale CSV</strong>
+                            <p>{activeLibraryTemplate.csv_rationale}</p>
+                          </article>
+                          <article className="planning-day-card">
+                            <strong>Rationale evidencia</strong>
+                            <p>{activeLibraryTemplate.evidence_rationale}</p>
+                          </article>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {selectedLibraryHistoricalBlock ? (
+                      <div className="planning-calendar-day-panel">
+                        <span className="planning-kicker">Lectura histórica detectada</span>
+                        <div className="planning-day-stack">
+                          {selectedLibraryHistoricalBlock.explanation.map((line) => (
+                            <article key={line} className="planning-day-card">
+                              <strong>{line}</strong>
+                            </article>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {!!selectedLibraryPlannedSessions.length && (
+                      <div className="planning-calendar-day-panel">
+                        <span className="planning-kicker">Sesiones dentro del bloque</span>
+                        <div className="planning-day-stack">
+                          {selectedLibraryPlannedSessions.map((session) => (
+                            <article key={session.id} className="planning-day-card">
+                              <strong>{formatShortDate(session.scheduled_date)} · {session.public_label}</strong>
+                              <p>{session.objective}</p>
+                              <small>{session.dose_prescription}</small>
+                            </article>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {activeLibraryTemplate ? (
+                      <div className="planning-calendar-day-panel">
+                        <span className="planning-kicker">Reglas y control</span>
+                        <div className="planning-day-stack">
+                          {activeLibraryTemplate.progression_rules.slice(0, 3).map((rule) => (
+                            <article key={rule} className="planning-day-card">
+                              <strong>{rule}</strong>
+                            </article>
+                          ))}
+                          {activeLibraryTemplate.exit_checks.slice(0, 2).map((check) => (
+                            <article key={check} className="planning-day-card">
+                              <strong>{check}</strong>
+                            </article>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {selectedLibraryCompatibleWorkouts.length ? (
+                      <div className="planning-calendar-day-panel">
+                        <span className="planning-kicker">Librería compatible del mesociclo</span>
+                        <div className="planning-day-stack">
+                          {selectedLibraryCompatibleWorkouts.slice(0, 10).map((template) => (
+                            <article key={template.template_id} className="planning-day-card">
+                              <strong>{template.public_label}</strong>
+                              <p>{template.summary}</p>
+                              <small>{template.session_role} · {template.session_family}</small>
+                            </article>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </aside>
                 </div>
               </>
@@ -2872,43 +3565,104 @@ export function PlanningPage({ token }: PlanningPageProps) {
                 <div className="planning-calendar-app-content">
                   <section className="planning-calendar-app-main planning-workspace-main">
                     <div className="planning-workspace-grid planning-summary-grid">
-                      {rosterProgressRows.map((row) => (
-                        <button
-                          key={row.athlete.id}
-                          type="button"
-                          className={`planning-workspace-card planning-summary-card ${row.tone}`}
-                          onClick={() => {
-                            const discipline = row.athlete.primary_discipline === "triatlón" ? "running" : row.athlete.primary_discipline ?? "running";
-                            updatePlanningRoute(String(row.athlete.id), discipline);
-                            openCalendarWorkspaceTab("calendar");
-                          }}
-                        >
-                          <div className="planning-athlete-selection-head">
-                            <div>
-                              <span className="planning-kicker">{disciplineLabel(row.athlete.primary_discipline)}</span>
-                              <strong>{row.athlete.name}</strong>
+                      {rosterProgressRows.map((row) => {
+                        const athleteDiscipline = row.athlete.primary_discipline === "triatlón" ? "running" : row.athlete.primary_discipline ?? "running";
+                        return (
+                          <article
+                            key={row.athlete.id}
+                            className={`planning-workspace-card planning-summary-card rich ${row.tone}`}
+                          >
+                            <div className="planning-athlete-selection-head">
+                              <div>
+                                <span className="planning-kicker">{disciplineLabel(row.athlete.primary_discipline)}</span>
+                                <strong>{row.athlete.name}</strong>
+                              </div>
+                              <span className={`status-badge ${row.tone === "positive" ? "positive" : row.tone === "warning" ? "warning" : "neutral"}`}>
+                                {row.directionLabel}
+                              </span>
                             </div>
-                            <span className={`status-badge ${row.tone === "positive" ? "positive" : row.tone === "warning" ? "warning" : "neutral"}`}>
-                              {row.directionLabel}
-                            </span>
-                          </div>
-                          <p>{row.summary}</p>
-                          <div className="planning-athlete-selection-meta">
-                            <article>
-                              <small>Snapshot</small>
-                              <strong>{row.snapshotLabel}</strong>
-                            </article>
-                            <article>
-                              <small>Confidence</small>
-                              <strong>{row.confidenceLabel}</strong>
-                            </article>
-                            <article>
-                              <small>Objetivo</small>
-                              <strong>{row.nextTarget}</strong>
-                            </article>
-                          </div>
-                        </button>
-                      ))}
+                            <p>{row.summary}</p>
+                            <div className="planning-summary-quickviews">
+                              <article className="planning-summary-quickview">
+                                <div className="planning-summary-quickview-head">
+                                  <span>Actividad 7d</span>
+                                  <strong>{row.quickLoadBars.filter((bar) => bar.value > 0).length} días activos</strong>
+                                </div>
+                                <div className="planning-summary-mini-bars">
+                                  {row.quickLoadBars.map((bar) => (
+                                    <div key={`${row.athlete.id}-${bar.label}-load`} className={`planning-summary-mini-bar ${bar.tone}`}>
+                                      <span style={{ height: `${Math.max(18, Math.round(bar.value * 100))}%` }} />
+                                      <small>{bar.label}</small>
+                                    </div>
+                                  ))}
+                                </div>
+                              </article>
+                              <article className="planning-summary-quickview thresholds">
+                                <div className="planning-summary-quickview-head">
+                                  <span>LT1 / LT2</span>
+                                  <strong>{row.thresholdDisciplineLabel}</strong>
+                                </div>
+                                <div className="planning-summary-threshold-stack">
+                                  <div className="planning-summary-threshold-row">
+                                    <small>LT1</small>
+                                    <strong>{row.lt1Label}</strong>
+                                    <span>{row.lt1Hint}</span>
+                                  </div>
+                                  <div className="planning-summary-threshold-row">
+                                    <small>LT2</small>
+                                    <strong>{row.lt2Label}</strong>
+                                    <span>{row.lt2Hint}</span>
+                                  </div>
+                                </div>
+                              </article>
+                              <article className="planning-summary-quickview">
+                                <div className="planning-summary-quickview-head">
+                                  <span>Quick view</span>
+                                  <strong>{row.blockMetricLabel}</strong>
+                                </div>
+                                <div className="planning-summary-mini-bars compact">
+                                  {row.confidenceBars.map((bar) => (
+                                    <div key={`${row.athlete.id}-${bar.label}-confidence`} className={`planning-summary-mini-bar ${bar.tone}`}>
+                                      <span style={{ height: `${Math.max(18, Math.round(bar.value * 100))}%` }} />
+                                      <small>{bar.label}</small>
+                                    </div>
+                                  ))}
+                                </div>
+                                <p className="planning-summary-quickview-note">{row.blockMetricHint}</p>
+                              </article>
+                            </div>
+                            <div className="planning-athlete-selection-meta">
+                              <article>
+                                <small>Snapshot</small>
+                                <strong>{row.snapshotLabel}</strong>
+                              </article>
+                              <article>
+                                <small>Confidence</small>
+                                <strong>{row.confidenceLabel}</strong>
+                              </article>
+                              <article>
+                                <small>Objetivo</small>
+                                <strong>{row.nextTarget}</strong>
+                              </article>
+                            </div>
+                            <div className="planning-summary-actions">
+                              <button
+                                type="button"
+                                className="planning-inline-action"
+                                onClick={() => {
+                                  updatePlanningRoute(String(row.athlete.id), athleteDiscipline);
+                                  openCalendarWorkspaceTab("calendar");
+                                }}
+                              >
+                                Ver calendario
+                              </button>
+                              <Link className="ghost-button" to={`/athletes/${row.athlete.id}`}>
+                                Abrir ficha
+                              </Link>
+                            </div>
+                          </article>
+                        );
+                      })}
                     </div>
                   </section>
 
@@ -2939,9 +3693,30 @@ export function PlanningPage({ token }: PlanningPageProps) {
                       <span className="planning-kicker">Foco actual</span>
                       <div className="planning-day-stack">
                         <article className="planning-day-card">
-                          <strong>{rosterProgressRows.find((row) => row.athlete.id === selectedAthlete?.id)?.currentBlock || "Sin bloque activo"}</strong>
-                          <p>{rosterProgressRows.find((row) => row.athlete.id === selectedAthlete?.id)?.summary || "Selecciona un atleta para ver más contexto."}</p>
+                          <strong>{selectedRosterRow?.currentBlock || "Sin bloque activo"}</strong>
+                          <p>{selectedRosterRow?.summary || "Selecciona un atleta para ver más contexto."}</p>
                         </article>
+                        {selectedRosterRow ? (
+                          <article className="planning-day-card">
+                            <span className="planning-kicker">Quick view LT1 / LT2</span>
+                            <div className="planning-summary-threshold-stack compact">
+                              <div className="planning-summary-threshold-row">
+                                <small>LT1</small>
+                                <strong>{selectedRosterRow.lt1Label}</strong>
+                                <span>{selectedRosterRow.lt1Hint}</span>
+                              </div>
+                              <div className="planning-summary-threshold-row">
+                                <small>LT2</small>
+                                <strong>{selectedRosterRow.lt2Label}</strong>
+                                <span>{selectedRosterRow.lt2Hint}</span>
+                              </div>
+                            </div>
+                            <p className="planning-summary-quickview-note">{selectedRosterRow.blockMetricHint}</p>
+                            <Link className="ghost-button" to={`/athletes/${selectedRosterRow.athlete.id}`}>
+                              Abrir ficha del atleta
+                            </Link>
+                          </article>
+                        ) : null}
                       </div>
                     </div>
                   </aside>
@@ -3249,75 +4024,184 @@ export function PlanningPage({ token }: PlanningPageProps) {
                   </div>
                 </div>
 
-                <div className="planning-calendar-app-content">
-                  <section className="planning-calendar-app-main">
-                    <div className="planning-calendar-app-header-row">
-                      {["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"].map((day) => (
-                        <span key={day} className="planning-calendar-app-weekday">{day}</span>
-                      ))}
-                    </div>
-
+                <div className="planning-calendar-app-content calendar-full">
+                  <section className={`planning-calendar-app-main ${calendarVisualMode === "month" ? "month-mode" : ""}`}>
                     {calendarVisualMode === "month" ? (
-                      <div className="planning-calendar-app-grid">
-                        {calendarCells.map((cell) => {
-                          if (!cell.date) {
-                            return <span key={cell.id} className="planning-calendar-app-spacer" aria-hidden="true" />;
-                          }
-                          const day = cell.date;
-                          const daySessions = sessionsByDate.get(day) ?? [];
-                          const primaryDaySessions = daySessions.filter((session) => !session.isOverlay);
-                          const overlayDaySessions = daySessions.filter((session) => session.isOverlay);
-                          const isSelected = selectedCalendarDate === day;
-                          const isInBlock = dateValue(day) >= dateValue(selectedCalendarSource.startDate) && dateValue(day) <= dateValue(selectedCalendarSource.endDate);
-                          const isToday = day === isoDateFromToday();
-                          return (
-                            <article
-                              key={cell.id}
-                              className={`planning-calendar-app-day ${isSelected ? "selected" : ""} ${isInBlock ? "in-block" : ""}`}
-                              onMouseEnter={() => setSelectedCalendarDate(day)}
-                            >
-                              <button type="button" className={`planning-calendar-app-day-label ${isToday ? "today" : ""}`} onClick={() => setSelectedCalendarDate(day)}>
-                                {isToday ? `Hoy ${monthDayLabel(day)}` : monthDayLabel(day)}
-                              </button>
-                              <div className="planning-calendar-app-day-stack">
-                                {primaryDaySessions.map((session) => (
-                                  <button
-                                    key={session.id}
-                                    type="button"
-                                    className={`planning-calendar-app-session ${session.layerDiscipline === "running" ? "running" : session.layerDiscipline === "ciclismo" ? "cycling" : session.layerDiscipline === "natación" ? "swimming" : ""} ${session.sessionType === "clave" ? "key" : ""}`}
-                                    onClick={() => openCalendarSessionDetail(session)}
-                                  >
-                                    <span>{session.sessionType}</span>
-                                    <strong>{session.title}</strong>
-                                    <p>{session.estimatedMinutes ? `${session.estimatedMinutes} min` : session.dose}</p>
-                                    <small>{session.dose}</small>
-                                  </button>
+                      <div
+                        ref={calendarMonthScrollerRef}
+                        className="planning-calendar-month-stream"
+                        onScroll={handleContinuousMonthScroll}
+                      >
+                        {continuousMonthSections.map((monthSection) => (
+                          <section
+                            key={monthSection.monthStart}
+                            ref={(node) => {
+                              calendarMonthSectionRefs.current[monthSection.monthStart] = node;
+                            }}
+                            className={`planning-calendar-month-section ${monthSection.monthStart === calendarMonth ? "active" : ""}`}
+                          >
+                            <div className="planning-calendar-month-section-head">
+                              <strong>{monthHeading(monthSection.monthStart)}</strong>
+                              <small>
+                                {monthSection.totalSessions
+                                  ? `${formatMinutesCompact(monthSection.totalMinutes)} · ${monthSection.totalSessions} sesiones visibles`
+                                  : "Sin sesiones visibles todavía"}
+                              </small>
+                            </div>
+
+                            <div className="planning-calendar-month-board">
+                              <div className="planning-calendar-month-header">
+                                {["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"].map((day) => (
+                                  <span key={`${monthSection.monthStart}-${day}`} className="planning-calendar-app-weekday">{day}</span>
                                 ))}
-                                {!primaryDaySessions.length ? (
-                                  <button type="button" className="planning-calendar-app-empty" onClick={() => openCalendarQuickAdd(day)}>
-                                    +
-                                  </button>
-                                ) : null}
-                                {overlayDaySessions.map((session) => (
-                                  <span key={session.id} className="planning-calendar-app-overlay">
-                                    {disciplineLabel(session.layerDiscipline)}
-                                  </span>
-                                ))}
+                                <span className="planning-calendar-month-summary-heading">Carga semanal</span>
                               </div>
-                            </article>
-                          );
-                        })}
+
+                              <div className="planning-calendar-month-rows">
+                                {monthSection.rows.map((week) => {
+                                  const isSelectedWeek = week.weekStart === selectedWeekStart;
+                                  const disciplineRows = ["running", "ciclismo", "natación"].map((discipline) => ({
+                                    discipline,
+                                    minutes: week.snapshot.disciplineMetrics.find((metric) => metric.discipline === discipline)?.minutes ?? 0,
+                                  }));
+
+                                  return (
+                                    <section
+                                      key={`month-row-${monthSection.monthStart}-${week.weekStart}`}
+                                      className={`planning-calendar-month-row ${isSelectedWeek ? "selected" : ""}`}
+                                    >
+                                      <div className="planning-calendar-month-row-grid">
+                                        {week.cells.map((cell) => {
+                                          if (!cell.date) {
+                                            return <span key={cell.id} className="planning-calendar-app-spacer" aria-hidden="true" />;
+                                          }
+                                          const day = cell.date;
+                                          const daySessions = sessionsByDate.get(day) ?? [];
+                                          const primaryDaySessions = daySessions.filter((session) => !session.isOverlay);
+                                          const overlayDaySessions = daySessions.filter((session) => session.isOverlay);
+                                          const isSelected = selectedCalendarDate === day;
+                                          const isInBlock = dateValue(day) >= dateValue(selectedCalendarSource.startDate) && dateValue(day) <= dateValue(selectedCalendarSource.endDate);
+                                          const isToday = day === isoDateFromToday();
+                                          return (
+                                            <article
+                                              key={cell.id}
+                                              className={`planning-calendar-app-day ${isSelected ? "selected" : ""} ${isInBlock ? "in-block" : ""}`}
+                                            >
+                                              <button type="button" className={`planning-calendar-app-day-label ${isToday ? "today" : ""}`} onClick={() => setSelectedCalendarDate(day)}>
+                                                {isToday ? `Hoy ${monthDayLabel(day)}` : monthDayLabel(day)}
+                                              </button>
+                                              <div className="planning-calendar-app-day-stack">
+                                                {primaryDaySessions.map((session) => (
+                                                  <button
+                                                    key={session.id}
+                                                    type="button"
+                                                    className={`planning-calendar-app-session ${session.layerDiscipline === "running" ? "running" : session.layerDiscipline === "ciclismo" ? "cycling" : session.layerDiscipline === "natación" ? "swimming" : ""} ${session.sessionType === "clave" ? "key" : ""}`}
+                                                    onClick={() => openCalendarSessionDetail(session)}
+                                                  >
+                                                    <span>{session.sessionType}</span>
+                                                    <strong>{session.title}</strong>
+                                                    <p>{session.estimatedMinutes ? `${session.estimatedMinutes} min` : session.dose}</p>
+                                                    <small>{session.dose}</small>
+                                                  </button>
+                                                ))}
+                                                {!primaryDaySessions.length ? (
+                                                  <button type="button" className="planning-calendar-app-empty" onClick={() => openCalendarQuickAdd(day)}>
+                                                    +
+                                                  </button>
+                                                ) : null}
+                                                {overlayDaySessions.map((session) => (
+                                                  <span key={session.id} className="planning-calendar-app-overlay">
+                                                    {disciplineLabel(session.layerDiscipline)}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            </article>
+                                          );
+                                        })}
+                                      </div>
+
+                                      <aside className={`planning-calendar-month-row-summary ${week.snapshot.loadProfile.tone} ${isSelectedWeek ? "selected" : ""}`}>
+                                        <button
+                                          type="button"
+                                          className="planning-calendar-month-row-summary-head"
+                                          onClick={() => setSelectedCalendarDate(week.weekStart)}
+                                        >
+                                          <span>{weekHeading(week.weekStart, week.weekEnd)}</span>
+                                          <strong>{formatMinutesCompact(week.snapshot.totalMinutes)}</strong>
+                                          <small>
+                                            {week.snapshot.totalSessions
+                                              ? `${week.snapshot.totalSessions} sesiones · ${week.snapshot.loadProfile.label.toLowerCase()}`
+                                              : `Sin sesiones en ${week.inMonthDays} días`}
+                                          </small>
+                                        </button>
+
+                                        <div className="planning-calendar-month-row-metrics">
+                                          <div className="planning-calendar-month-row-metric">
+                                            <div className="planning-calendar-month-row-metric-head">
+                                              <span>Total</span>
+                                              <strong>{formatMinutesCompact(week.snapshot.totalMinutes)}</strong>
+                                            </div>
+                                            <div className="planning-calendar-month-row-metric-track">
+                                              <span
+                                                className={`planning-calendar-month-row-metric-fill ${week.snapshot.loadProfile.tone}`}
+                                                style={{
+                                                  width: week.snapshot.totalMinutes
+                                                    ? `${Math.max(8, (week.snapshot.totalMinutes / monthSection.scale.totalMinutes) * 100)}%`
+                                                    : "0%",
+                                                }}
+                                              />
+                                            </div>
+                                          </div>
+
+                                          {disciplineRows.map((row) => (
+                                            <div key={`${week.weekStart}-${row.discipline}`} className="planning-calendar-month-row-metric">
+                                              <div className="planning-calendar-month-row-metric-head">
+                                                <span>{disciplineLabel(row.discipline)}</span>
+                                                <strong>{formatMinutesCompact(row.minutes)}</strong>
+                                              </div>
+                                              <div className="planning-calendar-month-row-metric-track">
+                                                <span
+                                                  className="planning-calendar-month-row-metric-fill discipline"
+                                                  style={{
+                                                    width: row.minutes
+                                                      ? `${Math.max(8, (row.minutes / monthSection.scale.disciplineMinutes[row.discipline]) * 100)}%`
+                                                      : "0%",
+                                                    backgroundColor: planningDisciplineAccent(row.discipline),
+                                                  }}
+                                                />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </aside>
+                                    </section>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </section>
+                        ))}
                       </div>
                     ) : (
-                      <div
-                        ref={calendarWeekScrollerRef}
-                        className="training-calendar-week-stream"
-                        onScroll={handleContinuousWeekScroll}
-                      >
+                      <>
+                        <div className="planning-calendar-app-header-row">
+                          {["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"].map((day) => (
+                            <span key={day} className="planning-calendar-app-weekday">{day}</span>
+                          ))}
+                        </div>
+
+                        <div
+                          ref={calendarWeekScrollerRef}
+                          className="training-calendar-week-stream"
+                          onScroll={handleContinuousWeekScroll}
+                        >
                         {continuousWeekStarts.map((weekStart) => {
                           const weekEnd = addDays(weekStart, 6);
                           const weekDates = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
                           const isFocusedWeek = weekStart === selectedWeekStart;
+                          const weekEntries = weekDates.flatMap((day) => sessionsByDate.get(day) ?? []);
+                          const weekSnapshot = buildCalendarWeekSnapshot(weekEntries, athleteAnalysis, selectedDiscipline);
+                          const weekBarMaxMinutes = Math.max(1, ...weekSnapshot.disciplineMetrics.map((item) => item.minutes));
 
                           return (
                             <section
@@ -3332,186 +4216,143 @@ export function PlanningPage({ token }: PlanningPageProps) {
                                 <strong>{weekHeading(weekStart, weekEnd)}</strong>
                               </div>
 
-                              <div className="training-calendar-week-grid">
-                                {weekDates.map((day) => {
-                                  const daySessions = sessionsByDate.get(day) ?? [];
-                                  const primaryDaySessions = daySessions.filter((session) => !session.isOverlay);
-                                  const overlayDaySessions = daySessions.filter((session) => session.isOverlay);
-                                  const isSelected = selectedCalendarDate === day;
-                                  const isToday = day === isoDateFromToday();
-                                  return (
-                                    <article
-                                      key={day}
-                                      className={`training-calendar-week-column ${isSelected ? "selected" : ""}`}
-                                      onMouseEnter={() => setSelectedCalendarDate(day)}
-                                    >
-                                      <button type="button" className={`training-calendar-week-head ${isToday ? "today" : ""}`} onClick={() => setSelectedCalendarDate(day)}>
-                                        <span>{dayNameShort(day)}</span>
-                                        <strong>{monthDayLabel(day)}</strong>
-                                      </button>
-                                      <div className="training-calendar-week-stack">
-                                        {primaryDaySessions.length ? primaryDaySessions.map((session) => (
-                                          <button
-                                            key={session.id}
-                                            type="button"
-                                            className={`training-calendar-session-card ${session.layerDiscipline === "running" ? "running" : session.layerDiscipline === "ciclismo" ? "cycling" : session.layerDiscipline === "natación" ? "swimming" : ""} ${session.sessionType === "clave" ? "key" : ""}`}
-                                            onClick={() => openCalendarSessionDetail(session)}
-                                          >
-                                            <span>{session.sessionType}</span>
-                                            <strong>{session.title}</strong>
-                                            <p>{session.dose}</p>
-                                            <small>{session.objective}</small>
-                                          </button>
-                                        )) : (
-                                          <button type="button" className="training-calendar-empty-slot" onClick={() => openCalendarQuickAdd(day)}>+</button>
-                                        )}
-                                        {overlayDaySessions.map((session) => (
-                                          <div key={session.id} className="training-calendar-session-card overlay">
-                                            <span>{disciplineLabel(session.layerDiscipline)}</span>
-                                            <strong>{session.title}</strong>
-                                          </div>
-                                        ))}
-                                      </div>
+                              <div className="training-calendar-week-layout">
+                                <div className="training-calendar-week-grid">
+                                  {weekDates.map((day) => {
+                                    const daySessions = sessionsByDate.get(day) ?? [];
+                                    const primaryDaySessions = daySessions.filter((session) => !session.isOverlay);
+                                    const overlayDaySessions = daySessions.filter((session) => session.isOverlay);
+                                    const isSelected = selectedCalendarDate === day;
+                                    const isToday = day === isoDateFromToday();
+                                    return (
+                                      <article
+                                        key={day}
+                                        className={`training-calendar-week-column ${isSelected ? "selected" : ""}`}
+                                      >
+                                        <button type="button" className={`training-calendar-week-head ${isToday ? "today" : ""}`} onClick={() => setSelectedCalendarDate(day)}>
+                                          <span>{dayNameShort(day)}</span>
+                                          <strong>{monthDayLabel(day)}</strong>
+                                        </button>
+                                        <div className="training-calendar-week-stack">
+                                          {primaryDaySessions.length ? primaryDaySessions.map((session) => (
+                                            <button
+                                              key={session.id}
+                                              type="button"
+                                              className={`training-calendar-session-card ${session.layerDiscipline === "running" ? "running" : session.layerDiscipline === "ciclismo" ? "cycling" : session.layerDiscipline === "natación" ? "swimming" : ""} ${session.sessionType === "clave" ? "key" : ""}`}
+                                              onClick={() => openCalendarSessionDetail(session)}
+                                            >
+                                              <span>{session.sessionType}</span>
+                                              <strong>{session.title}</strong>
+                                              <p>{session.dose}</p>
+                                              <small>{session.objective}</small>
+                                            </button>
+                                          )) : (
+                                            <button type="button" className="training-calendar-empty-slot" onClick={() => openCalendarQuickAdd(day)}>+</button>
+                                          )}
+                                          {overlayDaySessions.map((session) => (
+                                            <div key={session.id} className="training-calendar-session-card overlay">
+                                              <span>{disciplineLabel(session.layerDiscipline)}</span>
+                                              <strong>{session.title}</strong>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </article>
+                                    );
+                                  })}
+                                </div>
+
+                                <aside className={`training-calendar-week-summary training-calendar-week-summary-${weekSnapshot.loadProfile.tone}`}>
+                                  <div className="training-calendar-week-summary-top">
+                                    <article className="training-calendar-week-summary-kpi load">
+                                      <span>Carga</span>
+                                      <strong>{weekSnapshot.loadProfile.label}</strong>
+                                      <small>{weekSnapshot.loadProfile.hint}</small>
                                     </article>
-                                  );
-                                })}
+                                    <article className="training-calendar-week-summary-kpi">
+                                      <span>Sesiones</span>
+                                      <strong>{weekSnapshot.totalSessions}</strong>
+                                      <small>{weekSnapshot.keySessions} clave · {weekSnapshot.supportSessions} soporte</small>
+                                    </article>
+                                    <article className="training-calendar-week-summary-kpi">
+                                      <span>Día pico</span>
+                                      <strong>{weekSnapshot.peakDay ? formatMinutesCompact(weekSnapshot.peakDay.minutes) : "-"}</strong>
+                                      <small>{weekSnapshot.peakDay ? `${dayNameShort(weekSnapshot.peakDay.date)} ${monthDayLabel(weekSnapshot.peakDay.date)}` : "Sin carga visible"}</small>
+                                    </article>
+                                  </div>
+
+                                  <div className="training-calendar-week-summary-bars">
+                                    <div className="training-calendar-week-metric-row">
+                                      <div className="training-calendar-week-metric-head">
+                                        <span>Total duración</span>
+                                        <strong>{formatMinutesCompact(weekSnapshot.totalMinutes)}</strong>
+                                      </div>
+                                      <div className="training-calendar-week-metric-track">
+                                        <span
+                                          className={`training-calendar-week-metric-fill ${weekSnapshot.loadProfile.tone}`}
+                                          style={{ width: `${Math.max(10, weekSnapshot.loadProfile.intensityPct)}%` }}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="training-calendar-week-metric-row">
+                                      <div className="training-calendar-week-metric-head">
+                                        <span>Densidad clave</span>
+                                        <strong>{weekSnapshot.totalSessions ? `${weekSnapshot.keySessions}/${weekSnapshot.totalSessions}` : "0/0"}</strong>
+                                      </div>
+                                      <div className="training-calendar-week-metric-track">
+                                        <span
+                                          className="training-calendar-week-metric-fill positive"
+                                          style={{ width: `${weekSnapshot.totalSessions ? Math.max(10, (weekSnapshot.keySessions / weekSnapshot.totalSessions) * 100) : 10}%` }}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {weekSnapshot.disciplineMetrics.length ? weekSnapshot.disciplineMetrics.map((metric) => (
+                                      <div key={`${weekStart}-${metric.discipline}`} className="training-calendar-week-metric-row">
+                                        <div className="training-calendar-week-metric-head">
+                                          <span>{disciplineLabel(metric.discipline)}</span>
+                                          <strong>{formatMinutesCompact(metric.minutes)}</strong>
+                                        </div>
+                                        <div className="training-calendar-week-metric-track">
+                                          <span
+                                            className="training-calendar-week-metric-fill discipline"
+                                            style={{
+                                              width: `${Math.max(14, (metric.minutes / weekBarMaxMinutes) * 100)}%`,
+                                              backgroundColor: planningDisciplineAccent(metric.discipline),
+                                            }}
+                                          />
+                                        </div>
+                                        <small>
+                                          {metric.distanceMeters
+                                            ? `${metric.distanceEstimated ? "~" : ""}${formatDistanceCompact(metric.distanceMeters)} · ${metric.sessions} sesiones`
+                                            : `${metric.sessions} sesiones`}
+                                        </small>
+                                      </div>
+                                    )) : (
+                                      <p className="training-calendar-week-summary-empty">Todavía no hay sesiones visibles para esta semana.</p>
+                                    )}
+                                  </div>
+
+                                  <div className="training-calendar-week-summary-foot">
+                                    <div>
+                                      <span>Disciplina dominante</span>
+                                      <strong>{weekSnapshot.primaryDiscipline ? disciplineLabel(weekSnapshot.primaryDiscipline) : "Sin foco"}</strong>
+                                    </div>
+                                    <div>
+                                      <span>Distancia estimada</span>
+                                      <strong>{weekSnapshot.totalDistanceMeters ? formatDistanceCompact(weekSnapshot.totalDistanceMeters) : "n/d"}</strong>
+                                    </div>
+                                  </div>
+                                </aside>
                               </div>
                             </section>
                           );
                         })}
-                      </div>
+                        </div>
+                      </>
                     )}
                   </section>
 
-                  <aside className="planning-calendar-app-summary">
-                    <div className="planning-calendar-summary-panel">
-                      <span className="planning-kicker">Resumen</span>
-                      <div className="planning-calendar-summary-stats">
-                        <article>
-                          <small>Bloque actual</small>
-                          <strong>{overview?.next_recommendation.recommended_block_label || selectedCalendarSource.objective}</strong>
-                        </article>
-                        <article>
-                          <small>Tiempo semanal</small>
-                          <strong>{selectedWeekEstimatedMinutes ? `${selectedWeekEstimatedMinutes} min` : "n/d"}</strong>
-                        </article>
-                        <article>
-                          <small>Sesiones clave</small>
-                          <strong>{selectedWeekKeySessions}</strong>
-                        </article>
-                        <article>
-                          <small>Confidence</small>
-                          <strong>{overview?.next_recommendation.physiological_analysis?.confidence_band || "sin banda"}</strong>
-                        </article>
-                        <article>
-                          <small>Primary limiter</small>
-                          <strong>{overview?.next_recommendation.physiological_analysis?.primary_limiter || "sin lectura"}</strong>
-                        </article>
-                        <article>
-                          <small>Secondary limiter</small>
-                          <strong>{overview?.next_recommendation.physiological_analysis?.secondary_limiter || "sin lectura"}</strong>
-                        </article>
-                      </div>
-                    </div>
-
-                    <div className="planning-calendar-warning-panel">
-                      <span className="planning-kicker">Warnings</span>
-                      {calendarWarningCards.length ? calendarWarningCards.map((warning) => (
-                        <article key={warning.id} className={`training-calendar-warning ${warning.severity}`}>
-                          <span>{warning.severity === "high" ? "Alta" : warning.severity === "medium" ? "Media" : "Baja"}</span>
-                          <strong>{warning.title}</strong>
-                          <p>{warning.explanation}</p>
-                          {warning.suggestion ? <small>{warning.suggestion}</small> : null}
-                        </article>
-                      )) : (
-                        <article className="planning-empty-state">
-                          <strong>Sin avisos prioritarios.</strong>
-                          <p>La distribución visible no muestra conflictos evidentes.</p>
-                        </article>
-                      )}
-                    </div>
-
-                    <div className="planning-calendar-day-panel">
-                      <span className="planning-kicker">
-                        {selectedCalendarDate ? `${dayNameShort(selectedCalendarDate)} ${formatDate(selectedCalendarDate)}` : "Selecciona un día"}
-                      </span>
-                      <strong>{selectedDaySessions.length ? `${selectedDaySessions.length} propuesta(s)` : "Día libre"}</strong>
-                      <p>{selectedCalendarSource.intent || "Sin intención operativa cargada."}</p>
-                      <div className="planning-day-stack">
-                        {selectedPrimarySessions.length ? selectedPrimarySessions.map((session) => (
-                          <article
-                            key={session.id}
-                            className={`planning-day-card${session.blaCheck ? " bla-active" : ""}`}
-                          >
-                            <div className="planning-day-card-top" style={{cursor:"pointer"}} onClick={() => openCalendarSessionDetail(session)}>
-                              <span className="planning-kicker">{session.sessionType}</span>
-                              <span className={`planning-session-confidence ${session.confidence}`}>{session.confidence}</span>
-                            </div>
-                            <strong style={{cursor:"pointer"}} onClick={() => openCalendarSessionDetail(session)}>{session.title}</strong>
-                            <p style={{cursor:"pointer"}} onClick={() => openCalendarSessionDetail(session)}>{session.objective}</p>
-                            <small className="planning-dose">{session.dose}</small>
-                            {/* Nota del entrenador si existe */}
-                            {session.rawId && overview?.planned_sessions?.find(s => s.id === session.rawId)?.coach_note && (
-                              <p className="coach-note">
-                                📝 {overview.planned_sessions.find(s => s.id === session.rawId)?.coach_note}
-                              </p>
-                            )}
-                            {/* Botón para añadir/editar nota */}
-                            {session.rawId && (
-                              <div className="session-edit-actions">
-                                <button
-                                  type="button"
-                                  className="session-edit-btn"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const existing = overview?.planned_sessions?.find(s => s.id === session.rawId)?.coach_note ?? "";
-                                    setEditNote(existing);
-                                    setEditingSessionId(editingSessionId === session.rawId ? null : session.rawId!);
-                                  }}
-                                >
-                                  ✎ Nota
-                                </button>
-                              </div>
-                            )}
-                            {/* Panel de edición inline */}
-                            {editingSessionId === session.rawId && (
-                              <div className="session-edit-panel" onClick={e => e.stopPropagation()}>
-                                <textarea
-                                  placeholder="Nota del entrenador..."
-                                  value={editNote}
-                                  onChange={e => setEditNote(e.target.value)}
-                                  rows={2}
-                                  autoFocus
-                                />
-                                <div className="edit-actions">
-                                  <button
-                                    type="button"
-                                    className="primary-button"
-                                    disabled={editNoteLoading}
-                                    onClick={() => handleSaveCoachNote(session.rawId!)}
-                                  >
-                                    {editNoteLoading ? "Guardando..." : "Guardar"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="ghost-button"
-                                    onClick={() => { setEditingSessionId(null); setEditNote(""); }}
-                                  >
-                                    Cancelar
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </article>
-                        )) : (
-                          <article className="planning-day-card empty">
-                            <strong>Sin sesión propuesta</strong>
-                            <p>Queda libre para trabajo manual del entrenador.</p>
-                          </article>
-                        )}
-                      </div>
-                    </div>
-                  </aside>
                 </div>
               </>
             )}
@@ -4000,10 +4841,7 @@ export function PlanningPage({ token }: PlanningPageProps) {
                   onClick={() => {
                     if (!matchingSource) return;
                     setSelectedCalendarSourceId(item.id);
-                    setPlanningSourceModal({
-                      source: matchingSource,
-                      ...describePlanningSource(matchingSource),
-                    });
+                    openMesocycleLibraryFromSource(matchingSource);
                   }}
                 >
                   <span className="planning-kicker">{item.subtitle}</span>

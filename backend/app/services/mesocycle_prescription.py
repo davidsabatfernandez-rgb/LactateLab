@@ -842,6 +842,69 @@ def build_prewritten_mesocycle_draft(
             }
         )
 
+    # ── BLa check automático: referencia + validación ──────────────────────
+    # Regla: 1 BLa en semana de load (referencia pre-bloque, sesión KEY más
+    # temprana) + 1 BLa en última semana de build/build_peak (validación del
+    # estímulo, sesión KEY más temprana). Si solo hay 1-2 semanas, un solo BLa
+    # en la primera semana. Olbrecht: lactato valida el bloque, no dirige cada
+    # sesión. El entrenador puede mover/añadir BLa con el toggle manual.
+    _bla_load_week = None
+    _bla_validation_week = None
+    for week in draft_weeks:
+        phase_label = week.get("load_type", "")
+        if phase_label == "acumulación" and _bla_load_week is None:
+            _bla_load_week = week["week_index"]
+        if phase_label in ("construcción", "carga máxima"):
+            _bla_validation_week = week["week_index"]  # último build/build_peak
+    for week in draft_weeks:
+        wi = week["week_index"]
+        if wi == _bla_load_week or wi == _bla_validation_week:
+            for session in week["sessions"]:
+                if session["session_role"] == "key":
+                    session["bla_check"] = True
+                    session["payload"]["bla_check_reason"] = (
+                        "referencia pre-bloque" if wi == _bla_load_week
+                        else "validación del estímulo"
+                    )
+                    break  # solo 1 BLa por semana
+
+    # ── Técnica transversal en natación ─────────────────────────────────────
+    # La técnica es transversal en natación: prioridad máxima en base, fade
+    # progresivo hacia competición (Pla 2019, González-Ravé 2022).
+    # - acumulación (load): sesión dedicada de técnica ya en blueprints
+    # - construcción (build): técnica como soporte (drills en calentamiento)
+    # - carga máxima / específico: técnica solo en calentamiento (mínimo)
+    # - recuperación: técnica integrada en sesiones de recovery
+    if discipline == "natación":
+        _TECHNIQUE_CONTEXT = {
+            "acumulación": {
+                "level": "full",
+                "note": "Prioridad técnica alta: sesión dedicada + drills extensos en calentamiento.",
+            },
+            "construcción": {
+                "level": "support",
+                "note": "Técnica como soporte: 8-10 min drills en calentamiento. Foco metabólico principal.",
+            },
+            "carga máxima": {
+                "level": "warmup_only",
+                "note": "Técnica solo en calentamiento: 4-6×50m drills antes del bloque principal.",
+            },
+            "especificidad": {
+                "level": "warmup_only",
+                "note": "Técnica solo en calentamiento: drills mínimos antes del bloque específico.",
+            },
+            "descarga": {
+                "level": "integrated",
+                "note": "Técnica integrada en recuperación: drills suaves para sensación de agua.",
+            },
+        }
+        for week in draft_weeks:
+            load_type = week.get("load_type", "")
+            ctx = _TECHNIQUE_CONTEXT.get(load_type)
+            if ctx:
+                for session in week["sessions"]:
+                    session["payload"]["technique_context"] = ctx
+
     return {
         "discipline": discipline,
         "block_type": block_type,
@@ -927,6 +990,7 @@ def create_planned_sessions_for_block(
                 expected_signal=session["expected_signal"],
                 coach_note=session["coach_note"],
                 confidence=session["confidence"],
+                bla_check=session.get("bla_check", False),
                 status="planned",
                 payload={
                     **session["payload"],
