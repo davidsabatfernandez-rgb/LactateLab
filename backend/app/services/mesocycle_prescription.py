@@ -384,7 +384,16 @@ def _phase_sequence(
 
     work_span = max(1, duration_weeks - tail_recovery)
     phases = ["load"]
-    phases.extend(["build"] * max(work_span - 1, 0))
+
+    if work_span >= 3:
+        # Wave principle de Olbrecht: working phase 3/5 del ciclo.
+        # Con ≥3 semanas de trabajo: load → build(s) → build_peak (clímax).
+        # build_peak = mismos slots que build pero peldaño máximo — semana de mayor carga.
+        phases.extend(["build"] * max(work_span - 2, 0))
+        phases.append("build_peak")
+    else:
+        phases.extend(["build"] * max(work_span - 1, 0))
+
     phases.extend(["recovery"] * tail_recovery)
 
     if block_type == "competition_specific_block":
@@ -398,10 +407,11 @@ def _phase_sequence(
 
 def _week_load_label(phase: str) -> str:
     return {
-        "load": "acumulación",
-        "build": "construcción",
-        "specific": "especificidad",
-        "recovery": "descarga",
+        "load":        "acumulación",
+        "build":       "construcción",
+        "build_peak":  "carga máxima",      # clímax del working phase
+        "specific":    "especificidad",
+        "recovery":    "descarga",
     }.get(phase, "construcción")
 
 
@@ -410,6 +420,9 @@ def _progression_note(session_family: str, phase: str, week_index: int, state: A
         return f"Semana {week_index}: introducir {session_family} con dosis conservadora y comparabilidad alta."
     if phase == "build":
         return f"Semana {week_index}: progresar una sola palanca de {session_family} respetando la robustez {state.robustness}."
+    if phase == "build_peak":
+        # Olbrecht: semana de carga máxima — misma frecuencia que build pero peldaño más alto
+        return f"Semana {week_index}: carga máxima del ciclo en {session_family} — peldaño superior, frecuencia estable. Olbrecht: no subir volumen e intensidad al mismo tiempo."
     if phase == "specific":
         return f"Semana {week_index}: acercar {session_family} al objetivo con señal limpia y sin vaciar al atleta."
     return f"Semana {week_index}: consolidar con {session_family} y bajar ruido para releer la respuesta."
@@ -423,7 +436,8 @@ def _expected_signal(template, phase: str) -> str:
 
 def _base_selection_index(template, phase: str, state: AthletePlanningState) -> int:
     max_index = max(len(template.csv_examples) - 1, 0)
-    index = {"load": 0, "build": 1, "specific": 2, "recovery": 0}.get(phase, 0)
+    # build_peak = peldaño máximo del ciclo (2 en una escala 0-2 para 3 fases)
+    index = {"load": 0, "build": 1, "build_peak": 2, "specific": 2, "recovery": 0}.get(phase, 0)
     index = min(index, max_index)
 
     if template.session_role in {"support", "recovery"}:
@@ -635,6 +649,81 @@ def _prescribed_dose(
     return template.csv_examples[index], _selection_reason(template, phase, state, index), index
 
 
+def _smart_day_offsets(
+    slots: list[DraftSlot],
+    library: dict[str, Any],
+) -> list[DraftSlot]:
+    """Asigna day_offsets óptimos respetando fatigue_cost y requires_fresh.
+
+    Convención: 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb, 7=Dom
+
+    Reglas (Olbrecht wave principle + spacing fisiológico):
+    - Sesión KEY fatigue_cost=5, requires_fresh → día 2 (Martes, tras lunes de descanso)
+    - Sesión KEY fatigue_cost=4 → día 2 ó 4, con ≥2 días desde otra sesión ≥4
+    - Sesión larga extensiva (template_id contiene 'long' o 'endurance' o 'fatmax') → día 6
+    - Sesión SUPPORT/RECOVERY → días disponibles (1, 3, 5, 7)
+    - Si dos KEY → separadas ≥ 2 días
+    """
+    if not slots:
+        return slots
+
+    result = list(slots)
+    used_days: set[int] = set()
+
+    # Clasificar slots
+    long_ids = {"run_long_aerobic", "run_regenerative_long", "bike_long_endurance",
+                "bike_fatmax_endurance", "swim_aec_long_session", "recovery_regeneration"}
+
+    long_slots    = [(i, s) for i, s in enumerate(slots) if s.template_id in long_ids]
+    key_slots_raw = [(i, s) for i, s in enumerate(slots)
+                     if s.template_id not in long_ids
+                     and library.get(s.template_id)
+                     and library[s.template_id].session_role == "key"]
+    support_slots = [(i, s) for i, s in enumerate(slots)
+                     if s.template_id not in long_ids
+                     and (i, s) not in key_slots_raw
+                     and library.get(s.template_id)
+                     and library[s.template_id].session_role in {"support", "recovery"}]
+
+    # 1. Sesiones largas → sábado (6)
+    for idx, slot in long_slots:
+        day = 6 if 6 not in used_days else (7 if 7 not in used_days else slot.day_offset)
+        result[idx] = DraftSlot(day, slot.template_id)
+        used_days.add(day)
+
+    # 2. Sesiones KEY — ordenar por fatigue_cost desc para poner las más duras primero
+    key_slots = sorted(
+        key_slots_raw,
+        key=lambda x: -(library[x[1].template_id].fatigue_cost if library.get(x[1].template_id) else 0),
+    )
+    key_preferred = [2, 4, 5]   # Mar, Jue, Vie (días con descanso previo)
+    for i, (idx, slot) in enumerate(key_slots):
+        tmpl = library.get(slot.template_id)
+        preferred = [2, 4] if (tmpl and tmpl.requires_fresh) else key_preferred
+        assigned = None
+        for day in preferred:
+            if day not in used_days:
+                # Verificar spacing ≥2 días desde otra key
+                min_gap = min((abs(day - d) for d in used_days if d != 6 and d != 7), default=99)
+                if min_gap >= 2 or not used_days - {6, 7}:
+                    assigned = day
+                    break
+        if assigned is None:
+            # Fallback: cualquier día libre
+            assigned = next((d for d in range(1, 8) if d not in used_days), slot.day_offset)
+        result[idx] = DraftSlot(assigned, slot.template_id)
+        used_days.add(assigned)
+
+    # 3. Sesiones support/recovery → días restantes
+    recovery_pool = [d for d in [1, 3, 5, 7] if d not in used_days]
+    for pos, (idx, slot) in enumerate(support_slots):
+        if pos < len(recovery_pool):
+            result[idx] = DraftSlot(recovery_pool[pos], slot.template_id)
+            used_days.add(recovery_pool[pos])
+
+    return result
+
+
 def build_prewritten_mesocycle_draft(
     *,
     discipline: str,
@@ -677,7 +766,8 @@ def build_prewritten_mesocycle_draft(
     template_last_indices: dict[str, int] = {}
 
     for week_index, phase in enumerate(phases, start=1):
-        slots = blueprints.get(phase) or blueprints.get("build") or blueprints.get("load") or blueprints.get("recovery") or ()
+        raw_slots = blueprints.get(phase) or blueprints.get("build") or blueprints.get("load") or blueprints.get("recovery") or ()
+        slots = _smart_day_offsets(list(raw_slots), library)
         sessions: list[dict[str, Any]] = []
         weekly_controls: list[str] = []
         for slot in slots:
