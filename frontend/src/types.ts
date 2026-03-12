@@ -214,6 +214,83 @@ export type GarminActivitiesPreviewResponse = {
   activities: GarminActivity[];
 };
 
+export type AthleteHealthProviderStatus = {
+  provider: string;
+  label: string;
+  connected: boolean;
+  status: string;
+  last_sync_at?: string | null;
+  detail?: string | null;
+};
+
+export type AthleteHealthSummary = {
+  activities_count: number;
+  training_days: number;
+  total_duration_seconds: number;
+  total_distance_m: number;
+  most_recent_activity_at?: string | null;
+  primary_sport_label?: string | null;
+  primary_sport_color?: string | null;
+};
+
+export type AthleteHealthMetric = {
+  key: string;
+  label: string;
+  value: string;
+  detail?: string | null;
+};
+
+export type AthleteHealthDaily = {
+  date: string;
+  sleep_score?: number | null;
+  sleep_seconds?: number | null;
+  stress_level?: number | null;
+  hrv_status?: string | null;
+  hrv_last_night_avg?: number | null;
+  steps?: number | null;
+  intensity_minutes?: number | null;
+};
+
+export type AthleteHealthActivity = {
+  provider_activity_id: number;
+  name: string;
+  started_at: string;
+  sport_type: string;
+  sport_label: string;
+  sport_color: string;
+  distance_m: number;
+  moving_time_seconds: number;
+  average_heartrate?: number | null;
+  average_watts?: number | null;
+  source: string;
+};
+
+export type AthleteHealthCalendarDay = {
+  date: string;
+  activity_count: number;
+  total_duration_seconds: number;
+  total_distance_m: number;
+  primary_sport_label?: string | null;
+  primary_sport_color?: string | null;
+};
+
+export type AthleteHealthOverview = {
+  athlete_id: number;
+  athlete_name: string;
+  window_start: string;
+  window_end: string;
+  providers: AthleteHealthProviderStatus[];
+  summary: AthleteHealthSummary;
+  health_metrics: AthleteHealthMetric[];
+  sleep_breakdown: AthleteHealthMetric[];
+  performance_metrics: AthleteHealthMetric[];
+  health_days: AthleteHealthDaily[];
+  recent_activities: AthleteHealthActivity[];
+  activity_calendar: AthleteHealthCalendarDay[];
+  raw_wellness: Record<string, unknown>;
+  notes: string[];
+};
+
 export type AthleteFocusBlock = {
   id: number;
   start_date: string;

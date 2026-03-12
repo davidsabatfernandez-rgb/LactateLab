@@ -292,6 +292,21 @@ export const api = {
       `/garmin/athletes/${athleteId}/activities/${activityId}`,
       { token },
     ),
+  athleteHealthOverview: (
+    token: string,
+    athleteId: number,
+    days = 28,
+    options?: { includeActivity?: boolean; includeRawWellness?: boolean; refreshLiveHealth?: boolean }
+  ) =>
+    request(
+      `/athlete-health/athletes/${athleteId}/overview?${new URLSearchParams({
+        days: String(days),
+        ...(options?.includeActivity !== undefined ? { include_activity: String(options.includeActivity) } : {}),
+        ...(options?.includeRawWellness !== undefined ? { include_raw_wellness: String(options.includeRawWellness) } : {}),
+        ...(options?.refreshLiveHealth !== undefined ? { refresh_live_health: String(options.refreshLiveHealth) } : {}),
+      }).toString()}`,
+      { token },
+    ),
   dashboard: (token: string) => request("/analytics/dashboard", { token }),
   athletes: (token: string) => request("/athletes", { token }),
   createAthlete: (token: string, payload: unknown) =>

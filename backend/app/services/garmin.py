@@ -74,7 +74,7 @@ def list_garmin_activities(
     token = decrypt_secret(athlete.garmin_token_encrypted) if athlete.garmin_token_encrypted else None
 
     with _garmin_session(email=email, password=password, token=token, allow_reauth=True) as garth:
-        search_limit = 200 if activity_limit is None else max(1, min(activity_limit * 6, 200))
+        search_limit = 200 if activity_limit is None else max(1, min(activity_limit * 3, 200))
         raw_activities = _safe_connectapi(
             garth,
             f"activitylist-service/activities/search/activities?startDate={start_date.isoformat()}&limit={search_limit}",
@@ -97,17 +97,26 @@ def list_garmin_activities(
             if activity_id is None:
                 continue
 
-            detail = _best_effort_connectapi(garth, f"activity-service/activity/{activity_id}/splits")
-            summary_detail = _best_effort_connectapi(garth, f"activity-service/activity/{activity_id}")
-            extras = _collect_extended_activity_payloads(garth, activity_id) if include_full_detail else None
+            summary_detail: dict[str, Any] = {}
+            detail_splits: list[dict[str, Any]] = []
+            extras = None
+            detail_scope = "preview"
+
+            if include_full_detail:
+                detail = _best_effort_connectapi(garth, f"activity-service/activity/{activity_id}/splits")
+                summary_response = _best_effort_connectapi(garth, f"activity-service/activity/{activity_id}")
+                summary_detail = summary_response if isinstance(summary_response, dict) else {}
+                detail_splits = detail if isinstance(detail, list) else []
+                extras = _collect_extended_activity_payloads(garth, activity_id)
+                detail_scope = "full"
 
             activities.append(
                 _normalize_activity(
                     item,
-                    summary_detail if isinstance(summary_detail, dict) else {},
-                    detail if isinstance(detail, list) else [],
+                    summary_detail,
+                    detail_splits,
                     extras=extras,
-                    detail_scope="full" if include_full_detail else "summary",
+                    detail_scope=detail_scope,
                 )
             )
             if activity_limit is not None and len(activities) >= activity_limit:

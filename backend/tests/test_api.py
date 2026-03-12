@@ -1,5 +1,6 @@
 from datetime import date, datetime
 
+import bcrypt
 from sqlalchemy import select
 
 from app.core.security import get_password_hash
@@ -21,6 +22,41 @@ def auth_headers(client, db_session):
     response = client.post("/api/auth/login", json={"email": "coach@test.dev", "password": "secret123"})
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+def test_login_accepts_legacy_bcrypt_hash_and_rehashes_to_pbkdf2(client, db_session):
+    legacy_hash = bcrypt.hashpw(b"secret123", bcrypt.gensalt()).decode("utf-8")
+    user = User(
+        email="legacy-login@test.dev",
+        hashed_password=legacy_hash,
+        role="coach",
+        full_name="Legacy Login",
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    response = client.post("/api/auth/login", json={"email": "legacy-login@test.dev", "password": "secret123"})
+
+    assert response.status_code == 200
+    db_session.refresh(user)
+    assert user.hashed_password.startswith("$pbkdf2-sha256$")
+    assert user.hashed_password != legacy_hash
+
+
+def test_login_returns_401_for_invalid_hash_payload(client, db_session):
+    user = User(
+        email="invalid-hash@test.dev",
+        hashed_password="not-a-valid-password-hash",
+        role="coach",
+        full_name="Invalid Hash",
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    response = client.post("/api/auth/login", json={"email": "invalid-hash@test.dev", "password": "secret123"})
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid credentials"
 
 
 def test_athlete_can_start_strava_oauth(client, db_session, monkeypatch):
@@ -2031,3 +2067,114 @@ def test_import_preview_and_commit(client, db_session):
     payload = commit_response.json()
     assert payload["imported_sessions"] == 1
     assert payload["imported_intervals"] == 2
+
+
+def test_athlete_can_fetch_parallel_health_overview(client, db_session, monkeypatch):
+    athlete = Athlete(
+        name="Atleta Health",
+        date_of_birth=date(1993, 6, 4),
+        sex="female",
+        weight=56,
+        height=167,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+        garmin_user_id=9001,
+        garmin_email="athlete-health@test.dev",
+        garmin_password_encrypted="encrypted-password",
+        garmin_token_encrypted="encrypted-token",
+        garmin_connected_at=datetime(2026, 3, 11, 8, 0),
+        garmin_last_sync_at=datetime(2026, 3, 11, 8, 30),
+    )
+    db_session.add(athlete)
+    db_session.flush()
+
+    user = User(
+        email="athlete-health-login@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="athlete",
+        full_name="Athlete Health Login",
+        athlete_id=athlete.id,
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    monkeypatch.setattr(
+        "app.services.athlete_health.list_garmin_activities",
+        lambda db, athlete, start_date, end_date, include_full_detail=False, activity_limit=None: [
+            {
+                "provider_activity_id": 7001,
+                "name": "Rodaje aeróbico",
+                "sport_type": "running",
+                "started_at": datetime(2026, 3, 10, 7, 30),
+                "distance_m": 12400.0,
+                "moving_time_seconds": 3180,
+                "average_heartrate": 148.0,
+                "average_watts": None,
+            },
+            {
+                "provider_activity_id": 7002,
+                "name": "Piscina técnica",
+                "sport_type": "lap_swimming",
+                "started_at": datetime(2026, 3, 9, 18, 15),
+                "distance_m": 2500.0,
+                "moving_time_seconds": 2700,
+                "average_heartrate": 132.0,
+                "average_watts": None,
+            },
+        ],
+    )
+
+    login_response = client.post("/api/auth/login", json={"email": "athlete-health-login@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.get(f"/api/athlete-health/athletes/{athlete.id}/overview?days=28", headers=headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["athlete_id"] == athlete.id
+    assert payload["providers"][0]["provider"] == "garmin"
+    assert payload["providers"][0]["status"] == "connected"
+    assert payload["summary"]["activities_count"] == 2
+    assert payload["summary"]["training_days"] == 2
+    assert payload["summary"]["primary_sport_label"] == "Carrera"
+    assert payload["recent_activities"][0]["sport_label"] == "Carrera"
+    assert payload["recent_activities"][1]["sport_label"] == "Piscina"
+    assert len(payload["activity_calendar"]) == 28
+
+
+def test_athlete_cannot_fetch_other_athlete_parallel_health_overview(client, db_session):
+    athlete = Athlete(
+        name="Athlete One",
+        date_of_birth=date(1992, 5, 1),
+        sex="male",
+        weight=64,
+        height=176,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+    )
+    other = Athlete(
+        name="Athlete Two",
+        date_of_birth=date(1991, 7, 12),
+        sex="female",
+        weight=59,
+        height=168,
+        primary_discipline="cycling",
+        created_at=date(2026, 1, 1),
+    )
+    db_session.add_all([athlete, other])
+    db_session.flush()
+
+    user = User(
+        email="athlete-other-health@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="athlete",
+        full_name="Athlete Other Health",
+        athlete_id=athlete.id,
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    login_response = client.post("/api/auth/login", json={"email": "athlete-other-health@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.get(f"/api/athlete-health/athletes/{other.id}/overview?days=28", headers=headers)
+    assert response.status_code == 403
