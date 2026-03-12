@@ -84,6 +84,28 @@ type CalendarMesocycleOption = {
   whyNotAsGood: string[];
 };
 
+type QuickAddKind = "running" | "ciclismo" | "natación" | "event" | "off" | "note" | "mesocycle";
+
+type WorkoutLibraryLayer =
+  | "base"
+  | "lt1"
+  | "subthreshold"
+  | "lt2"
+  | "vo2"
+  | "technique"
+  | "strength"
+  | "specific"
+  | "recovery"
+  | "other";
+
+type CalendarQuickAddState = {
+  date: string;
+  mode: "actions" | "library" | "manual";
+  selectedKind: QuickAddKind;
+  selectedDiscipline?: "running" | "ciclismo" | "natación";
+  selectedLayer?: WorkoutLibraryLayer;
+};
+
 type CalendarWorkspaceTab = "athletes" | "library" | "calendar" | "summary";
 
 type RosterProgressRow = {
@@ -146,6 +168,88 @@ function disciplineLabel(value?: string | null) {
   if (value === "natación") return "Natación";
   if (value === "triatlón") return "Triatlón";
   return value || "Disciplina";
+}
+
+function quickAddKindSlug(kind: QuickAddKind | "library") {
+  if (kind === "running") return "running";
+  if (kind === "ciclismo") return "cycling";
+  if (kind === "natación") return "swimming";
+  if (kind === "event") return "event";
+  if (kind === "off") return "off";
+  if (kind === "note") return "note";
+  if (kind === "mesocycle") return "mesocycle";
+  return "library";
+}
+
+function QuickAddIcon({ kind, large = false }: { kind: QuickAddKind | "library"; large?: boolean }) {
+  const slug = quickAddKindSlug(kind);
+  return (
+    <span className={`planning-quick-add-icon kind-${slug} ${large ? "large" : ""}`} aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {kind === "running" ? (
+          <>
+            <circle cx="16.5" cy="5" r="2.2" />
+            <path d="M10.5 21l2.2-5.6 2.7-2.6 1.8 2.2 3.3.4" />
+            <path d="M8.4 13.4l4-3.5 1.9-3.2 3.5 1" />
+            <path d="M7 10.8l2.5 1.1" />
+          </>
+        ) : kind === "ciclismo" ? (
+          <>
+            <circle cx="6.5" cy="17" r="3.5" />
+            <circle cx="17.5" cy="17" r="3.5" />
+            <path d="M9 17l3.1-6h3.2" />
+            <path d="M11.2 11l3.3 6h3" />
+            <path d="M9.8 11H7.5" />
+            <path d="M14.5 7.5h1.8" />
+          </>
+        ) : kind === "natación" ? (
+          <>
+            <path d="M3 16c1.6 0 1.6-1 3.2-1s1.6 1 3.2 1 1.6-1 3.2-1 1.6 1 3.2 1 1.6-1 3.2-1 1.6 1 3.2 1" />
+            <path d="M4 11.6c1.2-.6 2.8-1.1 4.3-.6 1 .3 1.7 1 2.7 1.2 1.8.4 3.1-.8 4.5-1.7" />
+            <path d="M15.6 7.3l1.9 1.1" />
+            <path d="M14.5 9.1c.8-.6 1.9-.8 2.8-.5" />
+          </>
+        ) : kind === "event" ? (
+          <>
+            <rect x="4" y="6" width="16" height="14" rx="2.5" />
+            <path d="M8 4v4" />
+            <path d="M16 4v4" />
+            <path d="M4 10.5h16" />
+            <path d="M8 14h3" />
+          </>
+        ) : kind === "off" ? (
+          <>
+            <path d="M12 4.5v7.5" />
+            <path d="M12 12l5.2 3" />
+            <circle cx="12" cy="12" r="8" />
+          </>
+        ) : kind === "note" ? (
+          <>
+            <path d="M7 4.5h7l4 4V19.5H7z" />
+            <path d="M14 4.5v4h4" />
+            <path d="M9.5 12.5h5" />
+            <path d="M9.5 16h5" />
+          </>
+        ) : kind === "mesocycle" ? (
+          <>
+            <rect x="4" y="5" width="16" height="14" rx="3" />
+            <path d="M8 9h8" />
+            <path d="M8 13h5" />
+            <path d="M8 17h8" />
+          </>
+        ) : (
+          <>
+            <path d="M7 6h10" />
+            <path d="M7 12h10" />
+            <path d="M7 18h10" />
+            <circle cx="5" cy="6" r="1" />
+            <circle cx="5" cy="12" r="1" />
+            <circle cx="5" cy="18" r="1" />
+          </>
+        )}
+      </svg>
+    </span>
+  );
 }
 
 function firstName(value?: string | null) {
@@ -843,6 +947,104 @@ function buildSyntheticCalendarWorkoutPreview(
   };
 }
 
+function buildLibraryWorkoutPreview(
+  template: PlanningWorkoutTemplate,
+  lt1: ReturnType<typeof resolveTrainingThreshold>,
+  lt2: ReturnType<typeof resolveTrainingThreshold>,
+  thresholdBasis: string,
+): OpenWorkoutPreviewState {
+  const firstStep = template.dose_ladder[0] ?? null;
+  const fallbackLabel = template.csv_examples[0] || template.public_label;
+
+  return {
+    template,
+    selection: {
+      source: "planning",
+      templateId: template.template_id,
+      label: firstStep?.label || fallbackLabel,
+      notes: template.dose_guidance || template.summary,
+      totalDurationMin: firstStep?.total_duration_min,
+      usefulDurationMin: firstStep?.total_useful_time_min,
+      restMin: firstStep?.rest_min,
+      intensityZone: firstStep?.intensity_zone,
+      readiness: firstStep?.readiness_required ?? (template.fatigue_cost >= 4 ? "fresh" : template.fatigue_cost >= 3 ? "medium" : "any"),
+      prescriptionHint: buildPlanningPrescriptionHint(template.objective, template.public_label, template.discipline, lt1, lt2),
+      thresholdBasis,
+    },
+  };
+}
+
+function workoutLayerForTemplate(template: PlanningWorkoutTemplate): WorkoutLibraryLayer {
+  const family = template.session_family.toLowerCase();
+  const objective = template.objective.toLowerCase();
+  const zone = (template.dose_ladder[0]?.intensity_zone || "").toLowerCase();
+  const combined = `${family} ${objective} ${zone}`;
+
+  if (combined.includes("recovery") || combined.includes("regener") || combined.includes("lt0") || combined.includes("rest")) return "recovery";
+  if (combined.includes("specific") || combined.includes("race pace") || combined.includes("compet") || combined.includes("brick") || combined.includes("css")) return "specific";
+  if (combined.includes("strength") || combined.includes("torque") || combined.includes("fuerza")) return "strength";
+  if (combined.includes("tech") || combined.includes("técn") || combined.includes("economy") || combined.includes("cadence") || combined.includes("aero_stability")) return "technique";
+  if (combined.includes("vo2")) return "vo2";
+  if (combined.includes("lt2") || combined.includes("threshold") || combined.includes("umbral")) return "lt2";
+  if (combined.includes("subthreshold") || combined.includes("sub-t") || combined.includes("e2") || combined.includes("lt1→lt2") || combined.includes("lt1->lt2")) return "subthreshold";
+  if (combined.includes("lt1")) return "lt1";
+  if (combined.includes("base") || combined.includes("endur") || combined.includes("aerób") || combined.includes("aerob") || combined.includes("durability")) return "base";
+  return "other";
+}
+
+function workoutLayerLabel(layer: WorkoutLibraryLayer) {
+  if (layer === "base") return "Base";
+  if (layer === "lt1") return "LT1";
+  if (layer === "subthreshold") return "Subumbral";
+  if (layer === "lt2") return "LT2";
+  if (layer === "vo2") return "VO2";
+  if (layer === "technique") return "Técnica";
+  if (layer === "strength") return "Fuerza";
+  if (layer === "specific") return "Específico";
+  if (layer === "recovery") return "Recuperación";
+  if (layer === "other") return "Otros";
+  return "Otros";
+}
+
+function workoutLayerTone(layer: WorkoutLibraryLayer) {
+  if (layer === "recovery") return "recovery";
+  if (layer === "base") return "aerobic";
+  if (layer === "lt1") return "lt1";
+  if (layer === "subthreshold") return "subthreshold";
+  if (layer === "lt2") return "lt2";
+  if (layer === "vo2") return "vo2";
+  if (layer === "technique") return "technical";
+  if (layer === "specific") return "specific";
+  if (layer === "strength") return "strength";
+  return "other";
+}
+
+function workoutLayerCue(layer: WorkoutLibraryLayer) {
+  if (layer === "recovery") return "Carga baja y control fino de la fatiga residual.";
+  if (layer === "base") return "Volumen útil para consolidar oxidación y estabilidad.";
+  if (layer === "lt1") return "Trabajo extensivo cerca del primer umbral.";
+  if (layer === "subthreshold") return "Transición metabólica con densidad controlada.";
+  if (layer === "lt2") return "Minutos de calidad alrededor del máximo estado estable.";
+  if (layer === "vo2") return "Bloques intensos para techo aeróbico y potencia.";
+  if (layer === "technique") return "Eficiencia mecánica con fatiga contenida.";
+  if (layer === "specific") return "Sesiones cercanas a la demanda competitiva.";
+  if (layer === "strength") return "Soporte estructural y transferencia al gesto.";
+  return "Sesiones complementarias fuera de las familias principales.";
+}
+
+function workoutLayerGlyph(layer: WorkoutLibraryLayer) {
+  if (layer === "recovery") return "RC";
+  if (layer === "base") return "BA";
+  if (layer === "lt1") return "LT1";
+  if (layer === "subthreshold") return "ST";
+  if (layer === "lt2") return "LT2";
+  if (layer === "vo2") return "VO2";
+  if (layer === "technique") return "TEC";
+  if (layer === "specific") return "ESP";
+  if (layer === "strength") return "FZ";
+  return "OT";
+}
+
 function phaseOptionsForRecommendation(blockType?: string | null) {
   if (blockType === "competition_specific_block") return ["específico", "competición", "taper"];
   if (blockType === "recovery_consolidation_block") return ["descarga", "transición"];
@@ -1050,9 +1252,11 @@ export function PlanningPage({ token }: PlanningPageProps) {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
   const [enabledOverlayDisciplines, setEnabledOverlayDisciplines] = useState<string[]>([]);
   const [workoutLibrary, setWorkoutLibrary] = useState<PlanningWorkoutTemplate[]>([]);
+  const [quickAddLibraries, setQuickAddLibraries] = useState<Record<string, PlanningWorkoutTemplate[]>>({});
   const [openWorkoutPreview, setOpenWorkoutPreview] = useState<OpenWorkoutPreviewState | null>(null);
   const [planningSourceModal, setPlanningSourceModal] = useState<PlanningSourceModalState | null>(null);
   const [calendarComposerDate, setCalendarComposerDate] = useState<string | null>(null);
+  const [calendarQuickAdd, setCalendarQuickAdd] = useState<CalendarQuickAddState | null>(null);
   const calendarWeekScrollerRef = useRef<HTMLDivElement | null>(null);
   const calendarWeekScrollFrameRef = useRef<number | null>(null);
   const calendarWeekAutoCenteredRef = useRef(false);
@@ -1142,6 +1346,7 @@ export function PlanningPage({ token }: PlanningPageProps) {
     setSearchParams(params);
     if (tab !== "calendar") {
       setCalendarComposerDate(null);
+      setCalendarQuickAdd(null);
     }
   }, [searchParams, setSearchParams]);
 
@@ -1149,6 +1354,8 @@ export function PlanningPage({ token }: PlanningPageProps) {
     const params = new URLSearchParams(searchParams);
     params.delete("panel");
     params.delete("view");
+    setCalendarQuickAdd(null);
+    setCalendarComposerDate(null);
     setSearchParams(params);
   }, [searchParams, setSearchParams]);
 
@@ -1342,11 +1549,68 @@ export function PlanningPage({ token }: PlanningPageProps) {
     };
   }, [selectedDiscipline, token]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadQuickAddLibraries() {
+      const disciplines: Array<"running" | "ciclismo" | "natación"> = ["running", "ciclismo", "natación"];
+      try {
+        const results = await Promise.all(
+          disciplines.map(async (discipline) => (
+            [discipline, (await api.generalPlanningWorkoutLibrary(token, discipline)) as PlanningWorkoutTemplate[]] as const
+          )),
+        );
+        if (!cancelled) {
+          setQuickAddLibraries(Object.fromEntries(results));
+        }
+      } catch {
+        if (!cancelled) {
+          setQuickAddLibraries({});
+        }
+      }
+    }
+
+    loadQuickAddLibraries();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
   const templateLibrary = overview?.template_library ?? [];
   const selectedTemplate = useMemo(
     () => templateLibrary.find((template) => template.template_id === selectedTemplateId) ?? templateLibrary[0] ?? null,
     [selectedTemplateId, templateLibrary],
   );
+  const quickAddDiscipline = calendarQuickAdd?.selectedDiscipline ?? "running";
+  const quickAddDisciplineLibrary = useMemo(() => {
+    const recommendedIds = new Set(
+      (overview?.recommended_workouts ?? [])
+        .filter((template) => template.discipline === quickAddDiscipline)
+        .map((template) => template.template_id),
+    );
+    const library = quickAddLibraries[quickAddDiscipline] ?? [];
+    return [...library].sort((left, right) => Number(recommendedIds.has(right.template_id)) - Number(recommendedIds.has(left.template_id)));
+  }, [calendarQuickAdd?.selectedDiscipline, overview?.recommended_workouts, quickAddDiscipline, quickAddLibraries]);
+  const quickAddAvailableLayers = useMemo(() => {
+    const present = new Set<WorkoutLibraryLayer>(quickAddDisciplineLibrary.map(workoutLayerForTemplate));
+    return (["recovery", "base", "lt1", "subthreshold", "lt2", "vo2", "technique", "strength", "specific", "other"] as WorkoutLibraryLayer[])
+      .filter((layer) => present.has(layer));
+  }, [quickAddDisciplineLibrary]);
+  const quickAddActiveLayer = useMemo(
+    () => (calendarQuickAdd?.selectedLayer && quickAddAvailableLayers.includes(calendarQuickAdd.selectedLayer) ? calendarQuickAdd.selectedLayer : quickAddAvailableLayers[0] ?? null),
+    [calendarQuickAdd?.selectedLayer, quickAddAvailableLayers],
+  );
+  const quickAddLayerCounts = useMemo(
+    () => Object.fromEntries(quickAddAvailableLayers.map((layer) => [layer, quickAddDisciplineLibrary.filter((template) => workoutLayerForTemplate(template) === layer).length])),
+    [quickAddAvailableLayers, quickAddDisciplineLibrary],
+  );
+  const quickAddFilteredLibrary = useMemo(() => {
+    const selectedLayer = quickAddActiveLayer;
+    const filtered = selectedLayer
+      ? quickAddDisciplineLibrary.filter((template) => workoutLayerForTemplate(template) === selectedLayer)
+      : quickAddDisciplineLibrary;
+    return filtered.slice(0, 15);
+  }, [quickAddActiveLayer, quickAddDisciplineLibrary]);
 
   useEffect(() => {
     if (!availableDisciplines.includes(selectedDiscipline)) {
@@ -2153,12 +2417,34 @@ export function PlanningPage({ token }: PlanningPageProps) {
   const openCalendarMesocycleComposer = useCallback((date: string) => {
     setSelectedCalendarDate(date);
     setBlockStartDate(date);
+    setCalendarQuickAdd(null);
     setCalendarComposerDate(date);
   }, []);
 
   const closeCalendarMesocycleComposer = useCallback(() => {
     setCalendarComposerDate(null);
   }, []);
+
+  const openCalendarQuickAdd = useCallback((date: string) => {
+    setSelectedCalendarDate(date);
+    setCalendarMonth(startOfMonth(date));
+    setCalendarQuickAdd({ date, mode: "actions", selectedKind: "running", selectedDiscipline: "running" });
+  }, []);
+
+  const closeCalendarQuickAdd = useCallback(() => {
+    setCalendarQuickAdd(null);
+  }, []);
+
+  const openCalendarWorkoutLibrary = useCallback((date: string, discipline: "running" | "ciclismo" | "natación") => {
+    setSelectedCalendarDate(date);
+    setCalendarMonth(startOfMonth(date));
+    setCalendarQuickAdd({ date, mode: "library", selectedKind: discipline, selectedDiscipline: discipline });
+  }, []);
+
+  const openLibraryWorkoutPreview = useCallback((template: PlanningWorkoutTemplate) => {
+    setCalendarQuickAdd(null);
+    setOpenWorkoutPreview(buildLibraryWorkoutPreview(template, planningLt1, planningLt2, planningThresholdBasis));
+  }, [planningLt1, planningLt2, planningThresholdBasis]);
 
   const shiftCalendarBackward = useCallback(() => {
     if (calendarVisualMode === "week") {
@@ -2856,21 +3142,49 @@ export function PlanningPage({ token }: PlanningPageProps) {
                     ) : null}
 
                     <article className="planning-calendar-composer-sidecard">
-                      <span className="planning-kicker">Control del entrenador</span>
-                      <label>
-                        Semanas
-                        <input type="number" min={1} max={12} value={weeks} onChange={(event) => setWeeks(event.target.value)} />
+                      <span className="planning-kicker">Duración del bloque</span>
+
+                      {/* Duración auto-calculada por el motor — el entrenador solo ajusta si quiere */}
+                      <div className="composer-duration-row">
+                        <button
+                          type="button"
+                          className="composer-duration-btn"
+                          onClick={() => setWeeks((w) => String(Math.max(1, Number(w) - 1)))}
+                        >−</button>
+                        <span className="composer-duration-value">
+                          <strong>{weeks}</strong> semanas
+                        </span>
+                        <button
+                          type="button"
+                          className="composer-duration-btn"
+                          onClick={() => setWeeks((w) => String(Math.min(12, Number(w) + 1)))}
+                        >+</button>
+                      </div>
+
+                      {/* Rango recomendado por Olbrecht para este bloque */}
+                      {selectedTemplate && (
+                        <p className="composer-duration-hint">
+                          Rango óptimo: {selectedTemplate.typical_duration_weeks_min}–{selectedTemplate.typical_duration_weeks_max} semanas
+                          {Number(weeks) < selectedTemplate.typical_duration_weeks_min && (
+                            <span className="composer-duration-warn"> · muy corto para adaptación estructural</span>
+                          )}
+                          {Number(weeks) > selectedTemplate.typical_duration_weeks_max && (
+                            <span className="composer-duration-warn"> · riesgo de estancamiento por exceso</span>
+                          )}
+                        </p>
+                      )}
+
+                      {/* Nota opcional del entrenador */}
+                      <label style={{marginTop: "12px"}}>
+                        Nota (opcional)
+                        <textarea
+                          rows={2}
+                          placeholder="Observaciones del entrenador para este bloque..."
+                          value={blockIntent}
+                          onChange={(event) => setBlockIntent(event.target.value)}
+                        />
                       </label>
-                      <label>
-                        Fase
-                        <select value={blockPhase} onChange={(event) => setBlockPhase(event.target.value)}>
-                          {phaseOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-                        </select>
-                      </label>
-                      <label>
-                        Intento del bloque
-                        <textarea rows={4} value={blockIntent} onChange={(event) => setBlockIntent(event.target.value)} />
-                      </label>
+
                       {saveError ? <p className="error">{saveError}</p> : null}
                       {saveMessage ? <p>{saveMessage}</p> : null}
                       <button
@@ -2980,7 +3294,7 @@ export function PlanningPage({ token }: PlanningPageProps) {
                                   </button>
                                 ))}
                                 {!primaryDaySessions.length ? (
-                                  <button type="button" className="planning-calendar-app-empty" onClick={() => openCalendarMesocycleComposer(day)}>
+                                  <button type="button" className="planning-calendar-app-empty" onClick={() => openCalendarQuickAdd(day)}>
                                     +
                                   </button>
                                 ) : null}
@@ -3049,7 +3363,7 @@ export function PlanningPage({ token }: PlanningPageProps) {
                                             <small>{session.objective}</small>
                                           </button>
                                         )) : (
-                                          <button type="button" className="training-calendar-empty-slot" onClick={() => openCalendarMesocycleComposer(day)}>+</button>
+                                          <button type="button" className="training-calendar-empty-slot" onClick={() => openCalendarQuickAdd(day)}>+</button>
                                         )}
                                         {overlayDaySessions.map((session) => (
                                           <div key={session.id} className="training-calendar-session-card overlay">
@@ -3204,6 +3518,269 @@ export function PlanningPage({ token }: PlanningPageProps) {
           </section>
         </div>
         </div>
+
+        {calendarQuickAdd && (
+          <div className="target-modal-backdrop" onClick={closeCalendarQuickAdd}>
+            <section className="card target-modal-card planning-calendar-quick-add-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="planning-calendar-quick-add-head">
+                <div className="planning-calendar-quick-add-title">
+                  <span className="eyebrow">Anadir al calendario</span>
+                  <h2>{formatDate(calendarQuickAdd.date)}</h2>
+                  <p>
+                    {calendarQuickAdd.mode === "library"
+                      ? `Biblioteca de ${disciplineLabel(quickAddDiscipline)} con subcapas para moverte por base, subumbral, LT2 y mas.`
+                      : calendarQuickAdd.mode === "manual"
+                        ? "Accion manual del dia preparada como acceso directo. La persistencia la conectamos despues sin tocar esta navegacion."
+                        : "Elige el tipo de elemento que quieres anadir hoy, con una entrada directa por disciplina y accesos rapidos manuales."}
+                  </p>
+                </div>
+                <div className="planning-calendar-quick-add-actions">
+                  {calendarQuickAdd.mode !== "actions" ? (
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={() => setCalendarQuickAdd({
+                        date: calendarQuickAdd.date,
+                        mode: "actions",
+                        selectedKind: "running",
+                        selectedDiscipline: "running",
+                      })}
+                    >
+                      Volver
+                    </button>
+                  ) : null}
+                  <button type="button" className="ghost-button" onClick={closeCalendarQuickAdd}>
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+
+              {calendarQuickAdd.mode === "library" ? (
+                <div className="planning-calendar-quick-add-library">
+                  <div className="planning-calendar-quick-add-section-head">
+                    <span className="planning-kicker">Biblioteca de sesiones</span>
+                    <strong>{disciplineLabel(quickAddDiscipline)} · {quickAddFilteredLibrary.length} opciones visibles</strong>
+                  </div>
+                  <div className="planning-calendar-quick-add-discipline-tabs">
+                    {(["running", "ciclismo", "natación"] as const).map((discipline) => (
+                      <button
+                        key={discipline}
+                        type="button"
+                        className={`planning-calendar-quick-add-tab ${quickAddDiscipline === discipline ? "active" : ""}`}
+                        onClick={() => setCalendarQuickAdd((current) => current ? {
+                          ...current,
+                          mode: "library",
+                          selectedKind: discipline,
+                          selectedDiscipline: discipline,
+                          selectedLayer: undefined,
+                        } : current)}
+                      >
+                        <span className="planning-calendar-quick-add-tab-label">
+                          <QuickAddIcon kind={discipline} />
+                          {disciplineLabel(discipline)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="planning-calendar-quick-add-category-list">
+                    {quickAddAvailableLayers.map((layer) => {
+                      const tone = workoutLayerTone(layer);
+                      const isActive = quickAddActiveLayer === layer;
+                      return (
+                        <button
+                          key={layer}
+                          type="button"
+                          className={`planning-calendar-quick-add-category tone-${tone} ${isActive ? "active" : ""}`}
+                          onClick={() => setCalendarQuickAdd((current) => current ? { ...current, selectedLayer: layer } : current)}
+                        >
+                          <span className={`planning-calendar-quick-add-category-glyph tone-${tone}`}>{workoutLayerGlyph(layer)}</span>
+                          <span className="planning-calendar-quick-add-category-copy">
+                            <strong>{workoutLayerLabel(layer)}</strong>
+                            <small>{workoutLayerCue(layer)}</small>
+                          </span>
+                          <span className="planning-calendar-quick-add-category-count">{quickAddLayerCounts[layer] ?? 0} sesiones</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="planning-calendar-quick-add-grid library">
+                    {quickAddFilteredLibrary.map((template) => {
+                      const isRecommended = (overview?.recommended_workouts ?? []).some((item) => item.template_id === template.template_id);
+                      const firstDose = template.dose_ladder[0];
+                      return (
+                        <button
+                          key={template.template_id}
+                          type="button"
+                          className={`planning-calendar-quick-add-card ${isRecommended ? "recommended" : ""}`}
+                          onClick={() => openLibraryWorkoutPreview(template)}
+                        >
+                          <div className="planning-calendar-quick-add-card-top">
+                            <div className="planning-calendar-quick-add-card-hero">
+                              <QuickAddIcon kind={quickAddDiscipline} large />
+                            </div>
+                            <span className="planning-kicker">{workoutLayerLabel(workoutLayerForTemplate(template))}</span>
+                            {isRecommended ? <span className="planning-calendar-quick-add-badge">Sugerida</span> : null}
+                          </div>
+                          <strong>{template.public_label}</strong>
+                          <small>
+                            {firstDose?.intensity_zone || template.objective}
+                            {firstDose?.total_duration_min ? ` · ${firstDose.total_duration_min} min` : ""}
+                          </small>
+                        </button>
+                      );
+                    })}
+                    {!quickAddFilteredLibrary.length ? (
+                      <article className="planning-empty-state">
+                        <strong>Sin sesiones en esta subcapa.</strong>
+                        <p>Cambia de capa o de disciplina para seguir navegando la biblioteca.</p>
+                      </article>
+                    ) : null}
+                  </div>
+                </div>
+              ) : calendarQuickAdd.mode === "manual" ? (
+                <div className="planning-calendar-quick-add-manual">
+                  <div className="planning-calendar-quick-add-section-head">
+                    <span className="planning-kicker">Entrada manual</span>
+                    <strong>
+                      {calendarQuickAdd.selectedKind === "event"
+                        ? "Evento"
+                        : calendarQuickAdd.selectedKind === "off"
+                          ? "Dia off"
+                          : "Nota"}
+                    </strong>
+                  </div>
+                  <div className="planning-calendar-quick-add-grid">
+                    <article className="planning-calendar-quick-add-card accent">
+                      <div className="planning-calendar-quick-add-card-top">
+                        <div className="planning-calendar-quick-add-card-hero">
+                          <QuickAddIcon kind={calendarQuickAdd.selectedKind} large />
+                        </div>
+                        <span className="planning-kicker">Acceso preparado</span>
+                      </div>
+                      <strong>
+                        {calendarQuickAdd.selectedKind === "event"
+                          ? "Evento del calendario"
+                          : calendarQuickAdd.selectedKind === "off"
+                            ? "Dia de descanso"
+                            : "Nota del entrenador"}
+                      </strong>
+                      <small>UI lista. Falta conectar el guardado manual real.</small>
+                    </article>
+                  </div>
+                </div>
+              ) : (
+                <div className="planning-calendar-quick-add-body">
+                  <div className="planning-calendar-quick-add-grid actions">
+                    <button
+                      type="button"
+                      className="planning-calendar-quick-add-card primary"
+                      onClick={() => openCalendarWorkoutLibrary(calendarQuickAdd.date, "running")}
+                    >
+                      <div className="planning-calendar-quick-add-card-top">
+                        <div className="planning-calendar-quick-add-card-hero">
+                          <QuickAddIcon kind="running" large />
+                        </div>
+                        <span className="planning-kicker">Disciplina</span>
+                      </div>
+                      <strong>Carrera a pie</strong>
+                      <small>{(quickAddLibraries.running ?? []).length} plantillas</small>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="planning-calendar-quick-add-card primary"
+                      onClick={() => openCalendarWorkoutLibrary(calendarQuickAdd.date, "ciclismo")}
+                    >
+                      <div className="planning-calendar-quick-add-card-top">
+                        <div className="planning-calendar-quick-add-card-hero">
+                          <QuickAddIcon kind="ciclismo" large />
+                        </div>
+                        <span className="planning-kicker">Disciplina</span>
+                      </div>
+                      <strong>Ciclismo</strong>
+                      <small>{(quickAddLibraries.ciclismo ?? []).length} plantillas</small>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="planning-calendar-quick-add-card primary"
+                      onClick={() => openCalendarWorkoutLibrary(calendarQuickAdd.date, "natación")}
+                    >
+                      <div className="planning-calendar-quick-add-card-top">
+                        <div className="planning-calendar-quick-add-card-hero">
+                          <QuickAddIcon kind="natación" large />
+                        </div>
+                        <span className="planning-kicker">Disciplina</span>
+                      </div>
+                      <strong>Natacion</strong>
+                      <small>{(quickAddLibraries["natación"] ?? []).length} plantillas</small>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="planning-calendar-quick-add-card"
+                      onClick={() => setCalendarQuickAdd((current) => current ? { ...current, mode: "manual", selectedKind: "event" } : current)}
+                    >
+                      <div className="planning-calendar-quick-add-card-top">
+                        <div className="planning-calendar-quick-add-card-hero">
+                          <QuickAddIcon kind="event" large />
+                        </div>
+                        <span className="planning-kicker">Manual</span>
+                      </div>
+                      <strong>Evento</strong>
+                      <small>Acceso rapido del calendario</small>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="planning-calendar-quick-add-card"
+                      onClick={() => setCalendarQuickAdd((current) => current ? { ...current, mode: "manual", selectedKind: "off" } : current)}
+                    >
+                      <div className="planning-calendar-quick-add-card-top">
+                        <div className="planning-calendar-quick-add-card-hero">
+                          <QuickAddIcon kind="off" large />
+                        </div>
+                        <span className="planning-kicker">Manual</span>
+                      </div>
+                      <strong>Dia off</strong>
+                      <small>Descanso y disponibilidad</small>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="planning-calendar-quick-add-card"
+                      onClick={() => setCalendarQuickAdd((current) => current ? { ...current, mode: "manual", selectedKind: "note" } : current)}
+                    >
+                      <div className="planning-calendar-quick-add-card-top">
+                        <div className="planning-calendar-quick-add-card-hero">
+                          <QuickAddIcon kind="note" large />
+                        </div>
+                        <span className="planning-kicker">Manual</span>
+                      </div>
+                      <strong>Nota</strong>
+                      <small>Contexto, recordatorios y consignas</small>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="planning-calendar-quick-add-card accent"
+                      onClick={() => openCalendarMesocycleComposer(calendarQuickAdd.date)}
+                    >
+                      <div className="planning-calendar-quick-add-card-top">
+                        <div className="planning-calendar-quick-add-card-hero">
+                          <QuickAddIcon kind="mesocycle" large />
+                        </div>
+                        <span className="planning-kicker">Bloques</span>
+                      </div>
+                      <strong>Mesociclo</strong>
+                      <small>{templateLibrary.length} mesociclos utilizables</small>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
 
         {openWorkoutPreview && (
           <WorkoutPreviewModal
