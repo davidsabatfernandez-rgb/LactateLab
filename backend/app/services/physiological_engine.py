@@ -162,11 +162,30 @@ EVENT_LIMITER: dict[str, str] = {
 MIN_WEEKS_FOR_BLOCK: dict[str, int] = {
     "aerobic_capacity_block":      5,
     "threshold_development_block": 4,
+    "anaerobic_capacity_block":    4,   # ANC — Olbrecht: cambios toman semanas-meses
     "aerobic_power_block":         3,
+    "anaerobic_power_block":       2,   # ANP — Olbrecht: efectos en 10-17 días (moderado ANC)
     "competition_specific_block":  2,
     "recovery_consolidation_block":1,
     "testing_decision_block":      0,
 }
+
+# ── Eventos donde tiene sentido un bloque ANC (construir VLamax) ──────────────
+# Para atletas con VLamax baja (perfil diesel) que compiten en pruebas
+# donde la capacidad anaeróbica es co-determinante del rendimiento.
+# Fuente: Olbrecht SoW cap.2 — "ANC important even for middle-distance athletes"
+_ANC_CANDIDATE_EVENTS: frozenset[str] = frozenset({
+    "5k", "10k", "sprint_tri", "sprint_run", "sprint_bike",
+    "pool_400", "hill_climb", "road_race", "road_tt_short",
+})
+
+# ── Eventos donde ANP es la prescripción pre-comp correcta ────────────────────
+# Olbrecht: "sprinters and middle distance athletes concentrate on ANP
+# in the competition training period; long distance athletes use AEP."
+_ANP_EVENTS: frozenset[str] = frozenset({
+    "5k", "10k", "sprint_tri", "sprint_run",
+    "pool_400", "hill_climb", "road_race",
+})
 
 # ── Benchmarks LT2 absoluto para estimar nivel aeróbico ───────────────────
 # (umbral_bajo, umbral_alto) — por debajo = low, entre = moderate, encima = high
@@ -570,6 +589,8 @@ def _apply_capacity_profile(
     recommended: str,
     reasons: list[str],
     season: str = "base_early",
+    distance_category: Optional[str] = None,
+    athlete_level: str = "trained",
 ) -> str:
     """Cualifica o refina el bloque recomendado con el perfil de capacidades.
 
@@ -578,8 +599,14 @@ def _apply_capacity_profile(
     Confianza < 0.55 (interpolados): sin efecto — el gap analysis manda.
 
     No actúa si aerobic_level o vlamax_level son "unknown".
-    La supresión de VLamax (high+high → aerobic_capacity) solo aplica en fases de base.
-    En specific/pre_comp, la sesión específica ya suprime la VLamax de forma natural.
+
+    Bloques Olbrecht que puede recomendar:
+      ANC (anaerobic_capacity_block): perfil diesel en prueba corta, base_late.
+           Olbrecht: "ANC importante incluso en media distancia; corredor diesel
+           en 5k/10k necesita desarrollar glucólisis para activar sprint final."
+      AEP (aerobic_power_block): alta capacidad aeróbica + baja VLamax, no base_early.
+      Supresión VLamax (→ AEC): alta aeróbica + alta VLamax en base phases.
+      Thin ice (→ AEC): baja aeróbica + alta VLamax, siempre.
     """
     if profile is None or profile.confidence < 0.55:
         return recommended
@@ -592,16 +619,44 @@ def _apply_capacity_profile(
 
     # ── Confianza alta: puede modificar el bloque ─────────────────────────
     if profile.confidence >= 0.75:
-        # HIGH aeróbico + BAJA VLamax: la base está construida, afinar es más productivo.
-        # NO aplica en base_early: Olbrecht — en base temprana siempre capacidad aeróbica
-        # independientemente del perfil (hay que mantener/construir el sustrato mitocondrial).
-        if aerobic == "high" and vlamax == "low" and season not in {"base_early"}:
+        # HIGH/MODERATE aeróbico + BAJA VLamax (perfil diesel):
+        # NO aplica en base_early (siempre AEC en base temprana).
+        # En base_late + prueba corta → ANC para desarrollar glucólisis (Olbrecht).
+        # En otros contextos → AEP (la base está construida, afinar su uso).
+        if aerobic in ("high", "moderate") and vlamax == "low" and season not in {"base_early"}:
             if recommended in ("aerobic_capacity_block", "threshold_development_block"):
-                reasons.append(
-                    f"Perfil: alta capacidad aeróbica + baja glucólisis (ratio LT1/LT2={ratio_str}). "
-                    "La base ya está construida — potencia aeróbica tiene mejor retorno marginal."
-                )
-                return "aerobic_power_block"
+                dist = distance_category or ""
+                if (
+                    season == "base_late"
+                    and dist in _ANC_CANDIDATE_EVENTS
+                    and athlete_level in {"trained", "competitive"}
+                ):
+                    # ANC: construir VLamax en atleta diesel para prueba corta.
+                    # Solo trained/competitive — recreativos necesitan base aeróbica primero.
+                    # Olbrecht: "ANC even for middle distance; diesel athlete needs
+                    # to develop glycolysis to activate sprint and tolerate training load"
+                    reasons.append(
+                        f"Perfil diesel (VLamax baja, ratio={ratio_str}) en prueba corta ({dist}). "
+                        "Base tardía: desarrollar capacidad anaeróbica (ANC, Olbrecht) para "
+                        "activar la glucólisis necesaria en la fase específica."
+                    )
+                    return "anaerobic_capacity_block"
+                elif aerobic == "high":
+                    # Solo HIGH aeróbico justifica upgrade a AEP.
+                    # MODERATE aeróbico con VLamax baja: el gap puede seguir siendo real
+                    # — añadimos contexto pero no cambiamos el bloque.
+                    reasons.append(
+                        f"Perfil: alta capacidad aeróbica + baja glucólisis (ratio LT1/LT2={ratio_str}). "
+                        "La base está construida — potencia aeróbica tiene mejor retorno marginal."
+                    )
+                    return "aerobic_power_block"
+                else:
+                    # moderate aeróbico + VLamax baja: añadir contexto, respetar bloque del gap analysis
+                    reasons.append(
+                        f"Perfil orientativo diesel (ratio={ratio_str}): VLamax baja pero capacidad "
+                        "aeróbica moderada — el gap de LT2 sigue siendo el limitante prioritario."
+                    )
+                    return recommended
 
         # HIGH aeróbico + ALTA VLamax: suprimir glucólisis — solo en fases de base
         # En specific/pre_comp la intensidad de carrera ya gestiona la VLamax
@@ -953,9 +1008,12 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
         reasons.append(
             "El perfil parece demasiado plano por arriba, pero todavía falta desplazar LT2 antes de abrir un bloque más agudo."
         )
-    elif lt2_priority and lt2_gap is not None and lt2_gap > significant_gap and season not in {"base_early"}:
-        # En base_early el gap de LT2 se gestiona más abajo junto con la lógica de fase.
-        # En base_late, specific y pre_comp: threshold development es la respuesta correcta.
+    elif lt2_priority and lt2_gap is not None and lt2_gap > significant_gap and season not in {"base_early"} and (
+        # En base_late, solo disparar si LT1 acompaña (lt1_gap pequeño o sin LT1).
+        # Si lt1_gap es grande (> significant_gap), el atleta necesita base aeróbica primero,
+        # no threshold — la lógica de base_phases lo gestiona correctamente más abajo.
+        season not in _BASE_PHASES or lt1_gap is None or lt1_gap <= significant_gap
+    ):
         recommended = "threshold_development_block"
         reasons.append(
             f"LT2 actual: {lt2_value:.2f} {metric_label} → requerido: {required_lt2:.2f} {metric_label} "
@@ -976,8 +1034,18 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
             "LT2 ya está relativamente cerca del objetivo, pero LT1 sigue demasiado retrasado para sostener bien una media maratón."
         )
     elif lt2_gap is not None and lt2_gap <= moderate_gap and season in {"specific", "pre_comp"}:
-        recommended = "competition_specific_block"
-        reasons.append("El perfil fisiológico ya es compatible; toca transferirlo al gesto y a la prueba.")
+        if season == "pre_comp" and dist in _ANP_EVENTS:
+            # ANP — Olbrecht: "sprinters and middle-distance athletes concentrate on
+            # anaerobic power in the competition training period" (SoW cap.2)
+            recommended = "anaerobic_power_block"
+            reasons.append(
+                f"Pre-competición con umbral en rango para {dist} — potencia anaeróbica (ANP, Olbrecht): "
+                "afinar la expresión máxima de velocidad y tolerancia a la acidosis antes de competir."
+            )
+        else:
+            # competition_specific = AEP para larga distancia / specific phase
+            recommended = "competition_specific_block"
+            reasons.append("El perfil fisiológico ya es compatible; toca transferirlo al gesto y a la prueba.")
     # F3: base_late con umbral ya en rango → no hacer base, avanzar a potencia aeróbica
     # Olbrecht: "mesociclo final del base = mantener lo adquirido y preparar para el específico"
     elif (
@@ -1051,7 +1119,10 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
     # Solo actúa cuando data_quality != "none" y confianza del perfil es suficiente.
     # No sobreescribe decisiones de red_zone ni taper (esas tienen returns propios).
     if data_quality != "none":
-        recommended = _apply_capacity_profile(ctx.capacity_profile, recommended, reasons, season)
+        recommended = _apply_capacity_profile(
+            ctx.capacity_profile, recommended, reasons, season,
+            ctx.distance_category, ctx.athlete_level,
+        )
 
     # ── Borderline gap detection ──────────────────────────────────────────────
     borderline = False

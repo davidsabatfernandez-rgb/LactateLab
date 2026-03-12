@@ -442,6 +442,110 @@ BLOCK_RATIONALE: dict[str, BlockRationale] = {
         ],
     ),
 
+    "anaerobic_capacity_block": BlockRationale(
+        block_key="anaerobic_capacity_block",
+        display_name="Bloque de Capacidad Anaeróbica",
+        olbrecht_class="ANC",
+        summary_coach=(
+            "Desarrolla la capacidad glucolítica (VLamax) del atleta. Indicado para perfiles "
+            "diesel (VLamax baja) en pruebas cortas donde la glucólisis es co-determinante. "
+            "Los cambios en ANC son lentos — semanas a meses — y parcialmente innatos (Olbrecht)."
+        ),
+        physiological_goal=(
+            "Aumentar la tasa máxima de producción de lactato (VLamax/ANC). "
+            "Estimular fibras rápidas glucolíticas (tipo IIb/IIx) para aumentar la capacidad "
+            "de producir energía en esfuerzos supramáximos cortos. "
+            "Olbrecht: 'ANC importante para media distancia y para tolerar cargas de entrenamiento "
+            "altas; el atleta con baja ANC no tiene señal de aviso de fatiga y entra en "
+            "sobreentrenamiento fácilmente'."
+        ),
+        training_description=(
+            "Intervalos CORTOS (15-60s), intensidad all-out o casi all-out desde el inicio. "
+            "Descanso LARGO (≥ tiempo de esfuerzo, preferiblemente pasivo). "
+            "Olbrecht checklist ANC: (1) intervalos 25-50m, (2) casi-máximo para VLamax alta, "
+            "máximo para VLamax baja, (3) descanso ≥ doble del tiempo de esfuerzo. "
+            "En running: strides 15-20s all-out, hill sprints cortos. "
+            "Volumen bajo por sesión — los ANC actúan como 'spice' dentro del AEC."
+        ),
+        expected_timeline=(
+            "Cambios innatos en VLamax: 6-18 meses. "
+            "Fluctuaciones temporales en ANC (volumen alto las reduce, intensidad las sube): "
+            "visibles en 3-5 semanas. "
+            "Olbrecht: 'the ANC can be temporarily modified within a mesocycle but "
+            "intrinsic changes take 1-2 years'."
+        ),
+        ideal_context=(
+            "Perfil VLamax baja (ratio LT1/LT2 > 0.87) con capacidad aeróbica moderate/alta. "
+            "Eventos cortos: 5k, 10k, sprint tri, pool 400m, hill climb. "
+            "Fase base_late: introducir ANC antes de entrar en fase específica. "
+            "Como 'spice' dentro de AEC en cualquier fase de base."
+        ),
+        risk_if_wrong=(
+            "Aplicado con VLamax ya ALTA (ratio < 0.79): aumenta la glucólisis cuando ya es "
+            "excesiva — penaliza sostenibilidad en eventos largos y destruye la AEP. "
+            "Olbrecht: 'as ANC increases, it becomes increasingly difficult to build AEP'. "
+            "Demasiado volumen de ANC: puede sobreestimular glucólisis y comprometer la AEC. "
+            "En atletas con VLamax alta: contraindicado — usar volumen extensivo para suprimir."
+        ),
+        min_weeks=4,
+        max_weeks=6,
+        science_refs=[
+            "Olbrecht 2000 — The Science of Winning, ch. 2-3 (ANC classification)",
+            "Mader A. (1984) — Glycolytic activity during exercise. Int J Sports Med.",
+            "Faude et al. (2009) — Lactate threshold concepts. Sports Med.",
+        ],
+    ),
+
+    "anaerobic_power_block": BlockRationale(
+        block_key="anaerobic_power_block",
+        display_name="Bloque de Potencia Anaeróbica",
+        olbrecht_class="ANP",
+        summary_coach=(
+            "Afina la expresión máxima de velocidad y la tolerancia a la acidosis en la "
+            "fase pre-competición. Solo para pruebas cortas e intensas (5k, 10k, sprint tri). "
+            "Olbrecht: efectos visibles en 10-17 días en atletas con ANC moderada."
+        ),
+        physiological_goal=(
+            "Maximizar la utilización de la capacidad anaeróbica (VLamax) en condiciones "
+            "de competición. Desarrollar tolerancia a la acidosis (buffering de H+). "
+            "Olbrecht: 'ANP toughens the swimmer against acidosis — this adaptation "
+            "can be completed quite quickly (2 weeks)'."
+        ),
+        training_description=(
+            "Velocidad MÁXIMA desde el primer repetición. Distancias muy cortas. "
+            "Descanso mínimo (5-10 segundos). Volumen total muy bajo (125-250m equivalente). "
+            "Olbrecht checklist ANP: (1) máxima velocidad, (2) distancias cortas, "
+            "(3) muy poco descanso, (4) total set muy bajo. "
+            "En running: sprints 50-100m máximos, flying runs, aceleraciones de carrera. "
+            "Olbrecht recomienda 2×2 semanas con 1 semana de baja intensidad entre ellas."
+        ),
+        expected_timeline=(
+            "Atletas con ANC moderada: efectos claros en 10-17 días. "
+            "Atletas con ANC alta: 4 semanas para efecto completo. "
+            "Olbrecht: 'compared to AEP which takes up to 4 weeks, ANP changes much more quickly'."
+        ),
+        ideal_context=(
+            "Fase pre_comp EXCLUSIVAMENTE. "
+            "Eventos cortos: 5k, 10k, sprint tri, pool 400m, hill climb, road race. "
+            "SOLO para atletas con ANC suficiente (ratio LT1/LT2 < 0.87). "
+            "Después de haber completado un bloque de AEC + ANC + AEP en la macrotemporada."
+        ),
+        risk_if_wrong=(
+            "Aplicado en base_early o base_late: destruye la AEC antes de construirla. "
+            "Olbrecht: 'ANP training drives aerobic capacity lower if the rest of the "
+            "training is not slow enough'. "
+            "Aplicado en eventos largos (maratón, ironman, 70.3): el atleta llega a la "
+            "competición con VLamax disparada — penaliza la sostenibilidad catastrófica. "
+            "Más de 2-3 semanas consecutivas: 'carries more risks than advantages' (Olbrecht)."
+        ),
+        min_weeks=2,
+        max_weeks=3,
+        science_refs=[
+            "Olbrecht 2000 — The Science of Winning, ch. 2 (ANP classification)",
+            "Billat V. et al. (1994) — Lactate and anaerobic power. Sports Med.",
+        ],
+    ),
+
     "testing_decision_block": BlockRationale(
         block_key="testing_decision_block",
         display_name="Repetir Test Antes de Decidir",

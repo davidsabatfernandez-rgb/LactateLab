@@ -443,6 +443,21 @@ export type RealThresholdItem = {
   evidence_level?: string | null;
   rationale?: string | null;
   derived_from?: string | null;
+  status?: string | null;
+};
+
+export type ThresholdDetectionStatus = {
+  name: string;
+  state: string;
+  primary_method?: string | null;
+  confirmation_method?: string | null;
+  supporting_methods: string[];
+  compatible: boolean;
+  quality_gate_passed: boolean;
+  anchor_update_recommended: boolean;
+  confidence: number;
+  candidate_threshold?: RealThresholdItem | null;
+  explanation: string;
 };
 
 export type RealThresholds = {
@@ -450,11 +465,15 @@ export type RealThresholds = {
   lt2_real?: RealThresholdItem | null;
   lt1_practical_real?: RealThresholdItem | null;
   lt2_practical_real?: RealThresholdItem | null;
+  lt1_detection?: ThresholdDetectionStatus | null;
+  lt2_detection?: ThresholdDetectionStatus | null;
   data_quality?: {
     stage_count: number;
+    usable_stage_count?: number;
     monotonicity: number;
     protocol_score?: number;
     signal_score?: number;
+    criteria_version?: number;
     sufficient: boolean;
     reason: string;
   } | null;
@@ -863,7 +882,7 @@ export type BlockRationale = {
 
 export type ReliabilityWarning = {
   code: string;
-  severity: string;
+  severity: 'info' | 'warning' | 'critical';
   message: string;
   actionable: string;
 };

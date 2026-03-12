@@ -835,7 +835,9 @@ def _score_initial_assignment_candidates(
         for bt in (
             "aerobic_capacity_block",
             "threshold_development_block",
+            "anaerobic_capacity_block",
             "aerobic_power_block",
+            "anaerobic_power_block",
             "competition_specific_block",
             "recovery_consolidation_block",
             "technical_rebuild_block",
@@ -851,6 +853,10 @@ def _score_initial_assignment_candidates(
         c = candidates[block_type]
         c.score -= pts
         c.contraindications.append(f"-{pts:.0f} {reason}")
+
+    # ANC y ANP: penalizar por defecto en asignación inicial (motor fisiológico los activa si procede)
+    sub("anaerobic_capacity_block", 10, "Asignación inicial: ANC solo si el motor fisiológico detecta perfil diesel + prueba corta.")
+    sub("anaerobic_power_block", 30, "Asignación inicial: ANP solo en pre-comp con base consolidada.")
 
     long_duration_events = {"marathon", "70.3", "half_tri", "half_run", "half_bike", "ironman", "ironman_run", "ironman_bike", "open_water_long"}
     short_intense_events = {"5k", "10k", "road_tt", "sprint_tri", "sprint_run", "sprint_bike", "olympic_tri", "olympic_run", "olympic_bike", "pool_400"}
@@ -916,7 +922,9 @@ def _score_block_candidates(
         for bt in (
             "aerobic_capacity_block",
             "threshold_development_block",
+            "anaerobic_capacity_block",    # ANC — Olbrecht
             "aerobic_power_block",
+            "anaerobic_power_block",        # ANP — Olbrecht
             "competition_specific_block",
             "recovery_consolidation_block",
             "technical_rebuild_block",
@@ -1012,6 +1020,40 @@ def _score_block_candidates(
         sub("recovery_consolidation_block", 20, "Sin carga reciente: no hay nada que consolidar ahora.")
     if robustness == "high" and evaluation_signal != "degrading":
         sub("recovery_consolidation_block", 5, "Atleta robusto con señal aceptable: no necesita descarga ahora.")
+
+    # ── anaerobic_capacity_block (ANC) ────────────────────────────────────────
+    # ANC = construir VLamax. Solo para perfiles diesel + pruebas cortas. Base tardía.
+    # El motor fisiológico ya controla cuándo recomendarlo — aquí solo contexto histórico.
+    if previous_major == "aerobic_capacity_block" and evaluation_signal in {"improving", "stable"}:
+        add("anaerobic_capacity_block", 10, "Base aeróbica consolidada: buen momento para introducir ANC como spice.")
+    if previous_major == "anaerobic_capacity_block":
+        sub("anaerobic_capacity_block", 10, "No repetir ANC sin bloque de transición — riesgo de exceso glucolítico.")
+    if days_to_target is not None and days_to_target > 84:
+        add("anaerobic_capacity_block", 5, "Horizonte base: ventana adecuada para trabajo ANC.")
+    if days_to_target is not None and days_to_target < 35:
+        sub("anaerobic_capacity_block", 25, "Objetivo cercano: demasiado tarde para adaptaciones ANC (requieren meses).")
+    if robustness == "low":
+        sub("anaerobic_capacity_block", 15, "Robustez baja: 'thin ice' (Olbrecht) — ANC puede destruir la base débil.")
+    if evaluation_signal == "degrading":
+        sub("anaerobic_capacity_block", 15, "Señal degradante: priorizar AEC antes de añadir estímulo ANC.")
+
+    # ── anaerobic_power_block (ANP) ───────────────────────────────────────────
+    # ANP = tolerancia a la acidosis, pre-comp EXCLUSIVAMENTE. Pruebas cortas.
+    # Olbrecht: "máximo 2 semanas consecutivas — más riesgo que beneficio."
+    if days_to_target is not None and days_to_target <= 35:
+        add("anaerobic_power_block", 30, "Objetivo próximo: ventana ideal para toughening anaeróbico pre-comp.")
+    elif days_to_target is not None and days_to_target <= 56:
+        add("anaerobic_power_block", 10, "Horizonte specific: puede iniciarse ANP si la base y AEC están consolidados.")
+    if days_to_target is None or days_to_target > 84:
+        sub("anaerobic_power_block", 35, "Demasiado pronto — ANP solo en competition training period (Olbrecht).")
+    if previous_major in {"aerobic_power_block", "competition_specific_block"} and evaluation_signal == "improving":
+        add("anaerobic_power_block", 15, "Bloque previo específico bien respondido: ANP como paso final antes de competición.")
+    if previous_major == "anaerobic_power_block":
+        sub("anaerobic_power_block", 25, "No repetir ANP seguido — necesita recuperación. Máx 2 semanas consecutivas.")
+    if robustness == "low":
+        sub("anaerobic_power_block", 20, "Robustez baja: ANP sin base destroza la capacidad aeróbica.")
+    if evaluation_signal == "degrading":
+        sub("anaerobic_power_block", 30, "Señal degradante: ANP está contraindicado completamente.")
 
     # ── technical_rebuild_block ───────────────────────────────────────────────
     if discipline == "natación":

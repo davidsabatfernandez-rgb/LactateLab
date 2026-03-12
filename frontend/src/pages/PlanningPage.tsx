@@ -861,7 +861,9 @@ function defaultPhaseForRecommendation(blockType?: string | null) {
 function energySystemFocusForRecommendation(blockType?: string | null, primaryFocus?: string | null) {
   if (blockType === "aerobic_capacity_block") return "Aerobic Capacity";
   if (blockType === "threshold_development_block") return "Aerobic Power";
+  if (blockType === "anaerobic_capacity_block") return "Anaerobic Capacity";
   if (blockType === "aerobic_power_block") return "Aerobic Power";
+  if (blockType === "anaerobic_power_block") return "Anaerobic Power";
   if (blockType === "competition_specific_block") return "Specific Performance";
   if (blockType === "technical_rebuild_block") return "Technique";
   if (blockType === "recovery_consolidation_block") return "Recovery";
@@ -991,7 +993,9 @@ function buildMicrocycle(weeks: number, discipline: string, objective: string, d
 const BLOCK_LABELS: Record<string, string> = {
   aerobic_capacity_block: "Capacidad aeróbica",
   threshold_development_block: "Desarrollo de umbral",
+  anaerobic_capacity_block: "Cap. Anaeróbica",
   aerobic_power_block: "Potencia aeróbica",
+  anaerobic_power_block: "Potencia Anaeróbica",
   competition_specific_block: "Especificidad competitiva",
   recovery_consolidation_block: "Consolidación / recuperación",
   technical_rebuild_block: "Reconstrucción técnica",
@@ -1517,7 +1521,7 @@ export function PlanningPage({ token }: PlanningPageProps) {
         tone:
           block.block_type === "recovery_consolidation_block"
             ? "warning"
-            : block.block_type === "aerobic_capacity_block" || block.block_type === "threshold_development_block" || block.block_type === "aerobic_power_block"
+            : block.block_type === "aerobic_capacity_block" || block.block_type === "threshold_development_block" || block.block_type === "aerobic_power_block" || block.block_type === "anaerobic_capacity_block" || block.block_type === "anaerobic_power_block"
               ? "positive"
               : "neutral",
         kind: "historical",
@@ -2587,7 +2591,12 @@ export function PlanningPage({ token }: PlanningPageProps) {
                     <div className="planning-calendar-composer-hero">
                       <article className="planning-calendar-composer-recommendation">
                         <span className="planning-kicker">Mejor opción ahora</span>
-                        <strong>{overview?.next_recommendation.recommended_block_label || selectedComposerOption?.template.public_label || "Sin recomendación"}</strong>
+                        <strong>
+                          {overview?.next_recommendation.recommended_block_label || selectedComposerOption?.template.public_label || "Sin recomendación"}
+                          {overview?.next_recommendation.physiological_analysis?.borderline && (
+                            <span className="borderline-badge" title={overview.next_recommendation.physiological_analysis.borderline_note || "Caso límite: dos bloques son casi equivalentes"}> ~ caso límite</span>
+                          )}
+                        </strong>
                         <p className="planning-calendar-composer-headline">
                           {recommendedBlockExplanation?.headline
                             || overview?.next_recommendation.physiological_analysis?.block_rationale?.summary_coach
@@ -2719,10 +2728,12 @@ export function PlanningPage({ token }: PlanningPageProps) {
                             <span>Adaptación</span>
                             <p>{recommendedBlockExplanation.what_to_expect}</p>
                           </article>
-                          <article>
-                            <span>Alternativa</span>
-                            <p>{recommendedBlockExplanation.alternative_if_wrong}</p>
-                          </article>
+                          {recommendedReliabilityWarnings.length > 0 && (
+                            <article>
+                              <span>Alternativa</span>
+                              <p>{recommendedBlockExplanation.alternative_if_wrong}</p>
+                            </article>
+                          )}
                         </div>
                       </article>
                     ) : null}
@@ -2730,13 +2741,19 @@ export function PlanningPage({ token }: PlanningPageProps) {
                     {recommendedReliabilityWarnings.length ? (
                       <article className="planning-calendar-composer-sidecard">
                         <span className="planning-kicker">Fiabilidad de la recomendación</span>
-                        <ul className="planning-note-list planning-note-list-compact">
+                        <div className="reliability-warnings">
                           {recommendedReliabilityWarnings.slice(0, 3).map((warning) => (
-                            <li key={warning.code}>
-                              <strong>{warning.message}</strong> {warning.actionable}
-                            </li>
+                            <div key={warning.code} className={`warning-item warning-${warning.severity}`}>
+                              <span className="warning-icon">
+                                {warning.severity === 'critical' ? '🔴' : warning.severity === 'warning' ? '🟡' : 'ℹ️'}
+                              </span>
+                              <div>
+                                <p className="warning-message">{warning.message}</p>
+                                <p className="warning-actionable">{warning.actionable}</p>
+                              </div>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       </article>
                     ) : null}
 

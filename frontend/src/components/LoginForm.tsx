@@ -122,6 +122,8 @@ export function LoginForm({ onLogin }: LoginFormProps) {
           </form>
         </div>
       ) : null}
+
+      <div className="login-credit">created and developed by David Sabat</div>
     </div>
   );
 }

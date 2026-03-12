@@ -38,6 +38,7 @@ import {
   MesocycleRecommendation,
   PhysiologyReport,
   RealThresholds,
+  ThresholdDetectionStatus,
   Threshold,
 } from "../types";
 
@@ -305,6 +306,71 @@ function resolvedThresholdToDisplay(
     evidence_level: threshold.evidenceLevel ?? "low",
     provisional: false,
   };
+}
+
+function thresholdDetectionToDisplay(
+  detection?: ThresholdDetectionStatus | null,
+  powerSource?: string | null,
+): ThresholdDisplay | undefined {
+  const candidate = detection?.candidate_threshold;
+  if (!candidate) return undefined;
+  return {
+    name: `${detection?.name ?? candidate.name} señal`,
+    lactate: candidate.lactate ?? null,
+    pace_seconds_per_km: candidate.pace_seconds_per_km ?? null,
+    power_watts: candidate.power_watts ?? null,
+    heart_rate: candidate.heart_rate ?? null,
+    power_source: powerSource ?? null,
+    method: candidate.method ?? detection?.primary_method ?? "candidate_detection",
+    confidence: candidate.confidence ?? detection?.confidence ?? 0,
+    rationale: candidate.rationale ?? detection?.explanation ?? "Señal detectada sobre la curva de lactato.",
+    evidence_level: candidate.evidence_level ?? confidenceToEvidenceLevel(candidate.confidence ?? detection?.confidence ?? 0),
+    provisional: detection?.state !== "ready_to_anchor",
+  };
+}
+
+function thresholdDetectionStateLabel(state?: string | null) {
+  if (state === "candidate_weak") return "Candidato débil";
+  if (state === "candidate_strong") return "Candidato fuerte";
+  if (state === "confirmed") return "Confirmado";
+  if (state === "ready_to_anchor") return "Listo para anclar";
+  return "Sin señal";
+}
+
+function thresholdDetectionTone(state?: string | null): "positive" | "neutral" | "negative" {
+  if (state === "ready_to_anchor" || state === "confirmed") return "positive";
+  if (state === "candidate_strong") return "neutral";
+  return "negative";
+}
+
+function thresholdDetectionLineDasharray(state?: string | null) {
+  if (state === "ready_to_anchor") return "12 4";
+  if (state === "confirmed") return "8 5";
+  if (state === "candidate_strong") return "4 5";
+  return "2 6";
+}
+
+function thresholdDetectionTooltip(
+  detection: ThresholdDetectionStatus | null | undefined,
+  threshold: ThresholdDisplay | undefined,
+  discipline: string,
+  athleteWeight?: number | null,
+  support?: PlotSupportPoint | null,
+) {
+  if (!detection || !threshold) return "Sin señal visible.";
+  const methods = [detection.primary_method, detection.confirmation_method].filter(Boolean).join(" + ");
+  const parts = [
+    `${thresholdDetectionStateLabel(detection.state)} · confianza ${Math.round((detection.confidence ?? 0) * 100)}%`,
+    thresholdDetailLine(threshold, discipline, athleteWeight),
+  ];
+  if (methods) {
+    parts.push(`Métodos ${methods}`);
+  }
+  if (support?.sessionDate ?? support?.session_date) {
+    parts.push(`Fecha ${formatDate(support?.sessionDate ?? support?.session_date ?? null)}`);
+  }
+  parts.push(detection.explanation);
+  return parts.join(" · ");
 }
 
 function emptyCurveHistory(): DisciplineView["curve_history"] {
@@ -2098,6 +2164,8 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const [thresholdReferenceVisibility, setThresholdReferenceVisibility] = useState({
     lt1: true,
     lt2: true,
+    lt1Candidate: true,
+    lt2Candidate: true,
     practicalLt1: true,
     practicalLt2: true,
     lt1Real: false,
@@ -2704,6 +2772,10 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     const practicalLt1Reference = resolvedView.dynamic_thresholds?.chronic.practical_lt1 ?? null;
     const practicalLt2Reference = resolvedView.dynamic_thresholds?.chronic.practical_lt2 ?? null;
     const realThresholds: RealThresholds | null = resolvedView.real_thresholds ?? null;
+    const lt1Detection = realThresholds?.lt1_detection ?? null;
+    const lt2Detection = realThresholds?.lt2_detection ?? null;
+    const lt1Candidate = thresholdDetectionToDisplay(lt1Detection, resolvedView.power_source);
+    const lt2Candidate = thresholdDetectionToDisplay(lt2Detection, resolvedView.power_source);
     const individualThresholds: IndividualThresholds | null = resolvedView.individual_thresholds ?? mapLegacyRealThresholdsToIndividual(realThresholds);
     const visibleMeasurements = (resolvedView.measurement_log ?? []).filter((entry) => {
       if (historyFrom && entry.session_date < historyFrom) return false;
@@ -2745,6 +2817,14 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     const practicalLt2Support = resolveMeasurementMatch(
       disciplineKey === "ciclismo" ? practicalLt2Reference?.estimated_power_watts : practicalLt2Reference?.estimated_pace_seconds_per_km,
       practicalLt2Reference?.target_lactate,
+    );
+    const lt1CandidateSupport = resolveMeasurementMatch(
+      disciplineKey === "ciclismo" ? lt1Candidate?.power_watts : lt1Candidate?.pace_seconds_per_km,
+      lt1Candidate?.lactate,
+    );
+    const lt2CandidateSupport = resolveMeasurementMatch(
+      disciplineKey === "ciclismo" ? lt2Candidate?.power_watts : lt2Candidate?.pace_seconds_per_km,
+      lt2Candidate?.lactate,
     );
     const disciplinePlotData = [disciplineLt1, disciplineLt2]
       .filter((threshold): threshold is ThresholdDisplay => hasRenderableThreshold(threshold, disciplineKey))
@@ -2853,6 +2933,30 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
           }
         : null,
     ].filter(isDefined);
+    const candidatePlotData = [
+      lt1Candidate && hasRenderableThreshold(lt1Candidate, disciplineKey)
+        ? {
+            name: `LT1 señal · ${thresholdDetectionStateLabel(lt1Detection?.state)}`,
+            x: disciplineKey === "ciclismo" ? (lt1Candidate.power_watts as number) : (lt1Candidate.pace_seconds_per_km as number),
+            lactate: lt1Candidate.lactate as number,
+            sessionDate: lt1CandidateSupport?.session_date ?? null,
+            heartRate: lt1Candidate.heart_rate ?? lt1CandidateSupport?.heart_rate_avg ?? null,
+            intervalLabel: lt1CandidateSupport?.interval_label ?? null,
+            powerSource: lt1CandidateSupport?.power_source ?? resolvedView.power_source,
+          }
+        : null,
+      lt2Candidate && hasRenderableThreshold(lt2Candidate, disciplineKey)
+        ? {
+            name: `LT2 señal · ${thresholdDetectionStateLabel(lt2Detection?.state)}`,
+            x: disciplineKey === "ciclismo" ? (lt2Candidate.power_watts as number) : (lt2Candidate.pace_seconds_per_km as number),
+            lactate: lt2Candidate.lactate as number,
+            sessionDate: lt2CandidateSupport?.session_date ?? null,
+            heartRate: lt2Candidate.heart_rate ?? lt2CandidateSupport?.heart_rate_avg ?? null,
+            intervalLabel: lt2CandidateSupport?.interval_label ?? null,
+            powerSource: lt2CandidateSupport?.power_source ?? resolvedView.power_source,
+          }
+        : null,
+    ].filter(isDefined);
     const comparePools = compareViews.map(({ sourceKey, sourceView }) => ({
       sourceKey,
       color: sourceKey === "indoor" ? "#2f7de1" : "#c45b2f",
@@ -2883,13 +2987,20 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       view: resolvedView,
       lt1: disciplineLt1,
       lt2: disciplineLt2,
+      lt1Detection,
+      lt2Detection,
+      lt1Candidate,
+      lt2Candidate,
       lt1Support,
       lt2Support,
+      lt1CandidateSupport,
+      lt2CandidateSupport,
       practicalLt1Support,
       practicalLt2Support,
       provisionalLt1: provisionalLt1Point,
       provisionalLt2: provisionalLt2Point,
       plotData: disciplinePlotData,
+      candidatePlotData,
       practicalPlotData,
       provisionalPlotData,
       pool,
@@ -4414,6 +4525,14 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               disciplineKey === "ciclismo"
                 ? plotView.lt2?.power_watts ?? plotView.provisionalLt2?.x ?? null
                 : plotView.lt2?.pace_seconds_per_km ?? plotView.provisionalLt2?.x ?? null;
+            const plotLt1CandidateX =
+              disciplineKey === "ciclismo"
+                ? plotView.lt1Candidate?.power_watts ?? null
+                : plotView.lt1Candidate?.pace_seconds_per_km ?? null;
+            const plotLt2CandidateX =
+              disciplineKey === "ciclismo"
+                ? plotView.lt2Candidate?.power_watts ?? null
+                : plotView.lt2Candidate?.pace_seconds_per_km ?? null;
             const plotLt1RealX =
               disciplineKey === "ciclismo"
                 ? plotView.individualThresholds?.lt1_individual?.power_watts ?? null
@@ -4487,10 +4606,46 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                               ? thresholdDetailLine(plotView.lt2, disciplineKey, athleteWeight)
                               : plotView.provisionalLt2
                                 ? `${disciplineKey === "ciclismo" ? formatPowerWithWeight(plotView.provisionalLt2.x, athleteWeight) : formatPace(plotView.provisionalLt2.x)} · ${plotView.provisionalLt2.lactate.toFixed(1)} mmol/L · estimación provisional`
-                                : "Sin cálculo disponible"}
+                              : "Sin cálculo disponible"}
                           </small>
                         </div>
                       </article>
+                      {plotView.lt1Detection && plotView.lt1Detection.state !== "none" ? (
+                        <article
+                          className={`threshold-legend-card detection ${thresholdDetectionTone(plotView.lt1Detection.state)}`}
+                          title={thresholdDetectionTooltip(plotView.lt1Detection, plotView.lt1Candidate, disciplineKey, athleteWeight, plotView.lt1CandidateSupport)}
+                        >
+                          <span className="threshold-dot detection lt1-candidate" />
+                          <div>
+                            <span className="eyebrow">Señal LT1</span>
+                            <strong>{thresholdDetectionStateLabel(plotView.lt1Detection.state)}</strong>
+                            <p>{plotView.lt1Detection.explanation}</p>
+                            <small>
+                              {plotView.lt1Candidate
+                                ? thresholdDetailLine(plotView.lt1Candidate, disciplineKey, athleteWeight)
+                                : "Sin candidato medible todavía"}
+                            </small>
+                          </div>
+                        </article>
+                      ) : null}
+                      {plotView.lt2Detection && plotView.lt2Detection.state !== "none" ? (
+                        <article
+                          className={`threshold-legend-card detection ${thresholdDetectionTone(plotView.lt2Detection.state)}`}
+                          title={thresholdDetectionTooltip(plotView.lt2Detection, plotView.lt2Candidate, disciplineKey, athleteWeight, plotView.lt2CandidateSupport)}
+                        >
+                          <span className="threshold-dot detection lt2-candidate" />
+                          <div>
+                            <span className="eyebrow">Señal LT2</span>
+                            <strong>{thresholdDetectionStateLabel(plotView.lt2Detection.state)}</strong>
+                            <p>{plotView.lt2Detection.explanation}</p>
+                            <small>
+                              {plotView.lt2Candidate
+                                ? thresholdDetailLine(plotView.lt2Candidate, disciplineKey, athleteWeight)
+                                : "Sin candidato medible todavía"}
+                            </small>
+                          </div>
+                        </article>
+                      ) : null}
                       {dynamicThresholds?.chronic.practical_lt1 ? (
                         <article
                           className="threshold-legend-card practical-lt1"
@@ -4569,6 +4724,26 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                       onClick={() => toggleThresholdReference("lt2")}
                     >
                       LT2 fisiológico
+                    </HoverMetaPill>
+                  ) : null}
+                  {plotLt1CandidateX !== null && plotView.lt1Detection ? (
+                    <HoverMetaPill
+                      className={`threshold-meta-pill line lt1-candidate ${thresholdReferenceVisibility.lt1Candidate ? "active" : "inactive"}`}
+                      tooltip={thresholdDetectionTooltip(plotView.lt1Detection, plotView.lt1Candidate, disciplineKey, athleteWeight, plotView.lt1CandidateSupport)}
+                      pressed={thresholdReferenceVisibility.lt1Candidate}
+                      onClick={() => toggleThresholdReference("lt1Candidate")}
+                    >
+                      LT1 señal
+                    </HoverMetaPill>
+                  ) : null}
+                  {plotLt2CandidateX !== null && plotView.lt2Detection ? (
+                    <HoverMetaPill
+                      className={`threshold-meta-pill line lt2-candidate ${thresholdReferenceVisibility.lt2Candidate ? "active" : "inactive"}`}
+                      tooltip={thresholdDetectionTooltip(plotView.lt2Detection, plotView.lt2Candidate, disciplineKey, athleteWeight, plotView.lt2CandidateSupport)}
+                      pressed={thresholdReferenceVisibility.lt2Candidate}
+                      onClick={() => toggleThresholdReference("lt2Candidate")}
+                    >
+                      LT2 señal
                     </HoverMetaPill>
                   ) : null}
                   {practicalThresholdPlotReferences.lt1 ? (
@@ -4722,6 +4897,22 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                           strokeDasharray={plotView.lt2 ? "10 4" : "4 6"}
                         />
                       ) : null}
+                      {plotLt1CandidateX !== null && thresholdReferenceVisibility.lt1Candidate ? (
+                        <ReferenceLine
+                          x={plotLt1CandidateX}
+                          stroke="#257a4d"
+                          strokeWidth={2.2}
+                          strokeDasharray={thresholdDetectionLineDasharray(plotView.lt1Detection?.state)}
+                        />
+                      ) : null}
+                      {plotLt2CandidateX !== null && thresholdReferenceVisibility.lt2Candidate ? (
+                        <ReferenceLine
+                          x={plotLt2CandidateX}
+                          stroke="#d26a36"
+                          strokeWidth={2.2}
+                          strokeDasharray={thresholdDetectionLineDasharray(plotView.lt2Detection?.state)}
+                        />
+                      ) : null}
                       {practicalThresholdPlotReferences.lt1 && thresholdReferenceVisibility.practicalLt1 ? (
                         <ReferenceLine
                           x={practicalThresholdPlotReferences.lt1}
@@ -4777,6 +4968,8 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                       <Scatter data={plotView.pool} fill="rgba(22, 53, 61, 0.22)" />
                       {plotView.lt1 ? <Scatter data={plotView.plotData.filter((point) => point.name === "LT1")} fill="#257a4d" shape="circle" /> : null}
                       {plotView.lt2 ? <Scatter data={plotView.plotData.filter((point) => point.name === "LT2")} fill="#d26a36" shape="circle" /> : null}
+                      {thresholdReferenceVisibility.lt1Candidate ? <Scatter data={plotView.candidatePlotData.filter((point) => point.name.startsWith("LT1"))} fill="#257a4d" shape="diamond" /> : null}
+                      {thresholdReferenceVisibility.lt2Candidate ? <Scatter data={plotView.candidatePlotData.filter((point) => point.name.startsWith("LT2"))} fill="#d26a36" shape="diamond" /> : null}
                       {thresholdReferenceVisibility.practicalLt1 ? <Scatter data={plotView.practicalPlotData.filter((point) => point.name === "LT1 práctico")} fill="#2d8f5b" shape="circle" /> : null}
                       {thresholdReferenceVisibility.practicalLt2 ? <Scatter data={plotView.practicalPlotData.filter((point) => point.name === "LT2 práctico")} fill="#d26a36" shape="circle" /> : null}
                       {plotView.peakPoint ? <Scatter data={[{ ...plotView.peakPoint, name: "Pico VLaMax" }]} fill="#b84a14" shape="circle" /> : null}

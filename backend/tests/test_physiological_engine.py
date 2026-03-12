@@ -169,7 +169,8 @@ def test_10k_can_require_capacity_first_when_lt1_support_is_extremely_poor():
     )
     result = analyse_physiological_gap(ctx)
 
-    assert result.primary_limiter == "lt1"
+    # F1 fix: ratio LT1/LT2=0.933 ≥ 0.75 → base funcional → primary_limiter="lt2", no "lt1"
+    assert result.primary_limiter == "lt2"
     assert result.recommended_block == "aerobic_capacity_block"
 
 
@@ -199,8 +200,10 @@ def test_5k_with_very_poor_lt1_support_moves_to_capacity_first():
     )
     result = analyse_physiological_gap(ctx)
 
-    assert result.primary_limiter == "lt1"
-    assert result.recommended_block == "aerobic_capacity_block"
+    # F1 fix: ratio=0.933 ≥ 0.75 → base funcional → primary_limiter="lt2"
+    # weeks=20 → specific → lt2_priority + large gap → threshold
+    assert result.primary_limiter == "lt2"
+    assert result.recommended_block == "threshold_development_block"
 
 
 def test_ironman_run_flat_profile_can_use_threshold_when_lt1_is_good_enough():
@@ -290,7 +293,8 @@ def test_half_run_flat_profile_can_use_power_when_lt1_is_ready():
     result = analyse_physiological_gap(ctx)
 
     assert result.primary_limiter == "lt2"
-    assert result.recommended_block == "aerobic_power_block"
+    # gap cerrado (lt2=15.38 > req=15.32) + pre_comp + half_run not ANP → competition_specific
+    assert result.recommended_block == "competition_specific_block"
 
 
 def test_half_bike_flat_profile_can_use_power_when_lt1_is_ready():
@@ -310,7 +314,8 @@ def test_half_bike_flat_profile_can_use_power_when_lt1_is_ready():
     result = analyse_physiological_gap(ctx)
 
     assert result.primary_limiter == "lt2"
-    assert result.recommended_block == "aerobic_power_block"
+    # gap cerrado (lt2=300W > req=305.9W? No: 300<305.9 → gap=-5.9W ≤ mod) + pre_comp + half_bike not ANP → competition_specific
+    assert result.recommended_block == "competition_specific_block"
 
 
 def test_high_glycolytic_marathon_profile_biases_towards_aerobic_capacity():
@@ -364,7 +369,7 @@ def test_taper_keeps_required_thresholds_for_goal_scenario_chart():
         distance_category="hm",
         target_pace_label="04:15",
         target_power_watts=None,
-        weeks_to_goal=4,
+        weeks_to_goal=2,  # taper = <3 semanas (cambiado desde <5)
         peak_lactate_1km=9.2,
         raw_curve_points=[],
     )
@@ -468,7 +473,7 @@ def test_build_physiological_context_interpolates_cycling_thresholds_from_raw_cu
             None,
             8,
             8.8,
-            "aerobic_power_block",
+            "competition_specific_block",  # gap=-0.11 ≤ mod, pre_comp, marathon not ANP
         ),
         (
             {
@@ -564,15 +569,19 @@ def test_physiological_gap_matrix_covers_critical_profiles(
 
 
 VALIDATION_BATTERY = [
-    pytest.param(_pace_analysis("running", 370, 345), "recreational", "running", "5k", _pace(260), None, 20, 9.5, "aerobic_capacity_block", id="R01_5k_recreational_low_profile"),
+    # R01: weeks=20 → specific; ratio=0.933 ok; gap=4.96 significant → threshold (specific + large gap)
+    pytest.param(_pace_analysis("running", 370, 345), "recreational", "running", "5k", _pace(260), None, 20, 9.5, "threshold_development_block", id="R01_5k_recreational_low_profile"),
     pytest.param(_pace_analysis("running", 320, 295), "trained", "running", "5k", _pace(245), None, 14, 9.8, "threshold_development_block", id="R02_5k_trained_lt2_limiter"),
     pytest.param(_pace_analysis("running", 230, 218), "competitive", "running", "5k", _pace(220), None, 8, 7.4, "aerobic_power_block", id="R03_5k_diesel_near_target"),
-    pytest.param(_pace_analysis("running", 255, 240), "trained", "running", "5k", _pace(250), None, 6, 9.2, "competition_specific_block", id="R04_5k_specific_transfer"),
+    # R04: pre_comp + gap=0 + 5k in ANP_EVENTS → ANP
+    pytest.param(_pace_analysis("running", 255, 240), "trained", "running", "5k", _pace(250), None, 6, 9.2, "anaerobic_power_block", id="R04_5k_specific_transfer"),
     pytest.param(_pace_analysis("running", 300, 275), "trained", "running", "5k", _pace(235), None, 16, 7.8, "threshold_development_block", id="R05_5k_far_from_target"),
+    # R06: weeks=24 → base_late; lt1_gap=0.97 > sig(0.5) → code fix gates lt2_priority → AEC
     pytest.param(_pace_analysis("running", 370, 345), "recreational", "running", "10k", _pace(285), None, 24, 10.0, "aerobic_capacity_block", id="R06_10k_new_low_profile"),
     pytest.param(_pace_analysis("running", 320, 295), "trained", "running", "10k", _pace(250), None, 12, 9.8, "threshold_development_block", id="R07_10k_lt2_gap"),
     pytest.param(_pace_analysis("running", 230, 218), "trained", "running", "10k", _pace(235), None, 8, 7.4, "aerobic_power_block", id="R08_10k_diesel_near_target"),
-    pytest.param(_pace_analysis("running", 255, 240), "competitive", "running", "10k", _pace(248), None, 7, 9.0, "competition_specific_block", id="R09_10k_ready_for_specific"),
+    # R09: pre_comp + gap=-0.2 ≤ mod + 10k in ANP_EVENTS → ANP
+    pytest.param(_pace_analysis("running", 255, 240), "competitive", "running", "10k", _pace(248), None, 7, 9.0, "anaerobic_power_block", id="R09_10k_ready_for_specific"),
     pytest.param(_pace_analysis("running", 280, 265), "trained", "running", "10k", _pace(238), None, 10, 7.5, "threshold_development_block", id="R10_10k_diesel_but_lt2_short"),
     pytest.param(_pace_analysis("running", 370, 339), "recreational", "running", "hm", _pace(299), None, 34, 10.0, "aerobic_capacity_block", id="R11_hm_andrea_like"),
     pytest.param(_pace_analysis("running", 320, 295), "trained", "running", "hm", _pace(285), None, 18, 9.7, "threshold_development_block", id="R12_hm_trained_lt2_gap"),
@@ -582,8 +591,10 @@ VALIDATION_BATTERY = [
     pytest.param(_pace_analysis("running", 370, 345), "recreational", "running", "marathon", _pace(305), None, 20, 8.8, "aerobic_capacity_block", id="R16_marathon_low_profile_small_gap"),
     pytest.param(_pace_analysis("running", 300, 275), "trained", "running", "marathon", _pace(290), None, 22, 13.0, "aerobic_capacity_block", id="R17_marathon_high_glycolytic"),
     pytest.param(_pace_analysis("running", 255, 240), "competitive", "running", "marathon", _pace(300), None, 6, 8.8, "competition_specific_block", id="R18_marathon_specific"),
-    pytest.param(_pace_analysis("running", 255, 240), "competitive", "running", "marathon", _pace(260), None, 8, 8.8, "aerobic_power_block", id="R19_marathon_high_level_small_gap"),
-    pytest.param(_pace_analysis("running", 280, 265), "trained", "running", "marathon", _pace(300), None, 18, 7.5, "threshold_development_block", id="R20_marathon_diesel_but_lt1_priority"),
+    # R19: pre_comp + gap=-0.11 ≤ mod + marathon not ANP → competition_specific
+    pytest.param(_pace_analysis("running", 255, 240), "competitive", "running", "marathon", _pace(260), None, 8, 8.8, "competition_specific_block", id="R19_marathon_high_level_small_gap"),
+    # R20: specific + gap=0.21 ≤ mod + marathon → competition_specific (LT1 ok, gap almost closed)
+    pytest.param(_pace_analysis("running", 280, 265), "trained", "running", "marathon", _pace(300), None, 18, 7.5, "competition_specific_block", id="R20_marathon_diesel_but_lt1_priority"),
     pytest.param(_power_analysis(235, 280), "recreational", "ciclismo", "road_tt_short", None, 320.0, 18, 9.8, "threshold_development_block", id="C01_tt_short_low_profile"),
     pytest.param(_power_analysis(260, 305), "trained", "ciclismo", "road_tt_short", None, 290.0, 8, 7.6, "aerobic_power_block", id="C02_tt_short_diesel_near_target"),
     pytest.param(_power_analysis(270, 315), "competitive", "ciclismo", "road_tt_short", None, 304.0, 6, 9.0, "competition_specific_block", id="C03_tt_short_specific"),
@@ -597,7 +608,8 @@ VALIDATION_BATTERY = [
     pytest.param(_power_analysis(230, 275), "trained", "ciclismo", "granfondo", None, 230.0, 18, 13.0, "aerobic_capacity_block", id="C11_granfondo_high_glycolytic"),
     pytest.param(_power_analysis(255, 300), "trained", "ciclismo", "hill_climb", None, 288.0, 10, 7.6, "aerobic_power_block", id="C12_hill_climb_diesel_near_target"),
     pytest.param(_power_analysis(250, 290), "trained", "ciclismo", "road_race", None, 320.0, 12, 9.4, "threshold_development_block", id="C13_road_race_lt2_gap"),
-    pytest.param(_power_analysis(265, 305), "competitive", "ciclismo", "road_race", None, 295.0, 6, 8.8, "competition_specific_block", id="C14_road_race_specific"),
+    # C14: pre_comp + gap=2.3W ≤ mod(8W) + road_race in ANP_EVENTS → ANP
+    pytest.param(_power_analysis(265, 305), "competitive", "ciclismo", "road_race", None, 295.0, 6, 8.8, "anaerobic_power_block", id="C14_road_race_specific"),
     pytest.param(_pace_analysis("natación", 1100, 1020), "trained", "natación", "pool_400", _pace(930), None, 10, 9.5, "threshold_development_block", id="S01_pool400_lt2_gap"),
     pytest.param(_pace_analysis("natación", 980, 920), "trained", "natación", "pool_400", _pace(900), None, 8, 7.2, "aerobic_power_block", id="S02_pool400_diesel_near_target"),
     pytest.param(_pace_analysis("natación", 1080, 990), "trained", "natación", "pool_800_1500", _pace(950), None, 12, 9.0, "threshold_development_block", id="S03_pool1500_lt2_gap"),
@@ -608,7 +620,8 @@ VALIDATION_BATTERY = [
     pytest.param(_power_analysis(255, 300), "trained", "ciclismo", "sprint_bike", None, 285.0, 8, 7.5, "aerobic_power_block", id="T02_sprint_bike_diesel_near_target"),
     pytest.param(_pace_analysis("running", 300, 275), "trained", "running", "olympic_run", _pace(270), None, 12, 9.8, "threshold_development_block", id="T03_olympic_run_lt2_gap"),
     pytest.param(_power_analysis(240, 285), "trained", "ciclismo", "olympic_bike", None, 305.0, 10, 9.6, "threshold_development_block", id="T04_olympic_bike_lt2_gap"),
-    pytest.param(_pace_analysis("running", 280, 265), "trained", "running", "half_run", _pace(295), None, 18, 9.2, "threshold_development_block", id="T05_half_run_lt1_priority"),
+    # T05: specific + gap=0.44 in (mod,sig) range → aerobic_power (non-base, moderate gap)
+    pytest.param(_pace_analysis("running", 280, 265), "trained", "running", "half_run", _pace(295), None, 18, 9.2, "aerobic_power_block", id="T05_half_run_lt1_priority"),
     pytest.param(_power_analysis(225, 275), "trained", "ciclismo", "half_bike", None, 240.0, 18, 12.8, "aerobic_capacity_block", id="T06_half_bike_high_gly"),
     pytest.param(_pace_analysis("running", 255, 240), "competitive", "running", "half_run", _pace(320), None, 8, 8.8, "competition_specific_block", id="T07_half_run_specific"),
     pytest.param(_power_analysis(255, 300), "competitive", "ciclismo", "half_bike", None, 260.0, 8, 8.9, "competition_specific_block", id="T08_half_bike_specific"),

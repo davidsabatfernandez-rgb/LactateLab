@@ -1259,7 +1259,12 @@ def test_real_thresholds_require_adequate_interval_duration_and_rest(client, db_
     real_thresholds = session_analysis.json()["real_thresholds"]
     assert real_thresholds["lt1_real"] is None
     assert real_thresholds["lt2_real"] is None
+    assert real_thresholds["lt1_detection"]["state"] in {"candidate_weak", "candidate_strong"}
+    assert real_thresholds["lt2_detection"]["state"] in {"candidate_weak", "candidate_strong"}
+    assert real_thresholds["lt1_detection"]["quality_gate_passed"] is False
+    assert real_thresholds["lt2_detection"]["quality_gate_passed"] is False
     assert real_thresholds["data_quality"]["sufficient"] is False
+    assert real_thresholds["data_quality"]["criteria_version"] == 3
     assert "Protocolo poco adecuado" in real_thresholds["data_quality"]["reason"]
 
 
@@ -1332,7 +1337,16 @@ def test_athlete_analysis_exposes_individual_thresholds_from_comparable_tests(cl
     analysis_response = client.get(f"/api/athletes/{athlete_id}/analysis", headers=headers)
     assert analysis_response.status_code == 200
     running_view = analysis_response.json()["discipline_views"]["running"]
+    real_thresholds = running_view["real_thresholds"]
     individual_thresholds = running_view["individual_thresholds"]
+    assert real_thresholds["lt1_real"] is not None
+    assert real_thresholds["lt2_real"] is not None
+    assert real_thresholds["lt1_real"]["status"] == "ready_to_anchor"
+    assert real_thresholds["lt2_real"]["status"] == "ready_to_anchor"
+    assert real_thresholds["lt1_detection"]["state"] == "ready_to_anchor"
+    assert real_thresholds["lt2_detection"]["state"] == "ready_to_anchor"
+    assert real_thresholds["lt1_detection"]["anchor_update_recommended"] is True
+    assert real_thresholds["lt2_detection"]["anchor_update_recommended"] is True
     assert individual_thresholds["lt1_individual"] is not None
     assert individual_thresholds["lt2_individual"] is not None
     assert individual_thresholds["data_quality"]["sufficient"] is True
