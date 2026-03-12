@@ -17198,3 +17198,2915 @@ h4 {
 .composer-duration-value { font-size: 16px; min-width: 80px; text-align: center; }
 .composer-duration-hint { font-size: 12px; color: var(--muted, #6b7280); margin: 0; }
 .composer-duration-warn { color: #ca8a04; font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BEVEL WELLNESS — Premium neumorphism dashboard
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.bv-shell {
+  --bv-bg: #f3ede6;
+  --bv-card: #ede7df;
+  --bv-card-inset: #e8e1d8;
+  --bv-text: #2c2825;
+  --bv-muted: #8a8279;
+  --bv-label: #9e958c;
+  --bv-shadow-d: rgba(174, 164, 150, 0.38);
+  --bv-shadow-l: rgba(255, 255, 255, 0.82);
+  --bv-sleep: #7c6fba;
+  --bv-hrv: #4fb46b;
+  --bv-resting: #5a9cf5;
+  --bv-stress: #e8935a;
+  --bv-battery: #8bc34a;
+  --bv-respiration: #9180d4;
+  background: var(--bv-bg);
+  border-radius: 24px;
+  padding: 36px 32px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  grid-column: 1 / -1;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.bv-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.bv-header-copy h2 {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--bv-text);
+  margin: 0 0 2px;
+  letter-spacing: -0.01em;
+}
+.bv-header-copy p {
+  font-size: 0.82rem;
+  color: var(--bv-muted);
+  margin: 0;
+}
+.bv-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.bv-provider-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(79, 180, 107, 0.12);
+  color: #3a8a54;
+}
+.bv-refresh-btn {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--bv-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+.bv-refresh-btn:hover { background: rgba(0,0,0,0.04); }
+.bv-refresh-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ── Bevel card base ─────────────────────────────────────────── */
+.bv-card {
+  background: var(--bv-card);
+  border-radius: 18px;
+  padding: 18px 20px;
+  box-shadow:
+    5px 5px 12px var(--bv-shadow-d),
+    -5px -5px 12px var(--bv-shadow-l);
+  transition: box-shadow 0.2s;
+}
+.bv-card-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bv-label);
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* ── Battery mini card ───────────────────────────────────────── */
+.bv-battery {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 20px;
+  max-width: 340px;
+}
+.bv-battery-spark { flex: 1; min-width: 80px; height: 28px; }
+.bv-battery-data { display: flex; flex-direction: column; gap: 0; }
+.bv-battery-data strong {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--bv-text);
+  line-height: 1.1;
+}
+.bv-battery-data .bv-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--bv-battery);
+}
+.bv-battery-data .bv-avg {
+  font-size: 0.7rem;
+  color: var(--bv-muted);
+}
+
+/* ── Main 2-col grid ─────────────────────────────────────────── */
+.bv-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Sleep card (left column) ────────────────────────────────── */
+.bv-sleep {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 24px;
+}
+.bv-sleep-top {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.bv-sleep-ring {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+.bv-sleep-ring svg {
+  width: 72px;
+  height: 72px;
+  transform: rotate(-90deg);
+}
+.bv-sleep-ring .bv-ring-track {
+  fill: none;
+  stroke: rgba(124, 111, 186, 0.12);
+  stroke-width: 6;
+}
+.bv-sleep-ring .bv-ring-fill {
+  fill: none;
+  stroke: var(--bv-sleep);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+.bv-sleep-ring-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--bv-sleep);
+}
+.bv-sleep-copy h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--bv-text);
+  margin: 0 0 2px;
+}
+.bv-sleep-copy p {
+  font-size: 0.78rem;
+  color: var(--bv-muted);
+  margin: 0;
+  line-height: 1.35;
+}
+.bv-sleep-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.bv-sleep-stat {
+  background: var(--bv-card-inset);
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: inset 2px 2px 5px var(--bv-shadow-d), inset -2px -2px 5px var(--bv-shadow-l);
+}
+.bv-sleep-stat strong {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--bv-text);
+  display: block;
+}
+
+/* ── Metric cards stack (right column) ───────────────────────── */
+.bv-metrics-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.bv-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 18px;
+}
+.bv-metric-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.bv-metric-top strong {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--bv-text);
+}
+.bv-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.bv-chip {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+.bv-chip.hrv { background: rgba(79, 180, 107, 0.12); color: #3a8a54; }
+.bv-chip.resting { background: rgba(90, 156, 245, 0.12); color: #3a6dc5; }
+.bv-chip.stress { background: rgba(232, 147, 90, 0.12); color: #b06a30; }
+.bv-chip.respiration { background: rgba(145, 128, 212, 0.12); color: #6a5aad; }
+.bv-avg {
+  font-size: 0.7rem;
+  color: var(--bv-muted);
+}
+.bv-spark {
+  height: 30px;
+  width: 100%;
+}
+
+/* ── Night visible card ──────────────────────────────────────── */
+.bv-night {
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.bv-night-header {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+}
+.bv-night-header span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bv-night-header small {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bv-label);
+}
+.bv-night-header strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--bv-text);
+}
+
+/* Sleep stage timeline */
+.bv-stage-timeline {
+  position: relative;
+  min-height: 92px;
+}
+.bv-stage-row {
+  position: relative;
+  height: 20px;
+  margin-bottom: 3px;
+  margin-left: 70px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.02);
+}
+.bv-stage-label {
+  position: absolute;
+  left: -70px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--bv-muted);
+  width: 62px;
+  text-align: right;
+}
+.bv-stage-segment {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 3px;
+  min-width: 3px;
+}
+.bv-stage-segment.awake { background: rgba(180, 170, 158, 0.35); }
+.bv-stage-segment.rem { background: rgba(124, 111, 186, 0.55); }
+.bv-stage-segment.light { background: rgba(124, 111, 186, 0.28); }
+.bv-stage-segment.deep { background: var(--bv-sleep); }
+
+/* Stage summary chips */
+.bv-stage-chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.bv-stage-chip {
+  background: var(--bv-card-inset);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: inset 2px 2px 5px var(--bv-shadow-d), inset -2px -2px 5px var(--bv-shadow-l);
+  text-align: center;
+}
+.bv-stage-chip strong {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--bv-text);
+  display: block;
+}
+.bv-stage-chip small {
+  font-size: 0.65rem;
+  color: var(--bv-muted);
+}
+.bv-stage-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.bv-stage-dot.deep { background: var(--bv-sleep); }
+.bv-stage-dot.light { background: rgba(124, 111, 186, 0.35); }
+.bv-stage-dot.rem { background: rgba(124, 111, 186, 0.6); }
+.bv-stage-dot.awake { background: rgba(180, 170, 158, 0.45); }
+
+/* ── Respiration card ────────────────────────────────────────── */
+.bv-respiration {
+  max-width: 420px;
+  padding: 16px 20px;
+}
+
+/* ── Loading / Empty states ──────────────────────────────────── */
+.bv-empty {
+  font-size: 0.8rem;
+  color: var(--bv-muted);
+  padding: 20px 0;
+  text-align: center;
+}
+.bv-status-msg {
+  font-size: 0.72rem;
+  color: var(--bv-muted);
+  margin-top: -8px;
+}
+
+/* ── Advanced detail toggle ──────────────────────────────────── */
+.bv-advanced {
+  border-top: 1px solid rgba(0,0,0,0.05);
+  padding-top: 16px;
+}
+.bv-advanced summary {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--bv-muted);
+  cursor: pointer;
+  padding: 8px 0;
+  list-style: none;
+}
+.bv-advanced summary::marker,
+.bv-advanced summary::-webkit-details-marker { display: none; }
+.bv-advanced summary::before {
+  content: "▸ ";
+  margin-right: 4px;
+}
+.bv-advanced[open] summary::before { content: "▾ "; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .bv-shell { padding: 24px 16px 28px; }
+  .bv-main-grid { grid-template-columns: 1fr; }
+  .bv-stage-chips { grid-template-columns: repeat(2, 1fr); }
+  .bv-battery { max-width: 100%; }
+  .bv-respiration { max-width: 100%; }
+  .bv-header { flex-direction: column; gap: 12px; }
+  .bv-night-header { flex-wrap: wrap; gap: 12px 24px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ATHLETE PORTAL — DARK THEME (Bevel-inspired)
+   Scoped to .athlete-shell so coach side is untouched.
+   ═══════════════════════════════════════════════════════════════ */
+
+.athlete-shell {
+  --dk-bg: #0d0f11;
+  --dk-surface: #161a1e;
+  --dk-card: #1c2127;
+  --dk-card-hover: #222830;
+  --dk-card-inset: #151a1f;
+  --dk-border: rgba(255, 255, 255, 0.06);
+  --dk-border-accent: rgba(255, 255, 255, 0.10);
+  --dk-text: #e8edf2;
+  --dk-text-secondary: #a4b0be;
+  --dk-muted: #6b7a8d;
+  --dk-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  --dk-shadow-soft: 0 1px 6px rgba(0, 0, 0, 0.25);
+  --dk-green: #4fb46b;
+  --dk-orange: #e8935a;
+  --dk-blue: #5a9cf5;
+  --dk-purple: #9180d4;
+  --dk-red: #e85a5a;
+
+  min-height: 100vh;
+  background: var(--dk-bg);
+  color: var(--dk-text);
+}
+
+/* ── Topbar ───────────────────────────────────────────────────── */
+.athlete-shell .athlete-topbar {
+  border-bottom: 1px solid var(--dk-border);
+}
+
+.athlete-shell .athlete-topbar-meta .eyebrow {
+  color: var(--dk-muted);
+}
+
+.athlete-shell .athlete-topbar-meta small {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-topbar .ghost-button {
+  color: var(--dk-text-secondary);
+  border: 1px solid var(--dk-border-accent);
+  background: var(--dk-surface);
+}
+
+.athlete-shell .athlete-topbar .ghost-button:hover {
+  background: var(--dk-card);
+  color: var(--dk-text);
+}
+
+/* ── Page grid text defaults ──────────────────────────────────── */
+.athlete-shell .page-grid {
+  color: var(--dk-text);
+}
+
+.athlete-shell h1,
+.athlete-shell h2,
+.athlete-shell h3,
+.athlete-shell strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell p,
+.athlete-shell small {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .eyebrow {
+  color: var(--dk-muted);
+}
+
+.athlete-shell .muted {
+  color: var(--dk-muted);
+}
+
+/* ── Topline bar ──────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-topline {
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  box-shadow: var(--dk-shadow);
+}
+
+.athlete-shell .athlete-portal-topline-main strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-topline-chip {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  box-shadow: none;
+}
+
+.athlete-shell .athlete-portal-topline-chip strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-card-label {
+  color: var(--dk-muted);
+}
+
+/* ── Hero shell ───────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-hero-shell {
+  background:
+    radial-gradient(circle at top left, rgba(210, 106, 54, 0.08), transparent 24%),
+    radial-gradient(circle at top right, rgba(90, 156, 245, 0.06), transparent 22%),
+    radial-gradient(circle at bottom right, rgba(79, 180, 107, 0.06), transparent 28%),
+    var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  box-shadow: var(--dk-shadow);
+}
+
+.athlete-shell .athlete-portal-hero-copy h1 {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-stage-headline {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-stage-summary {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-portal-sync-note {
+  color: var(--dk-muted);
+}
+
+/* ── Dashboard metrics ────────────────────────────────────────── */
+.athlete-shell .athlete-portal-dashboard-metric {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+  box-shadow: none;
+}
+
+.athlete-shell .athlete-portal-dashboard-metric strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-dashboard-metric p {
+  color: var(--dk-text-secondary);
+}
+
+/* ── Stage note ───────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-stage-note.surging {
+  background: linear-gradient(135deg, rgba(79, 180, 107, 0.18), rgba(79, 180, 107, 0.08));
+  border-color: rgba(79, 180, 107, 0.22);
+}
+
+.athlete-shell .athlete-portal-stage-note.surging .athlete-portal-card-label {
+  color: var(--dk-green);
+}
+
+.athlete-shell .athlete-portal-stage-note.surging strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-stage-note.steady {
+  background: linear-gradient(135deg, rgba(232, 147, 90, 0.14), rgba(232, 147, 90, 0.06));
+  border-color: rgba(232, 147, 90, 0.18);
+}
+
+.athlete-shell .athlete-portal-stage-note.building {
+  background: linear-gradient(135deg, rgba(90, 156, 245, 0.14), rgba(90, 156, 245, 0.06));
+  border-color: rgba(90, 156, 245, 0.18);
+}
+
+/* ── Status badges ────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-status-badge.surging {
+  background: rgba(79, 180, 107, 0.2);
+  color: var(--dk-green);
+}
+
+.athlete-shell .athlete-portal-status-badge.steady {
+  background: rgba(232, 147, 90, 0.18);
+  color: var(--dk-orange);
+}
+
+.athlete-shell .athlete-portal-status-badge.building {
+  background: rgba(90, 156, 245, 0.18);
+  color: var(--dk-blue);
+}
+
+.athlete-shell .athlete-portal-status-context {
+  color: var(--dk-muted);
+}
+
+/* ── Goal chips / tags ────────────────────────────────────────── */
+.athlete-shell .athlete-goal-chip {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border-accent);
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-goal-chip.subtle {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--dk-border);
+  color: var(--dk-muted);
+}
+
+/* ── Hero aside cards (spotlight) ─────────────────────────────── */
+.athlete-shell .athlete-portal-hero-card,
+.athlete-shell .athlete-portal-summary-card,
+.athlete-shell .athlete-portal-chart-card,
+.athlete-shell .athlete-portal-insight-card,
+.athlete-shell .athlete-portal-week-card,
+.athlete-shell .athlete-portal-guidance-card,
+.athlete-shell .athlete-portal-balance-card,
+.athlete-shell .athlete-portal-feed-item,
+.athlete-shell .athlete-portal-guidance-item,
+.athlete-shell .athlete-discipline-card-portal,
+.athlete-shell .athlete-target-card-portal {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+  box-shadow: var(--dk-shadow-soft);
+}
+
+.athlete-shell .athlete-portal-hero-card.standout {
+  background:
+    radial-gradient(circle at top right, rgba(232, 147, 90, 0.12), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-hero-card.sync {
+  background:
+    radial-gradient(circle at top right, rgba(79, 180, 107, 0.1), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-hero-card p,
+.athlete-shell .athlete-portal-hero-card small,
+.athlete-shell .athlete-portal-summary-card p,
+.athlete-shell .athlete-portal-insight-card p,
+.athlete-shell .athlete-portal-guidance-item p,
+.athlete-shell .athlete-portal-week-card p {
+  color: var(--dk-text-secondary);
+}
+
+/* ── Focus list items ─────────────────────────────────────────── */
+.athlete-shell .athlete-portal-focus-list-item {
+  background: var(--dk-card-inset);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-portal-focus-list-item strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-focus-list-item p {
+  color: var(--dk-text-secondary);
+}
+
+/* ── Focus chips ──────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-focus-chip {
+  background: var(--dk-card-inset);
+  border-color: var(--dk-border);
+  color: var(--dk-muted);
+}
+
+.athlete-shell .athlete-portal-focus-chip.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--dk-text);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.athlete-shell .athlete-portal-focus-meta small {
+  color: var(--dk-muted);
+}
+
+/* ── Sync providers ───────────────────────────────────────────── */
+.athlete-shell .athlete-portal-sync-provider {
+  background: var(--dk-card-inset);
+  border-color: var(--dk-border);
+  color: var(--dk-muted);
+}
+
+.athlete-shell .athlete-portal-sync-provider.connected {
+  background: rgba(79, 180, 107, 0.14);
+  border-color: rgba(79, 180, 107, 0.22);
+  color: var(--dk-green);
+}
+
+/* ── Command grid ─────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-command-grid {
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  box-shadow: var(--dk-shadow);
+}
+
+.athlete-shell .athlete-portal-side-head h2 {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-side-head p {
+  color: var(--dk-muted);
+}
+
+.athlete-shell .athlete-portal-command-card {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+  box-shadow: var(--dk-shadow-soft);
+}
+
+.athlete-shell .athlete-portal-command-card strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-command-card p,
+.athlete-shell .athlete-portal-command-card small {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-portal-command-card.surging {
+  background:
+    radial-gradient(circle at top right, rgba(79, 180, 107, 0.1), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-command-card.steady {
+  background:
+    radial-gradient(circle at top right, rgba(232, 147, 90, 0.1), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-command-card.building {
+  background:
+    radial-gradient(circle at top right, rgba(90, 156, 245, 0.1), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-command-list-item span {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ── Week KPIs / Reference / Volume strips ────────────────────── */
+.athlete-shell .athlete-portal-week-kpis div,
+.athlete-shell .athlete-portal-reference-strip span,
+.athlete-shell .athlete-portal-volume-inline span {
+  background: var(--dk-card-inset);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-portal-reference-strip small,
+.athlete-shell .athlete-portal-volume-inline small,
+.athlete-shell .athlete-portal-week-kpis small {
+  color: var(--dk-muted);
+}
+
+.athlete-shell .athlete-portal-reference-strip strong,
+.athlete-shell .athlete-portal-volume-inline strong,
+.athlete-shell .athlete-portal-week-kpis strong {
+  color: var(--dk-text);
+}
+
+/* ── Week bars ────────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-week-bar-track {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.athlete-shell .athlete-portal-week-bar-head strong {
+  color: var(--dk-text);
+}
+
+/* ── Bevel wellness shell ─────────────────────────────────────── */
+.athlete-shell .bv-shell {
+  --bv-bg: var(--dk-surface);
+  --bv-card: var(--dk-card);
+  --bv-card-inset: var(--dk-card-inset);
+  --bv-text: var(--dk-text);
+  --bv-muted: var(--dk-muted);
+  --bv-label: var(--dk-muted);
+  --bv-shadow-d: rgba(0, 0, 0, 0.3);
+  --bv-shadow-l: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--dk-border);
+}
+
+.athlete-shell .bv-card {
+  border: 1px solid var(--dk-border);
+}
+
+.athlete-shell .bv-chip.hrv { background: rgba(79, 180, 107, 0.16); color: #6dd890; }
+.athlete-shell .bv-chip.resting { background: rgba(90, 156, 245, 0.16); color: #7cb8ff; }
+.athlete-shell .bv-chip.stress { background: rgba(232, 147, 90, 0.16); color: #f0a870; }
+.athlete-shell .bv-chip.respiration { background: rgba(145, 128, 212, 0.16); color: #b8a8f0; }
+
+.athlete-shell .bv-stage-segment.awake { background: rgba(255, 255, 255, 0.12); }
+.athlete-shell .bv-stage-segment.rem { background: rgba(145, 128, 212, 0.55); }
+.athlete-shell .bv-stage-segment.light { background: rgba(145, 128, 212, 0.25); }
+
+.athlete-shell .bv-stage-row { background: rgba(255, 255, 255, 0.02); }
+
+.athlete-shell .bv-advanced { border-top-color: var(--dk-border); }
+
+.athlete-shell .bv-provider-badge {
+  background: rgba(79, 180, 107, 0.16);
+  color: #6dd890;
+}
+
+.athlete-shell .bv-refresh-btn {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .bv-refresh-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.athlete-shell .bv-sleep-ring .bv-ring-track {
+  stroke: rgba(145, 128, 212, 0.15);
+}
+
+.athlete-shell .bv-status-msg {
+  color: var(--dk-muted);
+}
+
+/* ── Performance panel ────────────────────────────────────────── */
+.athlete-shell .athlete-portal-performance-panel {
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  box-shadow: var(--dk-shadow);
+}
+
+.athlete-shell .athlete-portal-performance-card,
+.athlete-shell .athlete-portal-performance-note {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+  box-shadow: var(--dk-shadow-soft);
+}
+
+.athlete-shell .athlete-portal-performance-card strong,
+.athlete-shell .athlete-portal-performance-note strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-performance-card p,
+.athlete-shell .athlete-portal-performance-card small,
+.athlete-shell .athlete-portal-performance-note p,
+.athlete-shell .athlete-portal-performance-note small {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-portal-performance-card.featured {
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 30%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-performance-card.ftp {
+  background:
+    radial-gradient(circle at top right, rgba(79, 180, 107, 0.12), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-performance-card.vo2max {
+  background:
+    radial-gradient(circle at top right, rgba(90, 156, 245, 0.12), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-performance-card.vlamax,
+.athlete-shell .athlete-portal-performance-card.half-marathon,
+.athlete-shell .athlete-portal-performance-card.ten-k,
+.athlete-shell .athlete-portal-performance-card.marathon {
+  background:
+    radial-gradient(circle at top right, rgba(232, 147, 90, 0.12), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-performance-meta span {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--dk-border);
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-portal-performance-note {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.03), transparent 34%),
+    var(--dk-card);
+}
+
+/* ── Lactate panel ────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-lactate-panel {
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  box-shadow: var(--dk-shadow);
+}
+
+.athlete-shell .athlete-portal-discipline-pill {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+  color: var(--dk-muted);
+}
+
+.athlete-shell .athlete-portal-discipline-pill:hover {
+  background: var(--dk-card-hover);
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-portal-discipline-pill.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--dk-text);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.athlete-shell .athlete-portal-chart-card {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-portal-chart-empty {
+  color: var(--dk-muted);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.athlete-shell .athlete-portal-lactate-legend span {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-portal-insight-card.lt1 {
+  background:
+    radial-gradient(circle at top right, rgba(49, 86, 211, 0.12), transparent 34%),
+    var(--dk-card);
+  border-color: rgba(49, 86, 211, 0.18);
+}
+
+.athlete-shell .athlete-portal-insight-card.lt2 {
+  background:
+    radial-gradient(circle at top right, rgba(210, 106, 54, 0.12), transparent 34%),
+    var(--dk-card);
+  border-color: rgba(210, 106, 54, 0.18);
+}
+
+.athlete-shell .athlete-portal-insight-card.peak {
+  background:
+    radial-gradient(circle at top right, rgba(232, 90, 90, 0.1), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-insight-card.narrative {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.04), transparent 34%),
+    var(--dk-card);
+}
+
+/* ── Recharts inside athlete-shell ────────────────────────────── */
+.athlete-shell .recharts-cartesian-grid line {
+  stroke: rgba(255, 255, 255, 0.06);
+}
+
+.athlete-shell .recharts-cartesian-axis-tick-value {
+  fill: var(--dk-muted) !important;
+}
+
+.athlete-shell .recharts-tooltip-wrapper .athlete-portal-curve-tooltip,
+.athlete-shell .recharts-tooltip-wrapper .athlete-portal-wellness-tooltip {
+  background: rgba(10, 14, 18, 0.94);
+  border: 1px solid var(--dk-border-accent);
+  color: var(--dk-text);
+}
+
+/* ── Story grid ───────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-story-grid {
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  box-shadow: var(--dk-shadow);
+}
+
+.athlete-shell .athlete-portal-balance-card {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-portal-balance-head strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-balance-card p {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-portal-balance-card small {
+  color: var(--dk-muted);
+}
+
+.athlete-shell .athlete-portal-feed-item {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-portal-feed-item strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-guidance-item {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-portal-guidance-item strong {
+  color: var(--dk-text);
+}
+
+/* ── Discipline section ───────────────────────────────────────── */
+.athlete-shell .athlete-portal-section {
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  box-shadow: var(--dk-shadow);
+}
+
+.athlete-shell .athlete-discipline-card-portal {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-discipline-head strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-discipline-kpis div {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-discipline-kpis small {
+  color: var(--dk-muted);
+}
+
+.athlete-shell .athlete-discipline-chart-empty {
+  color: var(--dk-muted);
+}
+
+.athlete-shell .athlete-discipline-footnote {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-portal-discipline-badge {
+  border: 1px solid var(--dk-border);
+}
+
+/* ── Target cards ─────────────────────────────────────────────── */
+.athlete-shell .athlete-target-card-portal {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-target-card-portal strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-target-date {
+  color: var(--dk-muted);
+}
+
+/* ── Garmin panel ─────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-garmin-panel {
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  box-shadow: var(--dk-shadow);
+}
+
+.athlete-shell .athlete-portal-garmin-login-card {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+  box-shadow: var(--dk-shadow-soft);
+}
+
+.athlete-shell .athlete-portal-garmin-login-card input {
+  background: var(--dk-card-inset);
+  border-color: var(--dk-border-accent);
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-garmin-activity-card {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+  box-shadow: var(--dk-shadow-soft);
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-garmin-activity-card:hover {
+  border-color: rgba(232, 147, 90, 0.24);
+  background: var(--dk-card-hover);
+}
+
+.athlete-shell .athlete-portal-garmin-activity-card.active {
+  border-color: rgba(79, 180, 107, 0.28);
+  background:
+    radial-gradient(circle at top right, rgba(79, 180, 107, 0.08), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-garmin-activity-card p,
+.athlete-shell .athlete-portal-garmin-activity-card small {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-portal-garmin-hero,
+.athlete-shell .athlete-portal-garmin-json-card {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+  box-shadow: var(--dk-shadow-soft);
+}
+
+.athlete-shell .athlete-portal-garmin-kpis span {
+  background: var(--dk-card-inset);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-portal-garmin-kpis small {
+  color: var(--dk-muted);
+}
+
+.athlete-shell .athlete-portal-garmin-kpis strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-garmin-parameter-card {
+  background: var(--dk-card-inset);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-portal-garmin-parameter-card strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-garmin-json-card pre {
+  background: #0a0c0e;
+  color: #b8d4e0;
+}
+
+/* ── Health empty states ──────────────────────────────────────── */
+.athlete-shell .athlete-portal-health-empty {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--dk-muted);
+}
+
+/* ── Ghost / primary buttons ──────────────────────────────────── */
+.athlete-shell .ghost-button {
+  color: var(--dk-text-secondary);
+  border: 1px solid var(--dk-border-accent);
+  background: var(--dk-card);
+}
+
+.athlete-shell .ghost-button:hover {
+  background: var(--dk-card-hover);
+  color: var(--dk-text);
+}
+
+.athlete-shell .primary-button {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--dk-text);
+}
+
+.athlete-shell .primary-button:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.1));
+}
+
+/* ── Card .card override ──────────────────────────────────────── */
+.athlete-shell .card {
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  box-shadow: var(--dk-shadow);
+  color: var(--dk-text);
+}
+
+/* ── Loading / error ──────────────────────────────────────────── */
+.athlete-shell .loading {
+  color: var(--dk-muted);
+}
+
+.athlete-shell .error {
+  color: var(--dk-red);
+}
+
+/* ── Target splits ────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-target-splits span {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-portal-target-splits strong {
+  color: var(--dk-text);
+}
+
+/* ── Volume cards ─────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-volume-card,
+.athlete-shell .athlete-portal-prediction-card {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+  box-shadow: var(--dk-shadow-soft);
+}
+
+.athlete-shell .athlete-portal-volume-card strong,
+.athlete-shell .athlete-portal-prediction-card strong {
+  color: var(--dk-text);
+}
+
+.athlete-shell .athlete-portal-volume-card p,
+.athlete-shell .athlete-portal-prediction-card p,
+.athlete-shell .athlete-portal-prediction-card small {
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-portal-volume-card.hours {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.04), transparent 36%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-volume-card.running {
+  background:
+    radial-gradient(circle at top right, rgba(232, 147, 90, 0.1), transparent 36%),
+    var(--dk-card);
+  border-color: rgba(232, 147, 90, 0.16);
+}
+
+.athlete-shell .athlete-portal-volume-card.swim {
+  background:
+    radial-gradient(circle at top right, rgba(90, 156, 245, 0.1), transparent 36%),
+    var(--dk-card);
+  border-color: rgba(90, 156, 245, 0.16);
+}
+
+.athlete-shell .athlete-portal-volume-card.cycling {
+  background:
+    radial-gradient(circle at top right, rgba(79, 180, 107, 0.1), transparent 36%),
+    var(--dk-card);
+  border-color: rgba(79, 180, 107, 0.16);
+}
+
+/* ── Summary cards ────────────────────────────────────────────── */
+.athlete-shell .athlete-portal-summary-card.featured {
+  background:
+    radial-gradient(circle at top right, rgba(79, 180, 107, 0.1), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-summary-card.lt1 {
+  background:
+    radial-gradient(circle at top right, rgba(49, 86, 211, 0.12), transparent 34%),
+    var(--dk-card);
+  border-color: rgba(49, 86, 211, 0.2);
+}
+
+.athlete-shell .athlete-portal-summary-card.lt2 {
+  background:
+    radial-gradient(circle at top right, rgba(210, 106, 54, 0.12), transparent 34%),
+    var(--dk-card);
+  border-color: rgba(210, 106, 54, 0.2);
+}
+
+.athlete-shell .athlete-portal-summary-card.block {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.04), transparent 34%),
+    var(--dk-card);
+}
+
+/* ── Health provider / chip ───────────────────────────────────── */
+.athlete-shell .athlete-portal-health-provider {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+  color: var(--dk-muted);
+}
+
+.athlete-shell .athlete-portal-health-provider.connected {
+  background: rgba(79, 180, 107, 0.14);
+  border-color: rgba(79, 180, 107, 0.22);
+  color: var(--dk-green);
+}
+
+.athlete-shell .athlete-portal-health-chip.tone-high {
+  background: rgba(79, 180, 107, 0.18);
+  color: #6dd890;
+}
+
+.athlete-shell .athlete-portal-health-chip.tone-good {
+  background: rgba(79, 180, 107, 0.14);
+  color: #6dd890;
+}
+
+.athlete-shell .athlete-portal-health-chip.tone-neutral {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .athlete-portal-health-chip.tone-warning {
+  background: rgba(255, 196, 96, 0.16);
+  color: #f0c060;
+}
+
+.athlete-shell .athlete-portal-health-chip.tone-alert {
+  background: rgba(232, 90, 90, 0.16);
+  color: #f08080;
+}
+
+/* ── Scrollbar for dark cards ─────────────────────────────────── */
+.athlete-shell ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.athlete-shell ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.athlete-shell ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.athlete-shell ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Form inputs inside athlete shell ─────────────────────────── */
+.athlete-shell .athlete-form input,
+.athlete-shell .athlete-form select,
+.athlete-shell .athlete-form textarea {
+  background: var(--dk-card-inset);
+  border-color: var(--dk-border-accent);
+  color: var(--dk-text);
+}
+
+/* ── Health inline status ─────────────────────────────────────── */
+.athlete-shell .athlete-portal-health-inline-status {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+  color: var(--dk-text);
+}
+
+/* ── Health summary / day cards ───────────────────────────────── */
+.athlete-shell .athlete-portal-health-summary-card,
+.athlete-shell .athlete-portal-health-calendar-card,
+.athlete-shell .athlete-portal-health-feed-card {
+  background: var(--dk-card);
+  border-color: var(--dk-border);
+  box-shadow: var(--dk-shadow-soft);
+}
+
+.athlete-shell .athlete-portal-health-summary-inline span,
+.athlete-shell .athlete-portal-health-day-stats span {
+  background: var(--dk-card-inset);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-portal-health-day {
+  background: var(--dk-card-inset);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-portal-health-day.active,
+.athlete-shell .athlete-portal-health-day.health-metric-day {
+  background:
+    radial-gradient(circle at top right, rgba(79, 180, 107, 0.08), transparent 36%),
+    var(--dk-card);
+}
+
+.athlete-shell .athlete-portal-health-activity {
+  background: var(--dk-card-inset);
+  border-color: var(--dk-border);
+}
+
+.athlete-shell .athlete-portal-health-diagnostic-card {
+  background: var(--dk-card-inset);
+  border-color: var(--dk-border);
+}
+
+/* ── Strava sport pill in dark context ─────────────────────────── */
+.athlete-shell .strava-sport-pill {
+  border: 1px solid var(--dk-border-accent);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ATHLETE PORTAL v2 — Premium Dark Dashboard (ap-* classes)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Dashboard grid ───────────────────────────────────────────── */
+.athlete-shell .ap-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* ── Shared block base ────────────────────────────────────────── */
+.athlete-shell .ap-block {
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: var(--dk-shadow-soft);
+}
+
+.athlete-shell .ap-block-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.athlete-shell .ap-block-header-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.athlete-shell .ap-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dk-muted);
+}
+
+.athlete-shell .ap-block-header h2 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.25rem, 2vw, 1.55rem);
+  font-weight: 700;
+  color: var(--dk-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.athlete-shell .ap-block-header p {
+  color: var(--dk-text-secondary);
+  font-size: 0.85rem;
+  margin: 0;
+  max-width: 48ch;
+}
+
+/* ── Inner card base ──────────────────────────────────────────── */
+.athlete-shell .ap-card {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 20px;
+  padding: 18px 20px;
+  box-shadow: var(--dk-shadow-soft);
+}
+
+.athlete-shell .ap-card-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dk-muted);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.athlete-shell .ap-card strong {
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--dk-text);
+  display: block;
+}
+
+.athlete-shell .ap-card p {
+  color: var(--dk-text-secondary);
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.athlete-shell .ap-card small {
+  color: var(--dk-muted);
+  font-size: 0.78rem;
+}
+
+/* ── Big number typography ────────────────────────────────────── */
+.athlete-shell .ap-big-number {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-medium-number {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--dk-text);
+}
+
+/* ── Chip / pill ──────────────────────────────────────────────── */
+.athlete-shell .ap-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.athlete-shell .ap-chip.green { background: rgba(79, 180, 107, 0.16); color: #6dd890; }
+.athlete-shell .ap-chip.orange { background: rgba(232, 147, 90, 0.16); color: #f0a870; }
+.athlete-shell .ap-chip.blue { background: rgba(90, 156, 245, 0.16); color: #7cb8ff; }
+.athlete-shell .ap-chip.purple { background: rgba(145, 128, 212, 0.16); color: #b8a8f0; }
+.athlete-shell .ap-chip.red { background: rgba(232, 90, 90, 0.16); color: #f08080; }
+.athlete-shell .ap-chip.neutral { background: rgba(255, 255, 255, 0.06); color: var(--dk-text-secondary); }
+
+/* ── Sparkline container ──────────────────────────────────────── */
+.athlete-shell .ap-spark {
+  height: 36px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   BLOCK 1: HERO — "Cómo llegas hoy"
+   ═════════════════════════════════════════════════════════════════ */
+.athlete-shell .ap-hero {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(79, 180, 107, 0.08), transparent 40%),
+    radial-gradient(circle at 80% 100%, rgba(145, 128, 212, 0.05), transparent 40%),
+    var(--dk-surface);
+  padding: 40px 36px;
+}
+
+.athlete-shell .ap-hero-top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 32px;
+  align-items: start;
+  margin-bottom: 32px;
+}
+
+.athlete-shell .ap-hero-greeting {
+  display: grid;
+  gap: 8px;
+}
+
+.athlete-shell .ap-hero-greeting h1 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--dk-text);
+  margin: 0;
+}
+
+.athlete-shell .ap-hero-greeting .ap-hero-subtitle {
+  font-size: 1.05rem;
+  color: var(--dk-text-secondary);
+  max-width: 38ch;
+  line-height: 1.4;
+}
+
+.athlete-shell .ap-hero-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.athlete-shell .ap-hero-status-badge.surging {
+  background: rgba(79, 180, 107, 0.18);
+  color: var(--dk-green);
+}
+
+.athlete-shell .ap-hero-status-badge.steady {
+  background: rgba(232, 147, 90, 0.18);
+  color: var(--dk-orange);
+}
+
+.athlete-shell .ap-hero-status-badge.building {
+  background: rgba(90, 156, 245, 0.18);
+  color: var(--dk-blue);
+}
+
+/* Recovery ring */
+.athlete-shell .ap-recovery-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.athlete-shell .ap-recovery-ring-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.athlete-shell .ap-recovery-ring-wrap svg {
+  width: 120px;
+  height: 120px;
+  transform: rotate(-90deg);
+}
+
+.athlete-shell .ap-recovery-ring-wrap .ap-ring-track {
+  fill: none;
+  stroke: rgba(145, 128, 212, 0.12);
+  stroke-width: 8;
+}
+
+.athlete-shell .ap-recovery-ring-wrap .ap-ring-fill {
+  fill: none;
+  stroke: var(--dk-purple);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s ease;
+}
+
+.athlete-shell .ap-recovery-ring-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--dk-purple);
+}
+
+.athlete-shell .ap-recovery-ring-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dk-text-secondary);
+  text-align: center;
+}
+
+/* Vitals row */
+.athlete-shell .ap-hero-vitals {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.athlete-shell .ap-vital-card {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 20px;
+  padding: 16px 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.athlete-shell .ap-vital-card .ap-card-label {
+  margin-bottom: 2px;
+}
+
+.athlete-shell .ap-vital-value {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--dk-text);
+  line-height: 1;
+}
+
+.athlete-shell .ap-vital-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.athlete-shell .ap-vital-avg {
+  font-size: 0.7rem;
+  color: var(--dk-muted);
+}
+
+/* Hero message */
+.athlete-shell .ap-hero-message {
+  padding: 18px 22px;
+  border-radius: 18px;
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+}
+
+.athlete-shell .ap-hero-message strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.02rem;
+  line-height: 1.3;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-hero-message p {
+  margin: 6px 0 0;
+  color: var(--dk-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   BLOCK 2: CARGA Y VOLUMEN
+   ═════════════════════════════════════════════════════════════════ */
+.athlete-shell .ap-load-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.athlete-shell .ap-load-kpi {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 20px;
+  padding: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.athlete-shell .ap-load-kpi .ap-big-number {
+  font-size: 1.8rem;
+}
+
+.athlete-shell .ap-load-distances {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.athlete-shell .ap-load-distance {
+  background: var(--dk-card-inset);
+  border: 1px solid var(--dk-border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 4px;
+}
+
+.athlete-shell .ap-load-distance strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.1rem;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-load-bars {
+  display: grid;
+  gap: 14px;
+}
+
+.athlete-shell .ap-load-bar-row {
+  display: grid;
+  gap: 8px;
+}
+
+.athlete-shell .ap-load-bar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.athlete-shell .ap-load-bar-head span {
+  color: var(--dk-text-secondary);
+  font-size: 0.88rem;
+}
+
+.athlete-shell .ap-load-bar-head strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.95rem;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-load-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.athlete-shell .ap-load-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   BLOCK 3: ÚLTIMA SESIÓN
+   ═════════════════════════════════════════════════════════════════ */
+.athlete-shell .ap-latest-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.athlete-shell .ap-latest-card {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 22px;
+  padding: 24px;
+  display: grid;
+  gap: 10px;
+}
+
+.athlete-shell .ap-latest-card.featured {
+  grid-column: 1 / -1;
+  background:
+    radial-gradient(circle at top right, rgba(232, 147, 90, 0.08), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .ap-latest-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.athlete-shell .ap-sport-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--dk-border-accent);
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-sport-pill.run { border-color: rgba(232, 147, 90, 0.3); color: var(--dk-orange); }
+.athlete-shell .ap-sport-pill.ride { border-color: rgba(79, 180, 107, 0.3); color: var(--dk-green); }
+.athlete-shell .ap-sport-pill.swim { border-color: rgba(90, 156, 245, 0.3); color: var(--dk-blue); }
+
+.athlete-shell .ap-latest-type {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-latest-feed {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.athlete-shell .ap-latest-feed-item {
+  background: var(--dk-card-inset);
+  border: 1px solid var(--dk-border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 4px;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   BLOCK 4: TENDENCIAS RECUPERACIÓN
+   ═════════════════════════════════════════════════════════════════ */
+.athlete-shell .ap-trends-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.athlete-shell .ap-trend-card {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 22px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.athlete-shell .ap-trend-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.athlete-shell .ap-trend-top strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.athlete-shell .ap-trend-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   BLOCK 5: TENDENCIAS RENDIMIENTO
+   ═════════════════════════════════════════════════════════════════ */
+.athlete-shell .ap-perf-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.athlete-shell .ap-perf-featured {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 24px;
+  padding: 28px;
+  display: grid;
+  gap: 10px;
+  align-content: end;
+  min-height: 220px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.03), transparent 30%),
+    var(--dk-card);
+}
+
+.athlete-shell .ap-perf-featured .ap-big-number {
+  font-size: 2.2rem;
+}
+
+.athlete-shell .ap-perf-secondary {
+  display: grid;
+  gap: 12px;
+}
+
+.athlete-shell .ap-perf-secondary-card {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 20px;
+  padding: 18px 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.athlete-shell .ap-perf-disciplines {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.athlete-shell .ap-perf-discipline-card {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 22px;
+  padding: 22px;
+  display: grid;
+  gap: 12px;
+}
+
+.athlete-shell .ap-perf-discipline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.athlete-shell .ap-perf-discipline-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.athlete-shell .ap-perf-discipline-kpi {
+  background: var(--dk-card-inset);
+  border: 1px solid var(--dk-border);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.athlete-shell .ap-perf-discipline-kpi small {
+  color: var(--dk-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.athlete-shell .ap-perf-discipline-kpi strong {
+  font-size: 1.02rem;
+}
+
+.athlete-shell .ap-perf-note {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 20px;
+  padding: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+/* ── Discipline switch pills ──────────────────────────────────── */
+.athlete-shell .ap-discipline-switch {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.athlete-shell .ap-discipline-pill {
+  appearance: none;
+  border: 1px solid var(--dk-border-accent);
+  background: var(--dk-card);
+  color: var(--dk-muted);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.athlete-shell .ap-discipline-pill:hover {
+  background: var(--dk-card-hover);
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-discipline-pill.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--dk-text);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   BLOCK 6: LACTATO
+   ═════════════════════════════════════════════════════════════════ */
+.athlete-shell .ap-lactate-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 16px;
+}
+
+.athlete-shell .ap-lactate-chart-wrap {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 22px;
+  padding: 22px;
+  display: grid;
+  gap: 12px;
+}
+
+.athlete-shell .ap-lactate-chart {
+  height: 280px;
+}
+
+.athlete-shell .ap-lactate-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.athlete-shell .ap-lactate-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dk-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.athlete-shell .ap-lactate-legend i {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.athlete-shell .ap-lactate-legend i.lactate { background: #2740c7; }
+.athlete-shell .ap-lactate-legend i.adjusted { background: #d84f3f; }
+.athlete-shell .ap-lactate-legend i.lt1 { background: #3156d3; }
+.athlete-shell .ap-lactate-legend i.lt2 { background: #d26a36; }
+
+.athlete-shell .ap-lactate-insights {
+  display: grid;
+  gap: 12px;
+}
+
+.athlete-shell .ap-lactate-insight {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 20px;
+  padding: 18px 20px;
+  display: grid;
+  gap: 6px;
+  border-left: 3px solid var(--dk-border-accent);
+}
+
+.athlete-shell .ap-lactate-insight.lt1 { border-left-color: #3156d3; }
+.athlete-shell .ap-lactate-insight.lt2 { border-left-color: #d26a36; }
+.athlete-shell .ap-lactate-insight.peak { border-left-color: var(--dk-red); }
+.athlete-shell .ap-lactate-insight.narrative { border-left-color: var(--dk-purple); }
+
+.athlete-shell .ap-lactate-chart-empty {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+  color: var(--dk-muted);
+  font-size: 0.88rem;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   BLOCK 7: AVANZADO (collapsible)
+   ═════════════════════════════════════════════════════════════════ */
+.athlete-shell .ap-advanced {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.athlete-shell .ap-advanced-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 24px 32px;
+  border-radius: 28px;
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  cursor: pointer;
+  list-style: none;
+  box-shadow: var(--dk-shadow-soft);
+}
+
+.athlete-shell .ap-advanced-toggle::-webkit-details-marker { display: none; }
+.athlete-shell .ap-advanced-toggle::marker { display: none; }
+
+.athlete-shell .ap-advanced-toggle::after {
+  content: "\25B8";
+  color: var(--dk-muted);
+  font-size: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.athlete-shell .ap-advanced[open] .ap-advanced-toggle::after {
+  transform: rotate(90deg);
+}
+
+.athlete-shell .ap-advanced-content {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 32px;
+  border-radius: 28px;
+  background: var(--dk-surface);
+  border: 1px solid var(--dk-border);
+  box-shadow: var(--dk-shadow-soft);
+}
+
+/* Garmin activity cards inside advanced */
+.athlete-shell .ap-garmin-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1.3fr);
+  gap: 14px;
+}
+
+.athlete-shell .ap-garmin-list {
+  display: grid;
+  gap: 10px;
+}
+
+.athlete-shell .ap-garmin-activity-btn {
+  appearance: none;
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--dk-border);
+  background: var(--dk-card);
+  color: var(--dk-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.athlete-shell .ap-garmin-activity-btn:hover {
+  background: var(--dk-card-hover);
+  border-color: rgba(232, 147, 90, 0.2);
+}
+
+.athlete-shell .ap-garmin-activity-btn.active {
+  border-color: rgba(79, 180, 107, 0.25);
+  background:
+    radial-gradient(circle at top right, rgba(79, 180, 107, 0.06), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .ap-garmin-activity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.athlete-shell .ap-garmin-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.athlete-shell .ap-garmin-hero {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 22px;
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+}
+
+.athlete-shell .ap-garmin-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.athlete-shell .ap-garmin-kpi {
+  background: var(--dk-card-inset);
+  border: 1px solid var(--dk-border);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.athlete-shell .ap-garmin-kpi small {
+  color: var(--dk-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.athlete-shell .ap-garmin-kpi strong {
+  font-size: 1rem;
+}
+
+.athlete-shell .ap-garmin-params {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.athlete-shell .ap-garmin-param {
+  background: var(--dk-card-inset);
+  border: 1px solid var(--dk-border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.athlete-shell .ap-garmin-param strong {
+  font-size: 0.92rem;
+  line-height: 1.3;
+}
+
+.athlete-shell .ap-garmin-json {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 22px;
+  padding: 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.athlete-shell .ap-garmin-json pre {
+  margin: 0;
+  max-height: 400px;
+  overflow: auto;
+  padding: 16px;
+  border-radius: 16px;
+  background: #0a0c0e;
+  color: #b8d4e0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Garmin login */
+.athlete-shell .ap-garmin-login {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 20px;
+  border-radius: 22px;
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+}
+
+.athlete-shell .ap-garmin-login label {
+  display: grid;
+  gap: 6px;
+}
+
+.athlete-shell .ap-garmin-login input {
+  padding: 12px 14px;
+  border: 1px solid var(--dk-border-accent);
+  border-radius: 14px;
+  background: var(--dk-card-inset);
+  color: var(--dk-text);
+  font: inherit;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   BLOCK 8: ROADMAP
+   ═════════════════════════════════════════════════════════════════ */
+.athlete-shell .ap-roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.athlete-shell .ap-roadmap-card {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 22px;
+  padding: 22px;
+  display: grid;
+  gap: 8px;
+}
+
+.athlete-shell .ap-roadmap-card.block-card {
+  background:
+    radial-gradient(circle at top right, rgba(79, 180, 107, 0.06), transparent 34%),
+    var(--dk-card);
+  border-left: 3px solid var(--dk-green);
+}
+
+.athlete-shell .ap-roadmap-card.target-card {
+  background:
+    radial-gradient(circle at top right, rgba(232, 147, 90, 0.06), transparent 34%),
+    var(--dk-card);
+  border-left: 3px solid var(--dk-orange);
+}
+
+.athlete-shell .ap-roadmap-card.sync-card {
+  background:
+    radial-gradient(circle at top right, rgba(90, 156, 245, 0.06), transparent 34%),
+    var(--dk-card);
+}
+
+.athlete-shell .ap-roadmap-card.signal-card {
+  background: var(--dk-card-inset);
+  border-left: 3px solid var(--dk-muted);
+}
+
+.athlete-shell .ap-roadmap-targets-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.athlete-shell .ap-roadmap-target {
+  background: var(--dk-card-inset);
+  border: 1px solid var(--dk-border);
+  border-radius: 18px;
+  padding: 16px 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.athlete-shell .ap-roadmap-sync-providers {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.athlete-shell .ap-roadmap-sync-provider {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--dk-card-inset);
+  border: 1px solid var(--dk-border);
+  color: var(--dk-muted);
+}
+
+.athlete-shell .ap-roadmap-sync-provider.connected {
+  background: rgba(79, 180, 107, 0.14);
+  border-color: rgba(79, 180, 107, 0.22);
+  color: var(--dk-green);
+}
+
+/* ── Night visible (reused in hero/recovery) ──────────────────── */
+.athlete-shell .ap-night-card {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 22px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.athlete-shell .ap-night-header {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+}
+
+.athlete-shell .ap-night-header span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.athlete-shell .ap-night-header small {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dk-muted);
+}
+
+.athlete-shell .ap-night-header strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.95rem;
+  color: var(--dk-text);
+}
+
+.athlete-shell .ap-stage-timeline {
+  position: relative;
+  min-height: 92px;
+}
+
+.athlete-shell .ap-stage-row {
+  position: relative;
+  height: 20px;
+  margin-bottom: 3px;
+  margin-left: 70px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.athlete-shell .ap-stage-label {
+  position: absolute;
+  left: -70px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--dk-muted);
+  width: 62px;
+  text-align: right;
+}
+
+.athlete-shell .ap-stage-segment {
+  position: absolute;
+  border-radius: 3px;
+  min-width: 3px;
+}
+
+.athlete-shell .ap-stage-segment.awake { background: rgba(255, 255, 255, 0.1); }
+.athlete-shell .ap-stage-segment.rem { background: rgba(145, 128, 212, 0.55); }
+.athlete-shell .ap-stage-segment.light { background: rgba(145, 128, 212, 0.25); }
+.athlete-shell .ap-stage-segment.deep { background: var(--dk-purple); }
+
+.athlete-shell .ap-stage-chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.athlete-shell .ap-stage-chip {
+  background: var(--dk-card-inset);
+  border: 1px solid var(--dk-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.athlete-shell .ap-stage-chip strong {
+  font-size: 0.85rem;
+  display: block;
+}
+
+.athlete-shell .ap-stage-chip small {
+  font-size: 0.65rem;
+  color: var(--dk-muted);
+}
+
+.athlete-shell .ap-stage-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.athlete-shell .ap-stage-dot.deep { background: var(--dk-purple); }
+.athlete-shell .ap-stage-dot.light { background: rgba(145, 128, 212, 0.35); }
+.athlete-shell .ap-stage-dot.rem { background: rgba(145, 128, 212, 0.6); }
+.athlete-shell .ap-stage-dot.awake { background: rgba(255, 255, 255, 0.15); }
+
+/* ── Empty / loading ──────────────────────────────────────────── */
+.athlete-shell .ap-empty {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 24px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--dk-muted);
+  font-weight: 600;
+}
+
+/* ── Recharts tweaks ──────────────────────────────────────────── */
+.athlete-shell .ap-block .recharts-cartesian-grid line {
+  stroke: rgba(255, 255, 255, 0.05);
+}
+
+.athlete-shell .ap-block .recharts-cartesian-axis-tick-value {
+  fill: var(--dk-muted) !important;
+  font-size: 0.72rem;
+}
+
+/* ── Tooltip (shared) ─────────────────────────────────────────── */
+.athlete-shell .ap-tooltip {
+  display: grid;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(8, 10, 14, 0.94);
+  border: 1px solid var(--dk-border-accent);
+  color: var(--dk-text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.athlete-shell .ap-tooltip strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.92rem;
+}
+
+/* ── Missing structural classes ─────────────────────────────── */
+
+.athlete-shell .ap-hero-name {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--dk-text);
+  margin: 0;
+  line-height: 1.15;
+}
+
+.athlete-shell .ap-hero-date {
+  color: var(--dk-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.athlete-shell .ap-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.athlete-shell .ap-provider-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(79, 180, 107, 0.12);
+  color: var(--dk-green);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.athlete-shell .ap-refresh-btn {
+  padding: 6px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--dk-border-accent);
+  background: transparent;
+  color: var(--dk-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.athlete-shell .ap-refresh-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.athlete-shell .ap-refresh-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.athlete-shell .ap-status-msg {
+  color: var(--dk-muted);
+  font-size: 0.78rem;
+  margin-top: 4px;
+}
+
+/* ── Block 2 — Volume extras ──────────────────────────────────── */
+
+/* ── Block 3 — Latest session extras ──────────────────────────── */
+
+.athlete-shell .ap-discipline-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.athlete-shell .ap-session-goal {
+  color: var(--dk-muted);
+  font-size: 0.78rem;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+.athlete-shell .ap-feed-item-copy {
+  display: grid;
+  gap: 2px;
+}
+.athlete-shell .ap-feed-item-copy strong {
+  font-size: 0.88rem;
+  color: var(--dk-text);
+}
+.athlete-shell .ap-feed-item-copy span {
+  font-size: 0.78rem;
+  color: var(--dk-text-secondary);
+}
+.athlete-shell .ap-feed-item-copy small {
+  font-size: 0.72rem;
+  color: var(--dk-muted);
+}
+.athlete-shell .ap-feed-item-copy p {
+  font-size: 0.75rem;
+  color: var(--dk-muted);
+  margin: 0;
+}
+
+/* ── Block 5 — Performance extras ─────────────────────────────── */
+
+.athlete-shell .ap-prediction-card {
+  background: var(--dk-card);
+  border: 1px solid var(--dk-border);
+  border-radius: 20px;
+  padding: 20px;
+  display: grid;
+  gap: 6px;
+}
+.athlete-shell .ap-prediction-card.featured {
+  border-left: 3px solid var(--dk-green);
+}
+.athlete-shell .ap-prediction-card.empty {
+  border-left-color: var(--dk-muted);
+}
+
+.athlete-shell .ap-prediction-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.72rem;
+  color: var(--dk-muted);
+  margin-top: 4px;
+}
+
+.athlete-shell .ap-discipline-chart {
+  margin-top: 12px;
+  min-height: 150px;
+}
+
+/* ── Block 6 — Lactate extras ─────────────────────────────────── */
+
+.athlete-shell .ap-lactate-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.athlete-shell .ap-chart-head {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+/* ── Block 7 — Advanced extras ────────────────────────────────── */
+
+.athlete-shell .ap-garmin-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.athlete-shell .ap-garmin-login-card {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--dk-card-inset);
+  border-radius: 16px;
+}
+.athlete-shell .ap-garmin-login-card label {
+  display: grid;
+  gap: 4px;
+}
+.athlete-shell .ap-garmin-login-card input {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--dk-border-accent);
+  background: var(--dk-bg);
+  color: var(--dk-text);
+  font-size: 0.85rem;
+}
+
+.athlete-shell .ap-garmin-login-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.athlete-shell .ap-extended-health {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.athlete-shell .ap-health-days-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.athlete-shell .ap-health-day-card {
+  background: var(--dk-card-inset);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+.athlete-shell .ap-health-day-card strong {
+  font-size: 0.82rem;
+}
+
+.athlete-shell .ap-health-day-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 0.72rem;
+  color: var(--dk-text-secondary);
+}
+
+.athlete-shell .ap-performance-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.athlete-shell .ap-perf-metric-card {
+  background: var(--dk-card-inset);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  gap: 4px;
+}
+
+/* ── Block 8 — Roadmap extras ─────────────────────────────────── */
+
+.athlete-shell .ap-roadmap-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.72rem;
+  color: var(--dk-muted);
+  margin-top: 6px;
+}
+
+.athlete-shell .ap-target-splits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  color: var(--dk-text-secondary);
+}
+.athlete-shell .ap-target-splits strong {
+  color: var(--dk-text);
+  margin-right: 6px;
+}
+
+.athlete-shell .ap-target-date {
+  font-size: 0.72rem;
+  color: var(--dk-muted);
+  font-weight: 600;
+}
+
+.athlete-shell .ap-coach-signals {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.athlete-shell .ap-signal-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--dk-card-inset);
+  border-radius: 12px;
+}
+.athlete-shell .ap-signal-item span:first-child {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dk-orange);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.athlete-shell .ap-sync-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.athlete-shell .ap-sync-note {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--dk-muted);
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 1180px) {
+  .athlete-shell .ap-hero-vitals {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .athlete-shell .ap-load-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .athlete-shell .ap-lactate-grid {
+    grid-template-columns: 1fr;
+  }
+  .athlete-shell .ap-perf-grid {
+    grid-template-columns: 1fr;
+  }
+  .athlete-shell .ap-garmin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .athlete-shell .ap-dashboard {
+    padding: 16px;
+    gap: 16px;
+  }
+  .athlete-shell .ap-block {
+    padding: 20px;
+    border-radius: 22px;
+  }
+  .athlete-shell .ap-hero {
+    padding: 24px 20px;
+  }
+  .athlete-shell .ap-hero-top {
+    grid-template-columns: 1fr;
+    text-align: center;
+    justify-items: center;
+  }
+  .athlete-shell .ap-hero-vitals {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .athlete-shell .ap-load-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .athlete-shell .ap-load-distances {
+    grid-template-columns: 1fr;
+  }
+  .athlete-shell .ap-latest-main {
+    grid-template-columns: 1fr;
+  }
+  .athlete-shell .ap-trends-grid {
+    grid-template-columns: 1fr;
+  }
+  .athlete-shell .ap-perf-disciplines {
+    grid-template-columns: 1fr;
+  }
+  .athlete-shell .ap-garmin-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .athlete-shell .ap-garmin-params {
+    grid-template-columns: 1fr;
+  }
+  .athlete-shell .ap-garmin-login {
+    grid-template-columns: 1fr;
+  }
+  .athlete-shell .ap-stage-chips {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .athlete-shell .ap-roadmap-grid {
+    grid-template-columns: 1fr;
+  }
+}

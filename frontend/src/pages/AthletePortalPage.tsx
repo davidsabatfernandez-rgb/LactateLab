@@ -1310,907 +1310,521 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
   }
 
   return (
-    <div className="page-grid athlete-portal-grid">
-      <section className="athlete-portal-topline">
-        <div className="athlete-portal-topline-main">
-          <span className="eyebrow">Today</span>
-          <strong>{todayPortalLabel}</strong>
-        </div>
-        <div className="athlete-portal-topline-chips">
-          {portalQuickChips.map((chip) => (
-            <article key={chip.label} className="athlete-portal-topline-chip">
-              <span className="athlete-portal-card-label">{chip.label}</span>
-              <strong>{chip.value}</strong>
-            </article>
-          ))}
-        </div>
-      </section>
+    <div className="page-grid ap-dashboard">
 
-      <section className="card athlete-portal-hero-shell">
-        <div className="athlete-portal-hero-copy athlete-portal-stage-main">
-          <div className="athlete-portal-status-line">
-            <span className={`athlete-portal-status-badge ${portalStatus.tone}`}>{portalStatus.label}</span>
-            <span className="athlete-portal-status-context">
-              {nextTarget ? `${relativeCountdownLabel(nextTargetCountdown)} para ${nextTarget.objective}` : "Sin objetivo fechado visible"}
+      {/* ═══════════════════════════════════════════════════════════════════
+          BLOCK 1 — Hero: "Cómo llegas hoy"
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section className="ap-block ap-hero">
+        <div className="ap-hero-top">
+          <div className="ap-hero-greeting">
+            <span className="ap-eyebrow">Cómo llegas hoy</span>
+            <h1 className="ap-hero-name">{analysis.athlete.name}</h1>
+            <p className="ap-hero-date">{todayPortalLabel}</p>
+            <span className={`ap-hero-status-badge ${portalStatus.tone}`}>{portalStatus.label}</span>
+          </div>
+
+          <div className="ap-recovery-ring">
+            <div className="ap-recovery-ring-wrap">
+              <svg viewBox="0 0 120 120" width="120" height="120">
+                <circle className="ap-ring-track" cx="60" cy="60" r="52" />
+                <circle
+                  className="ap-ring-fill"
+                  cx="60" cy="60" r="52"
+                  strokeDasharray={`${2 * Math.PI * 52}`}
+                  strokeDashoffset={`${2 * Math.PI * 52 * (1 - Math.min(1, (recoveryScore ?? 0) / 100))}`}
+                />
+              </svg>
+              <span className="ap-recovery-ring-value">{sleepScoreValue}</span>
+              <span className="ap-recovery-ring-label">Recovery</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 5 vital cards */}
+        <div className="ap-hero-vitals">
+          <article className="ap-vital-card">
+            <span className="ap-card-label">Sueño</span>
+            <strong>{sleepDurationDisplay}</strong>
+            <span className="ap-chip purple">{sleepScoreLabel(recoveryScore)}</span>
+            <span className="ap-vital-avg">
+              {sleepHoursDelta === null
+                ? "n/d"
+                : `${sleepHoursDelta > 0 ? "+" : ""}${Math.round(sleepHoursDelta * 60)} min vs 7d`}
             </span>
-          </div>
-          <span className="eyebrow">Athlete dashboard</span>
-          <h1>{analysis.athlete.name}</h1>
-          <p className="athlete-portal-stage-headline">{portalStatus.headline}</p>
-          <p className="athlete-portal-stage-summary">{portalStatus.summary}</p>
-          <div className="athlete-portal-tags">
-            <span className="athlete-goal-chip">{disciplineLabel(analysis.athlete.primary_discipline)}</span>
-            {analysis.athlete.goal_category ? <span className="athlete-goal-chip subtle">{analysis.athlete.goal_category}</span> : null}
-            {activeBlock?.block_objective ? <span className="athlete-goal-chip subtle">{activeBlock.block_objective}</span> : null}
-          </div>
-          <div className="athlete-portal-dashboard-strip">
-            {dashboardMetrics.map((item) => (
-              <article key={item.label} className="athlete-portal-dashboard-metric">
-                <span className="athlete-portal-card-label">{item.label}</span>
-                <strong>{item.value}</strong>
-                <p>{item.detail}</p>
-              </article>
-            ))}
-          </div>
-          <div className={`athlete-portal-stage-note ${portalStatus.tone}`}>
-            <span className="athlete-portal-card-label">Qué toca mirar ahora</span>
-            <strong>{portalStatus.emphasis}</strong>
-          </div>
-          {stravaFeedback ? <small className="athlete-portal-sync-note">{stravaFeedback}</small> : null}
-          <small className="athlete-portal-sync-note">Esta portada prioriza lo importante hoy: estado del bloque, referencia útil, actividad reciente y siguiente objetivo.</small>
+          </article>
+          <article className="ap-vital-card">
+            <span className="ap-card-label">HRV nocturna</span>
+            <strong>{typeof currentHrv === "number" ? `${Math.round(currentHrv)} ms` : "n/d"}</strong>
+            <span className={`ap-chip green`}>{currentHrvStatus}</span>
+            <span className="ap-vital-avg">{hrvAverage !== null ? `Media 7d ${hrvAverage.toFixed(0)} ms` : ""}</span>
+          </article>
+          <article className="ap-vital-card">
+            <span className="ap-card-label">Reposo</span>
+            <strong>{typeof currentRestingHr === "number" ? `${Math.round(currentRestingHr)} bpm` : "n/d"}</strong>
+            <span className="ap-chip blue">{restingHrLabel(currentRestingHr, restingHrAverage)}</span>
+            <span className="ap-vital-avg">{restingHrAverage !== null ? `Media 7d ${restingHrAverage.toFixed(0)} bpm` : ""}</span>
+          </article>
+          <article className="ap-vital-card">
+            <span className="ap-card-label">Estrés</span>
+            <strong>{typeof currentStress === "number" ? `${Math.round(currentStress)}` : "n/d"}</strong>
+            <span className="ap-chip orange">{stressLabel(currentStress)}</span>
+            <span className="ap-vital-avg">{stressAverage !== null ? `Media 7d ${stressAverage.toFixed(0)}` : ""}</span>
+          </article>
+          <article className="ap-vital-card">
+            <span className="ap-card-label">Batería corporal</span>
+            <strong>{bodyBatteryDelta !== null ? `${bodyBatteryDelta >= 0 ? "+" : ""}${Math.round(bodyBatteryDelta)}` : "n/d"}</strong>
+            <span className="ap-chip green">{bodyBatteryDirection}</span>
+            <span className="ap-vital-avg">{bodyBatteryAverage !== null ? `Media 7d ${bodyBatteryAverage.toFixed(0)}` : "Sin media"}</span>
+          </article>
         </div>
 
-        <div className="athlete-portal-hero-aside athlete-portal-stage-aside">
-          <article className="athlete-portal-hero-card athlete-portal-spotlight-card focus">
-            <span className="athlete-portal-card-label">Tablero de hoy</span>
-            <strong>{selectedDisciplineLabel}</strong>
-            <div className="athlete-portal-focus-list">
-              {focusChecklist.map((item) => (
-                <div key={item.label} className="athlete-portal-focus-list-item">
-                  <span className="athlete-portal-card-label">{item.label}</span>
-                  <strong>{item.value}</strong>
-                  <p>{item.detail}</p>
+        {/* Message card */}
+        <div className={`ap-hero-message ${portalStatus.tone}`}>
+          <span className="ap-card-label">Qué toca mirar ahora</span>
+          <strong>{portalStatus.emphasis}</strong>
+          <p>{sleepScoreSupport(recoveryScore)}</p>
+        </div>
+
+        {/* Garmin provider + refresh */}
+        <div className="ap-hero-actions">
+          {garminHealthProvider ? (
+            <span className="ap-provider-badge">Garmin · {garminHealthProvider.status === "connected" ? "activo" : "pendiente"}</span>
+          ) : null}
+          <button
+            type="button"
+            className="ap-refresh-btn"
+            onClick={() => void handleRefreshAthleteHealth()}
+            disabled={athleteHealthLoading || !analysis.athlete.garmin_connected}
+          >
+            {athleteHealthLoading ? "Consultando..." : "Actualizar salud"}
+          </button>
+        </div>
+        {athleteHealthStatus ? <p className="ap-status-msg">{athleteHealthStatus}</p> : null}
+
+        {/* Loading / error states for health */}
+        {athleteHealthLoading ? (
+          <div className="ap-empty">Cargando actividad y salud conectada...</div>
+        ) : athleteHealthError ? (
+          <div className="ap-empty">{athleteHealthError}</div>
+        ) : !athleteHealth ? (
+          <div className="ap-empty">Todavía no hay una capa de salud Garmin conectada disponible.</div>
+        ) : null}
+
+        {/* Night visible section */}
+        {athleteSleepBreakdown.length ? (
+          <div className="ap-night-card">
+            <span className="ap-card-label">Noche visible</span>
+            <div className="ap-night-header">
+              <span>
+                <small>Tiempo en cama</small>
+                <strong>{formatSleepDuration(visibleNightSeconds || null)}</strong>
+              </span>
+              <span>
+                <small>Tiempo dormido</small>
+                <strong>{sleepDurationDisplay}</strong>
+              </span>
+            </div>
+
+            {/* Sleep architecture chips */}
+            <div className="ap-stage-chips">
+              {sleepArchitectureMetrics.filter((m) => m.key !== "sleep_time").map((metric) => (
+                <div key={metric.key} className="ap-stage-chip">
+                  <span className={`ap-stage-dot ${metric.key === "deep_sleep" ? "deep" : metric.key === "rem_sleep" ? "rem" : metric.key === "light_sleep" ? "light" : "awake"}`} />
+                  <strong>{metric.value}</strong>
+                  <small>{metric.label}</small>
                 </div>
               ))}
             </div>
-            <div className="athlete-portal-focus-rail">
-              {disciplineSnapshots.map((snapshot) => (
-                <button
-                  key={snapshot.discipline}
-                  type="button"
-                  className={`athlete-portal-focus-chip ${snapshot.discipline === selectedSnapshot?.discipline ? "active" : ""}`}
-                  onClick={() => setSelectedDiscipline(snapshot.discipline)}
-                >
-                  {disciplineLabel(snapshot.discipline)}
-                </button>
-              ))}
-            </div>
-            <div className="athlete-portal-focus-meta">
-              <small>{activeBlock?.phase ? `Fase ${activeBlock.phase}` : "Fase abierta"}</small>
-              <small>{activeBlock?.block_objective ?? "Sin objetivo de bloque visible"}</small>
-            </div>
-          </article>
 
-          <article className="athlete-portal-hero-card athlete-portal-spotlight-card goal standout">
-            <span className="athlete-portal-card-label">Próximo objetivo</span>
-            <strong>{nextTarget ? nextTarget.objective : "Sin objetivo definido"}</strong>
-            <p>
-              {nextTarget
-                ? `${disciplineLabel(nextTarget.discipline)} · ${relativeCountdownLabel(nextTargetCountdown)}`
-                : "Cuando tu entrenador marque un objetivo, lo verás aquí."}
-            </p>
-            {nextTarget?.discipline === "triatlón" ? (
-              <div className="athlete-portal-target-splits">
-                {nextTarget.target_swim_pace_label ? (
-                  <span>
-                    <strong>Natación</strong>
-                    {nextTarget.target_swim_pace_label}
-                  </span>
-                ) : null}
-                {typeof nextTarget.target_cycling_power_watts === "number" ? (
-                  <span>
-                    <strong>Ciclismo</strong>
-                    {formatCyclingTarget(nextTarget.target_cycling_power_watts, analysis.athlete.weight)}
-                  </span>
-                ) : null}
-                {nextTarget.target_running_pace_label ? (
-                  <span>
-                    <strong>Carrera</strong>
-                    {nextTarget.target_running_pace_label}
-                  </span>
-                ) : null}
-              </div>
-            ) : nextTarget?.target_pace_label ? (
-              <div className="athlete-portal-target-splits">
-                <span>
-                  <strong>Referencia</strong>
-                  {nextTarget.target_pace_label}
-                </span>
-              </div>
-            ) : typeof nextTarget?.target_power_watts === "number" ? (
-              <div className="athlete-portal-target-splits">
-                <span>
-                  <strong>Referencia</strong>
-                  {formatCyclingTarget(nextTarget.target_power_watts, analysis.athlete.weight)}
-                </span>
+            {/* Sleep stage timeline */}
+            {sleepStageWindow ? (
+              <div className="ap-stage-timeline">
+                {(["awake", "rem", "light", "deep"] as SleepStageKey[]).map((stage) => (
+                  <div key={stage} className={`ap-stage-row stage-${stage}`}>
+                    <span className="ap-stage-label">
+                      {stage === "awake" ? "Despierto" : stage === "rem" ? "REM" : stage === "light" ? "Ligero" : "Profundo"}
+                    </span>
+                  </div>
+                ))}
+                {athleteSleepStageSegments.map((segment, index) => {
+                  const total = sleepStageWindow.end - sleepStageWindow.start || 1;
+                  const stageIndex = ["awake", "rem", "light", "deep"].indexOf(segment.stage);
+                  const left = ((segment.start - sleepStageWindow.start) / total) * 100;
+                  const width = ((segment.end - segment.start) / total) * 100;
+                  return (
+                    <span
+                      key={`${segment.stage}-${segment.start}-${index}`}
+                      className={`ap-stage-segment ${segment.stage}`}
+                      style={{
+                        left: `calc(70px + ${left / 100} * (100% - 70px))`,
+                        width: `calc(${Math.max(width, 1.2) / 100} * (100% - 70px))`,
+                        top: `${stageIndex * 23 + 2}px`,
+                        height: "16px",
+                      }}
+                      title={stageLabel(segment.stage)}
+                    />
+                  );
+                })}
               </div>
             ) : null}
-          </article>
-
-          <article className="athlete-portal-hero-card athlete-portal-spotlight-card sync">
-            <span className="athlete-portal-card-label">Sincronización</span>
-            <strong>{syncHeadline}</strong>
-            <p>{syncSummary}</p>
-            <div className="athlete-portal-sync-provider-list">
-              {syncProviders.map((provider) => (
-                <span key={provider.label} className={`athlete-portal-sync-provider ${provider.connected ? "connected" : ""}`}>
-                  {provider.label} · {provider.connected ? "activa" : "pendiente"}
-                </span>
-              ))}
-            </div>
-            <button className="ghost-button" type="button" onClick={handleStravaConnect} disabled={stravaRedirecting}>
-              {stravaRedirecting ? "Redirigiendo..." : analysis.athlete.strava_connected ? "Reconectar Strava" : "Conectar Strava"}
-            </button>
-          </article>
-        </div>
+          </div>
+        ) : null}
       </section>
 
-      <section className="athlete-portal-command-grid athlete-portal-side-shell">
-        <div className="athlete-portal-side-head">
-          <span className="eyebrow">Control deck</span>
-          <h2>Tu día en tres lecturas</h2>
-          <p className="muted">Una columna rápida para saber cómo está el bloque, cuánto has movido la semana y cuál es tu referencia de trabajo ahora mismo.</p>
+      {/* ═══════════════════════════════════════════════════════════════════
+          BLOCK 2 — Carga y Volumen
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section className="ap-block ap-volume">
+        <span className="ap-eyebrow">Carga y volumen</span>
+
+        <div className="ap-load-kpis">
+          <article className="ap-load-kpi">
+            <span className="ap-card-label">Semana</span>
+            <strong>{weeklyTotal}</strong>
+            <small>sesiones / 7d</small>
+          </article>
+          <article className="ap-load-kpi">
+            <span className="ap-card-label">Mes</span>
+            <strong>{monthlyTotal}</strong>
+            <small>sesiones / 30d</small>
+          </article>
+          <article className="ap-load-kpi">
+            <span className="ap-card-label">Horas</span>
+            <strong>{formatSecondsToClock(visibleVolume.trainingHours * 3600)}</strong>
+            <small>tiempo visible</small>
+          </article>
+          <article className="ap-load-kpi">
+            <span className="ap-card-label">Disciplinas</span>
+            <strong>{disciplineSnapshots.length}</strong>
+            <small>activas</small>
+          </article>
         </div>
-        <article className={`card athlete-portal-command-card ${portalStatus.tone}`}>
-          <span className="athlete-portal-card-label">Estado del bloque</span>
-          <strong>{portalStatus.label}</strong>
-          <p>{portalStatus.headline}</p>
-          <div className="athlete-portal-command-list">
-            {portalSignals.length ? (
-              portalSignals.map((signal) => (
-                <div key={signal} className="athlete-portal-command-list-item">
-                  <span />
-                  <small>{signal}</small>
+
+        <div className="ap-load-distances">
+          <article className="ap-load-distance run">
+            <span className="ap-card-label">Run</span>
+            <strong>{visibleVolume.runningKm.toFixed(1)} km</strong>
+          </article>
+          <article className="ap-load-distance swim">
+            <span className="ap-card-label">Swim</span>
+            <strong>{visibleVolume.swimKm.toFixed(1)} km</strong>
+          </article>
+          <article className="ap-load-distance bike">
+            <span className="ap-card-label">Bike</span>
+            <strong>{visibleVolume.cyclingHasDistance ? `${visibleVolume.cyclingKm.toFixed(1)} km` : "GPS pendiente"}</strong>
+          </article>
+        </div>
+
+        <div className="ap-load-bars">
+          {weeklyBreakdown.length ? (
+            weeklyBreakdown.map((item) => (
+              <div key={item.discipline} className="ap-load-bar-row">
+                <div className="ap-load-bar-head">
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
                 </div>
-              ))
-            ) : (
-              <div className="athlete-portal-command-list-item">
-                <span />
-                <small>Cuando haya más comparables, esta tarjeta te dirá con mucha más claridad si el bloque está empujando o no.</small>
+                <div className="ap-load-bar-track">
+                  <div
+                    className="ap-load-bar-fill"
+                    style={{ width: `${Math.max(18, (item.value / weeklyMaxSessions) * 100)}%`, backgroundColor: disciplineAccent(item.discipline) }}
+                  />
+                </div>
               </div>
-            )}
-          </div>
-        </article>
-        <article className="card athlete-portal-command-card week">
-          <span className="athlete-portal-card-label">Ritmo de la semana</span>
-          <div className="athlete-portal-week-kpis">
-            <div>
-              <strong>{weeklyTotal}</strong>
-              <small>sesiones / 7 días</small>
-            </div>
-            <div>
-              <strong>{formatSecondsToClock(visibleVolume.trainingHours * 3600)}</strong>
-              <small>tiempo visible</small>
-            </div>
-            <div>
-              <strong>{monthlyTotal}</strong>
-              <small>sesiones / 30 días</small>
-            </div>
-          </div>
-          <div className="athlete-portal-week-bars">
-            {weeklyBreakdown.length ? (
-              weeklyBreakdown.map((item) => (
-                <div key={item.discipline} className="athlete-portal-week-bar-row">
-                  <div className="athlete-portal-week-bar-head">
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                  <div className="athlete-portal-week-bar-track">
-                    <div
-                      className="athlete-portal-week-bar-fill"
-                      style={{ width: `${Math.max(18, (item.value / weeklyMaxSessions) * 100)}%`, backgroundColor: disciplineAccent(item.discipline) }}
-                    />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="muted">Todavía no hay suficientes sesiones recientes para dibujar el reparto semanal.</p>
-            )}
-          </div>
-        </article>
-        <article className="card athlete-portal-command-card reference">
-          <span className="athlete-portal-card-label">Referencia de trabajo</span>
-          <strong>{focusEstimate ? formatTarget(focusEstimate) : renderThresholdValue(selectedSnapshot?.lt2, focusDiscipline)}</strong>
-          <p>{focusEstimate ? `${focusEstimate.estimate_type} · ${disciplineLabel(focusDiscipline)}` : "Tu referencia útil se apoya de momento en LT2."}</p>
-          <div className="athlete-portal-reference-strip">
-            <span>
-              <small>LT1</small>
-              <strong>{renderThresholdValue(selectedSnapshot?.lt1, focusDiscipline)}</strong>
-            </span>
-            <span>
-              <small>LT2</small>
-              <strong>{renderThresholdValue(selectedSnapshot?.lt2, focusDiscipline)}</strong>
-            </span>
-            <span>
-              <small>Lectura</small>
-              <strong>{confidenceLabel(activeBlock?.evaluation?.confidence)}</strong>
-            </span>
-          </div>
-          <div className="athlete-portal-volume-inline">
-            <span>
-              <small>Run</small>
-              <strong>{visibleVolume.runningKm.toFixed(1)} km</strong>
-            </span>
-            <span>
-              <small>Swim</small>
-              <strong>{visibleVolume.swimKm.toFixed(1)} km</strong>
-            </span>
-            <span>
-              <small>Bike</small>
-              <strong>{visibleVolume.cyclingHasDistance ? `${visibleVolume.cyclingKm.toFixed(1)} km` : "GPS pendiente"}</strong>
-            </span>
-          </div>
-        </article>
+            ))
+          ) : (
+            <p className="muted">Todavía no hay suficientes sesiones recientes para dibujar el reparto semanal.</p>
+          )}
+        </div>
       </section>
 
-      <section className="card athlete-portal-health-panel athlete-portal-health-bevel-shell">
-        {athleteHealth && (bodyBatteryDelta !== null || wellnessSeries.some((point) => point.bodyBatteryChange !== null)) ? (
-          <article className="athlete-portal-health-bevel-card athlete-portal-body-battery-banner">
-            <span className="athlete-portal-card-label">Batería corporal</span>
-            {wellnessSeries.some((point) => point.bodyBatteryChange !== null) ? (
-              <div className="athlete-portal-wellness-mini-chart compact">
-                <ResponsiveContainer width="100%" height={28}>
-                  <LineChart data={wellnessSeries} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+      {/* ═══════════════════════════════════════════════════════════════════
+          BLOCK 3 — Última Sesión
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section className="ap-block ap-latest-session">
+        <span className="ap-eyebrow">Última sesión</span>
+
+        {latestVisibleSession ? (
+          <article className="ap-latest-card featured">
+            <div className="ap-latest-head">
+              <span className="ap-discipline-dot" style={{ backgroundColor: disciplineAccent(latestVisibleSession.discipline) }} />
+              <strong>{latestVisibleSession.session_type}</strong>
+            </div>
+            <p>{disciplineLabel(latestVisibleSession.discipline)} · {formatDate(latestVisibleSession.performed_at)}</p>
+            {latestVisibleSession.goal ? <p className="ap-session-goal">{latestVisibleSession.goal}</p> : null}
+          </article>
+        ) : (
+          <div className="ap-empty">Sin sesión reciente visible.</div>
+        )}
+
+        <div className="ap-latest-feed">
+          {recentFeed.length ? (
+            recentFeed.slice(0, 4).map((session) => (
+              <article key={session.id} className="ap-latest-feed-item">
+                <span className="ap-discipline-dot" style={{ backgroundColor: disciplineAccent(session.discipline) }} />
+                <div className="ap-feed-item-copy">
+                  <strong>{session.session_type}</strong>
+                  <span>{disciplineLabel(session.discipline)}</span>
+                  <small>{formatDate(session.performed_at)}</small>
+                  {session.goal ? <p>{session.goal}</p> : null}
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="ap-empty">Cuando entren más actividades, aparecerán aquí.</div>
+          )}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          BLOCK 4 — Tendencias Recuperación
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section className="ap-block ap-recovery-trends">
+        <span className="ap-eyebrow">Tendencias de recuperación</span>
+
+        <div className="ap-trends-grid">
+          {/* HRV trend */}
+          <article className="ap-trend-card">
+            <span className="ap-card-label">HRV nocturna</span>
+            <strong>{typeof currentHrv === "number" ? `${Math.round(currentHrv)} ms` : "n/d"}</strong>
+            <span className={`ap-chip green`}>{currentHrvStatus}</span>
+            <span className="ap-vital-avg">{hrvAverage !== null ? `Media 7d ${hrvAverage.toFixed(0)} ms` : ""}</span>
+            {wellnessSeries.some((p) => p.hrv !== null) ? (
+              <div className="ap-spark">
+                <ResponsiveContainer width="100%" height={30}>
+                  <LineChart data={wellnessSeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                     <XAxis hide dataKey="shortLabel" />
                     <YAxis hide />
-                    {bodyBatteryAverage !== null ? <ReferenceLine y={bodyBatteryAverage} stroke="rgba(95, 181, 87, 0.2)" strokeDasharray="5 4" /> : null}
-                    <Tooltip content={({ active, payload }) => renderWellnessTooltip(active, payload as Array<{ payload?: WellnessSeriesPoint }> | undefined, "Batería corporal", (value) => typeof value === "number" ? `${Math.round(value)}` : "n/d")} />
-                    <Line type="monotone" dataKey="bodyBatteryChange" stroke="#72bf62" strokeWidth={2.4} dot={false} activeDot={{ r: 5.5, fill: "#72bf62", stroke: "#ffffff", strokeWidth: 2 }} connectNulls />
+                    <Tooltip content={({ active, payload }) => renderWellnessTooltip(active, payload as Array<{ payload?: WellnessSeriesPoint }> | undefined, "HRV nocturna", (v) => typeof v === "number" ? `${Math.round(v)} ms` : "n/d")} />
+                    <Line type="monotone" dataKey="hrv" stroke="#4fb46b" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#4fb46b", stroke: "#fff", strokeWidth: 2 }} connectNulls />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             ) : null}
-            <strong>{bodyBatteryDelta !== null ? `${bodyBatteryDelta >= 0 ? "+" : ""}${Math.round(bodyBatteryDelta)}` : "n/d"}</strong>
-            <p>{bodyBatteryDirection}</p>
-            <small>{bodyBatteryAverage !== null ? `Media 7d ${bodyBatteryAverage.toFixed(0)}` : "Sin media reciente"}</small>
           </article>
-        ) : null}
 
-        <div className="athlete-portal-section-head athlete-portal-health-bevel-head">
-          <div>
-            <span className="eyebrow">Salud Garmin</span>
-            <h2>Cómo llegas hoy</h2>
-            <p className="muted">Recuperación, sueño y biomarcadores en un solo vistazo.</p>
-          </div>
-          <div className="athlete-portal-health-actions athlete-portal-health-actions-bevel">
-            {garminHealthProvider ? (
-              <div className="athlete-portal-health-providers compact">
-                <span className={`athlete-portal-health-provider ${garminHealthProvider.status}`}>
-                  Garmin · {garminHealthProvider.status === "connected" ? "activo" : garminHealthProvider.status === "error" ? "error" : "pendiente"}
-                </span>
+          {/* Resting HR trend */}
+          <article className="ap-trend-card">
+            <span className="ap-card-label">Frecuencia en reposo</span>
+            <strong>{typeof currentRestingHr === "number" ? `${Math.round(currentRestingHr)} bpm` : "n/d"}</strong>
+            <span className="ap-chip blue">{restingHrLabel(currentRestingHr, restingHrAverage)}</span>
+            <span className="ap-vital-avg">{restingHrAverage !== null ? `Media 7d ${restingHrAverage.toFixed(0)} bpm` : ""}</span>
+            {wellnessSeries.some((p) => p.restingHr !== null) ? (
+              <div className="ap-spark">
+                <ResponsiveContainer width="100%" height={30}>
+                  <LineChart data={wellnessSeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                    <XAxis hide dataKey="shortLabel" />
+                    <YAxis hide />
+                    <Tooltip content={({ active, payload }) => renderWellnessTooltip(active, payload as Array<{ payload?: WellnessSeriesPoint }> | undefined, "Frecuencia en reposo", (v) => typeof v === "number" ? `${Math.round(v)} bpm` : "n/d")} />
+                    <Line type="monotone" dataKey="restingHr" stroke="#5a9cf5" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#5a9cf5", stroke: "#fff", strokeWidth: 2 }} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             ) : null}
-            <button
-              type="button"
-              className="ghost-button athlete-portal-health-refresh"
-              onClick={() => void handleRefreshAthleteHealth()}
-              disabled={athleteHealthLoading || !analysis.athlete.garmin_connected}
-            >
-              {athleteHealthLoading ? "Consultando Garmin..." : "Actualizar salud Garmin"}
-            </button>
-            {athleteHealthStatus ? <small className="athlete-portal-health-status">{athleteHealthStatus}</small> : null}
-          </div>
-        </div>
+          </article>
 
-        {athleteHealthLoading ? (
-          <div className="athlete-portal-health-empty">Cargando actividad y salud conectada...</div>
-        ) : athleteHealthError ? (
-          <div className="athlete-portal-health-empty">{athleteHealthError}</div>
-        ) : athleteHealth ? (
-          <>
-            <div className="athlete-portal-health-bevel-grid">
-              <article className={`athlete-portal-wellness-hero tone-${recoveryToneClass}`}>
-                <span className="athlete-portal-card-label">Sueño</span>
-                <div className="athlete-portal-wellness-hero-copy">
-                  <div className="athlete-portal-health-bevel-orb compact">
-                    <span className="athlete-portal-wellness-orb-label">Calidad del sueño</span>
-                    <div className="athlete-portal-health-bevel-ring" style={recoveryRingStyle}>
-                      <div className="athlete-portal-health-bevel-ring-core">
-                        <strong>{sleepScoreValue}</strong>
-                        <small>{recoveryScore !== null ? "%" : ""}</small>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="athlete-portal-wellness-sleep-summary">
-                    <h3>{sleepScoreLabel(recoveryScore)}</h3>
-                    <p>{sleepScoreSupport(recoveryScore)}</p>
-                  </div>
-                  <div className="athlete-portal-wellness-sleep-stats compact">
-                    <article className="athlete-portal-wellness-sleep-stat primary">
-                      <span className="athlete-portal-card-label">Dormido</span>
-                      <strong>{sleepDurationDisplay}</strong>
-                    </article>
-                    <article className="athlete-portal-wellness-sleep-stat">
-                      <span className="athlete-portal-card-label">Vs media 7d</span>
-                      <strong>
-                        {sleepHoursDelta === null
-                          ? "n/d"
-                          : `${sleepHoursDelta > 0 ? "+" : ""}${Math.round(sleepHoursDelta * 60)} min`}
-                      </strong>
-                    </article>
-                  </div>
-                </div>
-              </article>
-              <div className="athlete-portal-wellness-side-stack">
-                <article className="athlete-portal-wellness-card athlete-portal-wellness-card-hrv">
-                  <div className="athlete-portal-chart-head">
-                    <span className="athlete-portal-card-label">HRV nocturna</span>
-                    <strong>{typeof currentHrv === "number" ? `${Math.round(currentHrv)} ms` : "n/d"}</strong>
-                  </div>
-                  <div className="athlete-portal-wellness-card-meta">
-                    <span className={`athlete-portal-health-chip tone-${currentHrvTone}`}>{currentHrvStatus}</span>
-                    <small>{hrvAverage !== null ? `Media 7d ${hrvAverage.toFixed(1)} ms` : "Sin media reciente"}</small>
-                  </div>
-                  {wellnessSeries.some((point) => point.hrv !== null) ? (
-                    <div className="athlete-portal-wellness-mini-chart">
-                      <ResponsiveContainer width="100%" height={30}>
-                        <LineChart data={wellnessSeries} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
-                          <XAxis hide dataKey="shortLabel" />
-                          <YAxis hide />
-                          {hrvAverage !== null ? <ReferenceLine y={hrvAverage} stroke="rgba(34, 197, 94, 0.22)" strokeDasharray="5 4" /> : null}
-                          <Tooltip content={({ active, payload }) => renderWellnessTooltip(active, payload as Array<{ payload?: WellnessSeriesPoint }> | undefined, "HRV nocturna", (value) => typeof value === "number" ? `${Math.round(value)} ms` : "n/d")} />
-                          <Line type="monotone" dataKey="hrv" stroke="#4fb46b" strokeWidth={2.4} dot={false} activeDot={{ r: 5.5, fill: "#4fb46b", stroke: "#ffffff", strokeWidth: 2 }} connectNulls />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div className="athlete-portal-health-empty">Cuando Garmin devuelva varias noches, verás aquí tu HRV en perspectiva.</div>
-                  )}
-                </article>
-
-                <article className="athlete-portal-wellness-card athlete-portal-wellness-card-resting">
-                  <div className="athlete-portal-chart-head">
-                    <span className="athlete-portal-card-label">Frecuencia en reposo</span>
-                    <strong>{typeof currentRestingHr === "number" ? `${Math.round(currentRestingHr)} bpm` : "n/d"}</strong>
-                  </div>
-                  <div className="athlete-portal-wellness-card-meta">
-                    <span className="athlete-portal-health-chip soft">{restingHrLabel(currentRestingHr, restingHrAverage)}</span>
-                    <small>{restingHrAverage !== null ? `Media 7d ${restingHrAverage.toFixed(1)} bpm` : "Sin media reciente"}</small>
-                  </div>
-                  {wellnessSeries.some((point) => point.restingHr !== null) ? (
-                    <div className="athlete-portal-wellness-mini-chart">
-                      <ResponsiveContainer width="100%" height={30}>
-                        <LineChart data={wellnessSeries} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
-                          <XAxis hide dataKey="shortLabel" />
-                          <YAxis hide />
-                          {restingHrAverage !== null ? <ReferenceLine y={restingHrAverage} stroke="rgba(58, 126, 255, 0.24)" strokeDasharray="5 4" /> : null}
-                          <Tooltip content={({ active, payload }) => renderWellnessTooltip(active, payload as Array<{ payload?: WellnessSeriesPoint }> | undefined, "Frecuencia en reposo", (value) => typeof value === "number" ? `${Math.round(value)} bpm` : "n/d")} />
-                          <Line type="monotone" dataKey="restingHr" stroke="#4f8ff2" strokeWidth={2.4} dot={false} activeDot={{ r: 5.5, fill: "#4f8ff2", stroke: "#ffffff", strokeWidth: 2 }} connectNulls />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div className="athlete-portal-health-empty">Estamos listos para enseñarlo en perspectiva en cuanto Garmin devuelva más días visibles.</div>
-                  )}
-                </article>
-
-                <article className="athlete-portal-wellness-card athlete-portal-wellness-card-stress">
-                  <div className="athlete-portal-chart-head">
-                    <span className="athlete-portal-card-label">Estrés diario</span>
-                    <strong>{typeof currentStress === "number" ? `${Math.round(currentStress)}` : "n/d"}</strong>
-                  </div>
-                  <div className="athlete-portal-wellness-card-meta">
-                    <span className="athlete-portal-health-chip soft">{stressLabel(currentStress)}</span>
-                    <small>{stressAverage !== null ? `Media 7d ${stressAverage.toFixed(0)}` : "Sin media reciente"}</small>
-                  </div>
-                  {wellnessSeries.some((point) => point.stress !== null) ? (
-                    <div className="athlete-portal-wellness-stress-chart">
-                      <ResponsiveContainer width="100%" height={34}>
-                        <LineChart data={wellnessSeries} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
-                          <XAxis hide dataKey="shortLabel" />
-                          <YAxis hide domain={[0, 100]} />
-                          <Tooltip content={({ active, payload }) => renderWellnessTooltip(active, payload as Array<{ payload?: WellnessSeriesPoint }> | undefined, "Estrés diario", (value) => typeof value === "number" ? `${Math.round(value)}` : "n/d")} />
-                          {stressAverage !== null ? <ReferenceLine y={stressAverage} stroke="rgba(242, 139, 60, 0.18)" strokeDasharray="5 4" /> : null}
-                          <Line type="monotone" dataKey="stress" stroke="#f28b3c" strokeWidth={2.5} dot={false} activeDot={{ r: 5.5, fill: "#f28b3c", stroke: "#ffffff", strokeWidth: 2 }} connectNulls />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div className="athlete-portal-health-empty">En cuanto Garmin devuelva varios días, verás aquí la línea de estrés y la carga de actividad de la semana.</div>
-                  )}
-                </article>
+          {/* Sleep hours trend */}
+          <article className="ap-trend-card">
+            <span className="ap-card-label">Horas de sueño</span>
+            <strong>{currentSleepHours !== null ? `${currentSleepHours.toFixed(1)} h` : "n/d"}</strong>
+            <span className="ap-chip purple">{sleepScoreLabel(recoveryScore)}</span>
+            <span className="ap-vital-avg">{sleepHoursAverage !== null ? `Media 7d ${sleepHoursAverage.toFixed(1)} h` : ""}</span>
+            {wellnessSeries.some((p) => p.sleepHours !== null) ? (
+              <div className="ap-spark">
+                <ResponsiveContainer width="100%" height={30}>
+                  <LineChart data={wellnessSeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                    <XAxis hide dataKey="shortLabel" />
+                    <YAxis hide />
+                    <Tooltip content={({ active, payload }) => renderWellnessTooltip(active, payload as Array<{ payload?: WellnessSeriesPoint }> | undefined, "Horas de sueño", (v) => typeof v === "number" ? `${v.toFixed(1)} h` : "n/d")} />
+                    <Line type="monotone" dataKey="sleepHours" stroke="#7c6fba" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#7c6fba", stroke: "#fff", strokeWidth: 2 }} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-            </div>
-
-            <div className="athlete-portal-health-support-grid">
-              <article className="athlete-portal-health-bevel-card athlete-portal-health-sleep-card">
-                <div className="athlete-portal-chart-head">
-                  <span className="athlete-portal-card-label">Noche visible</span>
-                  <strong>Noche visible</strong>
-                </div>
-                {athleteSleepBreakdown.length ? (
-                  <div className="athlete-portal-sleep-architecture-layout">
-                    {sleepStageWindow ? (
-                      <div className="athlete-portal-sleep-stage-chart">
-                        <div className="athlete-portal-sleep-stage-head">
-                          <span>
-                            <small>Tiempo en cama</small>
-                            <strong>{formatSleepDuration(visibleNightSeconds || null)}</strong>
-                          </span>
-                          <span>
-                            <small>Tiempo dormido</small>
-                            <strong>{sleepDurationDisplay}</strong>
-                          </span>
-                        </div>
-                        <div className="athlete-portal-sleep-stage-grid">
-                          {(["awake", "rem", "light", "deep"] as SleepStageKey[]).map((stage) => (
-                            <div key={stage} className={`athlete-portal-sleep-stage-row stage-${stage}`}>
-                              <span className="athlete-portal-sleep-stage-label">
-                                {stage === "awake" ? "Despierto" : stage === "rem" ? "REM" : stage === "light" ? "Ligero" : "Profundo"}
-                              </span>
-                            </div>
-                          ))}
-                          {athleteSleepStageSegments.map((segment, index) => {
-                            const total = sleepStageWindow.end - sleepStageWindow.start || 1;
-                            const left = ((segment.start - sleepStageWindow.start) / total) * 100;
-                            const width = ((segment.end - segment.start) / total) * 100;
-                            return (
-                              <span
-                                key={`${segment.stage}-${segment.start}-${index}`}
-                                className={`athlete-portal-sleep-stage-segment stage-${segment.stage}`}
-                                style={{ left: `${left}%`, width: `${Math.max(width, 1.2)}%` }}
-                                title={`${stageLabel(segment.stage)}`}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : null}
-                    <div className="athlete-portal-sleep-phase-grid">
-                      {sleepArchitectureMetrics.map((metric) => (
-                        <button
-                          key={metric.key}
-                          type="button"
-                          className={`athlete-portal-health-bevel-metric athlete-portal-sleep-phase-button metric-${metric.key} ${selectedSleepMetric?.key === metric.key ? "active" : ""}`}
-                          onClick={() => setSelectedSleepMetricKey(metric.key)}
-                        >
-                          <span className="athlete-portal-card-label">{metric.label}</span>
-                          <strong>{metric.value}</strong>
-                          <p>{metric.detail ?? "Señal nocturna Garmin"}</p>
-                        </button>
-                      ))}
-                    </div>
-                    {selectedSleepMetric ? (
-                      <article className={`athlete-portal-sleep-focus metric-${selectedSleepMetric.key}`}>
-                        <div className="athlete-portal-sleep-focus-head">
-                          <div>
-                            <span className="athlete-portal-card-label">Fase seleccionada</span>
-                            <strong>{selectedSleepMetric.label}</strong>
-                          </div>
-                          <strong>{selectedSleepMetric.value}</strong>
-                        </div>
-                        <p>{selectedSleepMetric.detail ?? "Lectura visible de Garmin para la noche actual."}</p>
-                        <div className="athlete-portal-sleep-focus-progress">
-                          <span className="athlete-portal-card-label">
-                            {selectedSleepMetricShare !== null ? `${selectedSleepMetricShare}% de la noche visible` : "Sin referencia porcentual"}
-                          </span>
-                          <div className="athlete-portal-sleep-focus-bar">
-                            <span style={{ width: `${selectedSleepMetricShare ?? 0}%` }} />
-                          </div>
-                        </div>
-                      </article>
-                    ) : null}
-                    {sleepSupportMetrics.length ? (
-                      <div className="athlete-portal-sleep-support-grid">
-                        {sleepSupportMetrics.map((metric) => (
-                          <article key={metric.key} className={`athlete-portal-health-bevel-metric athlete-portal-sleep-support-card metric-${metric.key}`}>
-                            <span className="athlete-portal-card-label">{metric.label}</span>
-                            <strong>{metric.value}</strong>
-                            <p>{metric.detail ?? "Señal nocturna Garmin"}</p>
-                          </article>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="athlete-portal-health-empty">Al refrescar en vivo aparecerán fases de sueño, body battery, frecuencia en reposo y respiración nocturna.</div>
-                )}
-              </article>
-
-              <article className="athlete-portal-health-bevel-card athlete-portal-health-respiration-card">
-                <div className="athlete-portal-chart-head">
-                  <span className="athlete-portal-card-label">Respiración nocturna</span>
-                  <strong>{typeof currentRespiration === "number" ? `${currentRespiration.toFixed(1)}/min` : "n/d"}</strong>
-                </div>
-                <div className="athlete-portal-wellness-card-meta">
-                  <span className="athlete-portal-health-chip soft">
-                    {currentBreathingEvents !== null ? `${Math.round(currentBreathingEvents)} eventos visibles` : "Sin eventos visibles"}
-                  </span>
-                  <small>{respirationAverage !== null ? `Media 7d ${respirationAverage.toFixed(1)}/min` : "Sin media reciente"}</small>
-                </div>
-                {wellnessSeries.some((point) => point.respirationRate !== null) ? (
-                  <div className="athlete-portal-wellness-mini-chart">
-                    <ResponsiveContainer width="100%" height={116}>
-                      <LineChart data={wellnessSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(126, 86, 214, 0.1)" vertical={false} />
-                        <XAxis dataKey="shortLabel" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "rgba(22, 53, 61, 0.48)" }} />
-                        <YAxis hide />
-                        {respirationAverage !== null ? <ReferenceLine y={respirationAverage} stroke="rgba(142, 102, 227, 0.2)" strokeDasharray="5 4" /> : null}
-                        <Tooltip content={({ active, payload }) => renderWellnessTooltip(active, payload as Array<{ payload?: WellnessSeriesPoint }> | undefined, "Respiración nocturna", (value) => typeof value === "number" ? `${value.toFixed(1)}/min` : "n/d")} />
-                        <Line type="monotone" dataKey="respirationRate" stroke="#8b73df" strokeWidth={2.5} dot={{ r: 2.8, fill: "#8b73df", strokeWidth: 0 }} activeDot={{ r: 4.5, fill: "#8b73df" }} connectNulls />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="athlete-portal-health-empty">Cuando Garmin devuelva varias noches con respiración visible, verás aquí su tendencia.</div>
-                )}
-              </article>
-            </div>
-
-            {hasExtendedHealthDetail ? (
-              <details className="athlete-portal-health-advanced">
-                <summary>Ver evolución y detalle Garmin</summary>
-                <div className="athlete-portal-health-bevel-lower-grid">
-                  <article className="athlete-portal-health-bevel-card athlete-portal-health-timeline-card">
-                    <div className="athlete-portal-chart-head">
-                      <span className="athlete-portal-card-label">Timeline de salud</span>
-                      <strong>Últimos 7 días Garmin</strong>
-                    </div>
-                    {athleteHealthDays.length ? (
-                      <div className="athlete-portal-health-days-list bevel">
-                        {athleteHealthDays.map((day, index) => (
-                          <article key={day.date} className={`athlete-portal-health-day health-metric-day bevel ${index === 0 ? "current" : ""}`}>
-                            <div className="athlete-portal-health-day-head">
-                              <strong>{new Date(day.date).toLocaleDateString("es-ES", { weekday: "short", day: "2-digit", month: "short" })}</strong>
-                              <small>
-                                {typeof day.sleep_score === "number" ? `Sueño ${day.sleep_score}` : "Sueño n/d"}
-                                {typeof day.stress_level === "number" ? ` · Estrés ${day.stress_level}` : ""}
-                              </small>
-                            </div>
-                            <div className="athlete-portal-health-day-stats">
-                              <span><small>HRV</small><strong>{formatNumericMetric(day.hrv_last_night_avg)}</strong></span>
-                              <span><small>Reposo</small><strong>{formatNumericMetric(day.resting_hr)}</strong></span>
-                              <span><small>Pasos</small><strong>{formatSteps(day.steps)}</strong></span>
-                            </div>
-                            <p>{describeHrvStatus(day.hrv_status) ?? "Sin estado HRV visible."}</p>
-                          </article>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="athlete-portal-health-empty">Garmin no ha devuelto todavía una serie diaria de wellness.</div>
-                    )}
-                  </article>
-
-                  <article className="athlete-portal-health-bevel-card athlete-portal-health-raw-card">
-                    <div className="athlete-portal-chart-head">
-                      <span className="athlete-portal-card-label">Laboratorio Garmin</span>
-                      <strong>Diagnóstico y raw</strong>
-                    </div>
-                    {athleteHealthStatus ? <div className="athlete-portal-health-inline-status">{athleteHealthStatus}</div> : null}
-                    {athleteWellnessDiagnosticCards.length ? (
-                      <div className="athlete-portal-health-diagnostic-grid">
-                        {athleteWellnessDiagnosticCards.map((item) => (
-                          <article key={item.label} className="athlete-portal-health-diagnostic-card">
-                            <span className="athlete-portal-card-label">{item.label}</span>
-                            <strong>{String(item.value)}</strong>
-                          </article>
-                        ))}
-                      </div>
-                    ) : null}
-                    {athleteWellnessPreviewFields.length ? (
-                      <div className="athlete-portal-garmin-parameters athlete-portal-health-parameters bevel">
-                        {athleteWellnessPreviewFields.map((field) => (
-                          <article key={field.key} className="athlete-portal-garmin-parameter-card">
-                            <span className="athlete-portal-card-label">{field.label}</span>
-                            <strong>{field.value}</strong>
-                          </article>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="athlete-portal-health-empty">
-                        {athleteHealthStatus ?? "La carga inicial va en modo ligero. Pulsa actualizar si quieres abrir el laboratorio Garmin en vivo."}
-                      </div>
-                    )}
-                    <details className="athlete-portal-health-raw-drawer" open={Boolean(athleteWellnessJson && athleteWellnessPreviewFields.length === 0)}>
-                      <summary>{athleteWellnessJson ? "Abrir payload crudo" : "Payload crudo aún no disponible"}</summary>
-                      {athleteWellnessJson ? (
-                        <div className="athlete-portal-garmin-json-card athlete-portal-health-json-card">
-                          <pre>{athleteWellnessJson}</pre>
-                        </div>
-                      ) : null}
-                    </details>
-                    {athleteHealth.notes.length ? (
-                      <div className="athlete-portal-health-notes">
-                        {athleteHealth.notes.map((note) => (
-                          <p key={note}>{note}</p>
-                        ))}
-                      </div>
-                    ) : null}
-                  </article>
-                </div>
-
-                <div className="athlete-portal-health-bevel-secondary-grid">
-                  <article className="athlete-portal-health-bevel-card athlete-portal-health-performance-card">
-                    <div className="athlete-portal-chart-head">
-                      <span className="athlete-portal-card-label">Señales de rendimiento</span>
-                      <strong>Lo que Garmin aporta fuera del descanso</strong>
-                    </div>
-                    {athletePerformanceMetrics.length ? (
-                      <div className="athlete-portal-health-bevel-metric-grid performance">
-                        {athletePerformanceMetrics.map((metric) => (
-                          <article key={metric.key} className={`athlete-portal-health-bevel-metric performance metric-${metric.key}`}>
-                            <span className="athlete-portal-card-label">{metric.label}</span>
-                            <strong>{metric.value}</strong>
-                            <p>{metric.detail ?? "Señal de rendimiento Garmin"}</p>
-                          </article>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="athlete-portal-health-empty">Pulsa actualizar salud Garmin para pedir VO2max, LT HR, umbral de potencia, training effect y training load si la cuenta los expone.</div>
-                    )}
-                  </article>
-
-                  <article className="athlete-portal-health-bevel-card athlete-portal-health-activity-overview-card">
-                    <div className="athlete-portal-chart-head">
-                      <span className="athlete-portal-card-label">Actividad conectada</span>
-                      <strong>Huella de entreno visible</strong>
-                    </div>
-                    <div className="athlete-portal-health-summary-inline">
-                      <span>
-                        <small>Actividades</small>
-                        <strong>{athleteHealthSummary?.activities_count ?? 0}</strong>
-                      </span>
-                      <span>
-                        <small>Días activos</small>
-                        <strong>{athleteHealthSummary?.training_days ?? 0}</strong>
-                      </span>
-                      <span>
-                        <small>Tiempo</small>
-                        <strong>{formatSecondsToClock(athleteHealthSummary?.total_duration_seconds ?? 0)}</strong>
-                      </span>
-                      <span>
-                        <small>Ventana</small>
-                        <strong>{formatDate(athleteHealth.window_start)} - {formatDate(athleteHealth.window_end)}</strong>
-                      </span>
-                    </div>
-                    <div className="athlete-portal-health-calendar-grid bevel">
-                      {athleteHealthCalendar.map((day) => (
-                        <article key={day.date} className={`athlete-portal-health-day bevel ${day.activity_count > 0 ? "active" : ""}`}>
-                          <small>{new Date(day.date).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</small>
-                          <strong>{day.activity_count > 0 ? day.activity_count : "·"}</strong>
-                          <span
-                            className="athlete-portal-health-day-bar"
-                            style={{ backgroundColor: day.primary_sport_color ?? "rgba(16, 34, 42, 0.1)" }}
-                          />
-                          <p>{day.primary_sport_label ?? "Sin actividad"}</p>
-                        </article>
-                      ))}
-                    </div>
-                  </article>
-
-                  <article className="athlete-portal-health-bevel-card athlete-portal-health-feed-card-bevel">
-                    <div className="athlete-portal-chart-head">
-                      <span className="athlete-portal-card-label">Entrenos Garmin</span>
-                      <strong>Feed reciente</strong>
-                    </div>
-                    <div className="athlete-portal-health-feed-list">
-                      {athleteHealthRecent.length ? (
-                        athleteHealthRecent.map((activity) => (
-                          <article key={activity.provider_activity_id} className="athlete-portal-health-activity bevel">
-                            <div className="athlete-portal-health-activity-head">
-                              <span className="athlete-portal-health-sport-dot" style={{ backgroundColor: activity.sport_color }} />
-                              <strong>{activity.name}</strong>
-                            </div>
-                            <p>{activity.sport_label} · {formatDate(activity.started_at)}</p>
-                            <small>
-                              {formatDistanceKm(activity.distance_m)} · {formatSecondsToClock(activity.moving_time_seconds)}
-                              {typeof activity.average_heartrate === "number" ? ` · ${Math.round(activity.average_heartrate)} bpm` : ""}
-                              {typeof activity.average_watts === "number" ? ` · ${Math.round(activity.average_watts)} W` : ""}
-                            </small>
-                          </article>
-                        ))
-                      ) : (
-                        <div className="athlete-portal-health-empty">La actividad no se carga en el overview rápido. Si quieres auditarla, usa el bloque Garmin de abajo.</div>
-                      )}
-                    </div>
-                  </article>
-                </div>
-              </details>
             ) : null}
-          </>
-        ) : (
-          <div className="athlete-portal-health-empty">Todavía no hay una capa de salud Garmin conectada disponible.</div>
-        )}
-      </section>
+          </article>
 
-      <section className="card athlete-portal-garmin-panel">
-        <div className="athlete-portal-section-head">
-          <div>
-            <span className="eyebrow">Garmin deep dive</span>
-            <h2>Actividades Garmin en segundo plano</h2>
-            <p className="muted">La parte importante arriba es wellness. Aquí abajo dejamos la exploración de actividades y su payload completo por si quieres auditarlo también.</p>
-          </div>
-          <div className="athlete-portal-garmin-actions">
-            <button type="button" className="ghost-button" onClick={() => setGarminLoginOpen((current) => !current)}>
-              {garminLoginOpen ? "Cerrar login" : analysis.athlete.garmin_connected ? "Cambiar login Garmin" : "Login Garmin"}
-            </button>
-            <button
-              type="button"
-              className="primary-button"
-              onClick={() => void handleLoadGarminRaw()}
-              disabled={garminPreviewLoading || !analysis.athlete.garmin_connected}
-            >
-              {garminPreviewLoading ? "Cargando Garmin..." : "Cargar lista + 1 detalle completo"}
-            </button>
-          </div>
-        </div>
-
-        {garminLoginOpen ? (
-          <div className="athlete-portal-garmin-login-card">
-            <label>
-              <span className="athlete-portal-card-label">Email Garmin</span>
-              <input type="email" value={garminEmail} onChange={(event) => setGarminEmail(event.target.value)} placeholder="usuario@correo.com" />
-            </label>
-            <label>
-              <span className="athlete-portal-card-label">Password</span>
-              <input type="password" value={garminPassword} onChange={(event) => setGarminPassword(event.target.value)} placeholder="Password Garmin" />
-            </label>
-            <label>
-              <span className="athlete-portal-card-label">MFA</span>
-              <input type="text" value={garminMfaCode} onChange={(event) => setGarminMfaCode(event.target.value)} placeholder="Opcional si Garmin lo pide" />
-            </label>
-            <div className="athlete-portal-garmin-login-actions">
-              <button
-                type="button"
-                className="primary-button"
-                onClick={() => void handleGarminConnect()}
-                disabled={garminConnectLoading || !garminEmail.trim() || !garminPassword.trim()}
-              >
-                {garminConnectLoading ? "Conectando..." : "Hacer login Garmin"}
-              </button>
-            </div>
-            {garminConnectMessage ? <p>{garminConnectMessage}</p> : null}
-            {garminConnectError ? <p className="error">{garminConnectError}</p> : null}
-          </div>
-        ) : null}
-
-        {!analysis.athlete.garmin_connected ? (
-          <div className="athlete-portal-health-empty">Haz login con Garmin para inspeccionar actividad y salud desde esta capa paralela.</div>
-        ) : (
-          <>
-            {garminPreviewError ? <div className="athlete-portal-health-empty">{garminPreviewError}</div> : null}
-            {garminPreview?.activities.length ? (
-              <div className="athlete-portal-garmin-grid">
-                <div className="athlete-portal-garmin-activity-list">
-                  {garminPreview.activities.map((activity) => (
-                    <button
-                      key={activity.provider_activity_id}
-                      type="button"
-                      className={`athlete-portal-garmin-activity-card ${selectedGarminActivity?.provider_activity_id === activity.provider_activity_id ? "active" : ""}`}
-                      onClick={() => void handleOpenGarminActivity(activity.provider_activity_id)}
-                    >
-                      <div className="athlete-portal-garmin-activity-head">
-                        <span className={`strava-sport-pill ${sportToneClass(activity.sport_type)}`}>{sportLabel(activity.sport_type)}</span>
-                        <small>{formatDateTime(activity.started_at)}</small>
-                      </div>
-                      <strong>{activity.name}</strong>
-                      <p>{formatDistanceKm(activity.distance_m)} · {formatSecondsToClock(activity.moving_time_seconds)}</p>
-                      <small>
-                        {activity.average_heartrate ? `${Math.round(activity.average_heartrate)} bpm` : "FC n/d"}
-                        {activity.average_watts ? ` · ${Math.round(activity.average_watts)} W` : ""}
-                      </small>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="athlete-portal-garmin-detail">
-                  {selectedGarminActivity ? (
-                    <>
-                      <div className="athlete-portal-garmin-hero">
-                        <div>
-                          <span className={`strava-sport-pill ${sportToneClass(selectedGarminActivity.sport_type)}`}>{sportLabel(selectedGarminActivity.sport_type)}</span>
-                          <h3>{selectedGarminActivity.name}</h3>
-                          <p>{formatDateTime(selectedGarminActivity.started_at)}</p>
-                        </div>
-                        <div className="athlete-portal-garmin-kpis">
-                          <span><small>Distancia</small><strong>{formatDistanceKm(selectedGarminActivity.distance_m)}</strong></span>
-                          <span><small>Tiempo</small><strong>{formatSecondsToClock(selectedGarminActivity.moving_time_seconds)}</strong></span>
-                          <span><small>FC media</small><strong>{selectedGarminActivity.average_heartrate ? `${Math.round(selectedGarminActivity.average_heartrate)} bpm` : "n/d"}</strong></span>
-                          <span><small>Potencia</small><strong>{selectedGarminActivity.average_watts ? `${Math.round(selectedGarminActivity.average_watts)} W` : "n/d"}</strong></span>
-                        </div>
-                      </div>
-
-                      {garminActivityLoading ? <div className="athlete-portal-health-empty">Cargando detalle completo Garmin...</div> : null}
-                      {garminActivityError ? <div className="athlete-portal-health-empty">{garminActivityError}</div> : null}
-
-                      <div className="athlete-portal-garmin-parameters">
-                        {selectedGarminFields.map((field) => (
-                          <article key={field.key} className="athlete-portal-garmin-parameter-card">
-                            <span className="athlete-portal-card-label">{field.label}</span>
-                            <strong>{field.value}</strong>
-                          </article>
-                        ))}
-                      </div>
-
-                      <div className="athlete-portal-garmin-json-card">
-                        <div className="athlete-portal-chart-head">
-                          <span className="athlete-portal-card-label">JSON crudo</span>
-                          <strong>Raw Garmin payload</strong>
-                        </div>
-                        <pre>{selectedGarminJson ?? "Sin raw_detail visible en esta actividad."}</pre>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="athlete-portal-health-empty">Carga una actividad Garmin para ver todos sus parámetros.</div>
-                  )}
-                </div>
+          {/* Sleep score trend */}
+          <article className="ap-trend-card">
+            <span className="ap-card-label">Sleep score</span>
+            <strong>{sleepScoreValue}</strong>
+            <span className="ap-chip purple">{typeof recoveryScore === "number" ? `${recoveryToneClass}` : "pendiente"}</span>
+            <span className="ap-vital-avg">{averageNumericSeries(wellnessSeries.map((p) => p.sleepScore)) !== null ? `Media 7d ${averageNumericSeries(wellnessSeries.map((p) => p.sleepScore))!.toFixed(0)}` : ""}</span>
+            {wellnessSeries.some((p) => p.sleepScore !== null) ? (
+              <div className="ap-spark">
+                <ResponsiveContainer width="100%" height={30}>
+                  <LineChart data={wellnessSeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                    <XAxis hide dataKey="shortLabel" />
+                    <YAxis hide domain={[0, 100]} />
+                    <Tooltip content={({ active, payload }) => renderWellnessTooltip(active, payload as Array<{ payload?: WellnessSeriesPoint }> | undefined, "Sleep score", (v) => typeof v === "number" ? `${Math.round(v)}` : "n/d")} />
+                    <Line type="monotone" dataKey="sleepScore" stroke="#7c6fba" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#7c6fba", stroke: "#fff", strokeWidth: 2 }} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-            ) : (
-              <div className="athlete-portal-health-empty">Pulsa “Cargar lista + 1 detalle completo” para traer varias actividades y abrir una con todo el payload real.</div>
-            )}
-          </>
-        )}
+            ) : null}
+          </article>
+
+          {/* Stress trend */}
+          <article className="ap-trend-card">
+            <span className="ap-card-label">Estrés diario</span>
+            <strong>{typeof currentStress === "number" ? `${Math.round(currentStress)}` : "n/d"}</strong>
+            <span className="ap-chip orange">{stressLabel(currentStress)}</span>
+            <span className="ap-vital-avg">{stressAverage !== null ? `Media 7d ${stressAverage.toFixed(0)}` : ""}</span>
+            {wellnessSeries.some((p) => p.stress !== null) ? (
+              <div className="ap-spark">
+                <ResponsiveContainer width="100%" height={30}>
+                  <LineChart data={wellnessSeries} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                    <XAxis hide dataKey="shortLabel" />
+                    <YAxis hide domain={[0, 100]} />
+                    <Tooltip content={({ active, payload }) => renderWellnessTooltip(active, payload as Array<{ payload?: WellnessSeriesPoint }> | undefined, "Estrés diario", (v) => typeof v === "number" ? `${Math.round(v)}` : "n/d")} />
+                    <Line type="monotone" dataKey="stress" stroke="#e8935a" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#e8935a", stroke: "#fff", strokeWidth: 2 }} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : null}
+          </article>
+        </div>
       </section>
 
-      <section className="card athlete-portal-performance-panel">
-        <div className="athlete-portal-section-head">
-          <div>
-            <span className="eyebrow">Proyección</span>
-            <h2>Cómo se traduce hoy tu rendimiento</h2>
-            <p className="muted">Menos jerga, más lectura útil: referencias visibles para entender qué podrías sostener y hacia dónde te mueves.</p>
-          </div>
-        </div>
-        <div className="athlete-portal-performance-grid">
+      {/* ═══════════════════════════════════════════════════════════════════
+          BLOCK 5 — Tendencias Rendimiento
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section className="ap-block ap-performance">
+        <span className="ap-eyebrow">Tendencias de rendimiento</span>
+
+        {/* Featured prediction */}
+        <div className="ap-perf-featured">
           {featuredPrediction ? (
-            <article className={`athlete-portal-performance-card featured ${estimateTypeClassName(featuredPrediction.estimate_type)}`}>
-              <span className="athlete-portal-card-label">Referencia protagonista</span>
+            <article className={`ap-prediction-card featured ${estimateTypeClassName(featuredPrediction.estimate_type)}`}>
+              <span className="ap-card-label">Referencia protagonista</span>
               <strong>{formatEstimateValue(featuredPrediction)}</strong>
               <p>{featuredPrediction.estimate_type} · {disciplineLabel(featuredPrediction.discipline)}</p>
               <small>{shortText(featuredPrediction.inputs_summary, 140)}</small>
-              <div className="athlete-portal-performance-meta">
+              <div className="ap-prediction-meta">
                 <span>{featuredPrediction.reliability_label}</span>
                 <span>{Math.round(featuredPrediction.confidence * 100)}% confianza</span>
               </div>
             </article>
           ) : (
-            <article className="athlete-portal-performance-card featured empty">
-              <span className="athlete-portal-card-label">Referencia protagonista</span>
+            <article className="ap-prediction-card featured empty">
+              <span className="ap-card-label">Referencia protagonista</span>
               <strong>Sin predicción visible</strong>
               <p>Cuando entren más tests y más histórico, esta sección traducirá tu progreso a referencias mucho más claras.</p>
             </article>
           )}
-          <div className="athlete-portal-performance-stack">
+
+          {/* Secondary predictions */}
+          <div className="ap-perf-secondary">
             {secondaryPredictions.map((estimate) => (
-              <article key={`${estimate.discipline}-${estimate.estimate_type}`} className={`athlete-portal-performance-card ${estimateTypeClassName(estimate.estimate_type)}`}>
-                <span className="athlete-portal-card-label">{estimate.estimate_type}</span>
+              <article key={`${estimate.discipline}-${estimate.estimate_type}`} className={`ap-prediction-card ${estimateTypeClassName(estimate.estimate_type)}`}>
+                <span className="ap-card-label">{estimate.estimate_type}</span>
                 <strong>{formatEstimateValue(estimate)}</strong>
                 <p>{shortText(estimate.inputs_summary, 86)}</p>
                 <small>{estimate.reliability_label}</small>
               </article>
             ))}
-            <article className="athlete-portal-performance-note">
-              <span className="athlete-portal-card-label">Lectura rápida</span>
-              <strong>{portalStatus.label}</strong>
-              <p>{portalStatus.emphasis}</p>
-              <small>{featuredPrediction ? `Referencia activa en ${disciplineLabel(featuredPrediction.discipline)}.` : "Aún no hay una referencia protagonista visible."}</small>
-            </article>
           </div>
         </div>
+
+        {/* Discipline selector pills */}
+        <div className="ap-discipline-switch">
+          {disciplineSnapshots.map((snapshot) => (
+            <button
+              key={snapshot.discipline}
+              type="button"
+              className={`ap-discipline-pill ${selectedSnapshot?.discipline === snapshot.discipline ? "active" : ""}`}
+              onClick={() => setSelectedDiscipline(snapshot.discipline)}
+            >
+              {disciplineLabel(snapshot.discipline)}
+            </button>
+          ))}
+        </div>
+
+        {/* Discipline cards with trend charts and LT1/LT2 */}
+        <div className="ap-perf-disciplines">
+          {disciplineSnapshots.map((snapshot) => (
+            <article key={snapshot.discipline} className="ap-perf-discipline-card">
+              <div className="ap-perf-discipline-head">
+                <div>
+                  <strong>{disciplineLabel(snapshot.discipline)}</strong>
+                  <span>{formatDate(snapshot.view.latest_snapshot_date)}</span>
+                </div>
+                <span className="ap-chip" style={{ backgroundColor: `${disciplineAccent(snapshot.discipline)}16`, color: disciplineAccent(snapshot.discipline) }}>
+                  {snapshot.weeklySessions} / semana
+                </span>
+              </div>
+              <div className="ap-perf-discipline-kpis">
+                <div>
+                  <small>LT1</small>
+                  <strong>{renderThresholdValue(snapshot.lt1, snapshot.discipline)}</strong>
+                </div>
+                <div>
+                  <small>LT2</small>
+                  <strong>{renderThresholdValue(snapshot.lt2, snapshot.discipline)}</strong>
+                </div>
+                <div>
+                  <small>Referencia</small>
+                  <strong>{snapshot.estimate ? formatTarget(snapshot.estimate) : "n/d"}</strong>
+                </div>
+              </div>
+              <div className="ap-discipline-chart">
+                {snapshot.trend.length >= 2 ? (
+                  <ResponsiveContainer width="100%" height={150}>
+                    <LineChart data={snapshot.trend} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.08)" />
+                      <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={16} />
+                      <YAxis hide domain={["dataMin", "dataMax"]} reversed={snapshot.discipline !== "ciclismo"} />
+                      <Tooltip
+                        formatter={(value: number) => formatTrendValue(value, snapshot.discipline)}
+                        labelFormatter={(label) => `Fecha: ${label}`}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke={disciplineAccent(snapshot.discipline)}
+                        strokeWidth={3}
+                        dot={{ r: 4, strokeWidth: 0 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="ap-empty">Aún faltan más referencias para ver la evolución.</div>
+                )}
+              </div>
+              <p className="ap-perf-note">
+                {snapshot.estimate
+                  ? `${snapshot.estimate.estimate_type}: ${formatEstimateValue(snapshot.estimate)}`
+                  : "Estas referencias se actualizarán cuando entren más sesiones comparables."}
+              </p>
+            </article>
+          ))}
+        </div>
+
+        {/* Performance note */}
+        <article className="ap-perf-note">
+          <span className="ap-card-label">Lectura rápida</span>
+          <strong>{portalStatus.label}</strong>
+          <p>{portalStatus.emphasis}</p>
+          <small>{featuredPrediction ? `Referencia activa en ${disciplineLabel(featuredPrediction.discipline)}.` : "Aún no hay una referencia protagonista visible."}</small>
+        </article>
       </section>
 
-      <section className="card athlete-portal-lactate-panel">
-        <div className="athlete-portal-section-head">
+      {/* ═══════════════════════════════════════════════════════════════════
+          BLOCK 6 — Lactato
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section className="ap-block ap-lactate">
+        <div className="ap-lactate-head">
           <div>
-            <span className="eyebrow">Lactato</span>
+            <span className="ap-eyebrow">Lactato</span>
             <h2>Curva y umbrales en lenguaje claro</h2>
             <p className="muted">Puntos reales, ajuste visual y referencias LT1/LT2 para entender qué significa hoy tu test en la disciplina activa.</p>
           </div>
-          <div className="athlete-portal-discipline-switch">
+          <div className="ap-discipline-switch">
             {disciplineSnapshots.map((snapshot) => (
               <button
                 key={snapshot.discipline}
                 type="button"
-                className={`athlete-portal-discipline-pill ${selectedSnapshot?.discipline === snapshot.discipline ? "active" : ""}`}
+                className={`ap-discipline-pill ${selectedSnapshot?.discipline === snapshot.discipline ? "active" : ""}`}
                 onClick={() => setSelectedDiscipline(snapshot.discipline)}
               >
                 {disciplineLabel(snapshot.discipline)}
@@ -2219,13 +1833,13 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
           </div>
         </div>
 
-        <div className="athlete-portal-lactate-grid">
-          <div className="athlete-portal-chart-card">
-            <div className="athlete-portal-chart-head">
-              <span className="athlete-portal-card-label">Curva actual</span>
+        <div className="ap-lactate-grid">
+          <div className="ap-lactate-chart-wrap">
+            <div className="ap-chart-head">
+              <span className="ap-card-label">Curva actual</span>
               <strong>{disciplineLabel(selectedSnapshot?.discipline || focusDiscipline)}</strong>
             </div>
-            <div className="athlete-portal-lactate-chart">
+            <div className="ap-lactate-chart">
               {lactateSeries.length >= 2 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <ComposedChart data={lactateSeries} margin={{ top: 12, right: 12, left: 0, bottom: 4 }}>
@@ -2288,10 +1902,10 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
                   </ComposedChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="athlete-portal-chart-empty">Aún faltan más mediciones comparables para dibujar la curva de lactato y sus referencias.</div>
+                <div className="ap-empty">Aún faltan más mediciones comparables para dibujar la curva de lactato y sus referencias.</div>
               )}
             </div>
-            <div className="athlete-portal-lactate-legend">
+            <div className="ap-lactate-legend">
               <span><i className="lactate" />Lactato real</span>
               <span><i className="adjusted" />Ajuste visual</span>
               <span><i className="lt1" />LT1</span>
@@ -2299,24 +1913,24 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
             </div>
           </div>
 
-          <div className="athlete-portal-lactate-insights">
-            <article className="athlete-portal-insight-card lt1">
-              <span className="athlete-portal-card-label">LT1 actual</span>
+          <div className="ap-lactate-insights">
+            <article className="ap-lactate-insight lt1">
+              <span className="ap-card-label">LT1 actual</span>
               <strong>{renderThresholdValue(selectedSnapshot?.lt1, focusDiscipline)}</strong>
               <p>{latestAnchor ? `Ancla de lactato: ${formatLactateValue(latestAnchor.value)}` : "Sin ancla reciente visible."}</p>
             </article>
-            <article className="athlete-portal-insight-card lt2">
-              <span className="athlete-portal-card-label">LT2 actual</span>
+            <article className="ap-lactate-insight lt2">
+              <span className="ap-card-label">LT2 actual</span>
               <strong>{renderThresholdValue(selectedSnapshot?.lt2, focusDiscipline)}</strong>
               <p>{selectedSnapshot?.lt2?.lactate ? `Lactato asociado: ${formatLactateValue(selectedSnapshot.lt2.lactate)}` : "Sin lactato LT2 visible."}</p>
             </article>
-            <article className="athlete-portal-insight-card peak">
-              <span className="athlete-portal-card-label">VLaMax proxy</span>
+            <article className="ap-lactate-insight peak">
+              <span className="ap-card-label">VLaMax proxy</span>
               <strong>{vlamaxEstimate ? formatEstimateValue(vlamaxEstimate) : latestPeak ? formatLactateValue(latestPeak.value) : "n/d"}</strong>
               <p>{vlamaxEstimate ? vlamaxEstimate.inputs_summary : "Mientras no haya estimación longitudinal, usamos el pico de lactato del test como proxy visible."}</p>
             </article>
-            <article className="athlete-portal-insight-card narrative">
-              <span className="athlete-portal-card-label">Qué significa</span>
+            <article className="ap-lactate-insight narrative">
+              <span className="ap-card-label">Qué significa</span>
               <strong>{latestInterpretation[0] ?? "Tu portal irá explicando estas señales con más claridad cuando haya más histórico."}</strong>
               <p>{latestInterpretation[1] ?? "La idea es que entiendas tu evolución sin tener que descifrar una curva de laboratorio."}</p>
             </article>
@@ -2324,152 +1938,283 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
         </div>
       </section>
 
-      <section className="athlete-portal-story-grid">
-        <article className="card athlete-portal-week-card">
-          <div className="athlete-portal-section-head compact">
-            <div>
-              <span className="eyebrow">Actividad reciente</span>
-              <h2>Lo último que ha entrado en tu dashboard</h2>
-            </div>
-          </div>
-          <div className="athlete-portal-balance-grid">
-            {disciplineSnapshots.map((snapshot) => (
-              <article key={snapshot.discipline} className="athlete-portal-balance-card">
-                <div className="athlete-portal-balance-head">
-                  <span className="athlete-portal-discipline-dot" style={{ backgroundColor: disciplineAccent(snapshot.discipline) }} />
-                  <strong>{disciplineLabel(snapshot.discipline)}</strong>
+      {/* ═══════════════════════════════════════════════════════════════════
+          BLOCK 7 — Avanzado (collapsible)
+          ═══════════════════════════════════════════════════════════════════ */}
+      <details className="ap-advanced">
+        <summary className="ap-advanced-toggle">Avanzado: Garmin, actividades y parámetros crudos</summary>
+
+          <div className="ap-advanced-content">
+            {/* Garmin login form */}
+            <div className="ap-garmin-login">
+              <div className="ap-garmin-actions">
+                <button type="button" className="ghost-button" onClick={() => setGarminLoginOpen((current) => !current)}>
+                  {garminLoginOpen ? "Cerrar login" : analysis.athlete.garmin_connected ? "Cambiar login Garmin" : "Login Garmin"}
+                </button>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => void handleLoadGarminRaw()}
+                  disabled={garminPreviewLoading || !analysis.athlete.garmin_connected}
+                >
+                  {garminPreviewLoading ? "Cargando Garmin..." : "Cargar lista + 1 detalle completo"}
+                </button>
+              </div>
+
+              {garminLoginOpen ? (
+                <div className="ap-garmin-login-card">
+                  <label>
+                    <span className="ap-card-label">Email Garmin</span>
+                    <input type="email" value={garminEmail} onChange={(event) => setGarminEmail(event.target.value)} placeholder="usuario@correo.com" />
+                  </label>
+                  <label>
+                    <span className="ap-card-label">Password</span>
+                    <input type="password" value={garminPassword} onChange={(event) => setGarminPassword(event.target.value)} placeholder="Password Garmin" />
+                  </label>
+                  <label>
+                    <span className="ap-card-label">MFA</span>
+                    <input type="text" value={garminMfaCode} onChange={(event) => setGarminMfaCode(event.target.value)} placeholder="Opcional si Garmin lo pide" />
+                  </label>
+                  <div className="ap-garmin-login-actions">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={() => void handleGarminConnect()}
+                      disabled={garminConnectLoading || !garminEmail.trim() || !garminPassword.trim()}
+                    >
+                      {garminConnectLoading ? "Conectando..." : "Hacer login Garmin"}
+                    </button>
+                  </div>
+                  {garminConnectMessage ? <p>{garminConnectMessage}</p> : null}
+                  {garminConnectError ? <p className="error">{garminConnectError}</p> : null}
                 </div>
-                <p>{snapshot.weeklySessions} sesiones en 7 días</p>
-                <small>{snapshot.latestSession ? `Última: ${formatDate(snapshot.latestSession.performed_at)}` : "Sin sesiones recientes visibles"}</small>
-              </article>
-            ))}
-          </div>
-          <div className="athlete-portal-recent-feed">
-            {recentFeed.length ? (
-              recentFeed.map((session) => (
-                <article key={session.id} className="athlete-portal-feed-item">
-                  <span className="athlete-portal-card-label">{disciplineLabel(session.discipline)}</span>
-                  <strong>{session.session_type}</strong>
-                  <p>{session.goal}</p>
-                  <small>{formatDate(session.performed_at)}</small>
-                </article>
-              ))
+              ) : null}
+            </div>
+
+            {/* Garmin activity list + detail */}
+            {!analysis.athlete.garmin_connected ? (
+              <div className="ap-empty">Haz login con Garmin para inspeccionar actividad y salud desde esta capa paralela.</div>
             ) : (
-              <div className="athlete-portal-chart-empty">Cuando entren más actividades, aparecerán aquí ordenadas por disciplina.</div>
+              <>
+                {garminPreviewError ? <div className="ap-empty">{garminPreviewError}</div> : null}
+                {garminPreview?.activities.length ? (
+                  <div className="ap-garmin-grid">
+                    <div className="ap-garmin-list">
+                      {garminPreview.activities.map((activity) => (
+                        <button
+                          key={activity.provider_activity_id}
+                          type="button"
+                          className={`ap-garmin-activity-btn ${selectedGarminActivity?.provider_activity_id === activity.provider_activity_id ? "active" : ""}`}
+                          onClick={() => void handleOpenGarminActivity(activity.provider_activity_id)}
+                        >
+                          <div className="ap-garmin-activity-head">
+                            <span className={`strava-sport-pill ${sportToneClass(activity.sport_type)}`}>{sportLabel(activity.sport_type)}</span>
+                            <small>{formatDateTime(activity.started_at)}</small>
+                          </div>
+                          <strong>{activity.name}</strong>
+                          <p>{formatDistanceKm(activity.distance_m)} · {formatSecondsToClock(activity.moving_time_seconds)}</p>
+                          <small>
+                            {activity.average_heartrate ? `${Math.round(activity.average_heartrate)} bpm` : "FC n/d"}
+                            {activity.average_watts ? ` · ${Math.round(activity.average_watts)} W` : ""}
+                          </small>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="ap-garmin-detail">
+                      {selectedGarminActivity ? (
+                        <>
+                          <div className="ap-garmin-hero">
+                            <div>
+                              <span className={`strava-sport-pill ${sportToneClass(selectedGarminActivity.sport_type)}`}>{sportLabel(selectedGarminActivity.sport_type)}</span>
+                              <h3>{selectedGarminActivity.name}</h3>
+                              <p>{formatDateTime(selectedGarminActivity.started_at)}</p>
+                            </div>
+                            <div className="ap-garmin-kpis">
+                              <span><small>Distancia</small><strong>{formatDistanceKm(selectedGarminActivity.distance_m)}</strong></span>
+                              <span><small>Tiempo</small><strong>{formatSecondsToClock(selectedGarminActivity.moving_time_seconds)}</strong></span>
+                              <span><small>FC media</small><strong>{selectedGarminActivity.average_heartrate ? `${Math.round(selectedGarminActivity.average_heartrate)} bpm` : "n/d"}</strong></span>
+                              <span><small>Potencia</small><strong>{selectedGarminActivity.average_watts ? `${Math.round(selectedGarminActivity.average_watts)} W` : "n/d"}</strong></span>
+                            </div>
+                          </div>
+
+                          {garminActivityLoading ? <div className="ap-empty">Cargando detalle completo Garmin...</div> : null}
+                          {garminActivityError ? <div className="ap-empty">{garminActivityError}</div> : null}
+
+                          {/* Raw parameters */}
+                          <div className="ap-garmin-params">
+                            {selectedGarminFields.map((field) => (
+                              <article key={field.key} className="ap-garmin-param">
+                                <span className="ap-card-label">{field.label}</span>
+                                <strong>{field.value}</strong>
+                              </article>
+                            ))}
+                          </div>
+
+                          {/* JSON */}
+                          <div className="ap-garmin-json">
+                            <div className="ap-chart-head">
+                              <span className="ap-card-label">JSON crudo</span>
+                              <strong>Raw Garmin payload</strong>
+                            </div>
+                            <pre>{selectedGarminJson ?? "Sin raw_detail visible en esta actividad."}</pre>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="ap-empty">Carga una actividad Garmin para ver todos sus parámetros.</div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="ap-empty">Pulsa "Cargar lista + 1 detalle completo" para traer varias actividades y abrir una con todo el payload real.</div>
+                )}
+              </>
             )}
+
+            {/* Extended health detail */}
+            {hasExtendedHealthDetail ? (
+              <div className="ap-extended-health">
+                {athleteHealthDays.length ? (
+                  <div className="ap-health-days-grid">
+                    {athleteHealthDays.map((day, index) => (
+                      <article key={day.date} className="ap-health-day-card">
+                        <strong>
+                          {new Date(day.date).toLocaleDateString("es-ES", { weekday: "short", day: "2-digit", month: "short" })}
+                          {index === 0 ? " (hoy)" : ""}
+                        </strong>
+                        <div className="ap-health-day-metrics">
+                          <span>Sueño {typeof day.sleep_score === "number" ? day.sleep_score : "n/d"}</span>
+                          <span>HRV {formatNumericMetric(day.hrv_last_night_avg)}</span>
+                          <span>Reposo {formatNumericMetric(day.resting_hr)}</span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+                {athletePerformanceMetrics.length ? (
+                  <div className="ap-performance-metrics-grid">
+                    {athletePerformanceMetrics.map((metric) => (
+                      <article key={metric.key} className="ap-perf-metric-card">
+                        <span className="ap-card-label">{metric.label}</span>
+                        <strong>{metric.value}</strong>
+                        <p className="muted">{metric.detail ?? ""}</p>
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+      </details>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          BLOCK 8 — Roadmap
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section className="ap-block ap-roadmap">
+        <span className="ap-eyebrow">Roadmap</span>
+
+        {/* Active block card */}
+        <article className="ap-roadmap-card block-card">
+          <span className="ap-card-label">Bloque activo</span>
+          <strong>{activeBlock?.block_objective ?? "Base abierta"}</strong>
+          <p>{activeBlock?.block_intent ?? "Todavía no hay mensaje visible del bloque."}</p>
+          <p>{activeBlock?.evaluation?.recommendation ?? "Aquí verás una traducción clara de lo que está buscando tu entrenador en este bloque."}</p>
+          <div className="ap-roadmap-meta">
+            <span>{activeBlock?.phase ? `Fase ${activeBlock.phase}` : "Fase abierta"}</span>
+            <span>{confidenceLabel(activeBlock?.evaluation?.confidence)}</span>
           </div>
         </article>
 
-        <article className="card athlete-portal-guidance-card">
-          <div className="athlete-portal-section-head compact">
-            <div>
-              <span className="eyebrow">Roadmap</span>
-              <h2>Lo que no deberías perder de vista</h2>
+        {/* Next target card */}
+        <article className="ap-roadmap-card target-card">
+          <span className="ap-card-label">Próximo objetivo</span>
+          <strong>{nextTarget ? nextTarget.objective : "Sin objetivo definido"}</strong>
+          <p>
+            {nextTarget
+              ? `${disciplineLabel(nextTarget.discipline)} · ${relativeCountdownLabel(nextTargetCountdown)}`
+              : "Cuando tu entrenador marque un objetivo, lo verás aquí."}
+          </p>
+          {nextTarget?.discipline === "triatlón" ? (
+            <div className="ap-target-splits">
+              {nextTarget.target_swim_pace_label ? (
+                <span>
+                  <strong>Natación</strong>
+                  {nextTarget.target_swim_pace_label}
+                </span>
+              ) : null}
+              {typeof nextTarget.target_cycling_power_watts === "number" ? (
+                <span>
+                  <strong>Ciclismo</strong>
+                  {formatCyclingTarget(nextTarget.target_cycling_power_watts, analysis.athlete.weight)}
+                </span>
+              ) : null}
+              {nextTarget.target_running_pace_label ? (
+                <span>
+                  <strong>Carrera</strong>
+                  {nextTarget.target_running_pace_label}
+                </span>
+              ) : null}
             </div>
-          </div>
-          <div className="athlete-portal-guidance-stack">
-            <article className="athlete-portal-guidance-item">
-              <span className="athlete-portal-card-label">Bloque activo</span>
-              <strong>{activeBlock?.block_intent ?? "Todavía no hay mensaje visible del bloque."}</strong>
-              <p>{activeBlock?.evaluation?.recommendation ?? "Aquí verás una traducción clara de lo que está buscando tu entrenador en este bloque."}</p>
-            </article>
-            {coachSignals.length ? coachSignals.map((signal) => (
-              <article key={signal} className="athlete-portal-guidance-item">
-                <span className="athlete-portal-card-label">Lectura del sistema</span>
+          ) : nextTarget?.target_pace_label ? (
+            <div className="ap-target-splits">
+              <span>
+                <strong>Referencia</strong>
+                {nextTarget.target_pace_label}
+              </span>
+            </div>
+          ) : typeof nextTarget?.target_power_watts === "number" ? (
+            <div className="ap-target-splits">
+              <span>
+                <strong>Referencia</strong>
+                {formatCyclingTarget(nextTarget.target_power_watts, analysis.athlete.weight)}
+              </span>
+            </div>
+          ) : null}
+        </article>
+
+        {/* Coach signals */}
+        {coachSignals.length ? (
+          <div className="ap-coach-signals">
+            <span className="ap-card-label">Lecturas del sistema</span>
+            {coachSignals.map((signal) => (
+              <article key={signal} className="ap-signal-item">
+                <span />
                 <strong>{signal}</strong>
               </article>
-            )) : null}
-            {upcomingTargets.map((target) => (
-              <article key={target.id} className="athlete-portal-guidance-item">
-                <span className="athlete-portal-card-label">Objetivo</span>
-                <strong>{buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective })}</strong>
-                <p>{`${disciplineLabel(target.discipline)} · ${formatDate(target.target_date)}`}</p>
-              </article>
             ))}
           </div>
+        ) : null}
+
+        {/* Sync card */}
+        <article className="ap-roadmap-card sync-card">
+          <span className="ap-card-label">Sincronización</span>
+          <strong>{syncHeadline}</strong>
+          <p>{syncSummary}</p>
+          <div className="ap-roadmap-sync-providers">
+            {syncProviders.map((provider) => (
+              <span key={provider.label} className={`ap-roadmap-sync-provider ${provider.connected ? "connected" : ""}`}>
+                {provider.label} · {provider.connected ? "activa" : "pendiente"}
+              </span>
+            ))}
+          </div>
+          <div className="ap-sync-actions">
+            <button className="ghost-button" type="button" onClick={handleStravaConnect} disabled={stravaRedirecting}>
+              {stravaRedirecting ? "Redirigiendo..." : analysis.athlete.strava_connected ? "Reconectar Strava" : "Conectar Strava"}
+            </button>
+            <button className="ghost-button" type="button" onClick={() => setGarminLoginOpen(true)}>
+              {analysis.athlete.garmin_connected ? "Reconectar Garmin" : "Conectar Garmin"}
+            </button>
+          </div>
+          {stravaFeedback ? <small className="ap-sync-note">{stravaFeedback}</small> : null}
         </article>
-      </section>
 
-      <section className="card athlete-portal-section athlete-portal-discipline-section">
-        <div className="athlete-portal-section-head">
-          <div>
-            <span className="eyebrow">Vista por disciplina</span>
-            <h2>Referencias y progreso</h2>
-          </div>
-        </div>
-        <div className="athlete-discipline-grid athlete-discipline-grid-portal">
-          {disciplineSnapshots.map((snapshot) => (
-            <article key={snapshot.discipline} className="athlete-discipline-card athlete-discipline-card-portal">
-              <div className="athlete-discipline-head">
-                <div>
-                  <strong>{disciplineLabel(snapshot.discipline)}</strong>
-                  <span>{formatDate(snapshot.view.latest_snapshot_date)}</span>
-                </div>
-                <span className="athlete-portal-discipline-badge" style={{ backgroundColor: `${disciplineAccent(snapshot.discipline)}16`, color: disciplineAccent(snapshot.discipline) }}>
-                  {snapshot.weeklySessions} / semana
-                </span>
-              </div>
-              <div className="athlete-discipline-kpis">
-                <div>
-                  <small>LT1</small>
-                  <strong>{renderThresholdValue(snapshot.lt1, snapshot.discipline)}</strong>
-                </div>
-                <div>
-                  <small>LT2</small>
-                  <strong>{renderThresholdValue(snapshot.lt2, snapshot.discipline)}</strong>
-                </div>
-                <div>
-                  <small>Referencia</small>
-                  <strong>{snapshot.estimate ? formatTarget(snapshot.estimate) : "n/d"}</strong>
-                </div>
-              </div>
-              <div className="athlete-discipline-chart">
-                {snapshot.trend.length >= 2 ? (
-                  <ResponsiveContainer width="100%" height={150}>
-                    <LineChart data={snapshot.trend} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.08)" />
-                      <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={16} />
-                      <YAxis hide domain={["dataMin", "dataMax"]} reversed={snapshot.discipline !== "ciclismo"} />
-                      <Tooltip
-                        formatter={(value: number) => formatTrendValue(value, snapshot.discipline)}
-                        labelFormatter={(label) => `Fecha: ${label}`}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        stroke={disciplineAccent(snapshot.discipline)}
-                        strokeWidth={3}
-                        dot={{ r: 4, strokeWidth: 0 }}
-                        activeDot={{ r: 6 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="athlete-discipline-chart-empty">Aún faltan más referencias para ver la evolución.</div>
-                )}
-              </div>
-              <p className="athlete-discipline-footnote">
-                {snapshot.estimate
-                  ? `${snapshot.estimate.estimate_type}: ${formatEstimateValue(snapshot.estimate)}`
-                  : "Estas referencias se actualizarán cuando entren más sesiones comparables."}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="card athlete-portal-section athlete-portal-goals-section">
-        <div className="athlete-portal-section-head">
-          <div>
-            <span className="eyebrow">Objetivos</span>
-            <h2>Hoja de ruta</h2>
-          </div>
-        </div>
-        <div className="athlete-target-grid athlete-target-grid-portal">
-          {upcomingTargets.length ? (
-            upcomingTargets.map((target) => (
-              <article key={target.id} className="athlete-target-card athlete-target-card-portal">
-                <span className="athlete-target-date">{formatDate(target.target_date)}</span>
+        {/* Upcoming targets list */}
+        {upcomingTargets.length ? (
+          <div className="ap-roadmap-targets-list">
+            <span className="ap-card-label">Objetivos</span>
+            {upcomingTargets.map((target) => (
+              <article key={target.id} className="ap-roadmap-target">
+                <span className="ap-target-date">{formatDate(target.target_date)}</span>
                 <strong>{buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective })}</strong>
                 <p>{disciplineLabel(target.discipline)}</p>
                 {target.distance_label ? <p>{target.distance_label}</p> : null}
@@ -2478,11 +2223,11 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
                 {target.target_swim_pace_label ? <p>Natación: {target.target_swim_pace_label}</p> : null}
                 {typeof target.target_cycling_power_watts === "number" ? <p>Ciclismo: {Math.round(target.target_cycling_power_watts)} W</p> : null}
               </article>
-            ))
-          ) : (
-            <p className="muted">Todavía no hay objetivos visibles para ti.</p>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="muted">Todavía no hay objetivos visibles para ti.</p>
+        )}
       </section>
     </div>
   );
