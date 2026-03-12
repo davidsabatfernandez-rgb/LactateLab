@@ -200,12 +200,21 @@ class PlanningPlannedSessionRead(BaseModel):
     progression_note: Optional[str] = None
     expected_signal: Optional[str] = None
     coach_note: Optional[str] = None
+    dose_step_override: Optional[int] = None
+    swapped_template_id: Optional[str] = None
     confidence: float
     status: str
     bla_check: bool = False
     payload: dict = {}
 
     model_config = {"from_attributes": True}
+
+
+class CoachSessionEditRequest(BaseModel):
+    """Edición manual del entrenador sobre una sesión planificada."""
+    coach_note: Optional[str] = None
+    dose_step_override: Optional[int] = None   # None = usar el calculado por el motor
+    swapped_template_id: Optional[str] = None  # template_id si el entrenador swapea
 
 
 class BlaCheckUpdateRequest(BaseModel):

@@ -27,6 +27,10 @@ class PlannedSession(Base):
     progression_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     expected_signal: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     coach_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    dose_step_override: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    """Peldaño manual del entrenador. Si None, usa el calculado por el motor."""
+    swapped_template_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    """Template_id alternativo elegido por el entrenador al swapear la sesión."""
     confidence: Mapped[float] = mapped_column(Float)
     status: Mapped[str] = mapped_column(String(30), index=True, default="planned")
     bla_check: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

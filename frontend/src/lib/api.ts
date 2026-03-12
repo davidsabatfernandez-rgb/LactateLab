@@ -378,6 +378,16 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ bla_check: blaCheck }),
     }),
+  coachEditSession: (
+    token: string,
+    sessionId: number,
+    edit: { coach_note?: string; dose_step_override?: number | null; swapped_template_id?: string | null }
+  ) =>
+    request(`/planning/planned-sessions/${sessionId}/coach-edit`, {
+      token,
+      method: "PATCH",
+      body: JSON.stringify(edit),
+    }),
   sessions: (token: string) => request("/sessions", { token }),
   createSession: (token: string, payload: unknown) =>
     request("/sessions", { token, method: "POST", body: JSON.stringify(payload) }),

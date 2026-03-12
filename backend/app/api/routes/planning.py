@@ -7,6 +7,7 @@ from app.models.user import User
 from app.models.planned_session import PlannedSession
 from app.schemas.planning import (
     BlaCheckUpdateRequest,
+    CoachSessionEditRequest,
     MesocycleRecommendationRead,
     PlanningDetectedMesocycleRead,
     PlanningMesocycleDraftRead,
@@ -109,6 +110,36 @@ def toggle_bla_check(
     if session is None:
         raise HTTPException(status_code=404, detail="Sesión no encontrada.")
     session.bla_check = body.bla_check
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+@router.patch(
+    "/planned-sessions/{session_id}/coach-edit",
+    response_model=PlanningPlannedSessionRead,
+)
+def coach_edit_planned_session(
+    session_id: int,
+    body: CoachSessionEditRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Permite al entrenador ajustar nota, peldaño de dosis o swap de sesión.
+
+    - coach_note: texto libre del entrenador sobre la sesión.
+    - dose_step_override: peldaño manual (None = usar el calculado por el motor).
+    - swapped_template_id: template_id alternativo si el entrenador cambia la sesión.
+    """
+    session = db.get(PlannedSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Sesión no encontrada.")
+    if body.coach_note is not None:
+        session.coach_note = body.coach_note
+    if body.dose_step_override is not None:
+        session.dose_step_override = body.dose_step_override
+    if body.swapped_template_id is not None:
+        session.swapped_template_id = body.swapped_template_id
     db.commit()
     db.refresh(session)
     return session

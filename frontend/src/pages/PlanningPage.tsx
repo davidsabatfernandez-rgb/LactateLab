@@ -1021,6 +1021,9 @@ export function PlanningPage({ token }: PlanningPageProps) {
   const [rosterAnalyses, setRosterAnalyses] = useState<Record<number, AthleteAnalysis | null>>({});
   const [rosterAnalysesLoading, setRosterAnalysesLoading] = useState(false);
   const [blaCheckLoading, setBlaCheckLoading] = useState<number | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
+  const [editNote, setEditNote] = useState("");
+  const [editNoteLoading, setEditNoteLoading] = useState(false);
   const [disciplineOverviews, setDisciplineOverviews] = useState<Record<string, PlanningOverview>>({});
   const [loading, setLoading] = useState(Boolean(athleteId));
   const [error, setError] = useState<string | null>(null);
@@ -1088,6 +1091,25 @@ export function PlanningPage({ token }: PlanningPageProps) {
       }
     },
     [athleteId, token, selectedDiscipline],
+  );
+
+  const handleSaveCoachNote = useCallback(
+    async (sessionId: number) => {
+      if (!athleteId) return;
+      setEditNoteLoading(true);
+      try {
+        await api.coachEditSession(token, sessionId, { coach_note: editNote });
+        const updated = await api.planningOverview(token, athleteId, selectedDiscipline);
+        setOverview(updated as PlanningOverview);
+        setEditingSessionId(null);
+        setEditNote("");
+      } catch {
+        // error silencioso
+      } finally {
+        setEditNoteLoading(false);
+      }
+    },
+    [athleteId, token, selectedDiscipline, editNote],
   );
 
   const updatePlanningRoute = useCallback(
@@ -3001,16 +3023,67 @@ export function PlanningPage({ token }: PlanningPageProps) {
                         {selectedPrimarySessions.length ? selectedPrimarySessions.map((session) => (
                           <article
                             key={session.id}
-                            className={`planning-day-card clickable${session.blaCheck ? " bla-active" : ""}`}
-                            onClick={() => openCalendarSessionDetail(session)}
+                            className={`planning-day-card${session.blaCheck ? " bla-active" : ""}`}
                           >
-                            <div className="planning-day-card-top">
+                            <div className="planning-day-card-top" style={{cursor:"pointer"}} onClick={() => openCalendarSessionDetail(session)}>
                               <span className="planning-kicker">{session.sessionType}</span>
                               <span className={`planning-session-confidence ${session.confidence}`}>{session.confidence}</span>
                             </div>
-                            <strong>{session.title}</strong>
-                            <p>{session.objective}</p>
+                            <strong style={{cursor:"pointer"}} onClick={() => openCalendarSessionDetail(session)}>{session.title}</strong>
+                            <p style={{cursor:"pointer"}} onClick={() => openCalendarSessionDetail(session)}>{session.objective}</p>
                             <small className="planning-dose">{session.dose}</small>
+                            {/* Nota del entrenador si existe */}
+                            {session.rawId && overview?.planned_sessions?.find(s => s.id === session.rawId)?.coach_note && (
+                              <p className="coach-note">
+                                📝 {overview.planned_sessions.find(s => s.id === session.rawId)?.coach_note}
+                              </p>
+                            )}
+                            {/* Botón para añadir/editar nota */}
+                            {session.rawId && (
+                              <div className="session-edit-actions">
+                                <button
+                                  type="button"
+                                  className="session-edit-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const existing = overview?.planned_sessions?.find(s => s.id === session.rawId)?.coach_note ?? "";
+                                    setEditNote(existing);
+                                    setEditingSessionId(editingSessionId === session.rawId ? null : session.rawId!);
+                                  }}
+                                >
+                                  ✎ Nota
+                                </button>
+                              </div>
+                            )}
+                            {/* Panel de edición inline */}
+                            {editingSessionId === session.rawId && (
+                              <div className="session-edit-panel" onClick={e => e.stopPropagation()}>
+                                <textarea
+                                  placeholder="Nota del entrenador..."
+                                  value={editNote}
+                                  onChange={e => setEditNote(e.target.value)}
+                                  rows={2}
+                                  autoFocus
+                                />
+                                <div className="edit-actions">
+                                  <button
+                                    type="button"
+                                    className="primary-button"
+                                    disabled={editNoteLoading}
+                                    onClick={() => handleSaveCoachNote(session.rawId!)}
+                                  >
+                                    {editNoteLoading ? "Guardando..." : "Guardar"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="ghost-button"
+                                    onClick={() => { setEditingSessionId(null); setEditNote(""); }}
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </article>
                         )) : (
                           <article className="planning-day-card empty">
