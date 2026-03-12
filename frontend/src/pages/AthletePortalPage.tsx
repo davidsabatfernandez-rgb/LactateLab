@@ -561,23 +561,6 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
     hasTarget: Boolean(nextTarget),
   });
   const latestVisibleSession = selectedSnapshot?.latestSession ?? recentFeed[0];
-  const heroHighlights = [
-    {
-      label: "Ahora importa",
-      value: activeBlock?.block_objective ?? disciplineLabel(focusDiscipline),
-      detail: activeBlock?.block_intent ? shortText(activeBlock.block_intent, 84) : "Bloque abierto sin intención operativa visible.",
-    },
-    {
-      label: "Última sesión",
-      value: latestVisibleSession?.session_type ?? "Sin sesión reciente",
-      detail: latestVisibleSession ? `${disciplineLabel(latestVisibleSession.discipline)} · ${formatDate(latestVisibleSession.performed_at)}` : "Todavía no hay actividad reciente vinculada.",
-    },
-    {
-      label: "Referencia útil",
-      value: focusEstimate ? formatTarget(focusEstimate) : renderThresholdValue(selectedSnapshot?.lt2, focusDiscipline),
-      detail: focusEstimate ? `${focusEstimate.estimate_type} · ${disciplineLabel(focusDiscipline)}` : "Referencia LT2 visible en tu disciplina activa.",
-    },
-  ];
   const weeklyBreakdown = disciplineSnapshots
     .map((snapshot) => ({
       discipline: snapshot.discipline,
@@ -586,6 +569,58 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
     }))
     .filter((item) => item.value > 0);
   const weeklyMaxSessions = Math.max(1, ...weeklyBreakdown.map((item) => item.value));
+  const selectedDisciplineLabel = disciplineLabel(selectedSnapshot?.discipline || focusDiscipline);
+  const referenceValue = focusEstimate ? formatTarget(focusEstimate) : renderThresholdValue(selectedSnapshot?.lt2, focusDiscipline);
+  const referenceDetail = focusEstimate ? `${focusEstimate.estimate_type} · ${disciplineLabel(focusDiscipline)}` : "Referencia LT2 visible en tu disciplina activa.";
+  const syncHeadline =
+    analysis?.athlete.strava_connected || analysis?.athlete.garmin_connected ? "Actividad conectada" : "Conecta tu actividad";
+  const syncSummary =
+    analysis?.athlete.strava_connected || analysis?.athlete.garmin_connected
+      ? "Ya hay una fuente real lista para cruzar sesiones y actividad visible."
+      : "Autoriza Strava para que el dashboard conecte lo planificado con lo que realmente haces.";
+  const syncProviders = [
+    { label: "Strava", connected: Boolean(analysis?.athlete.strava_connected) },
+    { label: "Garmin", connected: Boolean(analysis?.athlete.garmin_connected) },
+  ];
+  const dashboardMetrics = [
+    {
+      label: "Próxima cita",
+      value: nextTarget ? relativeCountdownLabel(nextTargetCountdown) : "Sin fecha",
+      detail: nextTarget ? buildTargetObjective({ category: nextTarget.distance_category, distanceLabel: nextTarget.distance_label, fallback: nextTarget.objective }) : "Todavía no hay un objetivo fechado visible.",
+    },
+    {
+      label: "Disciplina foco",
+      value: selectedDisciplineLabel,
+      detail: activeBlock?.phase ? `Fase ${activeBlock.phase}` : "Bloque abierto",
+    },
+    {
+      label: "Referencia",
+      value: referenceValue,
+      detail: referenceDetail,
+    },
+    {
+      label: "Ritmo semanal",
+      value: `${weeklyTotal} sesiones`,
+      detail: `${formatSecondsToClock(visibleVolume.trainingHours * 3600)} visibles en los últimos días`,
+    },
+  ];
+  const focusChecklist = [
+    {
+      label: "Bloque activo",
+      value: activeBlock?.block_objective ?? "Base abierta",
+      detail: activeBlock?.block_intent ? shortText(activeBlock.block_intent, 110) : "Todavía no hay una intención operativa visible para este bloque.",
+    },
+    {
+      label: "Qué mirar hoy",
+      value: portalStatus.emphasis,
+      detail: `Lectura actual: ${confidenceLabel(activeBlock?.evaluation?.confidence)}.`,
+    },
+    {
+      label: "Última sesión",
+      value: latestVisibleSession?.session_type ?? "Sin sesión reciente",
+      detail: latestVisibleSession ? `${disciplineLabel(latestVisibleSession.discipline)} · ${formatDate(latestVisibleSession.performed_at)}` : "Todavía no hay actividad reciente vinculada a este portal.",
+    },
+  ];
 
   if (loading) {
     return <div className="loading">Preparando tu panel...</div>;
@@ -625,7 +660,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
               {nextTarget ? `${relativeCountdownLabel(nextTargetCountdown)} para ${nextTarget.objective}` : "Sin objetivo fechado visible"}
             </span>
           </div>
-          <span className="eyebrow">Portal atleta</span>
+          <span className="eyebrow">Athlete dashboard</span>
           <h1>{analysis.athlete.name}</h1>
           <p className="athlete-portal-stage-headline">{portalStatus.headline}</p>
           <p className="athlete-portal-stage-summary">{portalStatus.summary}</p>
@@ -634,9 +669,9 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
             {analysis.athlete.goal_category ? <span className="athlete-goal-chip subtle">{analysis.athlete.goal_category}</span> : null}
             {activeBlock?.block_objective ? <span className="athlete-goal-chip subtle">{activeBlock.block_objective}</span> : null}
           </div>
-          <div className="athlete-portal-stage-highlights">
-            {heroHighlights.map((item) => (
-              <article key={item.label} className="athlete-portal-stage-highlight">
+          <div className="athlete-portal-dashboard-strip">
+            {dashboardMetrics.map((item) => (
+              <article key={item.label} className="athlete-portal-dashboard-metric">
                 <span className="athlete-portal-card-label">{item.label}</span>
                 <strong>{item.value}</strong>
                 <p>{item.detail}</p>
@@ -648,10 +683,40 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
             <strong>{portalStatus.emphasis}</strong>
           </div>
           {stravaFeedback ? <small className="athlete-portal-sync-note">{stravaFeedback}</small> : null}
-          <small className="athlete-portal-sync-note">Cuando conectemos Strava, aquí entrará el plan vs hecho y la actividad real, pero sin ocupar la portada.</small>
+          <small className="athlete-portal-sync-note">Esta portada prioriza lo importante hoy: estado del bloque, referencia útil, actividad reciente y siguiente objetivo.</small>
         </div>
 
         <div className="athlete-portal-hero-aside athlete-portal-stage-aside">
+          <article className="athlete-portal-hero-card athlete-portal-spotlight-card focus">
+            <span className="athlete-portal-card-label">Tablero de hoy</span>
+            <strong>{selectedDisciplineLabel}</strong>
+            <div className="athlete-portal-focus-list">
+              {focusChecklist.map((item) => (
+                <div key={item.label} className="athlete-portal-focus-list-item">
+                  <span className="athlete-portal-card-label">{item.label}</span>
+                  <strong>{item.value}</strong>
+                  <p>{item.detail}</p>
+                </div>
+              ))}
+            </div>
+            <div className="athlete-portal-focus-rail">
+              {disciplineSnapshots.map((snapshot) => (
+                <button
+                  key={snapshot.discipline}
+                  type="button"
+                  className={`athlete-portal-focus-chip ${snapshot.discipline === selectedSnapshot?.discipline ? "active" : ""}`}
+                  onClick={() => setSelectedDiscipline(snapshot.discipline)}
+                >
+                  {disciplineLabel(snapshot.discipline)}
+                </button>
+              ))}
+            </div>
+            <div className="athlete-portal-focus-meta">
+              <small>{activeBlock?.phase ? `Fase ${activeBlock.phase}` : "Fase abierta"}</small>
+              <small>{activeBlock?.block_objective ?? "Sin objetivo de bloque visible"}</small>
+            </div>
+          </article>
+
           <article className="athlete-portal-hero-card athlete-portal-spotlight-card goal standout">
             <span className="athlete-portal-card-label">Próximo objetivo</span>
             <strong>{nextTarget ? nextTarget.objective : "Sin objetivo definido"}</strong>
@@ -698,30 +763,20 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
             ) : null}
           </article>
 
-          <article className="athlete-portal-hero-card athlete-portal-spotlight-card focus">
-            <span className="athlete-portal-card-label">Foco del bloque</span>
-            <strong>{disciplineLabel(focusDiscipline)}</strong>
-            <p>
-              {activeBlock?.block_intent
-                ? `${shortText(activeBlock.block_intent, 96)} ${disciplineLabel(focusDiscipline)} en foco.`
-                : "Pulsa una disciplina y céntrate en una lectura clara cada vez."}
-            </p>
-            <div className="athlete-portal-focus-rail">
-              {disciplineSnapshots.map((snapshot) => (
-                <button
-                  key={snapshot.discipline}
-                  type="button"
-                  className={`athlete-portal-focus-chip ${snapshot.discipline === focusDiscipline ? "active" : ""}`}
-                  onClick={() => setSelectedDiscipline(snapshot.discipline)}
-                >
-                  {disciplineLabel(snapshot.discipline)}
-                </button>
+          <article className="athlete-portal-hero-card athlete-portal-spotlight-card sync">
+            <span className="athlete-portal-card-label">Sincronización</span>
+            <strong>{syncHeadline}</strong>
+            <p>{syncSummary}</p>
+            <div className="athlete-portal-sync-provider-list">
+              {syncProviders.map((provider) => (
+                <span key={provider.label} className={`athlete-portal-sync-provider ${provider.connected ? "connected" : ""}`}>
+                  {provider.label} · {provider.connected ? "activa" : "pendiente"}
+                </span>
               ))}
             </div>
-            <div className="athlete-portal-focus-meta">
-              <small>{activeBlock?.phase ? `Fase ${activeBlock.phase}` : "Fase abierta"}</small>
-              <small>{activeBlock?.block_objective ?? "Sin objetivo de bloque visible"}</small>
-            </div>
+            <button className="ghost-button" type="button" onClick={handleStravaConnect} disabled={stravaRedirecting}>
+              {stravaRedirecting ? "Redirigiendo..." : analysis.athlete.strava_connected ? "Reconectar Strava" : "Conectar Strava"}
+            </button>
           </article>
         </div>
       </section>
@@ -869,8 +924,8 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
         <div className="athlete-portal-section-head">
           <div>
             <span className="eyebrow">Lactato</span>
-            <h2>Entiende tu curva sin abrir una pantalla de entrenador</h2>
-            <p className="muted">Puntos reales, ajuste visual y líneas de referencia para saber qué significa el test en la disciplina que tienes activa.</p>
+            <h2>Curva y umbrales en lenguaje claro</h2>
+            <p className="muted">Puntos reales, ajuste visual y referencias LT1/LT2 para entender qué significa hoy tu test en la disciplina activa.</p>
           </div>
           <div className="athlete-portal-discipline-switch">
             {disciplineSnapshots.map((snapshot) => (
@@ -995,8 +1050,8 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
         <article className="card athlete-portal-week-card">
           <div className="athlete-portal-section-head compact">
             <div>
-              <span className="eyebrow">Semana reciente</span>
-              <h2>Cómo se ha repartido tu trabajo</h2>
+              <span className="eyebrow">Actividad reciente</span>
+              <h2>Lo último que ha entrado en tu dashboard</h2>
             </div>
           </div>
           <div className="athlete-portal-balance-grid">
@@ -1030,7 +1085,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
         <article className="card athlete-portal-guidance-card">
           <div className="athlete-portal-section-head compact">
             <div>
-              <span className="eyebrow">Ahora mismo</span>
+              <span className="eyebrow">Roadmap</span>
               <h2>Lo que no deberías perder de vista</h2>
             </div>
           </div>
@@ -1046,18 +1101,13 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
                 <strong>{signal}</strong>
               </article>
             )) : null}
-            <article className="athlete-portal-guidance-item strava">
-              <span className="athlete-portal-card-label">{analysis.athlete.strava_connected ? "Strava conectado" : "Conecta Strava"}</span>
-              <strong>{analysis.athlete.strava_connected ? "Actividad real disponible" : "Plan vs actividad real"}</strong>
-              <p>
-                {analysis.athlete.strava_connected
-                  ? "La cuenta ya está vinculada. El siguiente paso es activar webhook y matching para que plan y actividad real se crucen automáticamente."
-                  : "Autoriza tu cuenta y dejaremos preparada la entrada de actividad real para cruzarla con las sesiones planificadas."}
-              </p>
-              <button className="ghost-button" type="button" onClick={handleStravaConnect} disabled={stravaRedirecting}>
-                {stravaRedirecting ? "Redirigiendo..." : analysis.athlete.strava_connected ? "Reconectar Strava" : "Conectar Strava"}
-              </button>
-            </article>
+            {upcomingTargets.map((target) => (
+              <article key={target.id} className="athlete-portal-guidance-item">
+                <span className="athlete-portal-card-label">Objetivo</span>
+                <strong>{buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective })}</strong>
+                <p>{`${disciplineLabel(target.discipline)} · ${formatDate(target.target_date)}`}</p>
+              </article>
+            ))}
           </div>
         </article>
       </section>
@@ -1065,7 +1115,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
       <section className="card athlete-portal-section athlete-portal-discipline-section">
         <div className="athlete-portal-section-head">
           <div>
-            <span className="eyebrow">Todas tus disciplinas</span>
+            <span className="eyebrow">Vista por disciplina</span>
             <h2>Referencias y progreso</h2>
           </div>
         </div>
