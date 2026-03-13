@@ -362,6 +362,32 @@ def interpolate_cycling(athlete_id: int, db: Session = Depends(get_db), _: User 
             detail="No se pudo interpolar. " + "; ".join(result.warnings)
         )
 
+    # Construir curva interpolada: tomar puntos de running con lactato y degradar HR
+    from app.models.session import Session as AthleteSession, SessionInterval, LactateSample
+    hr_offset = result.hr_offset_applied
+    running_sessions = db.scalars(
+        select(AthleteSession)
+        .options(joinedload(AthleteSession.intervals).joinedload(SessionInterval.lactate_sample))
+        .where(AthleteSession.athlete_id == athlete_id, AthleteSession.discipline == "running")
+        .order_by(AthleteSession.performed_at.desc())
+    ).unique().all()
+
+    interpolated_curve: list[dict] = []
+    for session in running_sessions:
+        for interval in session.intervals:
+            sample = interval.lactate_sample
+            if sample is None or interval.heart_rate_avg is None:
+                continue
+            interpolated_curve.append({
+                "session_date": session.performed_at.date().isoformat(),
+                "interval_label": f"Bloque {interval.order_index}",
+                "lactate_mmol": sample.lactate_mmol,
+                "heart_rate_cycling": interval.heart_rate_avg - hr_offset,
+                "heart_rate_running": interval.heart_rate_avg,
+                "power_watts": None,
+                "pace_running": interval.pace_seconds_per_km,
+            })
+
     # Crear snapshot de ciclismo interpolado (solo HR, sin watts)
     today = date_cls.today()
     snapshot = PhysiologicalSnapshot(
@@ -419,6 +445,7 @@ def interpolate_cycling(athlete_id: int, db: Session = Depends(get_db), _: User 
             ],
             "power_pending": True,
             "power_note": "Para estimar watts, se necesitan entrenamientos en bici con potenciómetro.",
+            "interpolated_curve": interpolated_curve,
         },
     )
     db.add(snapshot)

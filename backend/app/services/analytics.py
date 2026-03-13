@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from datetime import date, timedelta
 from statistics import mean, median
 from typing import Any, Optional
@@ -43,6 +43,14 @@ class ThresholdResult:
     methods_compared: list[dict[str, Any]]
     agreement_score: float
     evidence_level: str
+
+
+THRESHOLD_RESULT_FIELD_NAMES = {item.name for item in fields(ThresholdResult)}
+
+
+def _threshold_result_from_payload(payload: dict[str, Any]) -> ThresholdResult:
+    normalized = {key: value for key, value in payload.items() if key in THRESHOLD_RESULT_FIELD_NAMES}
+    return ThresholdResult(**normalized)
 
 
 def _smooth(values: list[float]) -> list[float]:
@@ -1711,7 +1719,7 @@ def _discipline_view(
         discipline_snapshots[-1] if discipline_snapshots else None,
     )
     thresholds = latest_snapshot.payload.get("thresholds", []) if latest_snapshot else []
-    threshold_objects = [ThresholdResult(**item) for item in thresholds] if thresholds else []
+    threshold_objects = [_threshold_result_from_payload(item) for item in thresholds] if thresholds else []
     discipline_estimates = [
         item
         for item in estimates
@@ -1759,7 +1767,8 @@ def _discipline_view(
         "curve_history": _discipline_history(sessions, discipline, power_source),
         "historical_evolution": _historical_evolution(discipline_snapshots),
         "power_bests": _power_bests(discipline_sessions, discipline, power_source),
-        "measurement_log": _measurement_log(discipline_sessions, discipline, power_source),
+        "measurement_log": _measurement_log(discipline_sessions, discipline, power_source)
+            or (latest_snapshot.payload.get("interpolated_curve", []) if latest_snapshot and latest_snapshot.power_source == "interpolated_from_running" else []),
         "dynamic_thresholds": latest_snapshot.payload.get("dynamic_thresholds") if latest_snapshot else None,
         "power_source_views": None,
         "real_thresholds": None,
@@ -1971,7 +1980,7 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
             discipline=session.discipline,
             power_source=_normalized_power_source(session),
         )
-        thresholds = [ThresholdResult(**item) for item in analysis["thresholds"]]
+        thresholds = [_threshold_result_from_payload(item) for item in analysis["thresholds"]]
         snapshot = PhysiologicalSnapshot(
             athlete_id=athlete.id,
             session_id=session.id,
@@ -2150,7 +2159,7 @@ def athlete_analysis_payload(db: Session, athlete_id: int) -> dict[str, Any]:
         snapshot_thresholds = latest_snapshot.payload.get("thresholds", [])
         latest_thresholds = snapshot_thresholds
 
-    threshold_objects = [ThresholdResult(**item) for item in latest_thresholds] if latest_thresholds else []
+    threshold_objects = [_threshold_result_from_payload(item) for item in latest_thresholds] if latest_thresholds else []
     zones = _estimate_zones(threshold_objects, athlete.primary_discipline)
 
     trend_metrics = []

@@ -5162,46 +5162,59 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                     </ScatterChart>
                   </ResponsiveContainer>
                 ) : (() => {
-                  // HR-only interpolated cycling thresholds → show HR zone bar
+                  // HR-only interpolated cycling: render ScatterChart with HR on X-axis
                   const hrLt1 = plotView.lt1?.heart_rate ?? null;
                   const hrLt2 = plotView.lt2?.heart_rate ?? null;
-                  const isInterpolatedHr = disciplineKey === "ciclismo" && (hrLt1 || hrLt2) && !plotView.lt1?.power_watts && !plotView.lt2?.power_watts;
-                  if (isInterpolatedHr) {
-                    const minHr = Math.max(60, (hrLt1 ?? hrLt2 ?? 140) - 30);
-                    const maxHr = (hrLt2 ?? hrLt1 ?? 170) + 20;
-                    const range = maxHr - minHr;
-                    const lt1Pct = hrLt1 ? ((hrLt1 - minHr) / range) * 100 : null;
-                    const lt2Pct = hrLt2 ? ((hrLt2 - minHr) / range) * 100 : null;
+                  const interpolatedCurve = (displayView.measurement_log ?? [])
+                    .filter((p: Record<string, unknown>) => p.heart_rate_cycling != null && p.lactate_mmol != null)
+                    .map((p: Record<string, unknown>) => ({
+                      x: p.heart_rate_cycling as number,
+                      lactate: p.lactate_mmol as number,
+                      hr_running: p.heart_rate_running as number,
+                      power_watts: p.power_watts as number | null,
+                      pace_running: p.pace_running as number | null,
+                      session_date: p.session_date as string,
+                      interval_label: p.interval_label as string,
+                      name: `${p.heart_rate_cycling} bpm`,
+                    }))
+                    .sort((a: { x: number }, b: { x: number }) => a.x - b.x);
+
+                  if (disciplineKey === "ciclismo" && interpolatedCurve.length > 0) {
                     return (
-                      <div style={{ padding: "24px 0" }}>
-                        <div style={{ position: "relative", height: 72, borderRadius: 12, overflow: "hidden", background: "linear-gradient(90deg, rgba(37,122,77,0.15) 0%, rgba(37,122,77,0.25) " + (lt1Pct ?? 40) + "%, rgba(245,158,11,0.18) " + (lt1Pct ?? 40) + "%, rgba(245,158,11,0.28) " + (lt2Pct ?? 75) + "%, rgba(210,106,54,0.25) " + (lt2Pct ?? 75) + "%, rgba(210,106,54,0.35) 100%)" }}>
-                          {/* Zone labels */}
-                          <div style={{ position: "absolute", top: 8, left: 12, fontSize: 11, color: "#257a4d", fontWeight: 600, opacity: 0.8 }}>Z1 Aeróbico</div>
-                          {lt1Pct !== null && lt2Pct !== null && (
-                            <div style={{ position: "absolute", top: 8, left: `${(lt1Pct + lt2Pct) / 2}%`, transform: "translateX(-50%)", fontSize: 11, color: "#b45309", fontWeight: 600, opacity: 0.8 }}>Z2 Tempo</div>
-                          )}
-                          <div style={{ position: "absolute", top: 8, right: 12, fontSize: 11, color: "#d26a36", fontWeight: 600, opacity: 0.8 }}>Z3 Umbral</div>
-                          {/* LT1 marker */}
-                          {lt1Pct !== null && hrLt1 && (
-                            <div style={{ position: "absolute", left: `${lt1Pct}%`, top: 0, bottom: 0, width: 2, background: "#257a4d" }}>
-                              <div style={{ position: "absolute", bottom: -22, left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap", fontSize: 12, fontWeight: 700, color: "#257a4d" }}>
-                                LT1 {hrLt1} bpm
-                              </div>
-                            </div>
-                          )}
-                          {/* LT2 marker */}
-                          {lt2Pct !== null && hrLt2 && (
-                            <div style={{ position: "absolute", left: `${lt2Pct}%`, top: 0, bottom: 0, width: 2, background: "#d26a36" }}>
-                              <div style={{ position: "absolute", bottom: -22, left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap", fontSize: 12, fontWeight: 700, color: "#d26a36" }}>
-                                LT2 {hrLt2} bpm
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <p style={{ marginTop: 32, fontSize: 12, color: "#94a3b8", textAlign: "center" }}>
-                          Zonas de FC estimadas desde running (HR bridge, Millet 2009). Realiza un test de lactato en bici para obtener potencia y zonas precisas.
+                      <>
+                        <ResponsiveContainer width="100%" height={360}>
+                          <ScatterChart margin={{ top: 16, right: 20, bottom: 16, left: 8 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
+                            <XAxis type="number" dataKey="x" name="FC ciclismo" unit=" bpm" domain={["auto", "auto"]} />
+                            <YAxis type="number" dataKey="lactate" name="Lactato" unit=" mmol/L" domain={[0, "auto"]} />
+                            <Tooltip
+                              content={({ active, payload: tooltipPayload }) => {
+                                if (!active || !tooltipPayload?.[0]?.payload) return null;
+                                const d = tooltipPayload[0].payload as Record<string, unknown>;
+                                return (
+                                  <div style={{ background: "var(--surface-primary, #0b1d26)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#e2e8f0" }}>
+                                    <strong>{d.interval_label as string}</strong>
+                                    <p style={{ margin: "4px 0 0" }}>Fecha {d.session_date as string}</p>
+                                    <p style={{ margin: "2px 0 0" }}>FC ciclismo <strong>{d.x as number} bpm</strong> <span style={{ color: "#94a3b8" }}>(running {d.hr_running as number} bpm)</span></p>
+                                    <p style={{ margin: "2px 0 0" }}>Watts <strong>{d.power_watts ? `${d.power_watts}W` : "pendiente"}</strong></p>
+                                    <p style={{ margin: "2px 0 0" }}>Lactato <strong>{(d.lactate as number).toFixed(1)} mmol/L</strong></p>
+                                    {d.pace_running ? <p style={{ margin: "2px 0 0", color: "#94a3b8" }}>Ritmo running {formatPace(d.pace_running as number)}</p> : null}
+                                  </div>
+                                );
+                              }}
+                            />
+                            {hrLt1 && hrLt2 && (
+                              <ReferenceArea x1={hrLt1} x2={hrLt2} fill="rgba(37,122,77,0.08)" />
+                            )}
+                            {hrLt1 && <ReferenceLine x={hrLt1} stroke="#257a4d" strokeDasharray="5 5" label={{ value: `LT1 ${hrLt1}`, position: "top", fill: "#257a4d", fontSize: 11 }} />}
+                            {hrLt2 && <ReferenceLine x={hrLt2} stroke="#d26a36" strokeDasharray="5 5" label={{ value: `LT2 ${hrLt2}`, position: "top", fill: "#d26a36", fontSize: 11 }} />}
+                            <Scatter data={interpolatedCurve} fill="rgba(22, 53, 61, 0.35)" line={{ stroke: "rgba(22, 53, 61, 0.25)", strokeWidth: 1 }} />
+                          </ScatterChart>
+                        </ResponsiveContainer>
+                        <p style={{ marginTop: 4, fontSize: 12, color: "#94a3b8", textAlign: "center" }}>
+                          Curva interpolada desde running (HR bridge, Millet 2009). Eje X = FC estimada en ciclismo. Watts pendientes.
                         </p>
-                      </div>
+                      </>
                     );
                   }
                   return (
