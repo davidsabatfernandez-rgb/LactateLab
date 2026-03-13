@@ -35,6 +35,11 @@ class PlannedSession(Base):
     status: Mapped[str] = mapped_column(String(30), index=True, default="planned")
     bla_check: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     """Si True, el entrenador pide medición de lactato durante esta sesión para validar el mesociclo."""
+    structured_workout_payload: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    publish_status: Mapped[str] = mapped_column(String(30), index=True, default="draft")
+    publish_provider: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    publish_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    structured_workout_generated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 

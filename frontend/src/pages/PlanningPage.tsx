@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { WorkoutPreviewModal, WorkoutPreviewSelection } from "../components/WorkoutPreviewModal";
 import { api } from "../lib/api";
 import { resolveAnalysisDisciplineView, resolveTrainingThreshold } from "../lib/trainingThresholds";
-import { Athlete, AthleteAnalysis, AthleteFocusBlockEvaluation, AthleteTarget, DynamicReference, PlanningMesocycleDraftSession, PlanningMesocycleTemplate, PlanningOverview, PlanningPlannedSession, PlanningWorkoutTemplate, SessionSummary } from "../types";
+import { Athlete, AthleteAnalysis, AthleteFocusBlockEvaluation, AthleteTarget, DynamicReference, PlanningMesocycleDraftSession, PlanningMesocycleTemplate, PlanningOverview, PlanningPlannedSession, PlanningWorkoutTemplate, SessionSummary, WorkoutDefinition } from "../types";
 
 type PlanningPageProps = {
   token: string;
@@ -64,6 +64,8 @@ type CalendarSession = {
   estimatedMinutes?: number;
   rawId?: number;
   blaCheck?: boolean;
+  publishStatus?: string;
+  publishError?: string | null;
 };
 
 type CalendarEntry = CalendarSession & {
@@ -225,6 +227,19 @@ function disciplineLabel(value?: string | null) {
   if (value === "natación") return "Natación";
   if (value === "triatlón") return "Triatlón";
   return value || "Disciplina";
+}
+
+function planningPublishStatusMeta(value?: string | null) {
+  if (value === "ready") {
+    return { label: "Ready", tone: "positive" as const, description: "Estructura canónica lista para enviar." };
+  }
+  if (value === "sent") {
+    return { label: "Sent", tone: "positive" as const, description: "Workout ya publicado en un proveedor externo." };
+  }
+  if (value === "failed") {
+    return { label: "Failed", tone: "negative" as const, description: "Falló la preparación o publicación del workout." };
+  }
+  return { label: "Draft", tone: "neutral" as const, description: "Todavía no hay una estructura lista para publicar." };
 }
 
 function planningDisciplineAccent(value?: string | null) {
@@ -1260,6 +1275,8 @@ function buildPersistedCalendarSessions(source: PlanningCalendarSource, plannedS
         : estimateMinutesFromDose(session.dose_prescription),
       rawId: session.id,
       blaCheck: session.bla_check,
+      publishStatus: session.publish_status,
+      publishError: session.publish_error,
     }));
 
   return selected.length ? selected.sort((a, b) => dateValue(a.date) - dateValue(b.date)) : null;
@@ -1322,6 +1339,7 @@ function buildPlannedWorkoutPreviewSelection(
   return {
     source: "planning",
     templateId: template.template_id,
+    plannedSessionId: session.id,
     label: session.dose_prescription || template.csv_examples[0] || template.public_label,
     notes: session.progression_note || session.coach_note || session.expected_signal || template.dose_guidance,
     totalDurationMin: step?.total_duration_min,
@@ -1725,6 +1743,11 @@ export function PlanningPage({ token }: PlanningPageProps) {
   const [workoutLibrary, setWorkoutLibrary] = useState<PlanningWorkoutTemplate[]>([]);
   const [quickAddLibraries, setQuickAddLibraries] = useState<Record<string, PlanningWorkoutTemplate[]>>({});
   const [openWorkoutPreview, setOpenWorkoutPreview] = useState<OpenWorkoutPreviewState | null>(null);
+  const [showPlannedSessionRawInformation, setShowPlannedSessionRawInformation] = useState(false);
+  const [plannedSessionStructuredPreview, setPlannedSessionStructuredPreview] = useState<WorkoutDefinition | null>(null);
+  const [plannedSessionStructuredPreviewLoading, setPlannedSessionStructuredPreviewLoading] = useState(false);
+  const [plannedSessionStructuredPreviewError, setPlannedSessionStructuredPreviewError] = useState<string | null>(null);
+  const [plannedSessionRegeneratingId, setPlannedSessionRegeneratingId] = useState<number | null>(null);
   const [planningSourceModal, setPlanningSourceModal] = useState<PlanningSourceModalState | null>(null);
   const [calendarComposerDate, setCalendarComposerDate] = useState<string | null>(null);
   const [calendarQuickAdd, setCalendarQuickAdd] = useState<CalendarQuickAddState | null>(null);
@@ -2671,6 +2694,12 @@ export function PlanningPage({ token }: PlanningPageProps) {
     return true;
   }, [overview?.planned_sessions, planningLt1, planningLt2, planningThresholdBasis, workoutLibrary]);
 
+  const openPlannedWorkoutRawInformation = useCallback((sessionId: number) => {
+    const opened = openPlannedWorkoutPreview(sessionId);
+    if (!opened) return;
+    setShowPlannedSessionRawInformation(true);
+  }, [openPlannedWorkoutPreview]);
+
   const openCalendarSessionDetail = useCallback((session: CalendarEntry) => {
     setSelectedCalendarDate(session.date);
     if (session.rawId != null && openPlannedWorkoutPreview(session.rawId)) {
@@ -2684,6 +2713,80 @@ export function PlanningPage({ token }: PlanningPageProps) {
       planningThresholdBasis,
     ));
   }, [openPlannedWorkoutPreview, planningLt1, planningLt2, planningThresholdBasis, selectedCalendarSource]);
+
+  const activePlannedPreviewSession = useMemo(
+    () => openWorkoutPreview?.selection.plannedSessionId != null
+      ? overview?.planned_sessions.find((session) => session.id === openWorkoutPreview.selection.plannedSessionId) ?? null
+      : null,
+    [openWorkoutPreview, overview?.planned_sessions],
+  );
+
+  useEffect(() => {
+    if (!activePlannedPreviewSession) {
+      setShowPlannedSessionRawInformation(false);
+      setPlannedSessionStructuredPreview(null);
+      setPlannedSessionStructuredPreviewError(null);
+      setPlannedSessionStructuredPreviewLoading(false);
+      return;
+    }
+    setPlannedSessionStructuredPreview(activePlannedPreviewSession.structured_workout_payload ?? null);
+    setPlannedSessionStructuredPreviewError(null);
+    setPlannedSessionStructuredPreviewLoading(false);
+  }, [activePlannedPreviewSession?.id, activePlannedPreviewSession?.structured_workout_payload]);
+
+  useEffect(() => {
+    if (!showPlannedSessionRawInformation || !activePlannedPreviewSession?.id) return;
+
+    let cancelled = false;
+    setPlannedSessionStructuredPreviewLoading(true);
+    setPlannedSessionStructuredPreviewError(null);
+
+    api.plannedSessionWorkoutDefinitionPreview(token, activePlannedPreviewSession.id)
+      .then((payload) => {
+        if (!cancelled) {
+          setPlannedSessionStructuredPreview(payload as WorkoutDefinition);
+        }
+      })
+      .catch((loadError) => {
+        if (!cancelled) {
+          setPlannedSessionStructuredPreviewError(
+            loadError instanceof Error ? loadError.message : "No se pudo cargar la estructura canónica.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setPlannedSessionStructuredPreviewLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activePlannedPreviewSession?.id, showPlannedSessionRawInformation, token]);
+
+  const plannedSessionStructuredPreviewJson = useMemo(
+    () => (plannedSessionStructuredPreview ? JSON.stringify(plannedSessionStructuredPreview, null, 2) : null),
+    [plannedSessionStructuredPreview],
+  );
+
+  const regeneratePlannedSessionStructure = useCallback(async (sessionId: number) => {
+    if (!athleteId) return;
+    setPlannedSessionRegeneratingId(sessionId);
+    setPlannedSessionStructuredPreviewError(null);
+    try {
+      const payload = (await api.preparePlannedSessionPublish(token, sessionId)) as PlanningPlannedSession;
+      setPlannedSessionStructuredPreview(payload.structured_workout_payload ?? null);
+      await loadPlanningContext(String(athleteId), selectedDiscipline);
+      setShowPlannedSessionRawInformation(true);
+    } catch (loadError) {
+      setPlannedSessionStructuredPreviewError(
+        loadError instanceof Error ? loadError.message : "No se pudo regenerar la estructura del entreno.",
+      );
+    } finally {
+      setPlannedSessionRegeneratingId(null);
+    }
+  }, [athleteId, selectedDiscipline, token]);
 
   const activeBlockLabel = overview?.current_block.energy_system_focus
     ? `${overview.current_block.energy_system_focus} · ${overview.current_block.block_objective}`
@@ -3497,9 +3600,23 @@ export function PlanningPage({ token }: PlanningPageProps) {
                         <div className="planning-day-stack">
                           {selectedLibraryPlannedSessions.map((session) => (
                             <article key={session.id} className="planning-day-card">
-                              <strong>{formatShortDate(session.scheduled_date)} · {session.public_label}</strong>
+                              <div className="planning-day-card-top">
+                                <strong>{formatShortDate(session.scheduled_date)} · {session.public_label}</strong>
+                                <span className={`status-badge ${planningPublishStatusMeta(session.publish_status).tone}`}>
+                                  {planningPublishStatusMeta(session.publish_status).label}
+                                </span>
+                              </div>
                               <p>{session.objective}</p>
                               <small>{session.dose_prescription}</small>
+                              {session.publish_error ? <small>{session.publish_error}</small> : null}
+                              <div className="planning-session-inline-actions">
+                                <button type="button" className="planning-inline-action" onClick={() => openPlannedWorkoutPreview(session.id)}>
+                                  Abrir preview
+                                </button>
+                                <button type="button" className="planning-inline-action" onClick={() => openPlannedWorkoutRawInformation(session.id)}>
+                                  Ver raw
+                                </button>
+                              </div>
                             </article>
                           ))}
                         </div>
@@ -4098,7 +4215,14 @@ export function PlanningPage({ token }: PlanningPageProps) {
                                                     className={`planning-calendar-app-session ${session.layerDiscipline === "running" ? "running" : session.layerDiscipline === "ciclismo" ? "cycling" : session.layerDiscipline === "natación" ? "swimming" : ""} ${session.sessionType === "clave" ? "key" : ""}`}
                                                     onClick={() => openCalendarSessionDetail(session)}
                                                   >
-                                                    <span>{session.sessionType}</span>
+                                                    <div className="planning-session-card-head">
+                                                      <span>{session.sessionType}</span>
+                                                      {session.publishStatus ? (
+                                                        <span className={`planning-session-publish-badge ${planningPublishStatusMeta(session.publishStatus).tone}`}>
+                                                          {planningPublishStatusMeta(session.publishStatus).label}
+                                                        </span>
+                                                      ) : null}
+                                                    </div>
                                                     <strong>{session.title}</strong>
                                                     <p>{session.estimatedMinutes ? `${session.estimatedMinutes} min` : session.dose}</p>
                                                     <small>{session.dose}</small>
@@ -4241,7 +4365,14 @@ export function PlanningPage({ token }: PlanningPageProps) {
                                               className={`training-calendar-session-card ${session.layerDiscipline === "running" ? "running" : session.layerDiscipline === "ciclismo" ? "cycling" : session.layerDiscipline === "natación" ? "swimming" : ""} ${session.sessionType === "clave" ? "key" : ""}`}
                                               onClick={() => openCalendarSessionDetail(session)}
                                             >
-                                              <span>{session.sessionType}</span>
+                                              <div className="planning-session-card-head">
+                                                <span>{session.sessionType}</span>
+                                                {session.publishStatus ? (
+                                                  <span className={`planning-session-publish-badge ${planningPublishStatusMeta(session.publishStatus).tone}`}>
+                                                    {planningPublishStatusMeta(session.publishStatus).label}
+                                                  </span>
+                                                ) : null}
+                                              </div>
                                               <strong>{session.title}</strong>
                                               <p>{session.dose}</p>
                                               <small>{session.objective}</small>
@@ -4627,7 +4758,76 @@ export function PlanningPage({ token }: PlanningPageProps) {
           <WorkoutPreviewModal
             template={openWorkoutPreview.template}
             selection={openWorkoutPreview.selection}
-            onClose={() => setOpenWorkoutPreview(null)}
+            rawInformation={activePlannedPreviewSession ? {
+              active: showPlannedSessionRawInformation,
+              onToggle: () => setShowPlannedSessionRawInformation((value) => !value),
+              label: "Raw information",
+              statusLabel: planningPublishStatusMeta(activePlannedPreviewSession.publish_status).label,
+              statusTone: planningPublishStatusMeta(activePlannedPreviewSession.publish_status).tone,
+              panel: (
+                <>
+                  {plannedSessionStructuredPreviewJson ? (
+                    <section className="library-workout-panel library-workout-raw-panel">
+                      <div className="planning-session-raw-head">
+                        <div className="library-workout-panel-head">
+                          <span className="eyebrow">Raw information</span>
+                          <h3>Bloque estructurado para publicación futura</h3>
+                        </div>
+                        <button
+                          type="button"
+                          className="planning-inline-action"
+                          onClick={() => regeneratePlannedSessionStructure(activePlannedPreviewSession.id)}
+                          disabled={plannedSessionRegeneratingId === activePlannedPreviewSession.id}
+                        >
+                          {plannedSessionRegeneratingId === activePlannedPreviewSession.id ? "Regenerando..." : "Regenerar estructura"}
+                        </button>
+                      </div>
+                      <p className="library-workout-raw-copy">
+                        Estado actual: {planningPublishStatusMeta(activePlannedPreviewSession.publish_status).description}
+                        {activePlannedPreviewSession.publish_provider ? ` Proveedor: ${activePlannedPreviewSession.publish_provider}.` : ""}
+                      </p>
+                      <div className="library-workout-raw-json">
+                        <pre>{plannedSessionStructuredPreviewJson}</pre>
+                      </div>
+                    </section>
+                  ) : null}
+
+                  {showPlannedSessionRawInformation && plannedSessionStructuredPreviewLoading && !plannedSessionStructuredPreviewJson ? (
+                    <section className="library-workout-panel library-workout-raw-panel">
+                      <div className="library-workout-panel-head">
+                        <span className="eyebrow">Raw information</span>
+                        <h3>Construyendo bloque estructurado…</h3>
+                      </div>
+                      <p className="library-workout-raw-copy">Estamos pidiendo al backend la versión canónica de la sesión planificada.</p>
+                    </section>
+                  ) : null}
+
+                  {showPlannedSessionRawInformation && plannedSessionStructuredPreviewError && !plannedSessionStructuredPreviewLoading ? (
+                    <section className="library-workout-panel library-workout-raw-panel">
+                      <div className="planning-session-raw-head">
+                        <div className="library-workout-panel-head">
+                          <span className="eyebrow">Raw information</span>
+                          <h3>No se pudo construir el bloque</h3>
+                        </div>
+                        <button
+                          type="button"
+                          className="planning-inline-action"
+                          onClick={() => regeneratePlannedSessionStructure(activePlannedPreviewSession.id)}
+                          disabled={plannedSessionRegeneratingId === activePlannedPreviewSession.id}
+                        >
+                          {plannedSessionRegeneratingId === activePlannedPreviewSession.id ? "Regenerando..." : "Reintentar"}
+                        </button>
+                      </div>
+                      <p className="library-workout-raw-copy">{plannedSessionStructuredPreviewError}</p>
+                    </section>
+                  ) : null}
+                </>
+              ),
+            } : null}
+            onClose={() => {
+              setShowPlannedSessionRawInformation(false);
+              setOpenWorkoutPreview(null);
+            }}
           />
         )}
 

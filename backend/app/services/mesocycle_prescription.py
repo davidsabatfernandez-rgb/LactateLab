@@ -14,6 +14,7 @@ from app.models.planned_session import PlannedSession
 from app.models.session import Session as AthleteSession
 from app.services.mesocycle_library import mesocycle_template_by_id, select_mesocycle_template
 from app.services.planning_taxonomy import infer_session_taxonomy
+from app.services.planned_session_publication import prepare_planned_session_for_publish
 from app.services.workout_library import DraftSlot, WorkoutTemplate, WORKOUT_BLUEPRINTS, WORKOUT_TEMPLATES, evidence_for_ids, validate_microcycle_spacing
 
 
@@ -543,6 +544,9 @@ def _select_dose_step(
         target = max(1, effective_last - 1)
     elif phase == "build":
         target = effective_last + 1
+    elif phase == "build_peak":
+        # Clímax del working phase: peldaño máximo del ciclo
+        target = max_step
     elif phase == "specific":
         # Fase específica: mantener o subir uno si hay buena señal
         target = effective_last + (1 if state.block_validation_signal == "improving" else 0)
@@ -1004,5 +1008,7 @@ def create_planned_sessions_for_block(
                 },
             )
             db.add(planned_session)
+            db.flush()
+            prepare_planned_session_for_publish(planned_session)
             created.append(planned_session)
     return created

@@ -1697,6 +1697,36 @@ def _measurement_log(sessions: list[AthleteSession], discipline: str, power_sour
     return rows
 
 
+def _normalize_measurement_log_rows(
+    rows: list[dict[str, Any]],
+    *,
+    fallback_session_id: int | None = None,
+    fallback_session_type: str = "interpolated",
+) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for index, row in enumerate(rows, start=1):
+        if not isinstance(row, dict):
+            continue
+        normalized.append(
+            {
+                "interval_id": int(row.get("interval_id") or index),
+                "session_id": int(row.get("session_id") or fallback_session_id or 0),
+                "session_date": row.get("session_date") or row.get("date") or "",
+                "session_type": row.get("session_type") or fallback_session_type,
+                "interval_label": row.get("interval_label") or row.get("label") or f"Bloque {index}",
+                "duration_seconds": int(row.get("duration_seconds") or row.get("duration") or 0),
+                "rest_seconds": row.get("rest_seconds"),
+                "lactate_mmol": float(row.get("lactate_mmol")),
+                "pace_seconds_per_km": row.get("pace_seconds_per_km") or row.get("pace_running"),
+                "power_watts": row.get("power_watts"),
+                "heart_rate_avg": row.get("heart_rate_avg") or row.get("heart_rate_cycling") or row.get("heart_rate_running"),
+                "cadence": row.get("cadence"),
+                "power_source": row.get("power_source") or row.get("source"),
+            }
+        )
+    return normalized
+
+
 def _discipline_view(
     athlete: Athlete,
     discipline: str,
@@ -1768,7 +1798,15 @@ def _discipline_view(
         "historical_evolution": _historical_evolution(discipline_snapshots),
         "power_bests": _power_bests(discipline_sessions, discipline, power_source),
         "measurement_log": _measurement_log(discipline_sessions, discipline, power_source)
-            or (latest_snapshot.payload.get("interpolated_curve", []) if latest_snapshot and latest_snapshot.power_source == "interpolated_from_running" else []),
+            or (
+                _normalize_measurement_log_rows(
+                    latest_snapshot.payload.get("interpolated_curve", []),
+                    fallback_session_id=latest_snapshot.session_id,
+                    fallback_session_type="interpolated_from_running",
+                )
+                if latest_snapshot and latest_snapshot.power_source == "interpolated_from_running"
+                else []
+            ),
         "dynamic_thresholds": latest_snapshot.payload.get("dynamic_thresholds") if latest_snapshot else None,
         "power_source_views": None,
         "real_thresholds": None,

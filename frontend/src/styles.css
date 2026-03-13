@@ -3415,6 +3415,41 @@ textarea {
   background: rgba(16, 34, 42, 0.06);
 }
 
+.planning-session-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.planning-session-publish-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.planning-session-publish-badge.positive {
+  background: rgba(43, 122, 67, 0.12);
+  color: #1f6a3a;
+}
+
+.planning-session-publish-badge.neutral {
+  background: rgba(210, 106, 54, 0.12);
+  color: #a2502a;
+}
+
+.planning-session-publish-badge.negative {
+  background: rgba(141, 46, 15, 0.12);
+  color: #8d2e0f;
+}
+
 .training-calendar-empty-slot {
   display: grid;
   place-items: center;
@@ -3575,6 +3610,17 @@ textarea {
   justify-content: space-between;
   gap: 10px;
   align-items: center;
+}
+
+.planning-session-inline-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.planning-session-inline-actions .planning-inline-action {
+  font-size: 0.82rem;
+  padding: 7px 11px;
 }
 
 .planning-session-confidence {
@@ -12175,6 +12221,12 @@ textarea {
   min-width: 112px;
 }
 
+.library-workout-raw-toggle.active {
+  background: rgba(22, 53, 61, 0.14);
+  border-color: rgba(22, 53, 61, 0.16);
+  color: var(--primary);
+}
+
 .library-workout-hero {
   display: grid;
   grid-template-columns: minmax(340px, 1fr) minmax(520px, 1.28fr);
@@ -12529,6 +12581,39 @@ textarea {
 
 .library-workout-panel.caution {
   background: rgba(255, 248, 242, 0.92);
+}
+
+.library-workout-raw-panel {
+  margin-top: 18px;
+  background:
+    linear-gradient(180deg, rgba(15, 28, 33, 0.04), rgba(15, 28, 33, 0.02)),
+    rgba(255, 255, 255, 0.82);
+}
+
+.library-workout-raw-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.library-workout-raw-json pre {
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: rgba(18, 29, 35, 0.96);
+  color: rgba(238, 244, 246, 0.96);
+  overflow: auto;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+.planning-session-raw-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
 }
 
 .library-workout-panel-head {

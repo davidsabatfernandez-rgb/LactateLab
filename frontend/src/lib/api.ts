@@ -370,6 +370,31 @@ export const api = {
     request(`/planning/athletes/${athleteId}/workout-library${discipline ? `?discipline=${encodeURIComponent(discipline)}` : ""}`, { token }),
   generalPlanningWorkoutLibrary: (token: string, discipline: string) =>
     request(`/planning/workout-library?discipline=${encodeURIComponent(discipline)}`, { token }),
+  planningWorkoutLibraryStructuredPreview: (
+    token: string,
+    options: {
+      discipline: string;
+      templateId: string;
+      source: "dose" | "example";
+      doseStep?: number;
+      label?: string;
+    },
+  ) => {
+    const params = new URLSearchParams({
+      discipline: options.discipline,
+      source: options.source,
+    });
+    if (options.doseStep != null) params.set("dose_step", String(options.doseStep));
+    if (options.label) params.set("label", options.label);
+    return request(`/planning/workout-library/${options.templateId}/structured-preview?${params.toString()}`, { token });
+  },
+  plannedSessionWorkoutDefinitionPreview: (token: string, sessionId: number) =>
+    request(`/planning/planned-sessions/${sessionId}/workout-definition-preview`, { token }),
+  preparePlannedSessionPublish: (token: string, sessionId: number) =>
+    request(`/planning/planned-sessions/${sessionId}/prepare-publish`, {
+      token,
+      method: "POST",
+    }),
   planningMesocycleDraft: (token: string, athleteId: string | number, discipline?: string) =>
     request(`/planning/athletes/${athleteId}/mesocycle-draft${discipline ? `?discipline=${encodeURIComponent(discipline)}` : ""}`, { token }),
   toggleBlaCheck: (token: string, sessionId: number, blaCheck: boolean) =>

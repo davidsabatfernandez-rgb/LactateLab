@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -15,7 +17,10 @@ from app.schemas.planning import (
     PlanningPlannedSessionRead,
     PlanningWorkoutTemplateRead,
 )
+from app.schemas.workout_definition import WorkoutDefinition
 from app.services.planning_engine import recommend_next_mesocycle, workout_library_payload
+from app.services.planned_session_publication import prepare_planned_session_for_publish
+from app.services.workout_definition_builder import build_library_workout_definition, build_workout_definition
 
 router = APIRouter(prefix="/planning", tags=["planning"])
 
@@ -93,6 +98,66 @@ def planning_mesocycle_draft(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@router.get(
+    "/planned-sessions/{session_id}/workout-definition-preview",
+    response_model=WorkoutDefinition,
+)
+def planning_workout_definition_preview(
+    session_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    session = db.get(PlannedSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Sesión no encontrada.")
+    if session.structured_workout_payload:
+        return WorkoutDefinition(**session.structured_workout_payload)
+    return build_workout_definition(session)
+
+
+@router.post(
+    "/planned-sessions/{session_id}/prepare-publish",
+    response_model=PlanningPlannedSessionRead,
+)
+def planning_prepare_planned_session_publish(
+    session_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    session = db.get(PlannedSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Sesión no encontrada.")
+    prepare_planned_session_for_publish(session)
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+@router.get(
+    "/workout-library/{template_id}/structured-preview",
+    response_model=WorkoutDefinition,
+)
+def planning_workout_library_structured_preview(
+    template_id: str,
+    discipline: str = Query(...),
+    source: str = Query(..., pattern="^(dose|example)$"),
+    dose_step: Optional[int] = Query(None, ge=1),
+    label: Optional[str] = Query(None),
+    _: User = Depends(get_current_user),
+):
+    try:
+        return build_library_workout_definition(
+            discipline=discipline,
+            template_id=template_id,
+            source=source,
+            dose_step=dose_step,
+            label=label,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.patch(
     "/planned-sessions/{session_id}/bla-check",
     response_model=PlanningPlannedSessionRead,
@@ -140,6 +205,7 @@ def coach_edit_planned_session(
         session.dose_step_override = body.dose_step_override
     if body.swapped_template_id is not None:
         session.swapped_template_id = body.swapped_template_id
+    prepare_planned_session_for_publish(session)
     db.commit()
     db.refresh(session)
     return session

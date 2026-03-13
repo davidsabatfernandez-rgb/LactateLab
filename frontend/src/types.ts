@@ -819,6 +819,36 @@ export type DoseStepItem = {
   total_duration_min: number;
 };
 
+export type WorkoutTarget = {
+  target_type: string;
+  value_from?: number | null;
+  value_to?: number | null;
+  unit?: string | null;
+  label?: string | null;
+};
+
+export type WorkoutStep = {
+  order: number;
+  step_type: string;
+  length_type: string;
+  length_value?: number | null;
+  target?: WorkoutTarget | null;
+  intensity_label?: string | null;
+  instructions?: string | null;
+  repeat_count?: number | null;
+  children: WorkoutStep[];
+};
+
+export type WorkoutDefinition = {
+  source_session_id?: number | null;
+  sport: string;
+  title: string;
+  description?: string | null;
+  steps: WorkoutStep[];
+  notes: string[];
+  source_payload: Record<string, unknown>;
+};
+
 export type PlanningWorkoutTemplate = {
   template_id: string;
   discipline: string;
@@ -915,6 +945,10 @@ export type PlanningPlannedSession = {
   confidence: number;
   status: string;
   bla_check: boolean;
+  structured_workout_payload?: WorkoutDefinition | null;
+  publish_status?: string;
+  publish_provider?: string | null;
+  publish_error?: string | null;
   payload?: Record<string, unknown>;
 };
 

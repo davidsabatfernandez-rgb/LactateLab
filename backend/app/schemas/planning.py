@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 from app.schemas.athlete import AthleteFocusBlockRead
+from app.schemas.workout_definition import WorkoutDefinition
 
 
 class PlanningCurrentBlockRead(BaseModel):
@@ -205,6 +206,10 @@ class PlanningPlannedSessionRead(BaseModel):
     confidence: float
     status: str
     bla_check: bool = False
+    structured_workout_payload: Optional[WorkoutDefinition] = None
+    publish_status: str = "draft"
+    publish_provider: Optional[str] = None
+    publish_error: Optional[str] = None
     payload: dict = {}
 
     model_config = {"from_attributes": True}

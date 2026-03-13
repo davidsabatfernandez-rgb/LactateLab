@@ -5,9 +5,11 @@ from sqlalchemy import select
 
 from app.core.security import get_password_hash
 from app.models.athlete import Athlete
+from app.models.planned_session import PlannedSession
 from app.models.user import User
 from app.services.analytics import _individual_progression_alignment
 from app.services.strava import list_strava_activities
+from app.services.workout_library import templates_for_discipline_library
 
 
 def auth_headers(client, db_session):
@@ -309,6 +311,162 @@ def test_coach_can_fetch_strava_activities_for_selected_athlete(client, db_sessi
     assert payload["athlete_id"] == athlete.id
     assert payload["imported_count"] == 1
     assert payload["activities"][0]["provider_activity_id"] == 444
+
+
+def test_coach_can_preview_workout_definition_for_planned_session(client, db_session):
+    coach = User(
+        email="coach-workout-preview@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="coach",
+        full_name="Coach Workout Preview",
+    )
+    athlete = Athlete(
+        name="Atleta Workout Preview",
+        date_of_birth=date(1992, 5, 14),
+        sex="male",
+        weight=69,
+        height=177,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+        coach=coach,
+    )
+    db_session.add_all([coach, athlete])
+    db_session.flush()
+
+    planned_session = PlannedSession(
+        athlete_id=athlete.id,
+        focus_block_id=1,
+        scheduled_date=date(2026, 3, 20),
+        discipline="running",
+        week_index=2,
+        day_offset=3,
+        session_role="key",
+        session_family="threshold",
+        workout_template_id="run_lt2_cruise",
+        public_label="T2: 8 x 1km LT2",
+        objective="Sesión de umbral alto con recuperación corta",
+        dose_prescription="8 x 1km 4:35-4:45/km + 75s descanso entre series",
+        dose_guidance="Mantener control interno estable en todas las repeticiones.",
+        progression_note="Si la respuesta es sólida, subir densidad la próxima semana.",
+        expected_signal="RPE alto pero estable, sin deriva excesiva.",
+        coach_note="Meter gel en la tercera serie.",
+        confidence=0.86,
+        status="planned",
+        bla_check=False,
+        payload={},
+        created_at=datetime(2026, 3, 13, 10, 0),
+    )
+    db_session.add(planned_session)
+    db_session.commit()
+
+    login_response = client.post("/api/auth/login", json={"email": "coach-workout-preview@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.get(f"/api/planning/planned-sessions/{planned_session.id}/workout-definition-preview", headers=headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source_session_id"] == planned_session.id
+    assert payload["sport"] == "running"
+    assert payload["title"] == "T2: 8 x 1km LT2"
+    assert len(payload["steps"]) == 1
+    assert payload["steps"][0]["step_type"] == "repeat"
+    assert payload["steps"][0]["repeat_count"] == 8
+    assert len(payload["steps"][0]["children"]) == 2
+    assert payload["steps"][0]["children"][0]["target"]["target_type"] == "pace"
+
+
+def test_coach_can_preview_structured_library_workout(client, db_session):
+    coach = User(
+        email="coach-library-structure@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="coach",
+        full_name="Coach Library Structure",
+    )
+    db_session.add(coach)
+    db_session.commit()
+
+    login_response = client.post("/api/auth/login", json={"email": "coach-library-structure@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    template = next((item for item in templates_for_discipline_library("running") if item.dose_ladder), None)
+    assert template is not None
+    first_step = template.dose_ladder[0]
+
+    response = client.get(
+        f"/api/planning/workout-library/{template.template_id}/structured-preview",
+        headers=headers,
+        params={
+            "discipline": "running",
+            "source": "dose",
+            "dose_step": first_step.step,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["sport"] == "running"
+    assert payload["title"] == first_step.label
+    assert len(payload["steps"]) >= 1
+    assert payload["source_payload"]["template_id"] == template.template_id
+
+
+def test_coach_can_prepare_planned_session_for_publish(client, db_session):
+    coach = User(
+        email="coach-prepare-publish@test.dev",
+        hashed_password=get_password_hash("secret123"),
+        role="coach",
+        full_name="Coach Prepare Publish",
+    )
+    athlete = Athlete(
+        name="Atleta Prepare Publish",
+        date_of_birth=date(1992, 5, 14),
+        sex="male",
+        weight=69,
+        height=177,
+        primary_discipline="running",
+        created_at=date(2026, 1, 1),
+        coach=coach,
+    )
+    db_session.add_all([coach, athlete])
+    db_session.flush()
+
+    planned_session = PlannedSession(
+        athlete_id=athlete.id,
+        focus_block_id=1,
+        scheduled_date=date(2026, 3, 20),
+        discipline="running",
+        week_index=2,
+        day_offset=3,
+        session_role="key",
+        session_family="threshold",
+        workout_template_id="run_lt2_cruise",
+        public_label="T2: 8 x 1km LT2",
+        objective="Sesión de umbral alto con recuperación corta",
+        dose_prescription="8 x 1km 4:35-4:45/km + 75s descanso entre series",
+        dose_guidance="Mantener control interno estable en todas las repeticiones.",
+        progression_note="Si la respuesta es sólida, subir densidad la próxima semana.",
+        expected_signal="RPE alto pero estable, sin deriva excesiva.",
+        coach_note="Meter gel en la tercera serie.",
+        confidence=0.86,
+        status="planned",
+        bla_check=False,
+        payload={},
+        created_at=datetime(2026, 3, 13, 10, 0),
+    )
+    db_session.add(planned_session)
+    db_session.commit()
+
+    login_response = client.post("/api/auth/login", json={"email": "coach-prepare-publish@test.dev", "password": "secret123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+
+    response = client.post(f"/api/planning/planned-sessions/{planned_session.id}/prepare-publish", headers=headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["publish_status"] == "ready"
+    assert payload["publish_error"] is None
+    assert payload["structured_workout_payload"] is not None
 
 
 def test_coach_can_connect_garmin_for_selected_athlete(client, db_session, monkeypatch):

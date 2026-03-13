@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 
 import { PlanningWorkoutTemplate } from "../types";
 
@@ -6,6 +6,7 @@ export type WorkoutPreviewSelection = {
   source: "dose" | "example" | "planning";
   templateId: string;
   label: string;
+  plannedSessionId?: number;
   notes?: string;
   prescriptionHint?: string;
   thresholdBasis?: string;
@@ -27,6 +28,14 @@ type PreviewTimelineSegment = {
 type WorkoutPreviewModalProps = {
   template: PlanningWorkoutTemplate | null;
   selection: WorkoutPreviewSelection | null;
+  rawInformation?: {
+    active: boolean;
+    onToggle: () => void;
+    label?: string;
+    statusLabel?: string;
+    statusTone?: "positive" | "neutral" | "negative";
+    panel?: ReactNode;
+  } | null;
   onClose: () => void;
 };
 
@@ -329,7 +338,7 @@ function previewSegmentHeight(tone: string) {
   return 0.6;
 }
 
-export function WorkoutPreviewModal({ template, selection, onClose }: WorkoutPreviewModalProps) {
+export function WorkoutPreviewModal({ template, selection, rawInformation, onClose }: WorkoutPreviewModalProps) {
   useEffect(() => {
     if (!template || !selection) return undefined;
     function onKeyDown(event: KeyboardEvent) {
@@ -408,6 +417,18 @@ export function WorkoutPreviewModal({ template, selection, onClose }: WorkoutPre
           </div>
           <div className="library-workout-head-actions">
             <span className={`library-preview-source ${previewToneClass}`}>{previewSourceLabel}</span>
+            {rawInformation?.statusLabel ? (
+              <span className={`status-badge ${rawInformation.statusTone ?? "neutral"}`}>{rawInformation.statusLabel}</span>
+            ) : null}
+            {rawInformation ? (
+              <button
+                type="button"
+                className={`ghost-button library-workout-raw-toggle ${rawInformation.active ? "active" : ""}`}
+                onClick={rawInformation.onToggle}
+              >
+                {rawInformation.label ?? "Raw information"}
+              </button>
+            ) : null}
             <button type="button" className="ghost-button library-workout-close" onClick={onClose}>Cerrar</button>
           </div>
         </div>
@@ -603,6 +624,8 @@ export function WorkoutPreviewModal({ template, selection, onClose }: WorkoutPre
             )}
           </aside>
         </div>
+
+        {rawInformation?.active && rawInformation.panel ? rawInformation.panel : null}
       </section>
     </div>
   );

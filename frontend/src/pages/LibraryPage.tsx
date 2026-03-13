@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { api } from "../lib/api";
-import { PlanningWorkoutTemplate } from "../types";
+import { PlanningWorkoutTemplate, WorkoutDefinition } from "../types";
 
 type LibraryPageProps = {
   token: string;
@@ -12,6 +12,7 @@ type LibraryPreviewSelection = {
   source: "dose" | "example";
   templateId: string;
   label: string;
+  doseStep?: number;
   notes?: string;
   totalDurationMin?: number;
   usefulDurationMin?: number;
@@ -498,6 +499,10 @@ export function LibraryPage({ token }: LibraryPageProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [collapsedZones, setCollapsedZones] = useState<Set<string>>(new Set());
   const [selectedPreview, setSelectedPreview] = useState<LibraryPreviewSelection | null>(null);
+  const [showRawInformation, setShowRawInformation] = useState(false);
+  const [structuredWorkoutPreview, setStructuredWorkoutPreview] = useState<WorkoutDefinition | null>(null);
+  const [structuredWorkoutLoading, setStructuredWorkoutLoading] = useState(false);
+  const [structuredWorkoutError, setStructuredWorkoutError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -528,6 +533,13 @@ export function LibraryPage({ token }: LibraryPageProps) {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedPreview]);
+
+  useEffect(() => {
+    setShowRawInformation(false);
+    setStructuredWorkoutPreview(null);
+    setStructuredWorkoutError(null);
+    setStructuredWorkoutLoading(false);
   }, [selectedPreview]);
 
   const filtered = useMemo(() => {
@@ -658,6 +670,43 @@ export function LibraryPage({ token }: LibraryPageProps) {
     };
   }, [activeTemplate, selectedPreview]);
 
+  useEffect(() => {
+    if (!showRawInformation || !selectedPreview || !activeTemplate) return;
+
+    let cancelled = false;
+    setStructuredWorkoutLoading(true);
+    setStructuredWorkoutError(null);
+
+    api.planningWorkoutLibraryStructuredPreview(token, {
+      discipline: activeTemplate.discipline,
+      templateId: activeTemplate.template_id,
+      source: selectedPreview.source,
+      doseStep: selectedPreview.doseStep,
+      label: selectedPreview.label,
+    })
+      .then((payload) => {
+        if (!cancelled) setStructuredWorkoutPreview(payload as WorkoutDefinition);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setStructuredWorkoutPreview(null);
+          setStructuredWorkoutError(error instanceof Error ? error.message : "No se pudo construir el bloque estructurado.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setStructuredWorkoutLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTemplate, selectedPreview, showRawInformation, token]);
+
+  const structuredWorkoutJson = useMemo(
+    () => (structuredWorkoutPreview ? JSON.stringify(structuredWorkoutPreview, null, 2) : null),
+    [structuredWorkoutPreview],
+  );
+
   function toggleZone(zone: string) {
     setCollapsedZones((prev) => {
       const next = new Set(prev);
@@ -682,6 +731,7 @@ export function LibraryPage({ token }: LibraryPageProps) {
       source: "dose",
       templateId: template.template_id,
       label: step.label,
+      doseStep: step.step,
       notes: step.notes,
       totalDurationMin: step.total_duration_min,
       usefulDurationMin: step.total_useful_time_min,
@@ -983,6 +1033,13 @@ export function LibraryPage({ token }: LibraryPageProps) {
                 </span>
                 <button
                   type="button"
+                  className={`ghost-button library-workout-raw-toggle ${showRawInformation ? "active" : ""}`}
+                  onClick={() => setShowRawInformation((value) => !value)}
+                >
+                  Raw information
+                </button>
+                <button
+                  type="button"
                   className="ghost-button library-workout-close"
                   onClick={() => setSelectedPreview(null)}
                 >
@@ -1114,6 +1171,41 @@ export function LibraryPage({ token }: LibraryPageProps) {
                 </div>
               </div>
             </div>
+
+            {showRawInformation && structuredWorkoutJson && (
+              <section className="library-workout-panel library-workout-raw-panel">
+                <div className="library-workout-panel-head">
+                  <span className="eyebrow">Raw information</span>
+                  <h3>Bloque estructurado para publicación futura</h3>
+                </div>
+                <p className="library-workout-raw-copy">
+                  Esta vista enseña cómo queda el entreno en formato interno para una futura traducción a Garmin o a una app puente.
+                </p>
+                <div className="library-workout-raw-json">
+                  <pre>{structuredWorkoutJson}</pre>
+                </div>
+              </section>
+            )}
+
+            {showRawInformation && structuredWorkoutLoading && !structuredWorkoutJson && (
+              <section className="library-workout-panel library-workout-raw-panel">
+                <div className="library-workout-panel-head">
+                  <span className="eyebrow">Raw information</span>
+                  <h3>Construyendo bloque estructurado…</h3>
+                </div>
+                <p className="library-workout-raw-copy">Estamos pidiendo al backend la versión canónica del entreno.</p>
+              </section>
+            )}
+
+            {showRawInformation && structuredWorkoutError && !structuredWorkoutLoading && (
+              <section className="library-workout-panel library-workout-raw-panel">
+                <div className="library-workout-panel-head">
+                  <span className="eyebrow">Raw information</span>
+                  <h3>No se pudo construir el bloque</h3>
+                </div>
+                <p className="library-workout-raw-copy">{structuredWorkoutError}</p>
+              </section>
+            )}
 
             <div className="library-workout-modal-body">
               <div className="library-workout-main-column">
