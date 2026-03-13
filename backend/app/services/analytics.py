@@ -1276,6 +1276,7 @@ def _performance_estimates(
     power_source: Optional[str] = None,
     dynamic_thresholds: Optional[dict[str, Any]] = None,
     snapshots: Optional[list[PhysiologicalSnapshot]] = None,
+    swain_vo2max: Optional[dict[str, Any]] = None,
 ) -> list[dict[str, Any]]:
     return build_performance_estimates(
         athlete=athlete,
@@ -1286,6 +1287,7 @@ def _performance_estimates(
         power_source=power_source,
         dynamic_thresholds=dynamic_thresholds,
         snapshots=snapshots or [],
+        swain_vo2max=swain_vo2max,
     )
 
 
@@ -2134,6 +2136,34 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
                 or item.power_source == snapshot.power_source
             )
         ]
+        # Compute Swain VO2max for this snapshot to feed into predictions
+        _swain_for_prediction = None
+        if snapshot.lt2_heart_rate and snapshot.discipline == "running":
+            from app.services.physiological_engine import estimate_vo2max_swain as _est_swain
+            _lt2_spd = round(3600 / snapshot.lt2_pace_seconds_per_km, 3) if snapshot.lt2_pace_seconds_per_km and snapshot.lt2_pace_seconds_per_km > 0 else None
+            _hr_max_snap = None
+            for _iv in getattr(session, "intervals", []):
+                _hrm = getattr(_iv, "heart_rate_max", None)
+                if _hrm and (_hr_max_snap is None or _hrm > _hr_max_snap):
+                    _hr_max_snap = _hrm
+            if not _hr_max_snap or _hr_max_snap < 150:
+                _dob = getattr(athlete, "date_of_birth", None)
+                if _dob:
+                    _age = (session.performed_at.date() - _dob).days // 365
+                    if 10 <= _age <= 90:
+                        _hr_max_snap = 220 - _age
+            _lvl = getattr(athlete, "athlete_level", "trained") or "trained"
+            _hr_rest_snap = {"competitive": 48, "trained": 55, "recreational": 62}.get(_lvl, 55)
+            _v, _f, _c = _est_swain(
+                lt2_speed_kmh=_lt2_spd, lt2_power_watts=None,
+                lt2_heart_rate=snapshot.lt2_heart_rate,
+                hr_max=_hr_max_snap, hr_rest=_hr_rest_snap,
+                weight_kg=getattr(athlete, "weight", None),
+                discipline="running",
+            )
+            if _v is not None:
+                _swain_for_prediction = {"vo2max": _v, "fractional_utilization": _f, "confidence": _c}
+
         for estimate in _performance_estimates(
             athlete,
             snapshot.discipline,
@@ -2143,6 +2173,7 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
             power_source=snapshot.power_source,
             dynamic_thresholds=analysis.get("dynamic_thresholds"),
             snapshots=comparable_snapshots,
+            swain_vo2max=_swain_for_prediction,
         ):
             payload = dict(estimate)
             payload["valid_on"] = estimate["valid_on_iso"]

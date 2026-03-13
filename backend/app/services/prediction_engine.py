@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from datetime import date
 from statistics import mean
 from typing import Any, Optional
@@ -8,36 +9,67 @@ from app.models.athlete import Athlete
 from app.models.metrics import PhysiologicalSnapshot
 
 
-RUNNING_EVENT_CONFIG: dict[str, dict[str, float]] = {
-    "5K": {
-        "base_multiplier": 1.03,
-        "endurance_bonus": -0.01,
-        "anaerobic_bonus": 0.015,
-        "base_spread": 0.03,
-        "confidence_penalty": 0.02,
-    },
-    "10K": {
-        "base_multiplier": 1.0,
-        "endurance_bonus": 0.002,
-        "anaerobic_bonus": 0.01,
-        "base_spread": 0.035,
-        "confidence_penalty": 0.03,
-    },
-    "HM": {
-        "base_multiplier": 0.94,
-        "endurance_bonus": 0.035,
-        "anaerobic_bonus": -0.004,
-        "base_spread": 0.05,
-        "confidence_penalty": 0.05,
-    },
-    "Maratón": {
-        "base_multiplier": 0.89,
-        "endurance_bonus": 0.05,
-        "anaerobic_bonus": -0.01,
-        "base_spread": 0.065,
-        "confidence_penalty": 0.08,
-    },
+# ── Constants: ACSM metabolic equations ─────────────────────────────────────
+_VO2_REST = 3.5  # ml/kg/min
+
+# ── Distance-specific fractional utilization tables ─────────────────────────
+# Base %VO2max sustainable for each race distance (trained runners).
+# Sources: Daniels & Gilbert 1979, Péronnet-Thibault 1989, Bassett & Howley 2000.
+# Values represent the MIDDLE of the trained range.
+_RACE_DISTANCE_KM: dict[str, float] = {
+    "5K": 5.0,
+    "10K": 10.0,
+    "HM": 21.0975,
+    "Maratón": 42.195,
 }
+
+# Base fractional utilization (%VO2max at race pace) for a "neutral" athlete
+# (endurance_score ~0.5, VLamax ~0.35 mmol/L/s).
+_F_BASE: dict[str, float] = {
+    "5K": 0.95,
+    "10K": 0.90,
+    "HM": 0.85,
+    "Maratón": 0.78,
+}
+
+# How much VLamax shifts fractional utilization per unit deviation from 0.35.
+# Positive = high VLamax REDUCES sustained fraction (more at longer distances).
+# Sources: Mader 2003, Olbrecht, INSCYD validation data.
+_VLAMAX_SENSITIVITY: dict[str, float] = {
+    "5K": 0.03,    # 5K: VLamax effect is small (anaerobic helps)
+    "10K": 0.08,   # 10K: moderate effect
+    "HM": 0.14,    # HM: significant effect
+    "Maratón": 0.22,  # Marathon: dominant effect
+}
+
+# Anaerobic contribution to race pace (fraction of total energy from anaerobic).
+# High VLamax athletes get a small BONUS at short distances.
+# Sources: Gastin 2001, Spencer & Gastin 2001.
+_ANAEROBIC_CONTRIBUTION: dict[str, float] = {
+    "5K": 0.06,     # ~6% anaerobic energy at 5K
+    "10K": 0.03,    # ~3%
+    "HM": 0.01,     # ~1%
+    "Maratón": 0.005,  # negligible
+}
+
+# Confidence penalty per distance (longer = more uncertain)
+_CONFIDENCE_PENALTY: dict[str, float] = {
+    "5K": 0.02,
+    "10K": 0.03,
+    "HM": 0.05,
+    "Maratón": 0.08,
+}
+
+# Base spread per distance
+_BASE_SPREAD: dict[str, float] = {
+    "5K": 0.03,
+    "10K": 0.035,
+    "HM": 0.05,
+    "Maratón": 0.065,
+}
+
+# VLamax reference point (neutral athlete)
+_VLAMAX_NEUTRAL = 0.35
 
 
 def _clamp(value: float, minimum: float, maximum: float) -> float:
@@ -92,6 +124,182 @@ def _confidence_label(confidence: float, evidence_points: int) -> str:
     if confidence < 0.78:
         return "medium"
     return "high"
+
+
+# ── Running economy: ACSM metabolic equation ───────────────────────────────
+def _running_economy_ml_per_km(speed_kph: float) -> float:
+    """VO2 cost in ml/kg per km at given speed.
+
+    Uses ACSM running equation: VO2 = 0.2 × speed(m/min) + 0.9 × speed(m/min) × grade + 3.5
+    For flat running (grade=0): VO2 = 0.2 × speed(m/min) + 3.5
+    Cost per km = VO2(ml/kg/min) / speed(km/min) = VO2 / (speed_kph / 60)
+
+    In practice, running economy varies ~5-10% between athletes (Conley & Krahenbuhl 1980).
+    We derive it implicitly from LT2 pace + fractional utilization when possible.
+    """
+    speed_m_per_min = speed_kph * 1000 / 60
+    vo2 = 0.2 * speed_m_per_min + _VO2_REST  # ml/kg/min at this speed
+    cost_per_km = vo2 / (speed_kph / 60)  # ml/kg per km
+    return cost_per_km
+
+
+def _vo2_at_speed(speed_kph: float) -> float:
+    """VO2 (ml/kg/min) at given running speed using ACSM flat equation."""
+    speed_m_per_min = speed_kph * 1000 / 60
+    return 0.2 * speed_m_per_min + _VO2_REST
+
+
+def _speed_at_vo2(vo2: float) -> float:
+    """Inverse of ACSM: speed (km/h) that requires given VO2."""
+    speed_m_per_min = (vo2 - _VO2_REST) / 0.2
+    return speed_m_per_min * 60 / 1000
+
+
+# ── VLamax estimation from lactate curve ────────────────────────────────────
+def _estimate_vlamax_from_thresholds(
+    lt1_speed_kph: Optional[float],
+    lt2_speed_kph: Optional[float],
+    lt1_lactate: Optional[float],
+    lt2_lactate: Optional[float],
+    vo2max: Optional[float],
+) -> tuple[float, float, str]:
+    """Estimate VLamax from threshold data using Mader-compatible logic.
+
+    The LT1/LT2 speed ratio reflects the balance between aerobic and glycolytic
+    capacity (Olbrecht, Mader 2003). A high ratio (>0.87) means low VLamax;
+    a low ratio (<0.79) means high VLamax.
+
+    When VO2max is available, we can refine this: at LT2, lactate production
+    equals elimination. The gap between VO2 at LT2 and VO2max constrains VLamax.
+
+    Returns: (vlamax_estimate, confidence, method)
+    """
+    method_parts = []
+    estimates = []
+    weights = []
+
+    # Method 1: LT1/LT2 speed ratio (Olbrecht proxy)
+    if lt1_speed_kph and lt2_speed_kph and lt2_speed_kph > 0:
+        ratio = lt1_speed_kph / lt2_speed_kph
+        # Olbrecht mapping: ratio 0.94 → VLamax ~0.20, ratio 0.75 → VLamax ~0.65
+        # Linear mapping inverted: VLamax = 0.95 - ratio * 0.80
+        vlamax_ratio = _clamp(0.95 - ratio * 0.80, 0.15, 0.75)
+        estimates.append(vlamax_ratio)
+        weights.append(0.45)
+        method_parts.append("lt1_lt2_ratio")
+
+    # Method 2: Lactate values at thresholds (steepness of curve)
+    if lt1_lactate and lt2_lactate and lt1_speed_kph and lt2_speed_kph:
+        lactate_rise = lt2_lactate - lt1_lactate  # mmol/L
+        speed_gap = lt2_speed_kph - lt1_speed_kph  # km/h
+        if speed_gap > 0.5:
+            # Steepness: mmol/L per km/h increase between LT1 and LT2
+            steepness = lactate_rise / speed_gap
+            # Typical: 0.3-0.5 = low VLamax, 0.8-1.5 = high VLamax
+            vlamax_steep = _clamp(0.15 + steepness * 0.30, 0.15, 0.75)
+            estimates.append(vlamax_steep)
+            weights.append(0.30)
+            method_parts.append("lactate_steepness")
+
+    # Method 3: VO2max headroom above LT2 (Mader framework)
+    if vo2max and lt2_speed_kph and vo2max > 25:
+        vo2_at_lt2 = _vo2_at_speed(lt2_speed_kph)
+        fractional = vo2_at_lt2 / vo2max
+        # High fractional (>0.88) → low VLamax, Low fractional (<0.78) → high VLamax
+        # Mader: at MLSS, higher VLamax means lactate steady-state occurs at lower
+        # %VO2max because glycolytic contribution kicks in earlier.
+        vlamax_frac = _clamp(1.05 - fractional * 1.0, 0.15, 0.75)
+        estimates.append(vlamax_frac)
+        weights.append(0.25)
+        method_parts.append("vo2max_headroom")
+
+    if not estimates:
+        return 0.35, 0.25, "default_neutral"
+
+    # Weighted average
+    total_w = sum(weights)
+    vlamax = sum(e * w for e, w in zip(estimates, weights)) / total_w
+    vlamax = round(_clamp(vlamax, 0.15, 0.75), 3)
+
+    # Confidence: more methods = more confidence
+    conf = _clamp(0.35 + len(estimates) * 0.15, 0.35, 0.75)
+    method = "mader_composite_" + "+".join(method_parts)
+
+    return vlamax, conf, method
+
+
+# ── Race pace prediction: di Prampero framework ────────────────────────────
+def _predict_race_pace(
+    vo2max: float,
+    vlamax: float,
+    lt2_speed_kph: float,
+    estimate_type: str,
+) -> Optional[float]:
+    """Predict race pace using di Prampero framework.
+
+    Core equation: v_race = F(d, VLamax) × VO2max / C
+
+    Where:
+    - F = fractional utilization at race distance, modulated by VLamax
+    - C = running economy (VO2 cost per unit speed)
+    - VO2max = maximal aerobic capacity
+
+    Running economy (C) is derived implicitly from LT2 data:
+    we know the athlete runs at lt2_speed at ~F_LT2 × VO2max,
+    so C = (F_LT2 × VO2max) / lt2_speed.
+
+    References:
+    - di Prampero 1986: v = F × VO2max / C
+    - Péronnet-Thibault 1989: endurance index for F decay
+    - Mader 2003: VLamax modulation of sustainable %VO2max
+    """
+    if vo2max < 20 or lt2_speed_kph < 4:
+        return None
+
+    # Step 1: Derive running economy from LT2 data
+    # At LT2, athlete sustains ~F_LT2 of VO2max
+    vo2_at_lt2 = _vo2_at_speed(lt2_speed_kph)
+    f_at_lt2 = _clamp(vo2_at_lt2 / vo2max, 0.70, 0.98)
+
+    # Running economy: VO2 cost per km/h
+    # C = vo2_at_lt2 / lt2_speed_kph (ml/kg/min per km/h)
+    economy = vo2_at_lt2 / lt2_speed_kph
+
+    # Step 2: Calculate distance-specific fractional utilization
+    f_base = _F_BASE[estimate_type]
+
+    # VLamax modulation: deviation from neutral shifts sustainable %VO2max
+    vlamax_delta = vlamax - _VLAMAX_NEUTRAL
+    sensitivity = _VLAMAX_SENSITIVITY[estimate_type]
+    # High VLamax → lower F (can't sustain as high %VO2max for long)
+    # Low VLamax → higher F (diesel athlete sustains more)
+    f_adjusted = f_base - vlamax_delta * sensitivity
+
+    # Anaerobic bonus for short distances: high VLamax helps at 5K/10K
+    anaerobic_bonus = _ANAEROBIC_CONTRIBUTION[estimate_type] * (vlamax_delta / _VLAMAX_NEUTRAL)
+    f_adjusted += anaerobic_bonus
+
+    f_race = _clamp(f_adjusted, 0.65, 0.99)
+
+    # Step 3: Predict race speed using di Prampero
+    # v_race = F_race × VO2max / economy
+    race_speed_kph = f_race * vo2max / economy
+
+    # Sanity check: race speed should be reasonable relative to LT2
+    # 5K can be ~105-110% of LT2 speed, marathon ~85-92%
+    ratio_to_lt2 = race_speed_kph / lt2_speed_kph
+    if ratio_to_lt2 > 1.20 or ratio_to_lt2 < 0.70:
+        # Implausible, clamp to reasonable bounds
+        max_ratio = {"5K": 1.12, "10K": 1.05, "HM": 0.98, "Maratón": 0.93}
+        min_ratio = {"5K": 0.98, "10K": 0.92, "HM": 0.85, "Maratón": 0.78}
+        race_speed_kph = lt2_speed_kph * _clamp(
+            ratio_to_lt2,
+            min_ratio[estimate_type],
+            max_ratio[estimate_type],
+        )
+
+    pace = _speed_kph_to_pace(race_speed_kph)
+    return pace
 
 
 def _estimate_payload(
@@ -165,6 +373,7 @@ def _running_prediction_inputs(
     discipline: str,
     power_source: Optional[str],
     history_depth: int,
+    swain_vo2max: Optional[dict[str, Any]] = None,
 ) -> Optional[dict[str, Any]]:
     lt1 = _find_threshold(thresholds, "LT1")
     lt2 = _find_threshold(thresholds, "LT2")
@@ -221,10 +430,12 @@ def _running_prediction_inputs(
 
     cautions: list[str] = []
     lt1_pace = _threshold_attr(lt1, "pace_seconds_per_km")
+    lt1_speed_kph: Optional[float] = None
+    lt2_speed_kph = _pace_to_speed_kph(float(lt2_pace))
+
     if lt1_pace is not None:
-        lt1_speed = _pace_to_speed_kph(float(lt1_pace))
-        lt2_speed = _pace_to_speed_kph(float(lt2_pace))
-        ratio = (lt1_speed / lt2_speed) if lt1_speed and lt2_speed else 0.88
+        lt1_speed_kph = _pace_to_speed_kph(float(lt1_pace))
+        ratio = (lt1_speed_kph / lt2_speed_kph) if lt1_speed_kph and lt2_speed_kph else 0.88
         endurance_score = round(_clamp((ratio - 0.82) / 0.12, 0.0, 1.0), 2)
     else:
         endurance_score = 0.52
@@ -247,13 +458,71 @@ def _running_prediction_inputs(
         2,
     )
 
+    # ── VO2max: prefer Swain (HR-based, non-circular) over LT2-derived ──
+    vo2max: Optional[float] = None
+    vo2max_source = "none"
+    vo2max_confidence = 0.0
+    fractional_utilization: Optional[float] = None
+
+    if swain_vo2max and swain_vo2max.get("vo2max"):
+        vo2max = float(swain_vo2max["vo2max"])
+        vo2max_source = "swain_hr"
+        vo2max_confidence = float(swain_vo2max.get("confidence", 0.6))
+        fractional_utilization = float(swain_vo2max.get("fractional_utilization", 0.0)) or None
+        anchors.append({
+            "label": "VO2max (Swain HR)",
+            "value": round(vo2max, 1),
+            "unit": "ml/kg/min",
+            "confidence": round(vo2max_confidence, 2),
+        })
+    else:
+        # Fallback: derive from LT2 pace (circular but better than nothing)
+        if reference_speed_kph and reference_speed_kph > 0:
+            threshold_fraction = 0.86 + endurance_score * 0.04
+            speed_m_per_min = reference_speed_kph * 1000 / 60
+            vvo2_speed = speed_m_per_min / threshold_fraction
+            vo2max = 0.2 * vvo2_speed + _VO2_REST
+            vo2max_source = "lt2_derived"
+            vo2max_confidence = 0.45  # lower confidence for circular estimate
+            fractional_utilization = threshold_fraction
+
+    # ── VLamax estimation ───────────────────────────────────────────────
+    lt1_lactate = float(_threshold_attr(lt1, "lactate") or 0) if lt1 else None
+    lt2_lactate = float(_threshold_attr(lt2, "lactate") or 0) if lt2 else None
+    if lt1_lactate and lt1_lactate <= 0:
+        lt1_lactate = None
+    if lt2_lactate and lt2_lactate <= 0:
+        lt2_lactate = None
+
+    vlamax, vlamax_conf, vlamax_method = _estimate_vlamax_from_thresholds(
+        lt1_speed_kph=lt1_speed_kph,
+        lt2_speed_kph=lt2_speed_kph,
+        lt1_lactate=lt1_lactate,
+        lt2_lactate=lt2_lactate,
+        vo2max=vo2max,
+    )
+
     calculation_steps = [
         "Se toma LT2 fisiologico como ancla principal de rendimiento.",
     ]
     if practical_pace is not None:
         calculation_steps.append("Se mezcla con LT2 practico cronico para no depender solo del ultimo test.")
-    calculation_steps.append("Se ajusta segun cercania LT1-LT2 para perfilar resistencia frente a tolerancia a esfuerzos cortos.")
-    calculation_steps.append("El rango final se abre o se cierra segun acuerdo entre anclas, estabilidad del historico y profundidad de evidencia.")
+    if vo2max_source == "swain_hr":
+        calculation_steps.append(
+            f"VO2max estimado via Swain (HR): {round(vo2max, 1)} ml/kg/min "
+            f"(LT2 al {round(fractional_utilization * 100)}% del techo)."
+            if fractional_utilization else
+            f"VO2max estimado via Swain (HR): {round(vo2max, 1)} ml/kg/min."
+        )
+    else:
+        calculation_steps.append("VO2max derivado del ritmo LT2 (proxy, sin datos de FC disponibles).")
+    calculation_steps.append(
+        f"VLamax estimada: {round(vlamax, 2)} mmol/L/s ({vlamax_method.split('_', 2)[-1]}) "
+        f"— modula el rendimiento sostenible por distancia."
+    )
+    calculation_steps.append(
+        "Prediccion por modelo di Prampero: v_race = F(distancia, VLamax) x VO2max / C(economia)."
+    )
 
     confidence_factors = [
         {
@@ -275,6 +544,13 @@ def _running_prediction_inputs(
             "explanation": "Mas cortes comparables elevan confianza.",
         },
     ]
+    if vo2max_source == "swain_hr":
+        confidence_factors.append({
+            "label": "vo2max_swain",
+            "score": vo2max_confidence,
+            "weight": 0.10,
+            "explanation": "VO2max calculado desde FC (Swain) refuerza la prediccion con una senal independiente del lactato.",
+        })
 
     return {
         "reference_pace": round(reference_pace, 1),
@@ -289,6 +565,18 @@ def _running_prediction_inputs(
         "calculation_steps": calculation_steps,
         "confidence_factors": confidence_factors,
         "lt1_missing": lt1_pace is None,
+        # New physiological inputs
+        "vo2max": vo2max,
+        "vo2max_source": vo2max_source,
+        "vo2max_confidence": vo2max_confidence,
+        "fractional_utilization": fractional_utilization,
+        "vlamax": vlamax,
+        "vlamax_confidence": vlamax_conf,
+        "vlamax_method": vlamax_method,
+        "lt1_speed_kph": lt1_speed_kph,
+        "lt2_speed_kph": lt2_speed_kph,
+        "lt1_lactate": lt1_lactate,
+        "lt2_lactate": lt2_lactate,
     }
 
 
@@ -426,7 +714,11 @@ def _running_estimates(
 ) -> list[dict[str, Any]]:
     reference_speed = inputs["reference_speed_kph"]
     endurance_score = inputs["endurance_score"]
-    anaerobic_bias = 1 - endurance_score
+    vo2max = inputs.get("vo2max")
+    vlamax = inputs.get("vlamax", 0.35)
+    lt2_speed = inputs.get("lt2_speed_kph", reference_speed)
+    vo2max_source = inputs.get("vo2max_source", "none")
+
     estimates: list[dict[str, Any]] = []
     base_variables = [
         "lt2_pace",
@@ -435,38 +727,81 @@ def _running_estimates(
         "historical_stability",
         "history_depth",
     ]
+    if vo2max_source == "swain_hr":
+        base_variables.extend(["vo2max_swain", "fractional_utilization"])
+    base_variables.append("vlamax_estimated")
 
-    for estimate_type, config in RUNNING_EVENT_CONFIG.items():
-        multiplier = (
-            config["base_multiplier"]
-            + endurance_score * config["endurance_bonus"]
-            + anaerobic_bias * config["anaerobic_bonus"]
-        )
-        pace = _speed_kph_to_pace(reference_speed * multiplier)
+    # ── Race predictions using di Prampero framework ────────────────────
+    for estimate_type in _RACE_DISTANCE_KM:
+        pace: Optional[float] = None
+
+        if vo2max and vo2max > 20:
+            # Full physiological model: di Prampero + VLamax modulation
+            pace = _predict_race_pace(
+                vo2max=vo2max,
+                vlamax=vlamax,
+                lt2_speed_kph=lt2_speed,
+                estimate_type=estimate_type,
+            )
+
+        if pace is None:
+            # Fallback: use reference speed with simple distance-based decay
+            # (Riegel-like, but with endurance_score adjustment)
+            fallback_factors = {
+                "5K": 1.03 + (1 - endurance_score) * 0.015,
+                "10K": 1.0 + endurance_score * 0.002,
+                "HM": 0.94 + endurance_score * 0.035,
+                "Maratón": 0.89 + endurance_score * 0.05,
+            }
+            pace = _speed_kph_to_pace(reference_speed * fallback_factors[estimate_type])
+
         if pace is None:
             continue
-        spread = config["base_spread"] + (1 - inputs["agreement_score"]) * 0.045 + (1 - inputs["stability_score"]) * 0.035
+
+        # Spread calculation
+        base_spread = _BASE_SPREAD[estimate_type]
+        spread = base_spread + (1 - inputs["agreement_score"]) * 0.045 + (1 - inputs["stability_score"]) * 0.035
         if history_depth < 3:
             spread += 0.015
         if estimate_type in {"HM", "Maratón"} and inputs["lt1_missing"]:
             spread += 0.02 if estimate_type == "HM" else 0.03
+        # VO2max source affects spread: Swain narrows it, LT2-derived widens it
+        if vo2max_source == "swain_hr":
+            spread -= 0.008  # tighter bounds with independent VO2max
+        elif vo2max_source == "lt2_derived":
+            spread += 0.005  # slightly wider for circular estimate
         spread = round(_clamp(spread, 0.025, 0.12), 3)
 
-        confidence = inputs["base_confidence"] - config["confidence_penalty"]
+        confidence = inputs["base_confidence"] - _CONFIDENCE_PENALTY[estimate_type]
         if estimate_type == "Maratón" and inputs["lt1_missing"]:
             confidence -= 0.04
+        # Bonus for Swain VO2max (independent signal improves confidence)
+        if vo2max_source == "swain_hr":
+            confidence += 0.03
         confidence = round(_clamp(confidence, 0.35, 0.91), 2)
 
         range_summary = (
-            f"Rango abierto por acuerdo entre anclas ({round(inputs['agreement_score'] * 100)}%), "
-            f"estabilidad historica ({round(inputs['stability_score'] * 100)}%) y profundidad de evidencia ({history_depth} cortes)."
+            f"Rango basado en acuerdo entre anclas ({round(inputs['agreement_score'] * 100)}%), "
+            f"estabilidad historica ({round(inputs['stability_score'] * 100)}%), "
+            f"profundidad ({history_depth} cortes)"
         )
+        if vo2max_source == "swain_hr":
+            range_summary += f" y VO2max Swain ({round(vo2max, 1)} ml/kg/min)."
+        else:
+            range_summary += "."
+
+        method_used = "di_prampero_vlamax_v1" if vo2max and vo2max > 20 else "riegel_endurance_fallback"
         explanation = (
-            "Prediccion explicable desde LT2 fisiologico y LT2 practico cronico, ajustada por perfil LT1-LT2 y estabilidad del historico."
+            f"Prediccion fisiologica: VO2max={round(vo2max, 1) if vo2max else '?'} ml/kg/min, "
+            f"VLamax={round(vlamax, 2)} mmol/L/s, "
+            f"utilizacion fraccional ajustada por distancia y perfil metabolico (di Prampero 1986, Mader 2003)."
         )
+
         cautions = list(inputs["cautions"])
         if estimate_type == "Maratón" and history_depth < 4:
             cautions.append("Maraton necesita mas respaldo longitudinal que 5K o 10K; conviene confirmarla con trabajo especifico.")
+        if vo2max_source == "lt2_derived":
+            cautions.append("VO2max derivado de LT2 (circular); la prediccion mejorara con datos de FC.")
 
         estimates.append(
             _estimate_payload(
@@ -481,8 +816,8 @@ def _running_estimates(
                 evidence_points=history_depth,
                 explanation=explanation,
                 spread=spread,
-                method_used="blended_lt2_endurance_profile_v2",
-                primary_anchor="lt2_blended_reference",
+                method_used=method_used,
+                primary_anchor="vo2max_vlamax_lt2" if vo2max else "lt2_blended_reference",
                 agreement_score=inputs["agreement_score"],
                 range_summary=range_summary,
                 calculation_steps=list(inputs["calculation_steps"]),
@@ -492,65 +827,100 @@ def _running_estimates(
             )
         )
 
-    threshold_fraction = 0.86 + endurance_score * 0.04
-    speed_m_per_min = reference_speed * 1000 / 60
-    vvo2_speed_m_per_min = speed_m_per_min / threshold_fraction
-    vo2max = 0.2 * vvo2_speed_m_per_min + 3.5
-    vo2_margin = 2.0 + (1 - inputs["agreement_score"]) * 2.4 + (1 - inputs["stability_score"]) * 1.8 + (0.88 - inputs["history_score"]) * 1.2
-    vo2_margin = _clamp(vo2_margin, 1.8, 5.5)
-    estimates.append(
-        _estimate_payload(
-            estimate_type="VO2max",
-            discipline="running",
-            power_source=power_source,
-            value=vo2max,
-            unit="ml/kg/min",
-            confidence=_clamp(inputs["base_confidence"] - 0.03, 0.4, 0.92),
-            snapshot_date=snapshot_date,
-            variables_used=["lt2_pace", "lt1_pace", "historical_stability", "history_depth"],
-            evidence_points=history_depth,
-            explanation="VO2max estimado desde velocidad asociada a LT2, fraccion de vVO2 inferida por el perfil LT1-LT2 y control longitudinal.",
-            lower_bound=vo2max - vo2_margin,
-            upper_bound=vo2max + vo2_margin,
-            method_used="lt2_to_vvo2_proxy_v2",
-            primary_anchor="lt2_blended_reference",
-            agreement_score=inputs["agreement_score"],
-            range_summary="El margen combina error fisiologico del proxy LT2->vVO2 con acuerdo entre anclas y estabilidad del historico.",
-            calculation_steps=[
-                "Se transforma el ritmo de referencia en velocidad real de carrera.",
+    # ── VO2max estimate ─────────────────────────────────────────────────
+    if vo2max and vo2max > 20:
+        vo2_margin = 2.0 + (1 - inputs["agreement_score"]) * 2.4 + (1 - inputs["stability_score"]) * 1.8 + (0.88 - inputs["history_score"]) * 1.2
+        if vo2max_source == "swain_hr":
+            vo2_margin *= 0.75  # tighter bounds with HR-based estimate
+        vo2_margin = _clamp(vo2_margin, 1.5, 5.5)
+        vo2_conf = inputs["base_confidence"] - (0.02 if vo2max_source == "swain_hr" else 0.06)
+
+        vo2_steps = list(inputs["calculation_steps"][:2])  # keep LT2 anchor steps
+        if vo2max_source == "swain_hr":
+            vo2_steps.append(
+                f"VO2max calculado via Swain (HR at LT2): %HRR ≈ %VO2R → {round(vo2max, 1)} ml/kg/min. "
+                "Metodo no circular (Swain 1997, ACSM)."
+            )
+        else:
+            vo2_steps.extend([
                 "Se estima que LT2 ocurre en torno al 86-90% de la vVO2 segun el perfil de resistencia del atleta.",
                 "Se aplica la ecuacion energetica de carrera en m/min para obtener VO2max estimado.",
-            ],
-            cautions=list(inputs["cautions"]),
-            anchors=list(inputs["anchors"]),
-            confidence_factors=list(inputs["confidence_factors"]),
-        )
-    )
+            ])
 
-    lt2_gap = max(0.0, 1 - endurance_score)
-    vlamax = _clamp(0.28 + lt2_gap * 0.38, 0.25, 0.95)
+        estimates.append(
+            _estimate_payload(
+                estimate_type="VO2max",
+                discipline="running",
+                power_source=power_source,
+                value=vo2max,
+                unit="ml/kg/min",
+                confidence=_clamp(vo2_conf, 0.4, 0.92),
+                snapshot_date=snapshot_date,
+                variables_used=["lt2_pace", "lt1_pace", "heart_rate_lt2", "hr_max", "historical_stability"],
+                evidence_points=history_depth,
+                explanation=(
+                    f"VO2max via Swain (HR): {round(vo2max, 1)} ml/kg/min. Metodo independiente del lactato."
+                    if vo2max_source == "swain_hr" else
+                    "VO2max estimado desde velocidad asociada a LT2, fraccion de vVO2 inferida por el perfil LT1-LT2."
+                ),
+                lower_bound=vo2max - vo2_margin,
+                upper_bound=vo2max + vo2_margin,
+                method_used=f"swain_acsm_hr" if vo2max_source == "swain_hr" else "lt2_to_vvo2_proxy_v2",
+                primary_anchor="hr_at_lt2" if vo2max_source == "swain_hr" else "lt2_blended_reference",
+                agreement_score=inputs["agreement_score"],
+                range_summary=(
+                    "VO2max Swain con margenes ajustados por calidad de datos HR."
+                    if vo2max_source == "swain_hr" else
+                    "El margen combina error fisiologico del proxy LT2->vVO2 con acuerdo entre anclas y estabilidad del historico."
+                ),
+                calculation_steps=vo2_steps,
+                cautions=list(inputs["cautions"]) + (
+                    ["VO2max derivado de LT2 (circular); considerar datos de FC para mayor precision."]
+                    if vo2max_source == "lt2_derived" else []
+                ),
+                anchors=list(inputs["anchors"]),
+                confidence_factors=list(inputs["confidence_factors"]),
+            )
+        )
+
+    # ── VLamax estimate ─────────────────────────────────────────────────
+    vlamax_val = inputs.get("vlamax", 0.35)
+    vlamax_conf = inputs.get("vlamax_confidence", 0.3)
+    vlamax_method = inputs.get("vlamax_method", "default_neutral")
+
+    vlamax_steps = [
+        "Se estima VLamax desde multiples senales fisiologicas (Mader 2003, Olbrecht):",
+    ]
+    if "lt1_lt2_ratio" in vlamax_method:
+        vlamax_steps.append("  - Ratio LT1/LT2: atletas con LT1 cercano a LT2 tienen VLamax baja (diesel).")
+    if "lactate_steepness" in vlamax_method:
+        vlamax_steps.append("  - Pendiente de lactato entre LT1 y LT2: subida rapida indica VLamax alta.")
+    if "vo2max_headroom" in vlamax_method:
+        vlamax_steps.append("  - Headroom VO2max: LT2 cercano al techo → VLamax baja.")
+
     estimates.append(
         _estimate_payload(
             estimate_type="VLAMAX",
             discipline="running",
             power_source=power_source,
-            value=vlamax,
+            value=vlamax_val,
             unit="mmol/L/s",
-            confidence=_clamp(inputs["base_confidence"] - 0.16, 0.3, 0.8),
+            confidence=_clamp(vlamax_conf, 0.25, 0.78),
             snapshot_date=snapshot_date,
-            variables_used=["lt1_lactate", "lt2_lactate", "lt1_lt2_gap", "history_depth"],
+            variables_used=["lt1_lactate", "lt2_lactate", "lt1_lt2_gap", "vo2max", "history_depth"],
             evidence_points=history_depth,
-            explanation="Proxy glucolitico conservador derivado del salto LT1-LT2 y del sesgo hacia esfuerzos cortos frente a sostenidos.",
-            spread=0.12 if history_depth >= 3 else 0.18,
-            method_used="lt_gap_glycolytic_proxy_v1",
-            primary_anchor="lt1_lt2_gap",
+            explanation=(
+                f"VLamax estimada: {round(vlamax_val, 2)} mmol/L/s — "
+                f"{'diesel (baja produccion glucolitica)' if vlamax_val < 0.30 else 'sprinter (alta produccion glucolitica)' if vlamax_val > 0.45 else 'perfil equilibrado'}. "
+                "Modula rendimiento sostenible: baja VLamax favorece larga distancia, alta VLamax favorece 5K-10K."
+            ),
+            spread=0.10 if len(vlamax_method.split("+")) >= 2 else 0.16,
+            method_used=vlamax_method,
+            primary_anchor="lt1_lt2_ratio+vo2max",
             agreement_score=inputs["agreement_score"],
-            range_summary="Proxy orientativo; conviene no interpretarlo como medicion directa de VLaMax.",
-            calculation_steps=[
-                "Se observa la separacion LT1-LT2 como senal indirecta del perfil glucolitico.",
-                "Se reduce la agresividad del ajuste cuando falta historico o LT1 es menos robusto.",
-            ],
-            cautions=list(inputs["cautions"]) + ["VLaMax sigue siendo una aproximacion indirecta mientras no exista protocolo especifico."],
+            range_summary="VLamax compuesta desde ratio LT1/LT2, pendiente de lactato y headroom VO2max (Mader/Olbrecht).",
+            calculation_steps=vlamax_steps,
+            cautions=list(inputs["cautions"]) + ["VLamax sigue siendo una aproximacion indirecta; un test especifico la confirmaria."],
             anchors=list(inputs["anchors"]),
             confidence_factors=list(inputs["confidence_factors"]),
         )
@@ -674,6 +1044,7 @@ def build_performance_estimates(
     power_source: Optional[str] = None,
     dynamic_thresholds: Optional[dict[str, Any]] = None,
     snapshots: Optional[list[PhysiologicalSnapshot]] = None,
+    swain_vo2max: Optional[dict[str, Any]] = None,
 ) -> list[dict[str, Any]]:
     snapshots = snapshots or []
     normalized_discipline = discipline or athlete.primary_discipline
@@ -686,6 +1057,7 @@ def build_performance_estimates(
             discipline=normalized_discipline,
             power_source=power_source,
             history_depth=history_depth,
+            swain_vo2max=swain_vo2max,
         )
         if not running_inputs:
             return []
