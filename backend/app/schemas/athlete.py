@@ -159,6 +159,7 @@ class AthleteRead(AthleteBase):
     strava_connected: bool = False
     garmin_user_id: Optional[int] = None
     garmin_connected: bool = False
+    cycling_interpolated_from_running: bool = False
     weights: list[AthleteWeightHistoryRead] = []
     focus_blocks: list[AthleteFocusBlockRead] = []
     targets: list[AthleteTargetRead] = []

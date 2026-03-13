@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import BigInteger, Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -33,6 +33,8 @@ class Athlete(Base):
     garmin_token_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     garmin_connected_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     garmin_last_sync_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    cycling_interpolated_from_running: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    """Si True, los umbrales de ciclismo se interpolan automáticamente desde running."""
     created_at: Mapped[date] = mapped_column(Date)
     coach_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
 

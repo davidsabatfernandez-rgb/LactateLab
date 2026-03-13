@@ -2191,7 +2191,10 @@ def athlete_analysis_payload(db: Session, athlete_id: int) -> dict[str, Any]:
             },
         )
 
-    available_disciplines = sorted({session.discipline for session in athlete.sessions})
+    available_disciplines = sorted(
+        {session.discipline for session in athlete.sessions}
+        | {snapshot.discipline for snapshot in snapshots if snapshot.discipline}
+    )
     discipline_views = {
         discipline: _discipline_view(athlete, discipline, athlete.sessions, snapshots, estimates)
         for discipline in available_disciplines

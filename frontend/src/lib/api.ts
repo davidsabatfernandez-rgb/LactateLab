@@ -412,4 +412,9 @@ export const api = {
   importCommit: (token: string, formData: FormData) => requestForm("/sessions/import/commit", formData, token),
   compare: (token: string, sessionA: number, sessionB: number) =>
     request(`/analytics/compare?session_a=${sessionA}&session_b=${sessionB}`, { token }),
+  interpolateCyclingFromRunning: (token: string, athleteId: number) =>
+    request<{ status: string; lt1_hr_cycling: number | null; lt2_hr_cycling: number | null; lt1_hr_running: number | null; lt2_hr_running: number | null; hr_offset_applied: number; confidence: number; warnings: string[]; snapshot_id: number }>(
+      `/athletes/${athleteId}/interpolate-cycling-from-running`,
+      { token, method: "POST" },
+    ),
 };

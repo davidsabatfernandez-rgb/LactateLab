@@ -1845,10 +1845,21 @@ function thresholdPrimaryValue(threshold: ThresholdDisplay, discipline: string, 
   if (discipline === "ciclismo" && threshold.power_watts) {
     return formatPowerWithWeight(threshold.power_watts, athleteWeight);
   }
-  return formatPace(threshold.pace_seconds_per_km);
+  if (threshold.pace_seconds_per_km) {
+    return formatPace(threshold.pace_seconds_per_km);
+  }
+  // HR-only threshold (interpolated cycling)
+  if (threshold.heart_rate) {
+    return `${threshold.heart_rate} bpm`;
+  }
+  return "-";
 }
 
 function thresholdSecondaryValue(threshold: ThresholdDisplay, discipline: string) {
+  // HR-only interpolated threshold
+  if (!threshold.pace_seconds_per_km && !threshold.power_watts && !threshold.lactate && threshold.heart_rate) {
+    return "Interpolado desde running (HR bridge)";
+  }
   if (discipline === "ciclismo") {
     return `${threshold.lactate?.toFixed(1) ?? "-"} mmol/L · ${threshold.heart_rate ?? "-"} bpm`;
   }
@@ -1856,6 +1867,10 @@ function thresholdSecondaryValue(threshold: ThresholdDisplay, discipline: string
 }
 
 function thresholdDetailLine(threshold: ThresholdDisplay, discipline: string, athleteWeight?: number | null) {
+  // HR-only interpolated threshold
+  if (!threshold.pace_seconds_per_km && !threshold.power_watts && threshold.heart_rate) {
+    return `FC ${threshold.heart_rate} bpm · Potencia pendiente (necesita entrenos en bici)`;
+  }
   if (discipline === "ciclismo") {
     return `Potencia ${formatPowerWithWeight(threshold.power_watts, athleteWeight)} · FC ${threshold.heart_rate ?? "-"} bpm · Lactato ${threshold.lactate?.toFixed(1) ?? "-"} mmol/L`;
   }
@@ -2176,6 +2191,8 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const [trainingGoal, setTrainingGoal] = useState("");
   const [goalCategory, setGoalCategory] = useState("media_distancia");
   const [activeDiscipline, setActiveDiscipline] = useState("running");
+  const [interpolatingCycling, setInterpolatingCycling] = useState(false);
+  const [interpolationResult, setInterpolationResult] = useState<{ lt1_hr_cycling: number | null; lt2_hr_cycling: number | null; lt1_hr_running: number | null; lt2_hr_running: number | null; hr_offset_applied: number; warnings: string[]; confidence: number } | null>(null);
   const [performedAt, setPerformedAt] = useState(new Date().toISOString().slice(0, 16));
   const [discipline, setDiscipline] = useState("running");
   const [sessionBaselineLactate, setSessionBaselineLactate] = useState("");
@@ -4435,6 +4452,75 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         </div>
       </section>
 
+      {/* Botón de interpolación ciclismo desde running */}
+      {activeDiscipline === "ciclismo" && !visibleThresholdCards.length && analysis?.discipline_views?.running && (
+        <section className="ad-interpolation-banner" style={{ margin: "0 0 16px", padding: "16px 20px", background: "rgba(255,165,0,0.08)", border: "1px solid rgba(255,165,0,0.25)", borderRadius: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 14, color: "var(--text-secondary, #94a3b8)" }}>
+              Sin tests de lactato en ciclismo.
+            </span>
+            <button
+              type="button"
+              className="ghost-button"
+              disabled={interpolatingCycling}
+              style={{ fontSize: 13, padding: "6px 14px", border: "1px solid rgba(255,165,0,0.4)", borderRadius: 8, color: "#f59e0b" }}
+              onClick={async () => {
+                if (!analysis?.athlete.id) return;
+                setInterpolatingCycling(true);
+                setInterpolationResult(null);
+                try {
+                  const res = await api.interpolateCyclingFromRunning(token, analysis.athlete.id);
+                  setInterpolationResult({ lt1_hr_cycling: res.lt1_hr_cycling, lt2_hr_cycling: res.lt2_hr_cycling, lt1_hr_running: res.lt1_hr_running, lt2_hr_running: res.lt2_hr_running, hr_offset_applied: res.hr_offset_applied, warnings: res.warnings, confidence: res.confidence });
+                  await onSaved();
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : "Error al interpolar";
+                  setInterpolationResult({ lt1_hr_cycling: null, lt2_hr_cycling: null, lt1_hr_running: null, lt2_hr_running: null, hr_offset_applied: 0, warnings: [msg], confidence: 0 });
+                } finally {
+                  setInterpolatingCycling(false);
+                }
+              }}
+            >
+              {interpolatingCycling ? "Interpolando..." : "Estimar FC ciclismo desde running (HR bridge)"}
+            </button>
+          </div>
+          {interpolationResult && (
+            <div style={{ marginTop: 10 }}>
+              {(interpolationResult.lt1_hr_cycling || interpolationResult.lt2_hr_cycling) ? (
+                <div style={{ fontSize: 13, color: "var(--text-primary, #e2e8f0)" }}>
+                  <p style={{ margin: "0 0 4px" }}>
+                    {interpolationResult.lt1_hr_cycling && <>LT1 ciclismo ≈ <strong>{interpolationResult.lt1_hr_cycling} bpm</strong></>}
+                    {interpolationResult.lt1_hr_cycling && interpolationResult.lt2_hr_cycling && " · "}
+                    {interpolationResult.lt2_hr_cycling && <>LT2 ciclismo ≈ <strong>{interpolationResult.lt2_hr_cycling} bpm</strong></>}
+                    <span style={{ marginLeft: 8, fontSize: 12, color: "#94a3b8" }}>
+                      (confianza: {(interpolationResult.confidence * 100).toFixed(0)}%)
+                    </span>
+                  </p>
+                  <p style={{ margin: "2px 0 0", fontSize: 12, color: "#94a3b8" }}>
+                    Origen running: {interpolationResult.lt1_hr_running && <>LT1 {interpolationResult.lt1_hr_running} bpm</>}
+                    {interpolationResult.lt1_hr_running && interpolationResult.lt2_hr_running && " · "}
+                    {interpolationResult.lt2_hr_running && <>LT2 {interpolationResult.lt2_hr_running} bpm</>}
+                    {" "}(−{interpolationResult.hr_offset_applied} bpm, Millet 2009)
+                  </p>
+                  <p style={{ margin: "4px 0 0", fontSize: 11, color: "#64748b" }}>
+                    Para estimar potencia se necesitan entrenos en bici con potenciómetro.
+                  </p>
+                </div>
+              ) : null}
+              {interpolationResult.warnings.map((w, i) => (
+                <p key={i} style={{ fontSize: 12, color: "#f59e0b", margin: "4px 0 0" }}>⚠ {w}</p>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Indicador cuando ciclismo tiene datos interpolados */}
+      {activeDiscipline === "ciclismo" && visibleThresholdCards.length > 0 && displayView?.latest_snapshot_date && (displayView as any)?.thresholds?.some?.((t: any) => t.method?.includes?.("hr_bridge")) && (
+        <div style={{ margin: "0 0 12px", padding: "8px 14px", background: "rgba(255,165,0,0.06)", border: "1px solid rgba(255,165,0,0.15)", borderRadius: 8, fontSize: 12, color: "#f59e0b" }}>
+          ⚠ FC de umbrales interpolada desde running (HR bridge, Millet 2009). Un test de lactato en bicicleta mejorará la precisión.
+        </div>
+      )}
+
       {visibleThresholdCards.length || relevantEstimates.length ? (
         <section className="metrics-grid metrics-strip ad-threshold-row">
           {visibleThresholdCards.map((threshold) => (
@@ -4949,6 +5035,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                     <p className="muted">Aún no hay suficientes datos ciclistas para comparar potenciómetro exterior e interior.</p>
                   )
                 ) : plotView.pool.length ? (
+                  /* Standard lactate scatter chart */
                   <ResponsiveContainer width="100%" height={360}>
                     <ScatterChart margin={{ top: 16, right: 20, bottom: 16, left: 8 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
@@ -5074,11 +5161,55 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                       ) : null}
                     </ScatterChart>
                   </ResponsiveContainer>
-                ) : (
-                  <p className="muted">
-                    Aún no hay suficientes muestras de lactato para representar {disciplineLabel(disciplineKey).toLowerCase()}.
-                  </p>
-                )}
+                ) : (() => {
+                  // HR-only interpolated cycling thresholds → show HR zone bar
+                  const hrLt1 = plotView.lt1?.heart_rate ?? null;
+                  const hrLt2 = plotView.lt2?.heart_rate ?? null;
+                  const isInterpolatedHr = disciplineKey === "ciclismo" && (hrLt1 || hrLt2) && !plotView.lt1?.power_watts && !plotView.lt2?.power_watts;
+                  if (isInterpolatedHr) {
+                    const minHr = Math.max(60, (hrLt1 ?? hrLt2 ?? 140) - 30);
+                    const maxHr = (hrLt2 ?? hrLt1 ?? 170) + 20;
+                    const range = maxHr - minHr;
+                    const lt1Pct = hrLt1 ? ((hrLt1 - minHr) / range) * 100 : null;
+                    const lt2Pct = hrLt2 ? ((hrLt2 - minHr) / range) * 100 : null;
+                    return (
+                      <div style={{ padding: "24px 0" }}>
+                        <div style={{ position: "relative", height: 72, borderRadius: 12, overflow: "hidden", background: "linear-gradient(90deg, rgba(37,122,77,0.15) 0%, rgba(37,122,77,0.25) " + (lt1Pct ?? 40) + "%, rgba(245,158,11,0.18) " + (lt1Pct ?? 40) + "%, rgba(245,158,11,0.28) " + (lt2Pct ?? 75) + "%, rgba(210,106,54,0.25) " + (lt2Pct ?? 75) + "%, rgba(210,106,54,0.35) 100%)" }}>
+                          {/* Zone labels */}
+                          <div style={{ position: "absolute", top: 8, left: 12, fontSize: 11, color: "#257a4d", fontWeight: 600, opacity: 0.8 }}>Z1 Aeróbico</div>
+                          {lt1Pct !== null && lt2Pct !== null && (
+                            <div style={{ position: "absolute", top: 8, left: `${(lt1Pct + lt2Pct) / 2}%`, transform: "translateX(-50%)", fontSize: 11, color: "#b45309", fontWeight: 600, opacity: 0.8 }}>Z2 Tempo</div>
+                          )}
+                          <div style={{ position: "absolute", top: 8, right: 12, fontSize: 11, color: "#d26a36", fontWeight: 600, opacity: 0.8 }}>Z3 Umbral</div>
+                          {/* LT1 marker */}
+                          {lt1Pct !== null && hrLt1 && (
+                            <div style={{ position: "absolute", left: `${lt1Pct}%`, top: 0, bottom: 0, width: 2, background: "#257a4d" }}>
+                              <div style={{ position: "absolute", bottom: -22, left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap", fontSize: 12, fontWeight: 700, color: "#257a4d" }}>
+                                LT1 {hrLt1} bpm
+                              </div>
+                            </div>
+                          )}
+                          {/* LT2 marker */}
+                          {lt2Pct !== null && hrLt2 && (
+                            <div style={{ position: "absolute", left: `${lt2Pct}%`, top: 0, bottom: 0, width: 2, background: "#d26a36" }}>
+                              <div style={{ position: "absolute", bottom: -22, left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap", fontSize: 12, fontWeight: 700, color: "#d26a36" }}>
+                                LT2 {hrLt2} bpm
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <p style={{ marginTop: 32, fontSize: 12, color: "#94a3b8", textAlign: "center" }}>
+                          Zonas de FC estimadas desde running (HR bridge, Millet 2009). Realiza un test de lactato en bici para obtener potencia y zonas precisas.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <p className="muted">
+                      Aún no hay suficientes muestras de lactato para representar {disciplineLabel(disciplineKey).toLowerCase()}.
+                    </p>
+                  );
+                })()}
               </div>
             );
           })()}

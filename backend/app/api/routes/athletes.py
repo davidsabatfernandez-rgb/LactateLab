@@ -313,6 +313,119 @@ def recalculate(athlete_id: int, db: Session = Depends(get_db), _: User = Depend
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@router.post("/{athlete_id}/interpolate-cycling-from-running")
+def interpolate_cycling(athlete_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    """Interpola umbrales de ciclismo (FC) a partir de la FC de running.
+
+    HR bridge (Millet 2009, Hue 1998): la FC en ciclismo es ~5-10 bpm
+    menor que en running a la misma intensidad metabólica.
+    Guarda un snapshot de ciclismo con umbrales en HR (sin watts).
+    """
+    from datetime import date as date_cls
+    from app.models.metrics import PhysiologicalSnapshot
+    from app.services.threshold_interpolation import interpolate_running_to_cycling
+
+    athlete = db.scalar(select(Athlete).where(Athlete.id == athlete_id))
+    if athlete is None:
+        raise HTTPException(status_code=404, detail="Athlete not found")
+
+    # Buscar el snapshot running más reciente
+    running_snapshot = db.scalars(
+        select(PhysiologicalSnapshot)
+        .where(PhysiologicalSnapshot.athlete_id == athlete_id)
+        .where(PhysiologicalSnapshot.discipline == "running")
+        .order_by(PhysiologicalSnapshot.snapshot_date.desc())
+    ).first()
+
+    if running_snapshot is None:
+        raise HTTPException(
+            status_code=400,
+            detail="No hay datos de running para interpolar. Realiza primero un test de lactato en carrera a pie."
+        )
+
+    if not running_snapshot.lt2_heart_rate:
+        raise HTTPException(
+            status_code=400,
+            detail="El test de running no tiene frecuencia cardíaca en LT2. Necesaria para interpolar."
+        )
+
+    # Interpolar
+    result = interpolate_running_to_cycling(
+        lt1_heart_rate=running_snapshot.lt1_heart_rate,
+        lt2_heart_rate=running_snapshot.lt2_heart_rate,
+        athlete_level=athlete.athlete_level or "trained",
+    )
+
+    if result.lt2_hr_cycling is None:
+        raise HTTPException(
+            status_code=400,
+            detail="No se pudo interpolar. " + "; ".join(result.warnings)
+        )
+
+    # Crear snapshot de ciclismo interpolado (solo HR, sin watts)
+    today = date_cls.today()
+    snapshot = PhysiologicalSnapshot(
+        athlete_id=athlete_id,
+        session_id=running_snapshot.session_id,
+        snapshot_date=today,
+        discipline="ciclismo",
+        power_source="interpolated_from_running",
+        lt1_heart_rate=result.lt1_hr_cycling,
+        lt2_heart_rate=result.lt2_hr_cycling,
+        method="hr_bridge_millet2009_hue1998",
+        confidence=result.confidence,
+        summary=(
+            f"HR interpolada desde running (−{result.hr_offset_applied} bpm). "
+            f"{result.method_detail}"
+        ),
+        payload={
+            "source": "interpolated_from_running",
+            "running_snapshot_id": running_snapshot.id,
+            "running_snapshot_date": str(running_snapshot.snapshot_date),
+            "hr_offset_applied": result.hr_offset_applied,
+            "method_detail": result.method_detail,
+            "warnings": result.warnings,
+            "thresholds": [
+                {
+                    "name": "LT1",
+                    "heart_rate": result.lt1_hr_cycling,
+                    "heart_rate_running": result.lt1_hr_running,
+                    "confidence": result.confidence,
+                    "method": "hr_bridge_millet2009_hue1998",
+                    "rationale": f"HR LT1 running ({result.lt1_hr_running} bpm) − {result.hr_offset_applied} bpm = {result.lt1_hr_cycling} bpm",
+                },
+                {
+                    "name": "LT2",
+                    "heart_rate": result.lt2_hr_cycling,
+                    "heart_rate_running": result.lt2_hr_running,
+                    "confidence": result.confidence,
+                    "method": "hr_bridge_millet2009_hue1998",
+                    "rationale": f"HR LT2 running ({result.lt2_hr_running} bpm) − {result.hr_offset_applied} bpm = {result.lt2_hr_cycling} bpm",
+                },
+            ],
+            "power_pending": True,
+            "power_note": "Para estimar watts, se necesitan entrenamientos en bici con potenciómetro.",
+        },
+    )
+    db.add(snapshot)
+
+    # Activar preferencia
+    athlete.cycling_interpolated_from_running = True
+    db.commit()
+
+    return {
+        "status": "ok",
+        "lt1_hr_cycling": result.lt1_hr_cycling,
+        "lt2_hr_cycling": result.lt2_hr_cycling,
+        "lt1_hr_running": result.lt1_hr_running,
+        "lt2_hr_running": result.lt2_hr_running,
+        "hr_offset_applied": result.hr_offset_applied,
+        "confidence": result.confidence,
+        "warnings": result.warnings,
+        "snapshot_id": snapshot.id,
+    }
+
+
 @router.get("/{athlete_id}/analysis", response_model=AthleteAnalysisRead)
 def athlete_analysis(athlete_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     try:
