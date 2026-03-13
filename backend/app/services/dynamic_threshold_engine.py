@@ -1188,7 +1188,12 @@ def _build_model(
         config=config,
     )
     # Override LT1 practical with REAL LT1 − 0.3 mmol when detected by curve analysis.
-    if physiological_lt1_lactate_mmol is not None and physiological_lt1_lactate_mmol > 0.8:
+    # Only apply when the physiological LT1 is plausible (≤ 2.5 mmol). Higher values
+    # indicate a flat curve where LT1 detection is unreliable — keep the default target.
+    if (
+        physiological_lt1_lactate_mmol is not None
+        and 0.8 < physiological_lt1_lactate_mmol <= 2.5
+    ):
         practical_lt1_target = round(physiological_lt1_lactate_mmol - 0.3, 2)
         lt1_target_notes = [f"LT1 práctico derivado del LT1 REAL detectado ({physiological_lt1_lactate_mmol:.2f} mmol) − 0.3 mmol."]
     # I1 fix: individualise practical LT2 target.
@@ -1197,7 +1202,7 @@ def _build_model(
     _level_targets = {"recreational": 3.5, "trained": 3.1, "competitive": 2.8}
     _level_default = _level_targets.get(getattr(athlete, "athlete_level", "trained"), 3.1)
 
-    if physiological_lt2_lactate_mmol is not None and physiological_lt2_lactate_mmol > 1.5:
+    if physiological_lt2_lactate_mmol is not None and 1.5 < physiological_lt2_lactate_mmol <= 6.0:
         practical_lt2_target = round(physiological_lt2_lactate_mmol - 0.5, 2)
     else:
         practical_lt2_target = _level_default

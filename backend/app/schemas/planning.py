@@ -222,6 +222,16 @@ class CoachSessionEditRequest(BaseModel):
     swapped_template_id: Optional[str] = None  # template_id si el entrenador swapea
 
 
+class WorkoutStepsEditRequest(BaseModel):
+    """Edición directa del workout estructurado por el entrenador.
+
+    Permite guardar una WorkoutDefinition editada manualmente (cambios en
+    duración de intervalos, zonas, repeticiones, etc.).  Marca la sesión
+    como ``coach_edited`` para que la exportación a Garmin use esta versión.
+    """
+    workout: WorkoutDefinition
+
+
 class BlaCheckUpdateRequest(BaseModel):
     bla_check: bool
 
@@ -313,6 +323,18 @@ class BlockExplanationRead(BaseModel):
     max_weeks: int
 
 
+class CapacityProfileRead(BaseModel):
+    aerobic_level: str
+    vlamax_level: str
+    lt1_lt2_ratio: Optional[float] = None
+    vo2max_estimated: Optional[float] = None
+    vo2max_source: Optional[str] = None
+    vo2max_confidence: float = 0.0
+    fractional_utilization: Optional[float] = None
+    source: str
+    confidence: float
+
+
 class PhysiologicalAnalysisRead(BaseModel):
     data_quality: str
     season_phase: Optional[str] = None
@@ -343,6 +365,7 @@ class PhysiologicalAnalysisRead(BaseModel):
     borderline_note: str = ""
     block_rationale: Optional[BlockRationaleRead] = None
     block_explanation: Optional[BlockExplanationRead] = None
+    capacity_profile: Optional[CapacityProfileRead] = None
 
 
 class MesocycleRecommendationRead(BaseModel):

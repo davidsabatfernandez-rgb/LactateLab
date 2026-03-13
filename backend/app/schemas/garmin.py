@@ -56,6 +56,12 @@ class GarminActivityRead(BaseModel):
     raw_detail: dict[str, Any] = Field(default_factory=dict)
 
 
+class GarminPushWorkoutResponse(BaseModel):
+    session_id: int
+    garmin_workout_id: Optional[int] = None
+    status: str
+
+
 class GarminActivitiesPreviewResponse(BaseModel):
     athlete_id: int
     athlete_name: str

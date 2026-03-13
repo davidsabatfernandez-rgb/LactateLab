@@ -586,3 +586,207 @@ def _normalize_latlng(value: Any) -> list[float]:
         if parsed is not None:
             normalized.append(parsed)
     return normalized
+
+
+# ---------------------------------------------------------------------------
+# Garmin Workout Push — enviar entrenos estructurados a Garmin Connect
+# ---------------------------------------------------------------------------
+
+_SPORT_TYPE_MAP: dict[str, dict[str, Any]] = {
+    "running": {"sportTypeId": 1, "sportTypeKey": "running"},
+    "ciclismo": {"sportTypeId": 2, "sportTypeKey": "cycling"},
+    "natación": {"sportTypeId": 5, "sportTypeKey": "swimming"},
+    "triatlón": {"sportTypeId": 1, "sportTypeKey": "running"},
+    "other": {"sportTypeId": 1, "sportTypeKey": "running"},
+}
+
+_STEP_TYPE_MAP: dict[str, dict[str, Any]] = {
+    "warmup": {"stepTypeId": 1, "stepTypeKey": "warmup"},
+    "cooldown": {"stepTypeId": 2, "stepTypeKey": "cooldown"},
+    "interval": {"stepTypeId": 3, "stepTypeKey": "interval"},
+    "recovery": {"stepTypeId": 4, "stepTypeKey": "recovery"},
+    "steady": {"stepTypeId": 3, "stepTypeKey": "interval"},
+    "other": {"stepTypeId": 3, "stepTypeKey": "interval"},
+    "repeat": {"stepTypeId": 6, "stepTypeKey": "repeat"},
+}
+
+_END_CONDITION_MAP: dict[str, dict[str, Any]] = {
+    "time": {"conditionTypeId": 2, "conditionTypeKey": "time"},
+    "distance": {"conditionTypeId": 3, "conditionTypeKey": "distance"},
+    "lap_button": {"conditionTypeId": 1, "conditionTypeKey": "lap.button"},
+    "open": {"conditionTypeId": 1, "conditionTypeKey": "lap.button"},
+}
+
+_INTENSITY_MAP: dict[str, str] = {
+    "warmup": "WARMUP",
+    "cooldown": "COOLDOWN",
+    "interval": "INTERVAL",
+    "recovery": "RECOVERY",
+    "steady": "ACTIVE",
+    "other": "ACTIVE",
+}
+
+_TARGET_TYPE_MAP: dict[str, dict[str, Any]] = {
+    "pace": {"workoutTargetTypeId": 6, "workoutTargetTypeKey": "pace.zone"},
+    "heart_rate": {"workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone"},
+    "power": {"workoutTargetTypeId": 2, "workoutTargetTypeKey": "power.zone"},
+    "cadence": {"workoutTargetTypeId": 3, "workoutTargetTypeKey": "cadence"},
+    "easy": {"workoutTargetTypeId": 1, "workoutTargetTypeKey": "no.target"},
+    "free": {"workoutTargetTypeId": 1, "workoutTargetTypeKey": "no.target"},
+    "rpe": {"workoutTargetTypeId": 1, "workoutTargetTypeKey": "no.target"},
+    "other": {"workoutTargetTypeId": 1, "workoutTargetTypeKey": "no.target"},
+}
+
+
+def _build_garmin_step(step: dict[str, Any], order: int) -> dict[str, Any]:
+    """Convert a WorkoutStep dict to a Garmin workout step DTO."""
+    step_type_key = step.get("step_type", "interval")
+    length_type = step.get("length_type", "open")
+    length_value = step.get("length_value")
+
+    end_condition = _END_CONDITION_MAP.get(length_type, _END_CONDITION_MAP["open"])
+
+    end_condition_value: Any = None
+    if length_type == "time" and length_value:
+        end_condition_value = float(length_value)
+    elif length_type == "distance" and length_value:
+        end_condition_value = float(length_value)
+
+    target = step.get("target") or {}
+    target_type_key = target.get("target_type", "free")
+    garmin_target = _TARGET_TYPE_MAP.get(target_type_key, _TARGET_TYPE_MAP["free"])
+
+    target_value_one: Any = None
+    target_value_two: Any = None
+    if target_type_key == "pace" and target.get("value_from") and target.get("value_to"):
+        target_value_one = float(target["value_from"])
+        target_value_two = float(target["value_to"])
+    elif target_type_key == "heart_rate" and target.get("value_from") and target.get("value_to"):
+        target_value_one = float(target["value_from"])
+        target_value_two = float(target["value_to"])
+    elif target_type_key == "power" and target.get("value_from") and target.get("value_to"):
+        target_value_one = float(target["value_from"])
+        target_value_two = float(target["value_to"])
+
+    garmin_step: dict[str, Any] = {
+        "type": "ExecutableStepDTO",
+        "stepId": None,
+        "stepOrder": order,
+        "stepType": _STEP_TYPE_MAP.get(step_type_key, _STEP_TYPE_MAP["interval"]),
+        "endCondition": end_condition,
+        "preferredEndConditionUnit": None,
+        "endConditionValue": end_condition_value,
+        "targetType": garmin_target,
+        "targetValueOne": target_value_one,
+        "targetValueTwo": target_value_two,
+        "intensity": _INTENSITY_MAP.get(step_type_key, "ACTIVE"),
+    }
+
+    description = step.get("instructions") or step.get("intensity_label") or ""
+    if description:
+        garmin_step["description"] = description[:200]
+
+    return garmin_step
+
+
+def _build_garmin_repeat_step(step: dict[str, Any], order: int, child_steps: list[dict[str, Any]]) -> dict[str, Any]:
+    """Convert a repeat WorkoutStep to a Garmin repeat DTO."""
+    return {
+        "type": "RepeatGroupDTO",
+        "stepId": None,
+        "stepOrder": order,
+        "stepType": _STEP_TYPE_MAP["repeat"],
+        "numberOfIterations": step.get("repeat_count", 1),
+        "workoutSteps": child_steps,
+        "smartRepeat": False,
+    }
+
+
+def workout_definition_to_garmin_payload(definition: dict[str, Any]) -> dict[str, Any]:
+    """Convert a full WorkoutDefinition dict to a Garmin Connect workout JSON payload."""
+    sport = definition.get("sport", "running")
+    sport_type = _SPORT_TYPE_MAP.get(sport, _SPORT_TYPE_MAP["running"])
+
+    steps: list[dict[str, Any]] = []
+    order = 1
+    for step in definition.get("steps", []):
+        if step.get("step_type") == "repeat":
+            children = step.get("children", [])
+            child_garmin_steps = []
+            for child in children:
+                child_garmin_steps.append(_build_garmin_step(child, order))
+                order += 1
+            steps.append(_build_garmin_repeat_step(step, order, child_garmin_steps))
+            order += 1
+        else:
+            steps.append(_build_garmin_step(step, order))
+            order += 1
+
+    return {
+        "workoutName": definition.get("title", "Workout"),
+        "description": definition.get("description") or "",
+        "sportType": sport_type,
+        "workoutSegments": [
+            {
+                "segmentOrder": 1,
+                "sportType": sport_type,
+                "workoutSteps": steps,
+            }
+        ],
+    }
+
+
+def push_workout_to_garmin(
+    db: Session,
+    athlete: Athlete,
+    workout_definition: dict[str, Any],
+    *,
+    scheduled_date: str | None = None,
+) -> dict[str, Any]:
+    """Push a structured workout to Garmin Connect for the athlete.
+
+    Returns the Garmin response (includes workoutId on success).
+    """
+    if not athlete.garmin_connected or not athlete.garmin_email or not athlete.garmin_password_encrypted:
+        raise GarminRequestError("Athlete does not have Garmin connected", status_code=400)
+
+    email = athlete.garmin_email
+    password = decrypt_secret(athlete.garmin_password_encrypted)
+    token = decrypt_secret(athlete.garmin_token_encrypted) if athlete.garmin_token_encrypted else None
+
+    garmin_payload = workout_definition_to_garmin_payload(workout_definition)
+
+    with _garmin_session(email=email, password=password, token=token, allow_reauth=True) as garth_client:
+        try:
+            result = garth_client.connectapi(
+                "/workout-service/workout",
+                method="POST",
+                json=garmin_payload,
+            )
+        except Exception as exc:
+            raise GarminRequestError(f"Failed to push workout to Garmin: {exc}", status_code=502) from exc
+
+        # Schedule the workout on the calendar if we have a date and workoutId
+        garmin_workout_id = None
+        if isinstance(result, dict):
+            garmin_workout_id = result.get("workoutId")
+
+        if garmin_workout_id and scheduled_date:
+            try:
+                garth_client.connectapi(
+                    f"/workout-service/schedule/{garmin_workout_id}",
+                    method="POST",
+                    json={"date": scheduled_date},
+                )
+            except Exception:
+                pass  # scheduling is best-effort; the workout is already created
+
+        # Refresh token
+        athlete.garmin_last_sync_at = datetime.now(timezone.utc)
+        refreshed_token = _export_token(garth_client)
+        if refreshed_token:
+            athlete.garmin_token_encrypted = encrypt_secret(refreshed_token)
+        db.add(athlete)
+        db.commit()
+
+    return result if isinstance(result, dict) else {"status": "sent"}

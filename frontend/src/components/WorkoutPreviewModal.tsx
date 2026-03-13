@@ -1,6 +1,7 @@
-import { type ReactNode, useEffect, useMemo } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
-import { PlanningWorkoutTemplate } from "../types";
+import { PlanningWorkoutTemplate, WorkoutDefinition } from "../types";
+import { WorkoutStepEditor } from "./WorkoutStepEditor";
 
 export type WorkoutPreviewSelection = {
   source: "dose" | "example" | "planning";
@@ -35,6 +36,18 @@ type WorkoutPreviewModalProps = {
     statusLabel?: string;
     statusTone?: "positive" | "neutral" | "negative";
     panel?: ReactNode;
+  } | null;
+  /** If provided, the modal shows an "Editar" button that opens the step editor. */
+  workoutDefinition?: WorkoutDefinition | null;
+  onSaveWorkout?: (workout: WorkoutDefinition) => Promise<void>;
+  onPushToGarmin?: () => Promise<void>;
+  garminConnected?: boolean;
+  publishStatus?: string | null;
+  thresholdReference?: {
+    lt1Label: string | null;
+    lt1Source: string | null;
+    lt2Label: string | null;
+    lt2Source: string | null;
   } | null;
   onClose: () => void;
 };
@@ -338,15 +351,50 @@ function previewSegmentHeight(tone: string) {
   return 0.6;
 }
 
-export function WorkoutPreviewModal({ template, selection, rawInformation, onClose }: WorkoutPreviewModalProps) {
+export function WorkoutPreviewModal({ template, selection, rawInformation, workoutDefinition, onSaveWorkout, onPushToGarmin, garminConnected, publishStatus, thresholdReference, onClose }: WorkoutPreviewModalProps) {
+  const [editMode, setEditMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [pushing, setPushing] = useState(false);
+  const [pushResult, setPushResult] = useState<"ok" | "error" | null>(null);
+
+  const handlePushToGarmin = useCallback(async () => {
+    if (!onPushToGarmin) return;
+    setPushing(true);
+    setPushResult(null);
+    try {
+      await onPushToGarmin();
+      setPushResult("ok");
+    } catch {
+      setPushResult("error");
+    } finally {
+      setPushing(false);
+    }
+  }, [onPushToGarmin]);
+
   useEffect(() => {
     if (!template || !selection) return undefined;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        if (editMode) { setEditMode(false); return; }
+        onClose();
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose, selection, template]);
+  }, [onClose, selection, template, editMode]);
+
+  const handleSaveWorkout = useCallback(async (workout: WorkoutDefinition) => {
+    if (!onSaveWorkout) return;
+    setSaving(true);
+    try {
+      await onSaveWorkout(workout);
+      setEditMode(false);
+    } finally {
+      setSaving(false);
+    }
+  }, [onSaveWorkout]);
+
+  const canEdit = !!(workoutDefinition && onSaveWorkout);
 
   const preview = useMemo(() => {
     if (!template || !selection) return null;
@@ -429,10 +477,40 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, onClo
                 {rawInformation.label ?? "Raw information"}
               </button>
             ) : null}
+            {canEdit && (
+              <button
+                type="button"
+                className={`ghost-button library-workout-edit-toggle ${editMode ? "active" : ""}`}
+                onClick={() => setEditMode((v) => !v)}
+              >
+                {editMode ? "Vista previa" : "Editar entreno"}
+              </button>
+            )}
+            {garminConnected && onPushToGarmin && !editMode && (
+              <button
+                type="button"
+                className={`ghost-button garmin-push-button ${publishStatus === "published" ? "published" : ""} ${pushResult === "ok" ? "success" : pushResult === "error" ? "error" : ""}`}
+                onClick={handlePushToGarmin}
+                disabled={pushing}
+              >
+                {pushing ? "Enviando..." : pushResult === "ok" ? "Enviado a Garmin" : publishStatus === "published" ? "Reenviar a Garmin" : "Enviar a Garmin"}
+              </button>
+            )}
             <button type="button" className="ghost-button library-workout-close" onClick={onClose}>Cerrar</button>
           </div>
         </div>
 
+        {editMode && workoutDefinition && onSaveWorkout ? (
+          <div className="library-workout-editor-container">
+            <WorkoutStepEditor
+              workout={workoutDefinition}
+              onSave={handleSaveWorkout}
+              onCancel={() => setEditMode(false)}
+              saving={saving}
+            />
+          </div>
+        ) : (
+        <>
         <div className="library-workout-hero">
           <div className="library-workout-summary-card">
             <div className="library-workout-badge-row">
@@ -452,6 +530,22 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, onClo
                 <small>Lectura por umbrales</small>
                 <p>{preview.selection.prescriptionHint}</p>
                 {preview.selection.thresholdBasis ? <span>{preview.selection.thresholdBasis}</span> : null}
+              </div>
+            ) : null}
+            {thresholdReference && (thresholdReference.lt1Label || thresholdReference.lt2Label) ? (
+              <div className="library-workout-threshold-ref">
+                {thresholdReference.lt1Label ? (
+                  <span className="threshold-ref-item lt1">
+                    <strong>LT1</strong> {thresholdReference.lt1Label}
+                    {thresholdReference.lt1Source ? <em>{thresholdReference.lt1Source}</em> : null}
+                  </span>
+                ) : null}
+                {thresholdReference.lt2Label ? (
+                  <span className="threshold-ref-item lt2">
+                    <strong>LT2</strong> {thresholdReference.lt2Label}
+                    {thresholdReference.lt2Source ? <em>{thresholdReference.lt2Source}</em> : null}
+                  </span>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -626,6 +720,8 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, onClo
         </div>
 
         {rawInformation?.active && rawInformation.panel ? rawInformation.panel : null}
+        </>
+        )}
       </section>
     </div>
   );

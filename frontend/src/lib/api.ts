@@ -26,7 +26,7 @@ const API_URLS = (
 ).map((url) => normalizeApiUrl(url));
 
 type FetchOptions = RequestInit & { token?: string | null };
-const API_REQUEST_TIMEOUT_MS = 12000;
+const API_REQUEST_TIMEOUT_MS = 30000;
 
 type ApiDebugInfo = {
   configuredApiUrls: string[];
@@ -412,6 +412,17 @@ export const api = {
       token,
       method: "PATCH",
       body: JSON.stringify(edit),
+    }),
+  saveWorkoutSteps: (token: string, sessionId: number, workout: Record<string, unknown>) =>
+    request(`/planning/planned-sessions/${sessionId}/workout-steps`, {
+      token,
+      method: "PATCH",
+      body: JSON.stringify({ workout }),
+    }),
+  pushWorkoutToGarmin: (token: string, athleteId: number, sessionId: number) =>
+    request(`/garmin/athletes/${athleteId}/push-workout/${sessionId}`, {
+      token,
+      method: "POST",
     }),
   sessions: (token: string) => request("/sessions", { token }),
   createSession: (token: string, payload: unknown) =>

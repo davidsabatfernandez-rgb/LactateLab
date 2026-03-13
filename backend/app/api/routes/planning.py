@@ -16,6 +16,7 @@ from app.schemas.planning import (
     PlanningOverviewRead,
     PlanningPlannedSessionRead,
     PlanningWorkoutTemplateRead,
+    WorkoutStepsEditRequest,
 )
 from app.schemas.workout_definition import WorkoutDefinition
 from app.services.planning_engine import recommend_next_mesocycle, workout_library_payload
@@ -206,6 +207,45 @@ def coach_edit_planned_session(
     if body.swapped_template_id is not None:
         session.swapped_template_id = body.swapped_template_id
     prepare_planned_session_for_publish(session)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+@router.patch(
+    "/planned-sessions/{session_id}/workout-steps",
+    response_model=PlanningPlannedSessionRead,
+)
+def edit_workout_steps(
+    session_id: int,
+    body: WorkoutStepsEditRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Guarda una WorkoutDefinition editada manualmente por el entrenador.
+
+    - Persiste el payload estructurado tal cual lo envía el frontend.
+    - Marca ``publish_status = "ready"`` (listo para exportar a Garmin).
+    - El ``source_payload`` se enriquece con ``coach_edited: true``.
+    """
+    session = db.get(PlannedSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Sesión no encontrada.")
+    edited = body.workout.model_copy(
+        update={
+            "source_session_id": session.id,
+            "source_payload": {
+                **body.workout.source_payload,
+                "coach_edited": True,
+            },
+        }
+    )
+    from datetime import datetime, timezone
+
+    session.structured_workout_payload = edited.model_dump()
+    session.publish_status = "ready"
+    session.publish_error = None
+    session.structured_workout_generated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(session)
     return session

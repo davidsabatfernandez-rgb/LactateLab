@@ -234,6 +234,10 @@ class CapacityProfile:
 
     Proxy del modelo VO2max/VLamax de Olbrecht/Mader sin necesitar tests directos.
     La confianza crece conforme los thresholds mejoran: interpolados → básicos → reales.
+
+    Nuevo (2026-03-13): VO2max estimado via Swain+ACSM (HR-based) y fractional
+    utilization (%VO2max al que se encuentra LT2). Permite diferenciar atletas
+    con mismos umbrales pero distinto techo aeróbico.
     """
 
     aerobic_level: str           # "high" | "moderate" | "low" | "unknown"
@@ -241,6 +245,11 @@ class CapacityProfile:
     confidence: float            # 0.0–1.0
     source: str                  # "real" | "basic" | "interpolated" | "insufficient"
     lt1_lt2_ratio: Optional[float]  # ratio LT1/LT2 (transparencia)
+    # ── VO2max y fractional utilization (Swain + ACSM) ────────────────────
+    vo2max_estimated: Optional[float] = None       # ml/kg/min
+    vo2max_source: Optional[str] = None            # "swain_hr" | "garmin" | "manual" | None
+    vo2max_confidence: float = 0.0                 # 0.0–1.0
+    fractional_utilization: Optional[float] = None # LT2 como % de VO2max (0.0–1.0)
 
 
 @dataclass
@@ -579,6 +588,101 @@ def _infer_threshold_source(lt1_conf: float, lt2_conf: float) -> str:
     return "insufficient"
 
 
+# ── VO2max estimation via Swain+ACSM ──────────────────────────────────────
+# References:
+#   - Swain & Leutholtz (1997): %HRR ≈ %VO2R
+#   - ACSM metabolic equations: running VO2 = 0.2×speed(m/min) + 3.5
+#     cycling VO2 = (power×10.8/weight) + 7
+#   - Faude et al. (2009): LT2 at 75-90% VO2max depending on training level
+
+_VO2_REST = 3.5  # ml/kg/min — resting VO2
+
+# Plausibility bounds for estimated VO2max (ml/kg/min)
+_VO2MAX_FLOOR = 25.0
+_VO2MAX_CEILING = 90.0
+_FRACTIONAL_FLOOR = 0.55   # LT2 < 55% VO2max is implausible
+_FRACTIONAL_CEILING = 0.98  # LT2 > 98% VO2max is implausible
+
+
+def _estimate_vo2_at_intensity_running(speed_kmh: float) -> float:
+    """VO2 at a given running speed (ACSM metabolic equation, flat ground).
+
+    Returns ml/kg/min.
+    """
+    speed_m_per_min = speed_kmh * 1000.0 / 60.0
+    return 0.2 * speed_m_per_min + _VO2_REST
+
+
+def _estimate_vo2_at_intensity_cycling(power_watts: float, weight_kg: float) -> float:
+    """VO2 at a given cycling power (ACSM leg ergometer equation).
+
+    Returns ml/kg/min.
+    """
+    return (power_watts * 10.8 / weight_kg) + 7.0
+
+
+def estimate_vo2max_swain(
+    *,
+    lt2_speed_kmh: Optional[float] = None,
+    lt2_power_watts: Optional[float] = None,
+    lt2_heart_rate: Optional[int] = None,
+    hr_max: Optional[int] = None,
+    hr_rest: Optional[int] = None,
+    weight_kg: Optional[float] = None,
+    discipline: str = "running",
+) -> tuple[Optional[float], Optional[float], float]:
+    """Estimate VO2max using Swain's %HRR ≈ %VO2R equivalence + ACSM equations.
+
+    Returns:
+        (vo2max_ml_kg_min, fractional_utilization, confidence)
+        Any can be None if insufficient data.
+    """
+    # Need HR at LT2, HR max, and HR rest
+    if lt2_heart_rate is None or hr_max is None or hr_rest is None:
+        return None, None, 0.0
+
+    # Sanity checks on HR values
+    if hr_max <= hr_rest or lt2_heart_rate <= hr_rest or lt2_heart_rate >= hr_max:
+        return None, None, 0.0
+
+    # Calculate %HRR at LT2
+    hrr_fraction = (lt2_heart_rate - hr_rest) / (hr_max - hr_rest)
+
+    # %HRR ≈ %VO2R (Swain equivalence)
+    # %VO2R = (VO2_LT2 - VO2rest) / (VO2max - VO2rest)
+    # Solving: VO2max = (VO2_LT2 - VO2rest) / %VO2R + VO2rest
+
+    # Calculate VO2 at LT2 intensity
+    if discipline == "ciclismo" and lt2_power_watts is not None and weight_kg:
+        vo2_at_lt2 = _estimate_vo2_at_intensity_cycling(lt2_power_watts, weight_kg)
+    elif lt2_speed_kmh is not None and lt2_speed_kmh > 0:
+        vo2_at_lt2 = _estimate_vo2_at_intensity_running(lt2_speed_kmh)
+    else:
+        return None, None, 0.0
+
+    if hrr_fraction < 0.40:
+        # LT2 at <40% HRR is physiologically implausible
+        return None, None, 0.0
+
+    vo2max = (vo2_at_lt2 - _VO2_REST) / hrr_fraction + _VO2_REST
+
+    # Plausibility check
+    if vo2max < _VO2MAX_FLOOR or vo2max > _VO2MAX_CEILING:
+        return None, None, 0.0
+
+    fractional = vo2_at_lt2 / vo2max
+    if fractional < _FRACTIONAL_FLOOR or fractional > _FRACTIONAL_CEILING:
+        return None, None, 0.0
+
+    # Confidence based on data quality
+    # Higher confidence when HR spread is wider (more signal)
+    hr_spread = (hr_max - hr_rest)
+    spread_conf = min(hr_spread / 100.0, 1.0)  # 100+ bpm spread → max confidence
+    conf = round(0.55 + 0.20 * spread_conf, 3)  # range: 0.55–0.75
+
+    return round(vo2max, 1), round(fractional, 3), conf
+
+
 def build_capacity_profile(
     lt1_value: Optional[float],
     lt2_value: Optional[float],
@@ -587,6 +691,14 @@ def build_capacity_profile(
     athlete_level: str,
     discipline: str,
     metric_type: str,
+    *,
+    lt2_speed_kmh: Optional[float] = None,
+    lt2_power_watts: Optional[float] = None,
+    lt2_heart_rate: Optional[int] = None,
+    hr_max: Optional[int] = None,
+    hr_rest: Optional[int] = None,
+    weight_kg: Optional[float] = None,
+    garmin_vo2max: Optional[float] = None,
 ) -> CapacityProfile:
     """Construye el perfil de capacidades aeróbica/glucolítica.
 
@@ -666,12 +778,53 @@ def build_capacity_profile(
     else:
         vlamax_level = raw_vlamax
 
+    # ── VO2max estimation (Swain+ACSM) ──────────────────────────────────
+    # Hierarchy: (1) Swain HR-based, (2) Garmin VO2max, (3) None
+    vo2max_est: Optional[float] = None
+    vo2max_src: Optional[str] = None
+    vo2max_conf = 0.0
+    frac_util: Optional[float] = None
+
+    swain_vo2, swain_frac, swain_conf = estimate_vo2max_swain(
+        lt2_speed_kmh=lt2_speed_kmh,
+        lt2_power_watts=lt2_power_watts,
+        lt2_heart_rate=lt2_heart_rate,
+        hr_max=hr_max,
+        hr_rest=hr_rest,
+        weight_kg=weight_kg,
+        discipline=discipline,
+    )
+    if swain_vo2 is not None:
+        vo2max_est = swain_vo2
+        vo2max_src = "swain_hr"
+        vo2max_conf = swain_conf
+        frac_util = swain_frac
+    elif garmin_vo2max is not None and _VO2MAX_FLOOR <= garmin_vo2max <= _VO2MAX_CEILING:
+        vo2max_est = round(garmin_vo2max, 1)
+        vo2max_src = "garmin"
+        vo2max_conf = 0.50
+        # Compute fractional utilization from Garmin VO2max
+        if discipline == "ciclismo" and lt2_power_watts and weight_kg:
+            vo2_at_lt2 = _estimate_vo2_at_intensity_cycling(lt2_power_watts, weight_kg)
+        elif lt2_speed_kmh and lt2_speed_kmh > 0:
+            vo2_at_lt2 = _estimate_vo2_at_intensity_running(lt2_speed_kmh)
+        else:
+            vo2_at_lt2 = None
+        if vo2_at_lt2 is not None and garmin_vo2max > 0:
+            frac_util = round(vo2_at_lt2 / garmin_vo2max, 3)
+            if not (_FRACTIONAL_FLOOR <= frac_util <= _FRACTIONAL_CEILING):
+                frac_util = None  # implausible
+
     return CapacityProfile(
         aerobic_level=aerobic_level,
         vlamax_level=vlamax_level,
         confidence=round(base_conf, 3),
         source=source,
         lt1_lt2_ratio=round(ratio, 3),
+        vo2max_estimated=vo2max_est,
+        vo2max_source=vo2max_src,
+        vo2max_confidence=vo2max_conf,
+        fractional_utilization=frac_util,
     )
 
 
@@ -784,12 +937,58 @@ def _apply_capacity_profile(
             )
             return "aerobic_capacity_block"
 
+        # ── Fractional utilization: diferenciar atletas con mismos umbrales ──
+        # Un atleta con LT2 a >85% de su VO2max está "exprimido" — necesita
+        # subir el techo antes de empujar umbrales (AEP/VO2max blocks).
+        # Un atleta con LT2 a <75% tiene margen para empujar umbrales (THR).
+        # Solo aplica si tenemos VO2max independiente (no derivado del LT2).
+        frac = profile.fractional_utilization
+        if frac is not None and profile.vo2max_confidence >= 0.50:
+            frac_pct = f"{frac:.0%}"
+            vo2_str = f"{profile.vo2max_estimated:.0f}" if profile.vo2max_estimated else "?"
+
+            if frac > 0.85 and season not in {"base_early", "taper"}:
+                # Athlete "exprimido": LT2 close to ceiling — raise ceiling first
+                if recommended in ("threshold_development_block", "aerobic_capacity_block"):
+                    reasons.append(
+                        f"Fractional utilization alta ({frac_pct}, VO2max≈{vo2_str} ml/kg/min vía {profile.vo2max_source}): "
+                        "LT2 está cerca del techo aeróbico — prioridad subir VO2max con "
+                        "potencia aeróbica (AEP) antes de empujar umbral."
+                    )
+                    return "aerobic_power_block"
+
+            elif frac < 0.75 and season not in {"base_early", "taper"}:
+                # Athlete with headroom: can push thresholds directly
+                if recommended == "aerobic_power_block":
+                    reasons.append(
+                        f"Fractional utilization baja ({frac_pct}, VO2max≈{vo2_str} ml/kg/min vía {profile.vo2max_source}): "
+                        "amplio margen entre LT2 y techo — el umbral es el limitante, "
+                        "THR tiene mejor retorno que subir VO2max."
+                    )
+                    return "threshold_development_block"
+
+            # Add informational context even when not changing block
+            reasons.append(
+                f"VO2max≈{vo2_str} ml/kg/min ({profile.vo2max_source}), "
+                f"LT2 al {frac_pct} del techo aeróbico."
+            )
+
     # ── Confianza media: solo contexto, sin cambio de bloque ─────────────
-    reasons.append(
-        f"Perfil orientativo (ratio LT1/LT2={ratio_str}): "
-        f"aeróbico {aerobic} / VLamax {vlamax}. "
-        f"Confianza {profile.confidence:.0%} — confirmar con más tests."
-    )
+    frac = profile.fractional_utilization
+    if frac is not None and profile.vo2max_confidence >= 0.50:
+        vo2_str = f"{profile.vo2max_estimated:.0f}" if profile.vo2max_estimated else "?"
+        reasons.append(
+            f"Perfil orientativo (ratio LT1/LT2={ratio_str}, "
+            f"VO2max≈{vo2_str} ml/kg/min, LT2 al {frac:.0%} del techo): "
+            f"aeróbico {aerobic} / VLamax {vlamax}. "
+            f"Confianza {profile.confidence:.0%} — confirmar con más tests."
+        )
+    else:
+        reasons.append(
+            f"Perfil orientativo (ratio LT1/LT2={ratio_str}): "
+            f"aeróbico {aerobic} / VLamax {vlamax}. "
+            f"Confianza {profile.confidence:.0%} — confirmar con más tests."
+        )
     return recommended
 
 
@@ -804,6 +1003,12 @@ def build_physiological_context(
     peak_lactate_1km: Optional[float] = None,
     raw_curve_points: Optional[list[dict]] = None,
     dynamic_thresholds: Optional[dict[str, Any]] = None,
+    *,
+    lt2_heart_rate: Optional[int] = None,
+    hr_max: Optional[int] = None,
+    hr_rest: Optional[int] = None,
+    weight_kg: Optional[float] = None,
+    garmin_vo2max: Optional[float] = None,
 ) -> PhysiologicalContext:
     """Construye el contexto fisiológico para la selección de mesociclo.
 
@@ -834,6 +1039,13 @@ def build_physiological_context(
         athlete_level=athlete_level,
         discipline=discipline,
         metric_type=metric_type,
+        lt2_speed_kmh=lt2_kmh,
+        lt2_power_watts=lt2_power_watts,
+        lt2_heart_rate=lt2_heart_rate,
+        hr_max=hr_max,
+        hr_rest=hr_rest,
+        weight_kg=weight_kg,
+        garmin_vo2max=garmin_vo2max,
     )
 
     return PhysiologicalContext(

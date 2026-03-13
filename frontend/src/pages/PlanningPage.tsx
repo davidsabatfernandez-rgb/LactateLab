@@ -1427,6 +1427,7 @@ function buildSyntheticCalendarWorkoutPreview(
     selection: {
       source: "planning",
       templateId,
+      plannedSessionId: session.rawId,
       label: session.dose || session.title,
       notes: session.description,
       prescriptionHint: buildPlanningPrescriptionHint(session.objective, session.title, discipline, lt1, lt2),
@@ -1734,6 +1735,7 @@ export function PlanningPage({ token }: PlanningPageProps) {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingBlockId, setDeletingBlockId] = useState<number | null>(null);
+  const [ribbonExpanded, setRibbonExpanded] = useState(false);
   const [calendarVisualMode, setCalendarVisualMode] = useState<"month" | "week">("month");
   const [selectedLibrarySourceId, setSelectedLibrarySourceId] = useState<string>("");
   const [selectedCalendarSourceId, setSelectedCalendarSourceId] = useState<string>("");
@@ -2226,7 +2228,9 @@ export function PlanningPage({ token }: PlanningPageProps) {
           .join(" · "),
       });
       setSaveMessage("Bloque guardado como activo desde planificación.");
-      await loadPlanningContext(String(athleteId), selectedDiscipline);
+      // Close composer immediately for snappy UX, reload context in background
+      setSaving(false);
+      loadPlanningContext(String(athleteId), selectedDiscipline);
       return true;
     } catch (loadError) {
       setSaveError(loadError instanceof Error ? loadError.message : "No se pudo guardar el bloque.");
@@ -2729,10 +2733,21 @@ export function PlanningPage({ token }: PlanningPageProps) {
       setPlannedSessionStructuredPreviewLoading(false);
       return;
     }
-    setPlannedSessionStructuredPreview(activePlannedPreviewSession.structured_workout_payload ?? null);
-    setPlannedSessionStructuredPreviewError(null);
-    setPlannedSessionStructuredPreviewLoading(false);
-  }, [activePlannedPreviewSession?.id, activePlannedPreviewSession?.structured_workout_payload]);
+    if (activePlannedPreviewSession.structured_workout_payload) {
+      setPlannedSessionStructuredPreview(activePlannedPreviewSession.structured_workout_payload);
+      setPlannedSessionStructuredPreviewError(null);
+      setPlannedSessionStructuredPreviewLoading(false);
+    } else {
+      // Eagerly fetch structured preview so the editor can work
+      let cancelled = false;
+      setPlannedSessionStructuredPreviewLoading(true);
+      api.plannedSessionWorkoutDefinitionPreview(token, activePlannedPreviewSession.id)
+        .then((payload) => { if (!cancelled) setPlannedSessionStructuredPreview(payload as WorkoutDefinition); })
+        .catch(() => { /* editor will be unavailable */ })
+        .finally(() => { if (!cancelled) setPlannedSessionStructuredPreviewLoading(false); });
+      return () => { cancelled = true; };
+    }
+  }, [activePlannedPreviewSession?.id, activePlannedPreviewSession?.structured_workout_payload, token]);
 
   useEffect(() => {
     if (!showPlannedSessionRawInformation || !activePlannedPreviewSession?.id) return;
@@ -2787,6 +2802,31 @@ export function PlanningPage({ token }: PlanningPageProps) {
       setPlannedSessionRegeneratingId(null);
     }
   }, [athleteId, selectedDiscipline, token]);
+
+  const handleSaveWorkoutSteps = useCallback(async (workout: WorkoutDefinition) => {
+    if (!activePlannedPreviewSession) return;
+    const result = (await api.saveWorkoutSteps(token, activePlannedPreviewSession.id, workout as unknown as Record<string, unknown>)) as PlanningPlannedSession;
+    setPlannedSessionStructuredPreview(result.structured_workout_payload ?? null);
+    if (athleteId) {
+      await loadPlanningContext(String(athleteId), selectedDiscipline);
+    }
+  }, [activePlannedPreviewSession, athleteId, selectedDiscipline, token]);
+
+  const handlePushToGarmin = useCallback(async () => {
+    if (!activePlannedPreviewSession || !athleteId) return;
+    await api.pushWorkoutToGarmin(token, Number(athleteId), activePlannedPreviewSession.id);
+    if (athleteId) {
+      await loadPlanningContext(String(athleteId), selectedDiscipline);
+    }
+  }, [activePlannedPreviewSession, athleteId, selectedDiscipline, token]);
+
+  // Build a WorkoutDefinition for the editor — prefer stored payload, fall back to generated
+  const editableWorkoutDefinition = useMemo<WorkoutDefinition | null>(() => {
+    if (!activePlannedPreviewSession) return null;
+    if (plannedSessionStructuredPreview) return plannedSessionStructuredPreview;
+    // Minimal fallback: the preview definition is loaded lazily, so it may not be ready
+    return null;
+  }, [activePlannedPreviewSession, plannedSessionStructuredPreview]);
 
   const activeBlockLabel = overview?.current_block.energy_system_focus
     ? `${overview.current_block.energy_system_focus} · ${overview.current_block.block_objective}`
@@ -3030,16 +3070,9 @@ export function PlanningPage({ token }: PlanningPageProps) {
 
   const jumpCalendarToToday = useCallback(() => {
     const today = isoDateFromToday();
-    const targetMonth = startOfMonth(today);
-    const targetWeek = startOfWeek(today);
-    setCalendarMonth(targetMonth);
+    setCalendarMonth(startOfMonth(today));
     setSelectedCalendarDate(today);
-    if (calendarVisualMode === "month") {
-      window.requestAnimationFrame(() => scrollCalendarMonthIntoView(targetMonth));
-      return;
-    }
-    window.requestAnimationFrame(() => scrollCalendarWeekIntoView(targetWeek));
-  }, [calendarVisualMode, scrollCalendarMonthIntoView, scrollCalendarWeekIntoView]);
+  }, []);
 
   const openCalendarMesocycleComposer = useCallback((date: string) => {
     setSelectedCalendarDate(date);
@@ -3078,26 +3111,22 @@ export function PlanningPage({ token }: PlanningPageProps) {
       const nextDate = addDays(selectedWeekStart, -7);
       setSelectedCalendarDate(nextDate);
       setCalendarMonth(startOfMonth(nextDate));
-      window.requestAnimationFrame(() => scrollCalendarWeekIntoView(startOfWeek(nextDate)));
       return;
     }
     const targetMonth = startOfMonth(addMonths(calendarMonth, -1));
     setCalendarMonth(targetMonth);
-    window.requestAnimationFrame(() => scrollCalendarMonthIntoView(targetMonth));
-  }, [calendarMonth, calendarVisualMode, scrollCalendarMonthIntoView, scrollCalendarWeekIntoView, selectedWeekStart]);
+  }, [calendarMonth, calendarVisualMode, selectedWeekStart]);
 
   const shiftCalendarForward = useCallback(() => {
     if (calendarVisualMode === "week") {
       const nextDate = addDays(selectedWeekStart, 7);
       setSelectedCalendarDate(nextDate);
       setCalendarMonth(startOfMonth(nextDate));
-      window.requestAnimationFrame(() => scrollCalendarWeekIntoView(startOfWeek(nextDate)));
       return;
     }
     const targetMonth = startOfMonth(addMonths(calendarMonth, 1));
     setCalendarMonth(targetMonth);
-    window.requestAnimationFrame(() => scrollCalendarMonthIntoView(targetMonth));
-  }, [calendarMonth, calendarVisualMode, scrollCalendarMonthIntoView, scrollCalendarWeekIntoView, selectedWeekStart]);
+  }, [calendarMonth, calendarVisualMode, selectedWeekStart]);
 
   const syncCalendarWeekSelectionFromScroll = useCallback(() => {
     const scroller = calendarWeekScrollerRef.current;
@@ -4144,18 +4173,11 @@ export function PlanningPage({ token }: PlanningPageProps) {
                 <div className="planning-calendar-app-content calendar-full">
                   <section className={`planning-calendar-app-main ${calendarVisualMode === "month" ? "month-mode" : ""}`}>
                     {calendarVisualMode === "month" ? (
-                      <div
-                        ref={calendarMonthScrollerRef}
-                        className="planning-calendar-month-stream"
-                        onScroll={handleContinuousMonthScroll}
-                      >
-                        {continuousMonthSections.map((monthSection) => (
+                      <div className="planning-calendar-month-stream planning-calendar-month-fixed">
+                        {continuousMonthSections.filter((s) => s.monthStart === calendarMonth).map((monthSection) => (
                           <section
                             key={monthSection.monthStart}
-                            ref={(node) => {
-                              calendarMonthSectionRefs.current[monthSection.monthStart] = node;
-                            }}
-                            className={`planning-calendar-month-section ${monthSection.monthStart === calendarMonth ? "active" : ""}`}
+                            className="planning-calendar-month-section active"
                           >
                             <div className="planning-calendar-month-section-head">
                               <strong>{monthHeading(monthSection.monthStart)}</strong>
@@ -4314,12 +4336,8 @@ export function PlanningPage({ token }: PlanningPageProps) {
                           ))}
                         </div>
 
-                        <div
-                          ref={calendarWeekScrollerRef}
-                          className="training-calendar-week-stream"
-                          onScroll={handleContinuousWeekScroll}
-                        >
-                        {continuousWeekStarts.map((weekStart) => {
+                        <div className="training-calendar-week-stream training-calendar-week-fixed">
+                        {continuousWeekStarts.filter((ws) => ws === selectedWeekStart).map((weekStart) => {
                           const weekEnd = addDays(weekStart, 6);
                           const weekDates = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
                           const isFocusedWeek = weekStart === selectedWeekStart;
@@ -4824,6 +4842,17 @@ export function PlanningPage({ token }: PlanningPageProps) {
                 </>
               ),
             } : null}
+            workoutDefinition={editableWorkoutDefinition}
+            onSaveWorkout={activePlannedPreviewSession ? handleSaveWorkoutSteps : undefined}
+            onPushToGarmin={activePlannedPreviewSession ? handlePushToGarmin : undefined}
+            garminConnected={selectedAthlete?.garmin_connected ?? false}
+            publishStatus={activePlannedPreviewSession?.publish_status ?? null}
+            thresholdReference={{
+              lt1Label: planningLt1 ? `${formatThresholdPrimaryMetric(planningLt1, selectedDiscipline)}${planningLt1.heartRate ? ` · ${Math.round(planningLt1.heartRate)} bpm` : ""}` : null,
+              lt1Source: planningLt1?.sourceLabel ?? null,
+              lt2Label: planningLt2 ? `${formatThresholdPrimaryMetric(planningLt2, selectedDiscipline)}${planningLt2.heartRate ? ` · ${Math.round(planningLt2.heartRate)} bpm` : ""}` : null,
+              lt2Source: planningLt2?.sourceLabel ?? null,
+            }}
             onClose={() => {
               setShowPlannedSessionRawInformation(false);
               setOpenWorkoutPreview(null);
@@ -5030,11 +5059,32 @@ export function PlanningPage({ token }: PlanningPageProps) {
       </section>
 
       <section className="card section-card planning-card planning-block-ribbon">
-        <div className="planning-ribbon-strip">
-          {ribbonCards.length ? ribbonCards.map((item) => {
+        <div className="planning-ribbon-header">
+          <div>
+            <span className="eyebrow">Historial de mesociclos</span>
+            <p className="muted">{ribbonCards.length} bloques registrados · {ribbonCards.filter((c) => c.kind === "planned").length} creados por el coach</p>
+          </div>
+          <div className="planning-ribbon-header-actions">
+            {ribbonCards.length > 3 && (
+              <button type="button" className="ghost-button" onClick={() => setRibbonExpanded((v) => !v)}>
+                {ribbonExpanded ? "Ver menos" : `Ver todos (${ribbonCards.length})`}
+              </button>
+            )}
+            <button
+              type="button"
+              className="planning-calendar-trigger"
+              onClick={openCalendarPanel}
+            >
+              Calendario
+            </button>
+          </div>
+        </div>
+        <div className={`planning-ribbon-strip ${ribbonExpanded ? "expanded" : ""}`}>
+          {ribbonCards.length ? (ribbonExpanded ? ribbonCards : ribbonCards.slice(-3)).map((item) => {
             const matchingSource = calendarSources.find((source) => source.id === item.id);
+            const focusBlockId = item.kind === "planned" ? Number(item.id.replace("planned-", "")) : null;
             return (
-              <article key={item.id} className="planning-ribbon-item">
+              <article key={item.id} className={`planning-ribbon-item ${item.kind}`}>
                 <button
                   type="button"
                   className={`planning-ribbon-card ${item.tone} ${item.kind === "target" ? "target" : ""} ${matchingSource && selectedCalendarSourceId === item.id ? "active" : ""}`}
@@ -5052,6 +5102,20 @@ export function PlanningPage({ token }: PlanningPageProps) {
                     {item.meta ? ` · ${item.meta}` : ""}
                   </p>
                 </button>
+                {focusBlockId != null && (
+                  <button
+                    type="button"
+                    className="planning-ribbon-delete"
+                    title="Eliminar mesociclo"
+                    disabled={deletingBlockId === focusBlockId}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deletePlannedBlock(focusBlockId);
+                    }}
+                  >
+                    {deletingBlockId === focusBlockId ? "..." : "×"}
+                  </button>
+                )}
               </article>
             );
           }) : (
@@ -5060,15 +5124,6 @@ export function PlanningPage({ token }: PlanningPageProps) {
               <p>Ajusta la ventana para recuperar histórico o próximos objetivos.</p>
             </article>
           )}
-        </div>
-        <div className="planning-block-ribbon-actions">
-          <button
-            type="button"
-            className="planning-calendar-trigger"
-            onClick={openCalendarPanel}
-          >
-            CALENDARIO
-          </button>
         </div>
       </section>
 

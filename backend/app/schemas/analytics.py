@@ -189,6 +189,7 @@ class DisciplineAnalysisRead(BaseModel):
     power_source_views: Optional[dict[str, "DisciplineAnalysisRead"]] = None
     real_thresholds: Optional[RealThresholdsRead] = None
     individual_thresholds: Optional[IndividualThresholdsRead] = None
+    swain_vo2max: Optional[dict] = None
 
 
 class SessionAnalysisRead(BaseModel):

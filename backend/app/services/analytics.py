@@ -5,8 +5,8 @@ from datetime import date, timedelta
 from statistics import mean, median
 from typing import Any, Optional
 
-from sqlalchemy import delete, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import delete, func, select
+from sqlalchemy.orm import Session, defer, joinedload
 
 from app.core.config import get_settings
 from app.models.athlete import Athlete, AthleteFocusBlock
@@ -1834,6 +1834,54 @@ def _discipline_view(
                 break
     payload["individual_thresholds"] = individual_thresholds
     payload["real_thresholds"] = _merge_real_threshold_states(real_thresholds, individual_thresholds)
+    # ── Swain VO2max estimation ──────────────────────────────────────────
+    from app.services.physiological_engine import estimate_vo2max_swain
+    swain_vo2max = None
+    if latest_snapshot:
+        lt2_hr = latest_snapshot.lt2_heart_rate
+        lt2_pace = latest_snapshot.lt2_pace_seconds_per_km
+        lt2_power = latest_snapshot.lt2_power_watts
+        lt2_speed = round(3600 / lt2_pace, 3) if lt2_pace and lt2_pace > 0 else None
+        # Gather HR max from session intervals
+        hr_max_obs = None
+        for s in discipline_sessions:
+            for iv in getattr(s, "intervals", []):
+                hr_m = getattr(iv, "heart_rate_max", None)
+                if hr_m and (hr_max_obs is None or hr_m > hr_max_obs):
+                    hr_max_obs = hr_m
+                hr_a = getattr(iv, "heart_rate_avg", None)
+                if hr_a and (hr_max_obs is None or hr_a > hr_max_obs):
+                    hr_max_obs = hr_a
+        if not hr_max_obs or hr_max_obs < 150:
+            dob = getattr(athlete, "date_of_birth", None)
+            if dob:
+                from datetime import date as date_type
+                age = (date_type.today() - dob).days // 365
+                if 10 <= age <= 90:
+                    hr_max_obs = 220 - age
+        level = getattr(athlete, "athlete_level", "trained") or "trained"
+        hr_rest_est = {"competitive": 48, "trained": 55, "recreational": 62}.get(level, 55)
+        vo2, frac, conf = estimate_vo2max_swain(
+            lt2_speed_kmh=lt2_speed,
+            lt2_power_watts=lt2_power,
+            lt2_heart_rate=lt2_hr,
+            hr_max=hr_max_obs,
+            hr_rest=hr_rest_est,
+            weight_kg=getattr(athlete, "weight", None),
+            discipline=discipline,
+        )
+        if vo2 is not None:
+            swain_vo2max = {
+                "vo2max": vo2,
+                "fractional_utilization": frac,
+                "confidence": conf,
+                "source": "swain_hr",
+                "hr_max_used": hr_max_obs,
+                "hr_rest_used": hr_rest_est,
+                "lt2_hr_used": lt2_hr,
+            }
+    payload["swain_vo2max"] = swain_vo2max
+
     if discipline == "ciclismo" and power_source is None:
         payload["power_source_views"] = {
             source: _discipline_view(athlete, discipline, sessions, snapshots, estimates, power_source=source)
@@ -1930,11 +1978,15 @@ def _longitudinal_metrics(athlete: Athlete, snapshots: list[PhysiologicalSnapsho
     return derived
 
 
-def _needs_recalculation(athlete: Athlete, snapshots: list[PhysiologicalSnapshot]) -> bool:
+def _needs_recalculation_lightweight(athlete: Athlete, snapshots_light: list[PhysiologicalSnapshot]) -> bool | None:
+    """Fast check using only scalar columns (no payload deserialization).
+
+    Returns True/False when the answer is conclusive, or None when
+    payload inspection is required (caller should do the heavy check).
+    """
     if not athlete.sessions:
         return False
-    # Exclude interpolated snapshots from recalculation check — they are managed separately
-    session_snapshots = [s for s in snapshots if s.power_source != "interpolated_from_running"]
+    session_snapshots = [s for s in snapshots_light if s.power_source != "interpolated_from_running"]
     if not session_snapshots:
         return True
 
@@ -1950,7 +2002,14 @@ def _needs_recalculation(athlete: Athlete, snapshots: list[PhysiologicalSnapshot
     if not session_keys.issubset(snapshot_keys):
         return True
 
+    return None  # Need payload check
+
+
+def _needs_recalculation_payload_check(snapshots: list[PhysiologicalSnapshot]) -> bool:
+    """Heavy check — inspects JSON payload for version staleness."""
     for snapshot in snapshots:
+        if snapshot.power_source == "interpolated_from_running":
+            continue
         payload = snapshot.payload or {}
         if "dynamic_thresholds" not in payload:
             return True
@@ -1960,8 +2019,14 @@ def _needs_recalculation(athlete: Athlete, snapshots: list[PhysiologicalSnapshot
         individual_quality = (payload.get("individual_thresholds") or {}).get("data_quality") or {}
         if individual_quality.get("criteria_version") != _INDIVIDUAL_RULESET_VERSION:
             return True
-
     return False
+
+
+def _needs_recalculation(athlete: Athlete, snapshots: list[PhysiologicalSnapshot]) -> bool:
+    result = _needs_recalculation_lightweight(athlete, snapshots)
+    if result is not None:
+        return result
+    return _needs_recalculation_payload_check(snapshots)
 
 
 def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
@@ -1987,13 +2052,15 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
     )
 
     dynamic_config = config_from_settings(get_settings())
+    # Pre-load surviving (interpolated) snapshots once; maintain list in-memory
+    # instead of querying ALL snapshots on every loop iteration (was O(N²)).
+    prior_snapshots: list[PhysiologicalSnapshot] = list(db.scalars(
+        select(PhysiologicalSnapshot)
+        .where(PhysiologicalSnapshot.athlete_id == athlete.id)
+        .order_by(PhysiologicalSnapshot.snapshot_date)
+    ).all())
     for session in sorted(athlete.sessions, key=lambda current: current.performed_at):
         analysis = analyze_session(session)
-        prior_snapshots = db.scalars(
-            select(PhysiologicalSnapshot)
-            .where(PhysiologicalSnapshot.athlete_id == athlete.id)
-            .order_by(PhysiologicalSnapshot.snapshot_date)
-        ).all()
         # Extraer LT2 fisiológico de la sesión actual para anclar el LT2 práctico dinámico.
         # El LT2 fisiológico se calcula por forma de curva (inflexión), mientras que el
         # dinámico interpola en mmol fijos; anclarlos parcialmente mejora la coherencia
@@ -2045,6 +2112,8 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
         )
         db.add(snapshot)
         db.flush()
+        # Append to in-memory list so next iteration sees this snapshot
+        prior_snapshots.append(snapshot)
 
         discipline_history_depth = sum(
             1
@@ -2156,10 +2225,20 @@ def athlete_analysis_payload(db: Session, athlete_id: int) -> dict[str, Any]:
     if athlete is None:
         raise ValueError("Athlete not found")
 
-    snapshots = db.scalars(
-        select(PhysiologicalSnapshot).where(PhysiologicalSnapshot.athlete_id == athlete_id).order_by(PhysiologicalSnapshot.snapshot_date)
+    # Phase 1: lightweight recalculation check — no JSON payload deserialization.
+    # This avoids the 3-4s cost of json.loads on thousands of payload columns
+    # when the answer is obvious (new sessions added, or no sessions at all).
+    snapshots_light = db.scalars(
+        select(PhysiologicalSnapshot)
+        .options(defer(PhysiologicalSnapshot.payload))
+        .where(PhysiologicalSnapshot.athlete_id == athlete_id)
+        .order_by(PhysiologicalSnapshot.snapshot_date)
     ).all()
-    if _needs_recalculation(athlete, snapshots):
+    light_result = _needs_recalculation_lightweight(athlete, snapshots_light)
+    db.expire_all()  # Clear deferred-payload objects from identity map
+
+    if light_result is True:
+        # Definitely needs recalculation (new sessions, missing snapshots)
         recalculate_athlete(db, athlete_id)
         athlete = db.scalar(
             select(Athlete)
@@ -2176,6 +2255,31 @@ def athlete_analysis_payload(db: Session, athlete_id: int) -> dict[str, Any]:
         snapshots = db.scalars(
             select(PhysiologicalSnapshot).where(PhysiologicalSnapshot.athlete_id == athlete_id).order_by(PhysiologicalSnapshot.snapshot_date)
         ).all()
+    elif light_result is False:
+        # No sessions at all
+        snapshots = []
+    else:
+        # Inconclusive — need to inspect payload versions (full load required)
+        snapshots = db.scalars(
+            select(PhysiologicalSnapshot).where(PhysiologicalSnapshot.athlete_id == athlete_id).order_by(PhysiologicalSnapshot.snapshot_date)
+        ).all()
+        if _needs_recalculation_payload_check(snapshots):
+            recalculate_athlete(db, athlete_id)
+            athlete = db.scalar(
+                select(Athlete)
+                .options(
+                    joinedload(Athlete.weights),
+                    joinedload(Athlete.focus_blocks),
+                    joinedload(Athlete.targets),
+                    joinedload(Athlete.sessions).joinedload(AthleteSession.intervals).joinedload(SessionInterval.lactate_sample),
+                )
+                .where(Athlete.id == athlete_id)
+            )
+            if athlete is None:
+                raise ValueError("Athlete not found")
+            snapshots = db.scalars(
+                select(PhysiologicalSnapshot).where(PhysiologicalSnapshot.athlete_id == athlete_id).order_by(PhysiologicalSnapshot.snapshot_date)
+            ).all()
 
     estimates = db.scalars(
         select(PerformanceEstimate)

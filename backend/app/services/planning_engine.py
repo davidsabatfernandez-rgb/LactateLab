@@ -186,6 +186,77 @@ def _raw_lactate_curve(athlete: Athlete, discipline: str) -> list[dict]:
     return points
 
 
+def _extract_lt2_heart_rate(analysis: dict, discipline: str) -> Optional[int]:
+    """Extract LT2 heart rate from the latest snapshot thresholds."""
+    thresholds = analysis.get("thresholds") or []
+    lt2 = next((t for t in thresholds if t.get("name") == "LT2"), None)
+    if lt2 and lt2.get("heart_rate"):
+        return int(lt2["heart_rate"])
+    # Fallback: dynamic thresholds practical LT2
+    dt = analysis.get("dynamic_thresholds") or {}
+    chronic = dt.get("chronic") or dt
+    p_lt2 = chronic.get("practical_lt2") or chronic.get("reference_4mmol")
+    if p_lt2 and p_lt2.get("estimated_hr_at_target"):
+        return int(p_lt2["estimated_hr_at_target"])
+    return None
+
+
+def _extract_hr_max(athlete: Athlete, discipline: str) -> Optional[int]:
+    """Extract max HR from observed session data.
+
+    Takes the maximum heart_rate_max across all intervals in the discipline.
+    Falls back to age-based estimate (220 − age) if no observed data.
+    """
+    max_hr_observed = None
+    for session in (athlete.sessions or []):
+        if session.discipline != discipline:
+            continue
+        for iv in getattr(session, "intervals", []):
+            hr_max = getattr(iv, "heart_rate_max", None)
+            if hr_max and (max_hr_observed is None or hr_max > max_hr_observed):
+                max_hr_observed = hr_max
+            # Also check heart_rate_avg as a lower bound signal
+            hr_avg = getattr(iv, "heart_rate_avg", None)
+            if hr_avg and (max_hr_observed is None or hr_avg > max_hr_observed):
+                max_hr_observed = hr_avg
+
+    if max_hr_observed and max_hr_observed >= 150:
+        return max_hr_observed
+
+    # Fallback: age-based estimate
+    dob = getattr(athlete, "date_of_birth", None)
+    if dob:
+        age = (date.today() - dob).days // 365
+        if 10 <= age <= 90:
+            return 220 - age
+    return None
+
+
+def _extract_hr_rest(db: Session, athlete: Athlete) -> Optional[int]:
+    """Extract resting HR estimate.
+
+    Without persistent Garmin health snapshots, we use a level-based default.
+    A more accurate value could come from a future manual field or cached
+    Garmin sync. For now:
+      - competitive: 48 bpm (typical well-trained endurance athlete)
+      - trained: 55 bpm
+      - recreational: 62 bpm
+    These are conservative estimates that avoid inflating VO2max.
+    """
+    level = getattr(athlete, "athlete_level", "trained") or "trained"
+    defaults = {"competitive": 48, "trained": 55, "recreational": 62}
+    return defaults.get(level, 55)
+
+
+def _extract_garmin_vo2max(db: Session, athlete: Athlete, discipline: str) -> Optional[float]:
+    """Extract Garmin VO2max — currently not persisted locally.
+
+    TODO: when Garmin health snapshots are cached in DB, extract from there.
+    For now returns None (Swain estimation is primary source).
+    """
+    return None
+
+
 def _safe_ratio(numerator: Optional[float], denominator: Optional[float]) -> Optional[float]:
     if numerator is None or denominator is None or denominator <= 0:
         return None
@@ -1115,6 +1186,12 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
         raw_curve_points = _raw_lactate_curve(athlete, selected_discipline)
         peak_lactate_proxy = _peak_lactate_proxy(_disc_view, raw_curve_points)
 
+        # ── Gather HR data for VO2max estimation (Swain+ACSM) ────────────
+        _lt2_hr = _extract_lt2_heart_rate(analysis, selected_discipline)
+        _hr_max = _extract_hr_max(athlete, selected_discipline)
+        _hr_rest = _extract_hr_rest(db, athlete)
+        _garmin_vo2 = _extract_garmin_vo2max(db, athlete, selected_discipline)
+
         physio_ctx = build_physiological_context(
             analysis=analysis,
             athlete_level=getattr(athlete, "athlete_level", "trained") or "trained",
@@ -1128,6 +1205,11 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
             peak_lactate_1km=peak_lactate_proxy,
             raw_curve_points=raw_curve_points,
             dynamic_thresholds=analysis.get("dynamic_thresholds"),
+            lt2_heart_rate=_lt2_hr,
+            hr_max=_hr_max,
+            hr_rest=_hr_rest,
+            weight_kg=getattr(athlete, "weight", None),
+            garmin_vo2max=_garmin_vo2,
         )
         physio_gap = analyse_physiological_gap(physio_ctx)
 
@@ -1568,6 +1650,17 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
             "borderline_note": effective_physio_gap.borderline_note if effective_physio_gap else "",
             "block_rationale": block_rationale_payload,
             "block_explanation": block_explanation_payload,
+            "capacity_profile": {
+                "aerobic_level": physio_ctx.capacity_profile.aerobic_level,
+                "vlamax_level": physio_ctx.capacity_profile.vlamax_level,
+                "lt1_lt2_ratio": physio_ctx.capacity_profile.lt1_lt2_ratio,
+                "vo2max_estimated": physio_ctx.capacity_profile.vo2max_estimated,
+                "vo2max_source": physio_ctx.capacity_profile.vo2max_source,
+                "vo2max_confidence": physio_ctx.capacity_profile.vo2max_confidence,
+                "fractional_utilization": physio_ctx.capacity_profile.fractional_utilization,
+                "source": physio_ctx.capacity_profile.source,
+                "confidence": physio_ctx.capacity_profile.confidence,
+            } if physio_ctx and physio_ctx.capacity_profile else None,
         } if physio_gap else None,
     }
 

@@ -2771,7 +2771,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       value: dynamicThresholds ? dynamicReferencePrimaryValue(dynamicThresholds.chronic.practical_lt2, activeDiscipline) : "n/d",
       tone: "warning" as const,
     },
-    { label: "VO2max", value: vo2maxEstimate ? `${Math.round(vo2maxEstimate.value * 10) / 10} ml/kg/min` : "n/d", tone: "neutral" as const },
+    { label: "VO2max", value: displayView.swain_vo2max ? `${displayView.swain_vo2max.vo2max} ml/kg/min` : vo2maxEstimate ? `${Math.round(vo2maxEstimate.value * 10) / 10} ml/kg/min` : "n/d", tone: "neutral" as const },
     { label: "VLAMAX", value: vlamaxEstimate ? `${Math.round(vlamaxEstimate.value * 100) / 100} mmol/L/s` : "n/d", tone: "warning" as const },
   ];
   const athleteEstimatePool = [
@@ -4550,17 +4550,25 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                   <span className={`status-badge ${estimate.reliability_label}`}>{estimate.reliability_label}</span>
                 </div>
                 <strong>
-                  {raceSummary
-                    ? raceSummary.pace
-                    : activeDiscipline === "ciclismo" && estimate.unit === "W"
-                      ? formatPowerWithWeight(estimate.value, athleteWeight)
-                      : `${estimate.value} ${estimate.unit}`}
+                  {estimate.estimate_type === "VO2max" && displayView.swain_vo2max
+                    ? `${displayView.swain_vo2max.vo2max} ${estimate.unit}`
+                    : raceSummary
+                      ? raceSummary.pace
+                      : activeDiscipline === "ciclismo" && estimate.unit === "W"
+                        ? formatPowerWithWeight(estimate.value, athleteWeight)
+                        : `${estimate.value} ${estimate.unit}`}
                 </strong>
                 <p>{raceSummary ? raceSummary.totalTime : visualRange.primary}</p>
-                <small>
-                  {raceSummary ? "Ritmo " : ""}
-                  Mejor {visualRange.bestSecondaryLabel} · Conservador {visualRange.conservativeSecondaryLabel}
-                </small>
+                {estimate.estimate_type === "VO2max" && displayView.swain_vo2max ? (
+                  <small>
+                    LT2 al {Math.round(displayView.swain_vo2max.fractional_utilization * 100)}% del techo · FC {displayView.swain_vo2max.lt2_hr_used ?? "?"}/{displayView.swain_vo2max.hr_max_used ?? "?"} bpm
+                  </small>
+                ) : (
+                  <small>
+                    {raceSummary ? "Ritmo " : ""}
+                    Mejor {visualRange.bestSecondaryLabel} · Conservador {visualRange.conservativeSecondaryLabel}
+                  </small>
+                )}
                 {raceSummary ? <small>IC tiempo {raceSummary.lowerTime} - {raceSummary.upperTime}</small> : null}
                 <small>{estimate.low_evidence ? "Evidencia limitada" : "Evidencia suficiente"}</small>
               </article>

@@ -610,6 +610,15 @@ export type DisciplineView = {
   power_source_views?: Record<string, DisciplineView> | null;
   real_thresholds?: RealThresholds | null;
   individual_thresholds?: IndividualThresholds | null;
+  swain_vo2max?: {
+    vo2max: number;
+    fractional_utilization: number;
+    confidence: number;
+    source: string;
+    hr_max_used?: number | null;
+    hr_rest_used?: number | null;
+    lt2_hr_used?: number | null;
+  } | null;
 };
 
 export type AthleteAnalysis = {
