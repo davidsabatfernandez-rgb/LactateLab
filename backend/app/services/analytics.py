@@ -1881,16 +1881,18 @@ def _longitudinal_metrics(athlete: Athlete, snapshots: list[PhysiologicalSnapsho
 def _needs_recalculation(athlete: Athlete, snapshots: list[PhysiologicalSnapshot]) -> bool:
     if not athlete.sessions:
         return False
-    if not snapshots:
+    # Exclude interpolated snapshots from recalculation check — they are managed separately
+    session_snapshots = [s for s in snapshots if s.power_source != "interpolated_from_running"]
+    if not session_snapshots:
         return True
 
     latest_session_date = max(session.performed_at.date() for session in athlete.sessions)
-    latest_snapshot_date = max(snapshot.snapshot_date for snapshot in snapshots)
+    latest_snapshot_date = max(snapshot.snapshot_date for snapshot in session_snapshots)
     if latest_session_date > latest_snapshot_date:
         return True
 
     session_keys = {(session.id, session.performed_at.date(), session.discipline, _normalized_power_source(session)) for session in athlete.sessions}
-    snapshot_keys = {(snapshot.session_id, snapshot.snapshot_date, snapshot.discipline, snapshot.power_source) for snapshot in snapshots}
+    snapshot_keys = {(snapshot.session_id, snapshot.snapshot_date, snapshot.discipline, snapshot.power_source) for snapshot in session_snapshots}
     if len(snapshot_keys) != len(session_keys):
         return True
     if not session_keys.issubset(snapshot_keys):
@@ -1924,7 +1926,13 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
 
     db.execute(delete(DerivedMetric).where(DerivedMetric.athlete_id == athlete_id))
     db.execute(delete(PerformanceEstimate).where(PerformanceEstimate.athlete_id == athlete_id))
-    db.execute(delete(PhysiologicalSnapshot).where(PhysiologicalSnapshot.athlete_id == athlete_id))
+    # Preserve interpolated snapshots (managed by interpolation endpoint, not recalculation)
+    db.execute(
+        delete(PhysiologicalSnapshot).where(
+            PhysiologicalSnapshot.athlete_id == athlete_id,
+            PhysiologicalSnapshot.power_source != "interpolated_from_running",
+        )
+    )
 
     dynamic_config = config_from_settings(get_settings())
     for session in sorted(athlete.sessions, key=lambda current: current.performed_at):
