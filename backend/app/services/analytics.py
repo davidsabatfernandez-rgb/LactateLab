@@ -290,7 +290,7 @@ def _method_baseline_rise(candidates: list[dict[str, Any]]) -> list[ThresholdMet
                 break
     output = []
     for name, idx, explanation in [
-        ("LT1", lt1_index, "Primer aumento sostenido de ~0.35 mmol sobre el basal suavizado."),
+        ("LT1", lt1_index, "Primer aumento sostenido de +0.5 mmol sobre el basal suavizado (Faude 2009)."),
         ("LT2", lt2_index, "Punto con aceleración de lactato o aproximación operativa a 4 mmol."),
     ]:
         interval = candidates[idx]["interval"]
@@ -320,12 +320,17 @@ def _method_baseline_rise(candidates: list[dict[str, Any]]) -> list[ThresholdMet
 def _method_sustained_increase(candidates: list[dict[str, Any]]) -> list[ThresholdMethodEstimate]:
     lactates = _smooth([item["lactate"] for item in candidates])
     lt1_index = 0
+    baseline = min(lactates[: min(4, len(lactates))])
     for idx in range(1, len(lactates)):
-        if lactates[idx] > lactates[idx - 1] and idx + 1 < len(lactates) and lactates[idx + 1] >= lactates[idx]:
+        if (
+            lactates[idx] >= baseline + 0.3
+            and lactates[idx] > lactates[idx - 1]
+            and idx + 1 < len(lactates)
+            and lactates[idx + 1] >= lactates[idx]
+        ):
             lt1_index = idx
             break
     lt2_index = len(lactates) - 1
-    baseline = min(lactates[: min(4, len(lactates))])
     for idx in range(2, len(lactates)):
         local_slope = lactates[idx] - lactates[idx - 1]
         prior_slope = lactates[idx - 1] - lactates[idx - 2]
