@@ -19,14 +19,14 @@ const MODE_COPY: Record<
 > = {
   coach: {
     title: "Acceso entrenador",
-    description: "Control completo del laboratorio, planificación y revisión fisiológica.",
+    description: "Control completo del laboratorio, planificacion y revision fisiologica.",
     defaultEmail: "coach@lactatelab.dev",
     defaultPassword: "demo1234",
     submitLabel: "Entrar como entrenador",
   },
   athlete: {
     title: "Acceso atleta",
-    description: "Portal personal con información filtrada, objetivos y referencias clave.",
+    description: "Portal personal con informacion filtrada, objetivos y referencias clave.",
     defaultEmail: "athlete@lactatelab.dev",
     defaultPassword: "demo1234",
     submitLabel: "Entrar como atleta",
@@ -60,68 +60,64 @@ export function LoginForm({ onLogin }: LoginFormProps) {
     try {
       await onLogin(email, password, mode);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo iniciar sesión.");
+      setError(err instanceof Error ? err.message : "No se pudo iniciar sesion.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="login-screen">
-      <div className="login-panel login-choice-panel login-choice-panel-single">
-        <section className="hero-copy">
-          <span className="eyebrow">Professional endurance analytics</span>
-          <h1>Contexto primero, lactato después.</h1>
-          <p>Elige cómo quieres entrenar. Puedes iniciar sesión como entrenador o atleta.</p>
-          <div className="mode-selector">
-            <button
-              type="button"
-              className={`mode-button ${mode === "coach" ? "active" : ""}`}
-              onClick={() => switchMode("coach")}
-            >
-              Entrenador
-            </button>
-            <button
-              type="button"
-              className={`mode-button ${mode === "athlete" ? "active" : ""}`}
-              onClick={() => switchMode("athlete")}
-            >
-              Atleta
-            </button>
-          </div>
-          <div className="secondary-access-link">
-            <Link to="/virtual-ride" className="secondary-access-button">
-              Virtual Ride
-            </Link>
-          </div>
-        </section>
+    <div className="login-screen lf-screen">
+      <div className="lf-panel">
+        <div className="lf-eyebrow">Professional endurance analytics</div>
+        <h1 className="lf-title">Contexto primero, lactato despues.</h1>
+        <p className="lf-subtitle">Elige como quieres entrenar. Puedes iniciar sesion como entrenador o atleta.</p>
+        <div className="lf-mode-selector">
+          <button
+            type="button"
+            className={`lf-mode-btn ${mode === "coach" ? "active" : ""}`}
+            onClick={() => switchMode("coach")}
+          >
+            Entrenador
+          </button>
+          <button
+            type="button"
+            className={`lf-mode-btn ${mode === "athlete" ? "active" : ""}`}
+            onClick={() => switchMode("athlete")}
+          >
+            Atleta
+          </button>
+        </div>
+        <div className="lf-secondary-link">
+          <Link to="/virtual-ride" className="lf-secondary-btn">
+            Virtual Ride
+          </Link>
+        </div>
       </div>
 
       {copy ? (
-        <div className="login-modal-backdrop" onClick={() => setMode(null)}>
+        <div className="login-modal-backdrop rd-modal-backdrop" onClick={() => setMode(null)}>
           <form
-            className="card login-card compact-login-card login-modal"
+            className="card login-card lf-modal-card"
             onSubmit={handleSubmit}
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="access-card-head">
-              <h2>{copy.title}</h2>
-              <p>{copy.description}</p>
-            </div>
+            <h2>{copy.title}</h2>
+            <p>{copy.description}</p>
             <label>
               Email
               <input value={email} onChange={(event) => setEmail(event.target.value)} />
             </label>
             <label>
-              Contraseña
+              Contrasena
               <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
             </label>
-            {error ? <p className="error">{error}</p> : null}
-            <div className="login-modal-actions">
-              <button type="button" className="ghost-button" onClick={() => setMode(null)}>
+            {error ? <p className="rd-error">{error}</p> : null}
+            <div className="lf-modal-actions">
+              <button type="button" className="rd-btn rd-btn-ghost" onClick={() => setMode(null)}>
                 Cancelar
               </button>
-              <button type="submit" className="primary-button" disabled={loading}>
+              <button type="submit" className="rd-btn rd-btn-primary" disabled={loading}>
                 {loading ? "Accediendo..." : copy.submitLabel}
               </button>
             </div>
@@ -129,7 +125,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
         </div>
       ) : null}
 
-      <div className="login-credit">created and developed by David Sabat</div>
+      <div className="login-credit lf-credit">created and developed by David Sabat</div>
     </div>
   );
 }

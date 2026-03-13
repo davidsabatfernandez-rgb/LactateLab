@@ -9,6 +9,7 @@ import { AthleteDetailPage } from "./pages/AthleteDetailPage";
 import { AthletePortalPage } from "./pages/AthletePortalPage";
 import { AthleteTargetsPage } from "./pages/AthleteTargetsPage";
 import { AthletesPage } from "./pages/AthletesPage";
+import { CoachDashboardPage } from "./pages/CoachDashboardPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { GarminConnectPage } from "./pages/GarminConnectPage";
 import { LibraryGeneratorPage } from "./pages/LibraryGeneratorPage";
@@ -276,7 +277,8 @@ export default function App() {
     >
       {dataLoadError ? <div className="error">{dataLoadError}</div> : null}
       <Routes>
-        <Route path="/" element={<DashboardPage athletes={athletes} token={token} viewerId={authUser.id} />} />
+        <Route path="/" element={<CoachDashboardPage athletes={athletes} token={token} />} />
+        <Route path="/coach" element={<CoachDashboardPage athletes={athletes} token={token} />} />
         <Route path="/lab" element={<DashboardPage athletes={athletes} token={token} viewerId={authUser.id} />} />
         <Route path="/planning" element={<PlanningPage token={token} />} />
         <Route path="/nutrition" element={<NutritionPage />} />

@@ -37,11 +37,25 @@ const initialForm: AthleteFormState = {
 };
 
 function disciplineLabel(value: string) {
-  if (value === "running") return "Carrera a pie";
+  if (value === "running") return "Running";
   if (value === "ciclismo") return "Ciclismo";
-  if (value === "triatlón") return "Triatlón";
-  if (value === "natación") return "Natación";
+  if (value === "triatlón") return "Triatlon";
+  if (value === "natación") return "Natacion";
   return value;
+}
+
+function disciplineColorClass(value: string) {
+  if (value === "natación") return "ap-disc-swim";
+  if (value === "ciclismo") return "ap-disc-bike";
+  if (value === "triatlón") return "ap-disc-tri";
+  return "ap-disc-run";
+}
+
+function disciplineBadgeClass(value: string) {
+  if (value === "natación") return "rd-disc-swim";
+  if (value === "ciclismo") return "rd-disc-bike";
+  if (value === "triatlón") return "rd-disc-tri";
+  return "rd-disc-run";
 }
 
 function goalCategoryLabel(value?: string | null) {
@@ -54,6 +68,10 @@ function formatDate(value: string) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function avatarInitial(name: string): string {
+  return name.trim().charAt(0).toUpperCase();
 }
 
 function athleteToForm(athlete: Athlete): AthleteFormState {
@@ -90,9 +108,9 @@ export function AthletesPage({ athletes, token, onRefresh }: AthletesPageProps) 
     ).length;
     const triathletes = athletes.filter((athlete) => athlete.primary_discipline === "triatlón").length;
     return [
-      { label: "Atletas activos", value: String(athletes.length), tone: "neutral" },
-      { label: "Con objetivo visible", value: String(withTargets), tone: "warning" },
-      { label: "Triatlón", value: String(triathletes), tone: "neutral" },
+      { label: "Atletas activos", value: String(athletes.length) },
+      { label: "Con objetivo", value: String(withTargets) },
+      { label: "Triatlon", value: String(triathletes) },
     ];
   }, [athletes]);
   const filteredAthletes = useMemo(() => {
@@ -181,7 +199,7 @@ export function AthletesPage({ athletes, token, onRefresh }: AthletesPageProps) 
   }
 
   async function handleDelete(athlete: Athlete) {
-    const confirmed = window.confirm(`Eliminar a ${athlete.name}? Esta acción borrará sus sesiones asociadas.`);
+    const confirmed = window.confirm(`Eliminar a ${athlete.name}? Esta accion borrara sus sesiones asociadas.`);
     if (!confirmed) return;
     setError(null);
     try {
@@ -206,165 +224,165 @@ export function AthletesPage({ athletes, token, onRefresh }: AthletesPageProps) 
   }
 
   return (
-    <div className="page-grid">
-      <section className="page-header athlete-roster-header">
-        <div>
-          <span className="eyebrow">Athletes</span>
-          <h1>Tus Atletas</h1>
+    <div className="rd-page">
+      {/* Command bar */}
+      <div className="rd-page-header">
+        <div className="rd-page-header-left">
+          <h1 className="rd-page-title">Tus Atletas</h1>
+          <span className="rd-eyebrow">{athletes.length} en roster</span>
         </div>
-        <div className="athlete-roster-actions">
-          <button className="ghost-button" type="button" onClick={handleGenerateDemo} disabled={submitting}>
-            Generar atleta demo
-          </button>
-          <button className="primary-button" type="button" onClick={openCreateModal}>
-            Añadir atleta
-          </button>
-        </div>
-      </section>
-
-      {error ? <p className="error">{error}</p> : null}
-
-      <section className="athlete-roster-overview">
-        {rosterStats.map((stat) => (
-          <article key={stat.label} className={`card athlete-roster-stat ${stat.tone}`}>
-            <span className="eyebrow">{stat.label}</span>
-            <strong>{stat.value}</strong>
-          </article>
-        ))}
-      </section>
-
-      <section className="card athlete-roster-toolbar">
-        <label className="athlete-roster-search">
-          <span className="eyebrow">Buscar</span>
+        <div className="rd-page-header-right">
           <input
             type="search"
-            placeholder="Nombre, objetivo o notas"
+            className="rd-search-input"
+            placeholder="Buscar nombre, objetivo..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
-        </label>
-        <div className="athlete-roster-filters">
-          {[
-            { key: "all", label: "Todos" },
-            { key: "running", label: "Running" },
-            { key: "ciclismo", label: "Ciclismo" },
-            { key: "triatlón", label: "Triatlón" },
-          ].map((filter) => (
-            <button
-              key={filter.key}
-              type="button"
-              className={`athlete-roster-filter-pill ${disciplineFilter === filter.key ? "active" : ""}`}
-              onClick={() => setDisciplineFilter(filter.key)}
-            >
-              {filter.label}
-            </button>
-          ))}
+          <div className="rd-filter-bar">
+            {[
+              { key: "all", label: "Todos" },
+              { key: "running", label: "Running" },
+              { key: "ciclismo", label: "Ciclismo" },
+              { key: "triatlón", label: "Triatlon" },
+              { key: "natación", label: "Natacion" },
+            ].map((filter) => (
+              <button
+                key={filter.key}
+                type="button"
+                className={`rd-filter-pill ${disciplineFilter === filter.key ? "active" : ""}`}
+                onClick={() => setDisciplineFilter(filter.key)}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+          <button className="rd-btn rd-btn-ghost" type="button" onClick={handleGenerateDemo} disabled={submitting}>
+            Demo
+          </button>
+          <button className="rd-btn rd-btn-primary" type="button" onClick={openCreateModal}>
+            + Atleta
+          </button>
         </div>
-      </section>
+      </div>
 
-      <section className="athlete-roster-grid">
+      {/* Metrics bar */}
+      <div className="rd-metrics-bar">
+        {rosterStats.map((stat) => (
+          <div key={stat.label} className="rd-metric-pill">
+            <span className="rd-metric-pill-label">{stat.label}</span>
+            <span className="rd-metric-pill-value">{stat.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {error ? <div style={{ padding: "8px 20px" }}><p className="rd-error">{error}</p></div> : null}
+
+      {/* Athlete grid */}
+      <div className="rd-grid">
         {filteredAthletes.map((athlete) => {
           const activeBlock = athlete.focus_blocks?.find((block) => block.status === "active");
           const nextTarget = (athlete.targets ?? [])
             .slice()
             .sort((left, right) => left.target_date.localeCompare(right.target_date))
             .find((target) => target.target_date >= new Date().toISOString().slice(0, 10));
-          const disciplineClass =
-            athlete.primary_discipline === "triatlón"
-              ? "triathlon"
-              : athlete.primary_discipline === "ciclismo"
-                ? "cycling"
-                : "running";
 
           return (
-            <article key={athlete.id} className={`card athlete-roster-card ${disciplineClass}`}>
-              <div className="athlete-roster-card-head">
-                <div className="athlete-roster-card-title">
-                  <div className="athlete-roster-avatar" aria-hidden="true">
-                    {athlete.name.slice(0, 1).toUpperCase()}
+            <div key={athlete.id} className={`ap-card ${disciplineColorClass(athlete.primary_discipline)}`}>
+              <div className="ap-card-header">
+                <div className="rd-avatar">{avatarInitial(athlete.name)}</div>
+                <div className="ap-card-header-info">
+                  <div className="ap-card-name">
+                    <Link to={`/athletes/${athlete.id}`}>{athlete.name}</Link>
                   </div>
-                  <div>
-                  <span className="eyebrow">{disciplineLabel(athlete.primary_discipline)}</span>
-                  <h2>{athlete.name}</h2>
+                  <div className="ap-card-meta">
+                    <span className={`rd-disc-badge ${disciplineBadgeClass(athlete.primary_discipline)}`}>
+                      {disciplineLabel(athlete.primary_discipline)}
+                    </span>
+                    <span style={{ fontSize: "0.62rem", color: "var(--muted)" }}>
+                      {goalCategoryLabel(athlete.goal_category)}
+                    </span>
                   </div>
                 </div>
-                <span className="status-badge neutral">{goalCategoryLabel(athlete.goal_category)}</span>
               </div>
 
-              <p className="athlete-roster-summary">
-                {athlete.training_goal || athlete.notes || "Sin notas iniciales todavía. Entra para añadir contexto y trabajar mejor la ficha del atleta."}
+              <p className="ap-card-summary">
+                {athlete.training_goal || athlete.notes || "Sin notas iniciales."}
               </p>
 
-              <div className="athlete-roster-metadata">
-                <div className="athlete-roster-meta-pill">
-                  <small>Peso</small>
-                  <strong>{athlete.weight.toFixed(1)} kg</strong>
+              <div className="ap-card-metrics">
+                <div className="ap-card-metric">
+                  <span className="ap-card-metric-label">Peso</span>
+                  <span className="ap-card-metric-value">{athlete.weight.toFixed(1)} kg</span>
                 </div>
-                <div className="athlete-roster-meta-pill">
-                  <small>Alta</small>
-                  <strong>{formatDate(athlete.created_at)}</strong>
+                <div className="ap-card-metric">
+                  <span className="ap-card-metric-label">Alta</span>
+                  <span className="ap-card-metric-value">{formatDate(athlete.created_at)}</span>
                 </div>
-                <div className="athlete-roster-meta-pill">
-                  <small>Foco</small>
-                  <strong>{activeBlock ? activeBlock.block_objective : "Sin foco"}</strong>
+                <div className="ap-card-metric">
+                  <span className="ap-card-metric-label">Foco</span>
+                  <span className="ap-card-metric-value">{activeBlock ? activeBlock.block_objective : "Sin foco"}</span>
                 </div>
               </div>
 
-              <div className="athlete-roster-footer">
-                <div className="athlete-roster-target">
-                  <small>Próximo objetivo</small>
-                  <strong>{nextTarget ? nextTarget.objective : "Sin objetivo definido"}</strong>
-                  <span>{nextTarget ? formatDate(nextTarget.target_date) : "Añádelo desde la ficha del atleta"}</span>
+              {nextTarget ? (
+                <div className="ap-card-target">
+                  <span className="ap-card-target-label">Objetivo:</span>
+                  <span className="ap-card-target-value">{nextTarget.objective}</span>
+                  <span className="ap-card-target-date">{formatDate(nextTarget.target_date)}</span>
                 </div>
-                <div className="athlete-roster-card-actions">
-                  <Link className="inline-link" to={`/athletes/${athlete.id}`}>
-                    Abrir ficha
-                  </Link>
-                  <button className="ghost-button compact" type="button" onClick={() => openEditModal(athlete)}>
-                    Editar
-                  </button>
-                  <button className="danger-link" type="button" onClick={() => handleDelete(athlete)}>
-                    Eliminar
-                  </button>
+              ) : (
+                <div className="ap-card-target">
+                  <span className="ap-card-target-label">Sin objetivo definido</span>
                 </div>
+              )}
+
+              <div className="ap-card-footer">
+                <Link className="rd-btn rd-btn-sm" to={`/athletes/${athlete.id}`}>
+                  Ficha
+                </Link>
+                <button className="rd-btn rd-btn-sm rd-btn-ghost" type="button" onClick={() => openEditModal(athlete)}>
+                  Editar
+                </button>
+                <button className="rd-btn rd-btn-sm rd-btn-danger" type="button" onClick={() => handleDelete(athlete)}>
+                  Eliminar
+                </button>
               </div>
-            </article>
+            </div>
           );
         })}
         {!filteredAthletes.length ? (
-          <article className="card athlete-roster-empty">
-            <span className="eyebrow">Sin resultados</span>
-            <h2>No hay atletas que encajen con ese filtro</h2>
-            <p className="muted">Prueba otro texto de búsqueda o cambia la disciplina activa para volver a ver la plantilla completa.</p>
-            <button className="ghost-button" type="button" onClick={() => {
+          <div className="rd-empty">
+            <p>No hay atletas que encajen con ese filtro.</p>
+            <button className="rd-btn rd-btn-ghost" type="button" onClick={() => {
               setSearch("");
               setDisciplineFilter("all");
             }}>
               Limpiar filtros
             </button>
-          </article>
+          </div>
         ) : null}
-      </section>
+      </div>
 
+      {/* Create/Edit Modal */}
       {modalMode ? (
-        <div className="target-modal-backdrop" onClick={closeModal}>
-          <section className="card target-modal-card athlete-management-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="card-header">
+        <div className="rd-modal-backdrop" onClick={closeModal}>
+          <div className="rd-modal rd-modal-lg" onClick={(event) => event.stopPropagation()}>
+            <div className="rd-modal-header">
               <div>
-                <span className="eyebrow">{modalMode === "edit" ? "Editar atleta" : "Nuevo atleta"}</span>
-                <h2>{modalMode === "edit" ? `Editar ${editingAthlete?.name ?? "atleta"}` : "Añadir atleta"}</h2>
-                <p className="muted">
+                <h2 className="rd-page-title">{modalMode === "edit" ? `Editar ${editingAthlete?.name ?? "atleta"}` : "Nuevo atleta"}</h2>
+                <p className="rd-page-subtitle">
                   {modalMode === "edit"
-                    ? "Actualiza la información base del atleta sin salir de la plantilla."
-                    : "Crea el atleta desde una ventana rápida y mantén la página limpia."}
+                    ? "Actualiza la informacion base del atleta."
+                    : "Crea el atleta desde una ventana rapida."}
                 </p>
               </div>
-              <button className="ghost-button" type="button" onClick={closeModal}>
+              <button className="rd-btn rd-btn-ghost" type="button" onClick={closeModal}>
                 Cerrar
               </button>
             </div>
 
-            <form className="athlete-form athlete-management-form" onSubmit={handleSubmit}>
+            <form className="rd-form" onSubmit={handleSubmit}>
               <label>
                 Nombre
                 <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required />
@@ -393,7 +411,7 @@ export function AthletesPage({ athletes, token, onRefresh }: AthletesPageProps) 
                 <select value={form.primary_discipline} onChange={(event) => setForm({ ...form, primary_discipline: event.target.value })}>
                   <option value="running">Running</option>
                   <option value="ciclismo">Ciclismo</option>
-                  <option value="triatlón">Triatlón</option>
+                  <option value="triatlón">Triatlon</option>
                 </select>
               </label>
               <label>
@@ -420,17 +438,17 @@ export function AthletesPage({ athletes, token, onRefresh }: AthletesPageProps) 
                 Observaciones
                 <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} rows={3} />
               </label>
-              {error ? <p className="error full-width">{error}</p> : null}
-              <div className="button-row full-width athlete-management-actions">
-                <button className="ghost-button" type="button" onClick={closeModal} disabled={submitting}>
+              {error ? <p className="rd-error full-width">{error}</p> : null}
+              <div className="button-row full-width">
+                <button className="rd-btn rd-btn-ghost" type="button" onClick={closeModal} disabled={submitting}>
                   Cancelar
                 </button>
-                <button className="primary-button" type="submit" disabled={submitting}>
+                <button className="rd-btn rd-btn-primary" type="submit" disabled={submitting}>
                   {submitting ? "Guardando..." : modalMode === "edit" ? "Guardar cambios" : "Crear atleta"}
                 </button>
               </div>
             </form>
-          </section>
+          </div>
         </div>
       ) : null}
     </div>

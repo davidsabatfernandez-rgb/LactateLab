@@ -4316,12 +4316,12 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
           <p>{analysis.athlete.notes}</p>
           <div className="hero-goal-row">
             {analysis.athlete.primary_discipline === "triatlón" ? (
-              <div className="discipline-tab-row">
+              <div className="discipline-tab-row ad-disc-tabs" style={{ padding: 0, background: "transparent", border: "none" }}>
                 {["natación", "ciclismo", "running"].map((discipline) => (
                   <button
                     key={discipline}
                     type="button"
-                    className={`discipline-tab ${activeDiscipline === discipline ? "active" : ""}`}
+                    className={`discipline-tab ad-disc-tab ${activeDiscipline === discipline ? "active" : ""} ${discipline === "natación" ? "ad-tab-swim" : discipline === "ciclismo" ? "ad-tab-bike" : "ad-tab-run"}`}
                     onClick={() => setActiveDiscipline(discipline)}
                   >
                     {disciplineLabel(discipline)}
@@ -4426,9 +4426,9 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
             </article>
           ))}
         </div>
-        <div className="athlete-detail-section-nav" aria-label="Secciones del análisis">
+        <div className="athlete-detail-section-nav ad-section-nav" aria-label="Secciones del análisis">
           {sectionLinks.map((link) => (
-            <button key={link.id} type="button" className="athlete-detail-section-pill" onClick={() => scrollToSection(link.id)} title={link.label}>
+            <button key={link.id} type="button" className="athlete-detail-section-pill ad-section-link" onClick={() => scrollToSection(link.id)} title={link.label}>
               {link.shortLabel}
             </button>
           ))}
@@ -4436,18 +4436,18 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       </section>
 
       {visibleThresholdCards.length || relevantEstimates.length ? (
-        <section className="metrics-grid metrics-strip">
+        <section className="metrics-grid metrics-strip ad-threshold-row">
           {visibleThresholdCards.map((threshold) => (
-            <article key={threshold.name} className="card status-card">
+            <article key={threshold.name} className={`card status-card ad-threshold-card ${threshold.name.toLowerCase().includes("lt1") ? "lt1" : threshold.name.toLowerCase().includes("lt2") ? "lt2" : threshold.name.toLowerCase().includes("real") ? "real" : "target"}`}>
               <div className="status-head">
-                <span className="eyebrow">{threshold.name}</span>
-                <span className={`status-badge ${threshold.evidence_level}`}>{threshold.evidence_level}</span>
+                <span className="eyebrow ad-threshold-label">{threshold.name}</span>
+                <span className={`status-badge ad-threshold-conf ${threshold.evidence_level}`}>{threshold.evidence_level}</span>
               </div>
-              <strong>{thresholdPrimaryValue(threshold, activeDiscipline, athleteWeight)}</strong>
-              <p>
+              <strong className={`ad-threshold-value ${threshold.name.toLowerCase().includes("lt1") ? "lt1-val" : threshold.name.toLowerCase().includes("lt2") ? "lt2-val" : ""}`}>{thresholdPrimaryValue(threshold, activeDiscipline, athleteWeight)}</strong>
+              <p className="ad-threshold-detail">
                 {thresholdSecondaryValue(threshold, activeDiscipline)}
               </p>
-              <small>{thresholdDetailLine(threshold, activeDiscipline, athleteWeight)}</small>
+              <small className="ad-threshold-detail">{thresholdDetailLine(threshold, activeDiscipline, athleteWeight)}</small>
             </article>
           ))}
           {relevantEstimates.map((estimate, index) => {
@@ -4507,7 +4507,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         </section>
       ) : null}
 
-      <section id="thresholds" className="card threshold-plot-card athlete-detail-anchor">
+      <section id="thresholds" className="card threshold-plot-card athlete-detail-anchor ad-section">
         <div className="card-header">
           <div>
             <span className="eyebrow">Mapa de umbrales</span>
@@ -4518,7 +4518,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               </small>
             </h2>
           </div>
-          <div className="threshold-filter-row">
+          <div className="threshold-filter-row ad-action-bar">
             <GeneratePhysiologyReportButton
               onClick={generatePhysiologyReport}
               loading={physiologyReportLoading}
@@ -4593,7 +4593,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                 ? plotView.individualThresholds?.lt2_individual?.power_watts ?? null
                 : plotView.individualThresholds?.lt2_individual?.pace_seconds_per_km ?? null;
             return (
-              <div className="discipline-plot-panel">
+              <div className="discipline-plot-panel ad-chart-container">
                 <div className="discipline-plot-header">
                   <span className="eyebrow">{disciplineLabel(disciplineKey)}</span>
                   <div className="discipline-plot-title-row">
@@ -5085,7 +5085,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         </div>
       </section>
 
-      <section id="goal-gap" className="card goal-movement-card athlete-detail-anchor">
+      <section id="goal-gap" className="card goal-movement-card athlete-detail-anchor ad-section">
         <div className="card-header">
           <div>
             <span className="eyebrow">Objetivo activo</span>
@@ -5233,7 +5233,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
 
       {activeDiscipline === "ciclismo" ? (
         <section id="cycling-insights" className="cycling-insights-row athlete-detail-anchor">
-          <section className="card cycling-insight-card">
+          <section className="card cycling-insight-card ad-chart-container">
             <div className="cycling-insight-head">
               <div>
                 <span className="eyebrow">Cadencia y coste</span>
@@ -5247,7 +5247,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
             {renderCyclingCadenceEvolution(false)}
           </section>
 
-          <section className="card cycling-insight-card">
+          <section className="card cycling-insight-card ad-chart-container">
             <div className="cycling-insight-head">
               <div>
                 <span className="eyebrow">W/kg, lactato y FC</span>
@@ -5261,7 +5261,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
             {renderCyclingCadenceHistory(false)}
           </section>
 
-          <section className="card cycling-insight-card">
+          <section className="card cycling-insight-card ad-chart-container">
             <div className="cycling-insight-head">
               <div>
                 <span className="eyebrow">Potencia y umbrales</span>
@@ -5278,10 +5278,10 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       ) : null}
 
       {dynamicThresholds ? (
-        <section id="dynamic-references" className="card section-card athlete-detail-anchor">
+        <section id="dynamic-references" className="card section-card athlete-detail-anchor ad-section">
           <div className="section-heading compact">
             <span className="eyebrow">Lectura operativa</span>
-            <h2 className="section-title">Referencias dinámicas</h2>
+            <h2 className="section-title ad-section-title">Referencias dinámicas</h2>
           </div>
           <div className="compact-table dynamic-reference-table">
             <div className="compact-row compact-head">
@@ -5316,7 +5316,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         <section className="card section-card">
           <div className="section-heading compact">
             <span className="eyebrow">Temporalidad</span>
-            <h2 className="section-title">Agudo vs crónico</h2>
+            <h2 className="section-title ad-section-title">Agudo vs crónico</h2>
           </div>
           <div className="temporal-grid">
             <div className="list-item temporal-card">
@@ -5402,17 +5402,17 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               <summary className="insight-disclosure-summary">
                 <div>
                   <span className="eyebrow">Lectura guiada</span>
-                  <h2 className="section-title">Cautelas</h2>
+                  <h2 className="section-title ad-section-title">Cautelas</h2>
                 </div>
                 <small>{dynamicWarningCards.length ? `${dynamicWarningCards.length} avisos` : "Sin avisos"}</small>
               </summary>
               <div className="list caution-list insight-disclosure-body">
                 {dynamicWarningCards.length ? (
                   dynamicWarningCards.map((warning) => (
-                    <div key={warning.title} className={`list-item caution-card ${warning.tone}`}>
-                      <span className="caution-eyebrow">{warning.eyebrow}</span>
-                      <strong>{warning.title}</strong>
-                      <p>{warning.body}</p>
+                    <div key={warning.title} className={`list-item caution-card ad-warning-card ${warning.tone}`}>
+                      <span className="caution-eyebrow ad-warning-eyebrow">{warning.eyebrow}</span>
+                      <strong className="ad-warning-title">{warning.title}</strong>
+                      <p className="ad-warning-body">{warning.body}</p>
                     </div>
                   ))
                 ) : (
@@ -5426,7 +5426,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               <summary className="insight-disclosure-summary">
                 <div>
                   <span className="eyebrow">Trazabilidad</span>
-                  <h2 className="section-title">Cómo se ha calculado</h2>
+                  <h2 className="section-title ad-section-title">Cómo se ha calculado</h2>
                 </div>
                 <small>{Math.min(dynamicThresholds.explanation.length, 8)} pasos</small>
               </summary>
@@ -5449,10 +5449,10 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         </section>
       ) : null}
 
-      <section id="estimates" className="card section-card athlete-detail-anchor">
+      <section id="estimates" className="card section-card athlete-detail-anchor ad-section">
         <div className="section-heading compact">
           <span className="eyebrow">Estimaciones</span>
-          <h2 className="section-title">Referencias estimadas</h2>
+          <h2 className="section-title ad-section-title">Referencias estimadas</h2>
         </div>
         {relevantEstimates.length > 1 ? (
           <div className="estimate-selector-strip">
@@ -5538,17 +5538,17 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                   <summary className="insight-disclosure-summary">
                     <div>
                       <span className="eyebrow">Predicción</span>
-                      <h2 className="section-title">Cautelas</h2>
+                      <h2 className="section-title ad-section-title">Cautelas</h2>
                     </div>
                     <small>{selectedRelevantEstimate.cautions?.length ?? 0} avisos</small>
                   </summary>
                   <div className="list caution-list insight-disclosure-body">
                     {selectedRelevantEstimate.cautions?.length ? (
                       selectedRelevantEstimate.cautions.map((item, index) => (
-                        <div key={`${item}-${index}`} className={`list-item caution-card ${selectedRelevantEstimate.low_evidence ? "warning" : "neutral"}`}>
-                          <span className="caution-eyebrow">Contexto</span>
-                          <strong>Cautela {index + 1}</strong>
-                          <p>{item}</p>
+                        <div key={`${item}-${index}`} className={`list-item caution-card ad-warning-card ${selectedRelevantEstimate.low_evidence ? "warning" : "neutral"}`}>
+                          <span className="caution-eyebrow ad-warning-eyebrow">Contexto</span>
+                          <strong className="ad-warning-title">Cautela {index + 1}</strong>
+                          <p className="ad-warning-body">{item}</p>
                         </div>
                       ))
                     ) : (
@@ -5560,7 +5560,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                   <summary className="insight-disclosure-summary">
                     <div>
                       <span className="eyebrow">Predicción</span>
-                      <h2 className="section-title">Cómo se ha calculado</h2>
+                      <h2 className="section-title ad-section-title">Cómo se ha calculado</h2>
                     </div>
                     <small>{selectedRelevantEstimate.calculation_steps?.length ?? 0} pasos</small>
                   </summary>
@@ -5587,11 +5587,11 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         )}
       </section>
 
-      <section id="history" className="card split-card athlete-detail-anchor">
+      <section id="history" className="card split-card athlete-detail-anchor ad-section">
         <div>
           <div className="section-heading compact">
             <span className="eyebrow">Longitudinal</span>
-            <h2 className="section-title">Evolución histórica</h2>
+            <h2 className="section-title ad-section-title">Evolución histórica</h2>
           </div>
           <div className="list timeline-list polished-timeline-list">
             {["LT1", "LT2", "lactate_anchor"].map((key) => {
@@ -5611,7 +5611,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         <div>
           <div className="section-heading compact">
             <span className="eyebrow">Dirección</span>
-            <h2 className="section-title">Tendencias</h2>
+            <h2 className="section-title ad-section-title">Tendencias</h2>
           </div>
           <div className="list trend-grid polished-trend-grid">
             {hasHistoricalEvolution && analysis.trends.length ? (
@@ -5632,7 +5632,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         </div>
       </section>
 
-      <section id="measurements" className="table-card card athlete-detail-anchor">
+      <section id="measurements" className="table-card card athlete-detail-anchor ad-section">
         <div className="card-header">
           <div>
             <span className="eyebrow">Mediciones</span>

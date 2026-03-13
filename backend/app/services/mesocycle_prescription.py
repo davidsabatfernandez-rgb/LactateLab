@@ -771,6 +771,9 @@ def build_prewritten_mesocycle_draft(
         sessions: list[dict[str, Any]] = []
         weekly_controls: list[str] = []
         for slot in slots:
+            if slot.template_id not in library:
+                # X1: fallback blueprint puede referenciar template_ids inexistentes
+                continue
             template = library[slot.template_id]
             evidence = evidence_for_ids(template.evidence_ids)
             weekly_controls.extend(template.control_points[:2])
@@ -823,7 +826,7 @@ def build_prewritten_mesocycle_draft(
         # fatigue_cost es un descriptor estructural del tipo de sesión, no una
         # medición real de fatiga. El lactato valida el bloque (2x/mesociclo),
         # no el estado diario. Los warnings son orientativos para el entrenador.
-        spacing_slots = [(slot.day_offset, library[slot.template_id]) for slot in slots]
+        spacing_slots = [(slot.day_offset, library[slot.template_id]) for slot in slots if slot.template_id in library]
         spacing_warnings = validate_microcycle_spacing(spacing_slots)
 
         draft_weeks.append(

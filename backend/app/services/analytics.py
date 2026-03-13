@@ -1942,6 +1942,9 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
         _lt2_phys = next((t for t in _phys_thresholds if t.get("name") == "LT2"), None)
         _lt2_pace = _lt2_phys.get("pace_seconds_per_km") if _lt2_phys else None
         _lt2_power = _lt2_phys.get("power_watts") if _lt2_phys else None
+        _lt2_lactate = _lt2_phys.get("lactate") if _lt2_phys else None
+        _lt1_phys = next((t for t in _phys_thresholds if t.get("name") == "LT1"), None)
+        _lt1_lactate = _lt1_phys.get("lactate") if _lt1_phys else None
         analysis["dynamic_thresholds"] = build_dynamic_threshold_payload(
             athlete=athlete,
             sessions=[current for current in athlete.sessions if current.performed_at.date() <= session.performed_at.date()],
@@ -1952,6 +1955,8 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
             power_source=_normalized_power_source(session),
             physiological_lt2_speed_kph=round(3600 / _lt2_pace, 3) if _lt2_pace else None,
             physiological_lt2_power_watts=_lt2_power,
+            physiological_lt2_lactate_mmol=float(_lt2_lactate) if _lt2_lactate is not None else None,
+            physiological_lt1_lactate_mmol=float(_lt1_lactate) if _lt1_lactate is not None else None,
         )
         analysis["individual_thresholds"] = _build_individual_thresholds(
             sessions=[current for current in athlete.sessions if current.performed_at.date() <= session.performed_at.date()],
@@ -2298,6 +2303,23 @@ def dynamic_thresholds_payload(
     if resolved_as_of is None:
         resolved_as_of = snapshots[-1].snapshot_date if snapshots else date.today()
 
+    # Extract physiological LT1/LT2 from latest snapshot if available.
+    _phys_lt2_speed = None
+    _phys_lt2_power = None
+    _phys_lt2_lactate = None
+    _phys_lt1_lactate = None
+    if latest_snapshot and latest_snapshot.payload:
+        _snap_thresholds = latest_snapshot.payload.get("thresholds", [])
+        _snap_lt2 = next((t for t in _snap_thresholds if t.get("name") == "LT2"), None)
+        if _snap_lt2:
+            _snap_pace = _snap_lt2.get("pace_seconds_per_km")
+            _phys_lt2_speed = round(3600 / _snap_pace, 3) if _snap_pace else None
+            _phys_lt2_power = _snap_lt2.get("power_watts")
+            _phys_lt2_lactate = float(_snap_lt2["lactate"]) if _snap_lt2.get("lactate") is not None else None
+        _snap_lt1 = next((t for t in _snap_thresholds if t.get("name") == "LT1"), None)
+        if _snap_lt1:
+            _phys_lt1_lactate = float(_snap_lt1["lactate"]) if _snap_lt1.get("lactate") is not None else None
+
     return build_dynamic_threshold_payload(
         athlete=athlete,
         sessions=athlete.sessions,
@@ -2306,6 +2328,10 @@ def dynamic_thresholds_payload(
         as_of=resolved_as_of,
         config=config_from_settings(get_settings()),
         power_source=power_source,
+        physiological_lt2_speed_kph=_phys_lt2_speed,
+        physiological_lt2_power_watts=_phys_lt2_power,
+        physiological_lt2_lactate_mmol=_phys_lt2_lactate,
+        physiological_lt1_lactate_mmol=_phys_lt1_lactate,
     )
 
 

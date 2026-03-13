@@ -21,30 +21,30 @@ export function Layout({ onLogout, themeMode, onToggleTheme, children }: LayoutP
 
   return (
     <div className="shell">
-      <aside className="sidebar">
-        <Link to="/lab" className="brand">
-          <span className="brand-mark">LL</span>
-          <div className="brand-copy">
+      <aside className="sidebar ly-sidebar">
+        <Link to="/lab" className="brand ly-brand">
+          <span className="brand-mark ly-brand-mark">PA</span>
+          <div className="brand-copy ly-brand-copy">
             <strong>PeakAerobic</strong>
             <p>Endurance physiology</p>
           </div>
         </Link>
-        <nav className="nav">
+        <nav className="nav ly-nav">
           <NavLink to="/lab">Inicio</NavLink>
           <NavLink to="/athletes">Atletas</NavLink>
-          <NavLink to="/planning">Planificación</NavLink>
-          <NavLink to="/nutrition">Nutrición</NavLink>
-          <div className={`nav-group ${isLibraryOpen ? "open" : ""}`}>
+          <NavLink to="/planning">Planificacion</NavLink>
+          <NavLink to="/nutrition">Nutricion</NavLink>
+          <div className={`nav-group ly-nav-group ${isLibraryOpen ? "open" : ""}`}>
             <button
               type="button"
-              className={`nav-group-trigger ${isLibrarySection ? "active" : ""}`}
+              className={`nav-group-trigger ly-nav-trigger ${isLibrarySection ? "active" : ""}`}
               onClick={() => setIsLibraryOpen((current) => !current)}
             >
-              <span>Librería</span>
-              <span className={`nav-group-chevron ${isLibraryOpen ? "open" : ""}`}>▸</span>
+              <span>Libreria</span>
+              <span className={`nav-group-chevron ly-nav-chevron ${isLibraryOpen ? "open" : ""}`}>&#9656;</span>
             </button>
             {isLibraryOpen ? (
-              <div className="nav-group-links">
+              <div className="nav-group-links ly-nav-group-links">
                 <NavLink to="/library" end>
                   Repositorio
                 </NavLink>
@@ -55,19 +55,19 @@ export function Layout({ onLogout, themeMode, onToggleTheme, children }: LayoutP
           <NavLink to="/strava-information">Strava Information</NavLink>
           <NavLink to="/garmin-connect">Garmin Connect</NavLink>
         </nav>
-        <div className="sidebar-actions">
-          <button className="ghost-button sidebar-logout" onClick={onLogout}>
-            Cerrar sesión
+        <div className="sidebar-actions ly-actions">
+          <button className="ghost-button sidebar-logout ly-logout" onClick={onLogout}>
+            Cerrar sesion
           </button>
           <button
             type="button"
-            className={`theme-toggle ${themeMode === "dark" ? "active" : ""}`}
+            className="theme-toggle ly-theme-toggle"
             onClick={onToggleTheme}
             aria-pressed={themeMode === "dark"}
             aria-label={themeMode === "dark" ? "Desactivar modo oscuro" : "Activar modo oscuro"}
             title={themeMode === "dark" ? "Desactivar modo oscuro" : "Activar modo oscuro"}
           >
-            <span className="theme-toggle-icon" aria-hidden="true">☾</span>
+            <span className="theme-toggle-icon" aria-hidden="true">&#9790;</span>
           </button>
         </div>
       </aside>

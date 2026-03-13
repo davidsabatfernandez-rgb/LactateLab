@@ -707,8 +707,8 @@ export function LibraryPage({ token }: LibraryPageProps) {
     <div className="page-grid">
       <section className="hero library-hero">
         <div className="hero-main library-hero-copy">
-          <span className="eyebrow">Librería</span>
-          <h1>Sesiones por zona fisiológica</h1>
+          <span className="eyebrow">Libreria</span>
+          <h1>Sesiones por zona fisiologica</h1>
           <p>
             Todas las sesiones disponibles, organizadas por zona y listas para lectura rápida.
             Abre cualquier fila para ver estructura completa, calentamiento, enfriamiento y consejos.
@@ -761,14 +761,14 @@ export function LibraryPage({ token }: LibraryPageProps) {
         </div>
       </section>
 
-      <section className="card section-card library-toolbar">
+      <section className="card section-card library-toolbar lp-filter-bar">
         <div className="library-toolbar-main">
-          <div className="library-discipline-row">
+          <div className="library-discipline-row lp-filter-section">
             {DISCIPLINES.map((item) => (
               <button
                 key={item}
                 type="button"
-                className={`discipline-tab ${discipline === item ? "active" : ""}`}
+                className={`discipline-tab ${discipline === item ? "active" : ""} ${item === "natación" ? "ad-tab-swim" : item === "ciclismo" ? "ad-tab-bike" : "ad-tab-run"}`}
                 onClick={() => setDiscipline(item)}
               >
                 {disciplineLabel(item)}

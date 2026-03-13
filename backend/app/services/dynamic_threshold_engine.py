@@ -16,7 +16,7 @@ class DynamicThresholdConfig:
     lt1_delta_from_baseline: float = 0.45
     practical_lt1_target_mmol: float = 1.6
     practical_lt2_target_mmol: float = 3.1
-    practical_translation_mode: str = "configured"
+    practical_translation_mode: str = "relative"
     acute_window_days: int = 10
     chronic_window_days: int = 42
     recency_decay_days: int = 18
@@ -1088,6 +1088,8 @@ def _build_model(
     power_source: Optional[str] = None,
     physiological_lt2_speed_kph: Optional[float] = None,
     physiological_lt2_power_watts: Optional[float] = None,
+    physiological_lt2_lactate_mmol: Optional[float] = None,
+    physiological_lt1_lactate_mmol: Optional[float] = None,
 ) -> dict[str, Any]:
     points, baseline_lactate, baseline_source, baseline_notes, baseline_state, baseline_delta_from_history, baseline_state_score = _collect_points(
         athlete=athlete,
@@ -1185,7 +1187,20 @@ def _build_model(
         configured_target=config.practical_lt1_target_mmol,
         config=config,
     )
-    practical_lt2_target = config.practical_lt2_target_mmol
+    # Override LT1 practical with REAL LT1 − 0.3 mmol when detected by curve analysis.
+    if physiological_lt1_lactate_mmol is not None and physiological_lt1_lactate_mmol > 0.8:
+        practical_lt1_target = round(physiological_lt1_lactate_mmol - 0.3, 2)
+        lt1_target_notes = [f"LT1 práctico derivado del LT1 REAL detectado ({physiological_lt1_lactate_mmol:.2f} mmol) − 0.3 mmol."]
+    # I1 fix: individualise practical LT2 target.
+    # Priority: (1) LT2 REAL lactate − 0.5 mmol when detected by curve analysis,
+    #           (2) level-dependent default, (3) config fallback.
+    _level_targets = {"recreational": 3.5, "trained": 3.1, "competitive": 2.8}
+    _level_default = _level_targets.get(getattr(athlete, "athlete_level", "trained"), 3.1)
+
+    if physiological_lt2_lactate_mmol is not None and physiological_lt2_lactate_mmol > 1.5:
+        practical_lt2_target = round(physiological_lt2_lactate_mmol - 0.5, 2)
+    else:
+        practical_lt2_target = _level_default
 
     practical_speed_lt1 = _estimate_reference(points, practical_lt1_target, "speed_kph", "km/h", "LT1 práctico", baseline_lactate, baseline_source, config, robust=True) if discipline == "running" else None
     practical_power_lt1 = _estimate_reference(points, practical_lt1_target, "power_watts", "W", "LT1 práctico", baseline_lactate, baseline_source, config, robust=True)
@@ -1343,18 +1358,24 @@ def build_dynamic_threshold_payload(
     power_source: Optional[str] = None,
     physiological_lt2_speed_kph: Optional[float] = None,
     physiological_lt2_power_watts: Optional[float] = None,
+    physiological_lt2_lactate_mmol: Optional[float] = None,
+    physiological_lt1_lactate_mmol: Optional[float] = None,
 ) -> dict[str, Any]:
     acute = _build_model(
         athlete, sessions, discipline, as_of, config, "acute", config.acute_window_days,
         power_source=power_source,
         physiological_lt2_speed_kph=physiological_lt2_speed_kph,
         physiological_lt2_power_watts=physiological_lt2_power_watts,
+        physiological_lt2_lactate_mmol=physiological_lt2_lactate_mmol,
+        physiological_lt1_lactate_mmol=physiological_lt1_lactate_mmol,
     )
     chronic = _build_model(
         athlete, sessions, discipline, as_of, config, "chronic", config.chronic_window_days,
         power_source=power_source,
         physiological_lt2_speed_kph=physiological_lt2_speed_kph,
         physiological_lt2_power_watts=physiological_lt2_power_watts,
+        physiological_lt2_lactate_mmol=physiological_lt2_lactate_mmol,
+        physiological_lt1_lactate_mmol=physiological_lt1_lactate_mmol,
     )
 
     comparison_metrics = {

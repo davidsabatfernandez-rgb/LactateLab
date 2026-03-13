@@ -15,6 +15,7 @@ class CurvePoint(BaseModel):
     label: str
     session_date: str
     power_source: Optional[str] = None
+    is_peak: Optional[bool] = None
 
 
 class ThresholdEstimate(BaseModel):
@@ -201,6 +202,7 @@ class SessionAnalysisRead(BaseModel):
     confidence_summary: list[ConfidenceItem]
     contextual_details: list[dict]
     historical_evolution: dict[str, list[HistoricalPoint]]
+    peak_lactate: Optional[dict] = None
     real_thresholds: Optional[RealThresholdsRead] = None
     individual_thresholds: Optional[IndividualThresholdsRead] = None
 

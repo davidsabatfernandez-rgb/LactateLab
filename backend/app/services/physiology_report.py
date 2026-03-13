@@ -552,6 +552,24 @@ class _ScientificPdfBuilder:
         operator = "B" if fill and stroke else "f" if fill else "S"
         self.page.append(f"{x:.2f} {y:.2f} {w:.2f} {h:.2f} re {operator}")
 
+    def circle(self, cx: float, cy: float, r: float, *, fill=None, stroke=None, line_width: float = 1.0):
+        """Draw a circle using 4 Bézier curves (PDF has no circle primitive)."""
+        k = 0.5523 * r  # magic constant for Bézier approximation of circle
+        self.page.append(f"{line_width:.2f} w")
+        if fill:
+            self.set_fill(fill)
+        if stroke:
+            self.set_stroke(stroke)
+        operator = "B" if fill and stroke else "f" if fill else "S"
+        self.page.append(
+            f"{cx:.2f} {cy + r:.2f} m "
+            f"{cx + k:.2f} {cy + r:.2f} {cx + r:.2f} {cy + k:.2f} {cx + r:.2f} {cy:.2f} c "
+            f"{cx + r:.2f} {cy - k:.2f} {cx + k:.2f} {cy - r:.2f} {cx:.2f} {cy - r:.2f} c "
+            f"{cx - k:.2f} {cy - r:.2f} {cx - r:.2f} {cy - k:.2f} {cx - r:.2f} {cy:.2f} c "
+            f"{cx - r:.2f} {cy + k:.2f} {cx - k:.2f} {cy + r:.2f} {cx:.2f} {cy + r:.2f} c "
+            f"{operator}"
+        )
+
     def line(self, x1: float, y1: float, x2: float, y2: float, color: tuple[float, float, float], width: float = 1.0, dash: Optional[str] = None):
         self.page.append(f"{width:.2f} w")
         if dash:
@@ -700,46 +718,122 @@ def _render_pdf_cover(pdf: _ScientificPdfBuilder, report: dict):
 
 
 def _draw_stage_curve(pdf: _ScientificPdfBuilder, report: dict):
-    ink = (0.12, 0.18, 0.21)
-    muted = (0.38, 0.43, 0.46)
-    accent = (0.72, 0.40, 0.22)
-    pdf.ensure_space(330)
-    pdf.text(pdf.margin_x, pdf.y, "Curva incremental y lectura de umbrales", font="F2", size=15, color=ink)
-    pdf.y -= 18
-    pdf.text_block(
-        pdf.margin_x,
-        pdf.y,
-        (
-            "La figura resume la progresión del lactato frente a la carga del test incremental. "
-            "Las líneas verticales marcan LT1 y LT2 fisiológicos anclados a 2.0 y 4.0 mmol/L."
-            if not report.get("individual_thresholds")
-            else "La figura resume la progresión del lactato frente a la carga del test incremental. Las líneas verticales muestran los anclajes fisiológicos y, cuando la evidencia lo permite, la referencia individual longitudinal."
-        ),
-        width=pdf.width - pdf.margin_x * 2,
-        font="F1",
-        size=9,
-        color=muted,
-        leading=13,
-    )
-    pdf.y -= 48
-    chart_x = pdf.margin_x
-    chart_y = pdf.y - 220
-    chart_w = pdf.width - pdf.margin_x * 2
-    chart_h = 210
-    pdf.rect(chart_x, chart_y, chart_w, chart_h, fill=(0.996, 0.995, 0.992), stroke=(0.87, 0.87, 0.85))
-    pdf.rect(chart_x, chart_y + chart_h - 28, chart_w, 28, fill=(0.95, 0.946, 0.938))
-
-    plot_left = chart_x + 48
-    plot_bottom = chart_y + 34
-    plot_w = chart_w - 66
-    plot_h = chart_h - 58
-    pdf.line(plot_left, plot_bottom, plot_left, plot_bottom + plot_h, (0.62, 0.66, 0.70), 1.0)
-    pdf.line(plot_left, plot_bottom, plot_left + plot_w, plot_bottom, (0.62, 0.66, 0.70), 1.0)
+    ink = (0.12, 0.14, 0.16)
+    muted = (0.50, 0.54, 0.58)
+    col_lt1 = (0.114, 0.620, 0.459)   # #1D9E75
+    col_lt2 = (0.847, 0.353, 0.188)   # #D85A30
+    col_lt1_soft = (0.114 * 0.5 + 0.5, 0.620 * 0.5 + 0.5, 0.459 * 0.5 + 0.5)
+    col_lt2_soft = (0.847 * 0.5 + 0.5, 0.353 * 0.5 + 0.5, 0.188 * 0.5 + 0.5)
+    col_dot = (0.114, 0.620, 0.459)    # green dots
+    col_drop = (0.847, 0.353, 0.188)   # orange for drops
+    col_smooth = (0.62, 0.62, 0.62)
+    col_line = (0.114, 0.620, 0.459)   # green line
 
     stages = report["stages"]
+    lactates = [s["lactate_mmol"] for s in stages]
     discipline = report["discipline"]
+    all_thresholds = report["thresholds"] + report.get("individual_thresholds", [])
+
+    # Detect anomaly drops before the final peak
+    drop_indices: list[int] = []
+    if len(lactates) >= 3:
+        peak_idx = lactates.index(max(lactates))
+        for i in range(1, peak_idx + 1):
+            if lactates[i] < lactates[i - 1]:
+                drop_indices.append(i)
+    has_anomaly = len(drop_indices) > 0
+
+    # ── Lectura provisional box (above chart) ──
+    sample_count = len(stages)
+    threshold_count = len(report["thresholds"])
+    profile_tag = report.get("profile_tag", "")
+    confidence_note = "Confianza baja o media" if sample_count < 10 else "Confianza alta"
+    anomaly_pills: list[str] = [f"{sample_count} muestras visibles", f"{threshold_count} umbrales detectados", confidence_note]
+    if has_anomaly:
+        drop_labels = ", ".join(str(stages[i]["stage_number"]) for i in drop_indices)
+        anomaly_pills.append(f"Anomalía etapa {drop_labels}")
+
+    lectura_text = f"Base de lactato {'escasa' if sample_count < 8 else 'suficiente'} ({sample_count} muestras). "
+    if profile_tag:
+        lectura_text += f"{profile_tag}. "
+    if has_anomaly:
+        drop_stage_labels = ", ".join(stages[i]["load_label"] for i in drop_indices)
+        lectura_text += f"La etapa en {drop_stage_labels} muestra una bajada anómala de lactato — revisar en próximo retest."
+
+    lectura_box_w = pdf.width - pdf.margin_x * 2
+    _, lectura_text_h = pdf.block_metrics(lectura_text, lectura_box_w - 28, size=9, leading=12)
+    lectura_box_h = lectura_text_h + 52
+
+    pdf.ensure_space(lectura_box_h + 340)
+
+    # Title
+    pdf.text(pdf.margin_x, pdf.y, "Curva de lactato incremental", font="F2", size=15, color=ink)
+    pdf.y -= 26
+
+    # Lectura provisional box — amber tint
+    box_top = pdf.y
+    pdf.rect(pdf.margin_x, box_top - lectura_box_h, lectura_box_w, lectura_box_h, fill=(0.996, 0.976, 0.922), stroke=(0.90, 0.82, 0.55))
+    pdf.text(pdf.margin_x + 14, box_top - 16, "Lectura provisional", font="F2", size=10, color=(0.58, 0.44, 0.08))
+    pdf.text_block(
+        pdf.margin_x + 14,
+        box_top - 32,
+        lectura_text,
+        width=lectura_box_w - 28,
+        font="F1",
+        size=9,
+        color=(0.32, 0.28, 0.14),
+        leading=12,
+    )
+    # Pill badges at bottom of box
+    pill_x = pdf.margin_x + 14
+    pill_y = box_top - lectura_box_h + 14
+    for pill_text in anomaly_pills:
+        pill_w = max(50, 10 + len(pill_text) * 4.6)
+        pill_color = (0.72, 0.56, 0.10) if "Anomalía" in pill_text else (0.38, 0.34, 0.18)
+        pill_bg = (0.98, 0.95, 0.86) if "Anomalía" in pill_text else (0.94, 0.92, 0.86)
+        pdf.rect(pill_x, pill_y - 4, pill_w, 16, fill=pill_bg, stroke=(0.86, 0.82, 0.70), line_width=0.5)
+        pdf.text(pill_x + 5, pill_y, pill_text, font="F2", size=7, color=pill_color)
+        pill_x += pill_w + 6
+    pdf.y = box_top - lectura_box_h - 18
+
+    # ── Legend row above chart ──
+    legend_y = pdf.y
+    legend_items = [
+        (col_lt1, "LT1 fisiológico", False),
+        (col_lt2, "LT2 fisiológico", False),
+        (col_lt1_soft, "LT1 práctico", True),
+        (col_lt2_soft, "LT2 práctico", True),
+    ]
+    lx = pdf.margin_x
+    for color, label, dashed in legend_items:
+        pdf.circle(lx + 4, legend_y + 3, 3, fill=color)
+        if dashed:
+            pdf.line(lx + 10, legend_y + 3, lx + 26, legend_y + 3, color, 1.2, dash="3 2")
+        else:
+            pdf.line(lx + 10, legend_y + 3, lx + 26, legend_y + 3, color, 1.5)
+        pdf.text(lx + 30, legend_y, label, font="F1", size=8, color=color)
+        lx += 120
+    pdf.y -= 22
+
+    # ── Chart area ──
+    chart_x = pdf.margin_x
+    chart_y = pdf.y - 230
+    chart_w = pdf.width - pdf.margin_x * 2
+    chart_h = 220
+
+    # White background, thin border
+    pdf.rect(chart_x, chart_y, chart_w, chart_h, fill=(1.0, 1.0, 1.0), stroke=(0.88, 0.88, 0.88), line_width=0.5)
+
+    plot_left = chart_x + 52
+    plot_bottom = chart_y + 36
+    plot_w = chart_w - 70
+    plot_h = chart_h - 52
+
+    # Axes — very light
+    pdf.line(plot_left, plot_bottom, plot_left, plot_bottom + plot_h, (0.82, 0.82, 0.82), 0.6)
+    pdf.line(plot_left, plot_bottom, plot_left + plot_w, plot_bottom, (0.82, 0.82, 0.82), 0.6)
+
     loads = [stage["load_value"] for stage in stages]
-    lactates = [stage["lactate_mmol"] for stage in stages]
     if discipline == "ciclismo":
         min_load, max_load = min(loads), max(loads)
         def map_x(value: float) -> float:
@@ -753,20 +847,36 @@ def _draw_stage_curve(pdf: _ScientificPdfBuilder, report: dict):
                 return plot_left + plot_w / 2
             return plot_left + ((max_load - value) / (max_load - min_load)) * plot_w
 
-    all_thresholds = report["thresholds"] + report.get("individual_thresholds", [])
-    max_lactate = max(max(lactates), max(threshold["anchor_mmol"] for threshold in all_thresholds)) + 0.6
+    max_lactate = max(max(lactates), max(threshold["anchor_mmol"] for threshold in all_thresholds)) + 0.8
     def map_y(value: float) -> float:
         return plot_bottom + (value / max_lactate) * plot_h
 
-    for grid_index in range(1, 5):
-        value = (max_lactate / 4) * grid_index
-        y = map_y(value)
-        pdf.line(plot_left, y, plot_left + plot_w, y, (0.88, 0.90, 0.92), 0.7, dash="2 3")
-        pdf.text(chart_x + 8, y - 3, f"{value:.1f}", font="F1", size=8, color=muted)
+    # Y axis labels (integer mmol)
+    for mmol_val in range(0, int(max_lactate) + 1):
+        y = map_y(mmol_val)
+        if y > plot_bottom + plot_h:
+            break
+        pdf.line(plot_left, y, plot_left + plot_w, y, (0.92, 0.92, 0.92), 0.4, dash="1 3")
+        pdf.text(chart_x + 6, y - 3, f"{mmol_val} mmol", font="F1", size=7, color=muted)
+
+    # X axis load labels at each stage
+    for stage in stages:
+        x = map_x(stage["load_value"])
+        pdf.text(x - 10, plot_bottom - 14, stage["load_label"], font="F1", size=6, color=muted)
+
+    # ── Shaded zone between LT1 and LT2 (franja útil) ──
+    lt1_fis = next((t for t in report["thresholds"] if "LT1" in t["name"]), None)
+    lt2_fis = next((t for t in report["thresholds"] if "LT2" in t["name"]), None)
+    if lt1_fis and lt2_fis and lt1_fis.get("metric_value") is not None and lt2_fis.get("metric_value") is not None:
+        x1 = map_x(lt1_fis["metric_value"])
+        x2 = map_x(lt2_fis["metric_value"])
+        shade_left = min(x1, x2)
+        shade_right = max(x1, x2)
+        pdf.rect(shade_left, plot_bottom, shade_right - shade_left, plot_h, fill=(0.92, 0.97, 0.94))
 
     polyline_points = [(map_x(stage["load_value"]), map_y(stage["lactate_mmol"])) for stage in stages]
-    for left, right in zip(polyline_points, polyline_points[1:]):
-        pdf.line(left[0], left[1], right[0], right[1], (0.16, 0.25, 0.78), 1.8)
+
+    # 1) Smoothed line — gray dashed
     smooth_points = []
     for index, stage in enumerate(stages):
         if index == 0 or index == len(stages) - 1:
@@ -775,46 +885,44 @@ def _draw_stage_curve(pdf: _ScientificPdfBuilder, report: dict):
             adjusted = stages[index - 1]["lactate_mmol"] * 0.22 + stage["lactate_mmol"] * 0.56 + stages[index + 1]["lactate_mmol"] * 0.22
         smooth_points.append((map_x(stage["load_value"]), map_y(adjusted)))
     for left, right in zip(smooth_points, smooth_points[1:]):
-        pdf.line(left[0], left[1], right[0], right[1], (0.84, 0.31, 0.22), 1.5)
+        pdf.line(left[0], left[1], right[0], right[1], col_smooth, 1.0, dash="4 3")
 
-    for stage, (x, y) in zip(stages, polyline_points):
-        pdf.rect(x - 2, y - 2, 4, 4, fill=(0.08, 0.10, 0.14))
-        pdf.text(x - 6, y + 8, str(stage["stage_number"]), font="F1", size=7, color=muted)
+    # 2) Real line connecting points — green solid
+    for left, right in zip(polyline_points, polyline_points[1:]):
+        pdf.line(left[0], left[1], right[0], right[1], col_line, 2.0)
 
-    threshold_colors = {
-        "LT1 fisiológico": (0.18, 0.34, 0.83),
-        "LT2 fisiológico": (0.83, 0.42, 0.21),
-        "LT1 Individual": (0.22, 0.58, 0.36),
-        "LT2 Individual": (0.68, 0.30, 0.19),
+    # 3) Circular dots — green normal, orange drops
+    for idx, (stage, (x, y)) in enumerate(zip(stages, polyline_points)):
+        is_drop = idx in drop_indices
+        dot_fill = col_drop if is_drop else col_dot
+        pdf.circle(x, y, 4.5, fill=dot_fill, stroke=(1, 1, 1), line_width=1.5)
+
+    # 4) Threshold vertical lines
+    threshold_configs = {
+        "LT1 fisiológico": (col_lt1, 1.8, None),
+        "LT2 fisiológico": (col_lt2, 1.8, None),
+        "LT1 Individual": (col_lt1_soft, 1.0, "4 3"),
+        "LT2 Individual": (col_lt2_soft, 1.0, "4 3"),
     }
-    for index, threshold in enumerate(all_thresholds):
+    for threshold in all_thresholds:
         metric_value = threshold.get("metric_value")
         if metric_value is None:
             continue
         x = map_x(metric_value)
-        color = threshold_colors.get(threshold["name"], (0.30, 0.30, 0.30))
-        pdf.line(x, plot_bottom, x, plot_bottom + plot_h, color, 1.3, dash="5 3")
-        label_y = plot_bottom + plot_h - 10 - (index % 2) * 12
-        label = threshold["name"]
-        pdf.text(x + 4, label_y, label, font="F2", size=8, color=color)
+        name = threshold["name"]
+        color, lw, dash = threshold_configs.get(name, ((0.5, 0.5, 0.5), 1.0, "4 3"))
+        pdf.line(x, plot_bottom, x, plot_bottom + plot_h, color, lw, dash=dash)
+        # Label card below axis
         label_text = threshold["metric_label"]
-        card_w = min(96, max(54, 16 + len(label_text) * 3.6))
+        card_w = min(96, max(52, 12 + len(label_text) * 4.0))
         card_x = min(max(x - card_w / 2, plot_left + 2), plot_left + plot_w - card_w - 2)
-        pdf.rect(card_x, plot_bottom - 28, card_w, 18, fill=(1, 1, 1), stroke=color, line_width=0.8)
-        pdf.text(card_x + 6, plot_bottom - 21, label_text, font="F2", size=7, color=color)
+        pdf.rect(card_x, plot_bottom - 30, card_w, 18, fill=(1, 1, 1), stroke=color, line_width=0.7)
+        pdf.text(card_x + 6, plot_bottom - 23, label_text, font="F2", size=7, color=color)
 
-    pdf.text(plot_left + plot_w / 2 - 40, chart_y + 10, "Carga de trabajo", font="F2", size=9, color=ink)
-    pdf.text(chart_x + 10, chart_y + chart_h - 18, "Lactato (mmol/L)", font="F2", size=9, color=ink)
-    pdf.text(plot_left + 4, chart_y + chart_h - 18, "Línea real", font="F1", size=8, color=(0.16, 0.25, 0.78))
-    pdf.text(plot_left + 70, chart_y + chart_h - 18, "Ajuste visual", font="F1", size=8, color=accent)
+    # Axis title
+    pdf.text(chart_x + 10, chart_y + chart_h + 4, "mmol/L", font="F2", size=8, color=muted)
 
-    if stages:
-        left_stage = stages[0]
-        right_stage = stages[-1]
-        pdf.text(plot_left - 14, plot_bottom - 14, left_stage["load_label"], font="F1", size=7, color=muted)
-        pdf.text(plot_left + plot_w - 26, plot_bottom - 14, right_stage["load_label"], font="F1", size=7, color=muted)
-
-    pdf.y = chart_y - 24
+    pdf.y = chart_y - 18
 
 
 def _render_threshold_cards(pdf: _ScientificPdfBuilder, report: dict):
@@ -822,47 +930,66 @@ def _render_threshold_cards(pdf: _ScientificPdfBuilder, report: dict):
     if not thresholds:
         return
     ink = (0.10, 0.10, 0.10)
-    muted = (0.36, 0.36, 0.36)
-    accents = [(0.20, 0.20, 0.20), (0.62, 0.28, 0.08)]
-    columns = 2
-    gap = 12
-    card_w = (pdf.width - pdf.margin_x * 2 - gap) / columns
-    card_h = 104
+    muted = (0.50, 0.54, 0.58)
+    col_lt1 = (0.114, 0.620, 0.459)
+    col_lt2 = (0.847, 0.353, 0.188)
+
+    def _accent_for(name: str) -> tuple[float, float, float]:
+        if "LT1" in name:
+            return col_lt1
+        if "LT2" in name:
+            return col_lt2
+        return (0.30, 0.30, 0.30)
+
+    def _is_practical(name: str) -> bool:
+        lower = name.lower()
+        return "práctico" in lower or "practico" in lower
+
+    # 4-column layout to fit all thresholds in one row
+    columns = min(4, len(thresholds))
+    gap = 10
+    card_w = (pdf.width - pdf.margin_x * 2 - gap * (columns - 1)) / columns
+    card_h = 92
     rows = (len(thresholds) + columns - 1) // columns
-    pdf.ensure_space(rows * (card_h + gap) + 26)
-    pdf.text(pdf.margin_x, pdf.y, "LT fisiológicos de anclaje", font="F2", size=14, color=ink)
-    pdf.y -= 16
-    pdf.text_block(
-        pdf.margin_x,
-        pdf.y,
-        "Estos dos puntos sostienen la lectura principal del informe y la construcción de zonas. Se presentan con prioridad visual por ser la base práctica más sólida del documento.",
-        width=pdf.width - pdf.margin_x * 2,
-        font="F1",
-        size=9,
-        color=muted,
-        leading=12,
-    )
-    pdf.y -= 34
+    pdf.ensure_space(rows * (card_h + gap) + 14)
+
     top = pdf.y
     for index, threshold in enumerate(thresholds):
         row = index // columns
         column = index % columns
         x = pdf.margin_x + column * (card_w + gap)
         y_top = top - row * (card_h + gap)
-        accent = accents[index % len(accents)]
-        pdf.rect(x, y_top - card_h, card_w, card_h, fill=(1, 1, 1), stroke=(0.86, 0.86, 0.86))
-        pdf.rect(x, y_top - 6, card_w, 6, fill=accent)
-        pdf.text(x + 12, y_top - 20, threshold["name"], font="F2", size=9, color=accent)
-        pdf.text(x + 12, y_top - 40, threshold["metric_label"], font="F2", size=17, color=ink)
-        secondary = f"Anclaje {threshold['anchor_mmol']:.1f} mmol/L"
-        tertiary = f"{threshold.get('heart_rate_bpm') or 'n/d'} bpm"
-        pdf.text(x + 12, y_top - 56, secondary, font="F1", size=9, color=muted)
-        pdf.text(x + 12, y_top - 68, tertiary, font="F1", size=9, color=muted)
+        accent = _accent_for(threshold["name"])
+        practical = _is_practical(threshold["name"])
+        if practical:
+            accent_display = (accent[0] * 0.5 + 0.5, accent[1] * 0.5 + 0.5, accent[2] * 0.5 + 0.5)
+            text_ink = (ink[0] * 0.45 + 0.55, ink[1] * 0.45 + 0.55, ink[2] * 0.45 + 0.55)
+        else:
+            accent_display = accent
+            text_ink = ink
+
+        # Card background
+        pdf.rect(x, y_top - card_h, card_w, card_h, fill=(0.994, 0.994, 0.990), stroke=(0.88, 0.88, 0.86), line_width=0.5)
+
+        # Colored dot + name
+        pdf.circle(x + 12, y_top - 14, 3.5, fill=accent_display)
+        pdf.text(x + 20, y_top - 18, threshold["name"], font="F2", size=8, color=accent_display)
+
+        # Big metric value
+        pdf.text(x + 10, y_top - 40, threshold["metric_label"], font="F2", size=18, color=text_ink)
+
+        # Secondary info
+        hr_text = f"{threshold.get('heart_rate_bpm') or 'n/d'} bpm"
+        anchor_text = f"{threshold['anchor_mmol']:.1f} mmol/L"
+        pdf.text(x + 10, y_top - 56, f"{hr_text} · {anchor_text}", font="F1", size=8, color=muted)
+
+        # Interpretation — compact
         interpretation = threshold["interpretation"]
-        if len(interpretation) > 106:
-            interpretation = f"{interpretation[:103]}..."
-        pdf.text_block(x + 12, y_top - 82, interpretation, width=card_w - 24, font="F1", size=8, color=muted, leading=10)
-    pdf.y = top - rows * (card_h + gap) - 6
+        if len(interpretation) > 60:
+            interpretation = f"{interpretation[:57]}..."
+        pdf.text_block(x + 10, y_top - 70, interpretation, width=card_w - 20, font="F1", size=7, color=muted, leading=9)
+
+    pdf.y = top - rows * (card_h + gap) - 10
 
 
 def _render_individual_threshold_cards(pdf: _ScientificPdfBuilder, report: dict):
@@ -903,18 +1030,28 @@ def _render_individual_threshold_cards(pdf: _ScientificPdfBuilder, report: dict)
     pdf.y -= 34
 
     if thresholds:
-        accents = [(0.20, 0.20, 0.20), (0.62, 0.28, 0.08)]
+        col_lt1 = (0.114, 0.620, 0.459)
+        col_lt2 = (0.847, 0.353, 0.188)
         top = pdf.y
         for index, threshold in enumerate(thresholds):
             row = index // columns
             column = index % columns
             x = pdf.margin_x + column * (card_w + gap)
             y_top = top - row * (card_h + gap)
-            accent = accents[index % len(accents)]
-            pdf.rect(x, y_top - card_h, card_w, card_h, fill=(1, 1, 1), stroke=(0.86, 0.86, 0.86))
+            name = threshold["name"]
+            if "LT1" in name:
+                accent = col_lt1
+            elif "LT2" in name:
+                accent = col_lt2
+            else:
+                accent = (0.30, 0.30, 0.30)
+            # Individual thresholds render at 60% opacity
+            accent = (accent[0] * 0.6 + 0.4, accent[1] * 0.6 + 0.4, accent[2] * 0.6 + 0.4)
+            text_ink = (ink[0] * 0.6 + 0.4, ink[1] * 0.6 + 0.4, ink[2] * 0.6 + 0.4)
+            pdf.rect(x, y_top - card_h, card_w, card_h, fill=(1, 1, 1), stroke=(0.88, 0.88, 0.88))
             pdf.rect(x, y_top - 6, card_w, 6, fill=accent)
-            pdf.text(x + 12, y_top - 20, threshold["name"], font="F2", size=9, color=accent)
-            pdf.text(x + 12, y_top - 40, threshold["metric_label"], font="F2", size=15, color=ink)
+            pdf.text(x + 12, y_top - 20, name, font="F2", size=9, color=accent)
+            pdf.text(x + 12, y_top - 40, threshold["metric_label"], font="F2", size=15, color=text_ink)
             support_label = f"{threshold.get('supporting_sessions') or 0} sesiones soporte"
             confidence_label = (
                 f"Confianza {round((threshold.get('confidence') or 0) * 100)}%"
@@ -950,24 +1087,38 @@ def _render_individual_threshold_cards(pdf: _ScientificPdfBuilder, report: dict)
 
 def _render_metric_cards(pdf: _ScientificPdfBuilder, report: dict):
     pdf.ensure_space(108)
-    individual_status = (
-        "Disponible en anexo"
-        if report.get("individual_thresholds")
-        else "No incluido"
-    )
+    ink = (0.10, 0.10, 0.10)
+    muted = (0.45, 0.50, 0.54)
+    col_lt1 = (0.114, 0.620, 0.459)
+    col_lt2 = (0.847, 0.353, 0.188)
+
+    thresholds = report["thresholds"]
+    lt1_th = next((t for t in thresholds if "LT1" in t["name"]), None)
+    lt2_th = next((t for t in thresholds if "LT2" in t["name"]), None)
+
+    # Franja útil: difference between LT1 and LT2 metric_value (seconds for pace, watts for power)
+    franja_label = "n/d"
+    if lt1_th and lt2_th and lt1_th.get("metric_value") is not None and lt2_th.get("metric_value") is not None:
+        if report["discipline"] == "ciclismo":
+            diff = lt2_th["metric_value"] - lt1_th["metric_value"]
+            franja_label = f"{round(diff)} W"
+        else:
+            diff = abs(lt1_th["metric_value"] - lt2_th["metric_value"])
+            franja_label = f"{round(diff)}s ({_format_seconds(round(diff))})"
+
     cards = [
-        ("Pico de lactato", f"{report['test_summary']['peak_lactate_mmol']:.1f} mmol/L", f"{report['test_summary']['stage_count']} etapas válidas"),
-        ("Duración media", _format_seconds(report["test_summary"]["average_stage_duration_seconds"]), report["test_summary"]["load_start_label"] + " a " + report["test_summary"]["load_end_label"]),
-        ("Pool comparable", f"{report['individual_threshold_sample_count']} muestras", f"Mínimo editorial {report['individual_threshold_min_samples']}"),
-        ("Lectura individual", individual_status, report["profile_tag"]),
+        ("Pico lactato", f"{report['test_summary']['peak_lactate_mmol']:.1f} mmol/L", f"{report['test_summary']['stage_count']} etapas", ink),
+        ("LT1", lt1_th["metric_label"] if lt1_th else "n/d", f"{lt1_th['anchor_mmol']:.1f} mmol/L" if lt1_th else "", col_lt1),
+        ("LT2", lt2_th["metric_label"] if lt2_th else "n/d", f"{lt2_th['anchor_mmol']:.1f} mmol/L" if lt2_th else "", col_lt2),
+        ("Franja útil", franja_label, "LT1 → LT2", ink),
     ]
-    pdf.text(pdf.margin_x, pdf.y, "Datos clave del test", font="F2", size=12, color=(0.10, 0.10, 0.10))
+    pdf.text(pdf.margin_x, pdf.y, "Datos clave del test", font="F2", size=12, color=ink)
     pdf.y -= 16
-    for title, value, detail in cards:
-        pdf.line(pdf.margin_x, pdf.y - 4, pdf.width - pdf.margin_x, pdf.y - 4, (0.88, 0.88, 0.88), 0.8)
-        pdf.text(pdf.margin_x, pdf.y - 18, title.upper(), font="F2", size=7, color=(0.45, 0.45, 0.45))
-        pdf.text(pdf.margin_x + 120, pdf.y - 18, value, font="F2", size=11, color=(0.10, 0.10, 0.10))
-        pdf.text_block(pdf.margin_x + 280, pdf.y - 18, detail, width=220, font="F1", size=8, color=(0.36, 0.36, 0.36), leading=10)
+    for title, value, detail, accent in cards:
+        pdf.line(pdf.margin_x, pdf.y - 4, pdf.width - pdf.margin_x, pdf.y - 4, (0.90, 0.90, 0.90), 0.6)
+        pdf.text(pdf.margin_x, pdf.y - 18, title.upper(), font="F2", size=7, color=muted)
+        pdf.text(pdf.margin_x + 120, pdf.y - 18, value, font="F2", size=11, color=accent)
+        pdf.text_block(pdf.margin_x + 280, pdf.y - 18, detail, width=220, font="F1", size=8, color=muted, leading=10)
         pdf.y -= 28
     pdf.y -= 6
 

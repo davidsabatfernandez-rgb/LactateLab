@@ -628,7 +628,8 @@ VALIDATION_BATTERY = [
     pytest.param(_pace_analysis("running", 320, 295), "trained", "running", "ironman_run", _pace(330), None, 20, 9.2, "aerobic_capacity_block", id="T09_ironman_run_lt1_priority"),
     pytest.param(_power_analysis(225, 275), "trained", "ciclismo", "ironman_bike", None, 220.0, 18, 13.0, "aerobic_capacity_block", id="T10_ironman_bike_high_gly"),
     pytest.param(_pace_analysis("running", 255, 240), "competitive", "running", "ironman_run", _pace(335), None, 8, 8.7, "competition_specific_block", id="T11_ironman_run_specific"),
-    pytest.param(_power_analysis(255, 300), "competitive", "ciclismo", "ironman_bike", None, 245.0, 8, 8.8, "competition_specific_block", id="T12_ironman_bike_specific"),
+    # Con race factor 0.79 (competitive): required_lt2 = 245/0.79 ≈ 310W > LT2@300W → gap real
+    pytest.param(_power_analysis(255, 300), "competitive", "ciclismo", "ironman_bike", None, 245.0, 8, 8.8, "aerobic_capacity_block", id="T12_ironman_bike_specific"),
 ]
 
 
@@ -662,3 +663,100 @@ def test_physiological_gap_validation_battery(
 
     assert result.data_quality in {"good", "low"}
     assert result.recommended_block == expected_block
+
+
+# ── Tests VLamax proxy: ratio × nivel absoluto ─────────────────────────────
+# Verifica que el cruce ratio + aerobic_level corrige los falsos positivos.
+
+from app.services.physiological_engine import build_capacity_profile
+
+VLAMAX_PROXY_CASES = [
+    # ── RUNNING (metric = pace in km/h) ──
+    # 1. Maratoniano élite: LT1@17.1km/h (3:30/km), LT2@18.5km/h (3:15/km)
+    #    ratio=0.92, LT2 alto → diesel REAL
+    pytest.param(17.1, 18.5, 0.85, 0.85, "competitive", "running", "pace",
+                 "high", "low", id="V01_elite_marathon_diesel_real"),
+
+    # 2. Recreativo comprimido: LT1@9.2km/h (6:30/km), LT2@10.0km/h (6:00/km)
+    #    ratio=0.92, LT2 bajo → NO es diesel, es comprimido → moderate
+    pytest.param(9.2, 10.0, 0.85, 0.85, "trained", "running", "pace",
+                 "low", "moderate", id="V02_recreational_compressed_false_diesel"),
+
+    # 3. Corredor 800m haciendo maratón: LT1@13.3km/h (4:30/km), LT2@16.4km/h (3:40/km)
+    #    ratio=0.81, LT2 moderate (16.4 entre 13.5-17.0 competitive) → moderate VLamax
+    pytest.param(13.3, 16.4, 0.85, 0.85, "competitive", "running", "pace",
+                 "moderate", "moderate", id="V03_800m_runner_in_marathon"),
+
+    # 4. Recreativo sin base: LT1@8.6km/h (7:00/km), LT2@10.9km/h (5:30/km)
+    #    ratio=0.79, LT2 bajo → NO es glucolítico potente → moderate
+    pytest.param(8.6, 10.9, 0.85, 0.85, "trained", "running", "pace",
+                 "low", "moderate", id="V04_recreational_no_base_false_glycolytic"),
+
+    # 5. Trained runner bueno: LT1@12.5km/h, LT2@14.7km/h
+    #    ratio=0.85, LT2 high (14.7 >= 14.5 trained) → moderate VLamax (ratio en rango)
+    pytest.param(12.5, 14.7, 0.85, 0.85, "trained", "running", "pace",
+                 "high", "moderate", id="V05_trained_good_runner"),
+
+    # 6. Competitive runner glucolítico real: LT1@12.0km/h, LT2@16.0km/h
+    #    ratio=0.75, LT2 moderate (16.0 entre 13.5-17.0 competitive) → high VLamax confirmado
+    pytest.param(12.0, 16.0, 0.85, 0.85, "competitive", "running", "pace",
+                 "moderate", "high", id="V06_competitive_glycolytic_real"),
+
+    # ── CICLISMO (metric = power_watts) ──
+    # 7. Ciclista entrenado diesel: LT1@240W, LT2@270W
+    #    ratio=0.89, LT2 moderate → diesel real
+    pytest.param(240.0, 270.0, 0.85, 0.85, "trained", "ciclismo", "power_watts",
+                 "moderate", "low", id="V07_cyclist_trained_diesel"),
+
+    # 8. Ciclista recreativo comprimido: LT1@160W, LT2@180W
+    #    ratio=0.89, LT2 bajo → comprimido, no diesel → moderate
+    pytest.param(160.0, 180.0, 0.85, 0.85, "trained", "ciclismo", "power_watts",
+                 "low", "moderate", id="V08_cyclist_compressed_false_diesel"),
+
+    # 9. Ciclista potente glucolítico: LT1@220W, LT2@310W
+    #    ratio=0.71, LT2 high (310 >= 310 trained) → glucolítico real
+    pytest.param(220.0, 310.0, 0.85, 0.85, "trained", "ciclismo", "power_watts",
+                 "high", "high", id="V09_cyclist_glycolytic_real"),
+
+    # 10. Ciclista recreativo con gap grande: LT1@130W, LT2@190W
+    #     ratio=0.68, LT2 bajo → NO glucolítico potente, sin base → moderate
+    pytest.param(130.0, 190.0, 0.85, 0.85, "trained", "ciclismo", "power_watts",
+                 "low", "moderate", id="V10_cyclist_no_base_false_glycolytic"),
+
+    # ── CONFIANZA BAJA ──
+    # 11. Datos insuficientes: confianza < 0.55 → unknown
+    pytest.param(12.0, 14.0, 0.30, 0.30, "trained", "running", "pace",
+                 "unknown", "unknown", id="V11_low_confidence_unknown"),
+
+    # 12. Falta LT1 → perfil incalculable
+    pytest.param(None, 14.0, 0.85, 0.85, "trained", "running", "pace",
+                 "unknown", "unknown", id="V12_missing_lt1_unknown"),
+]
+
+
+@pytest.mark.parametrize(
+    ("lt1", "lt2", "lt1_conf", "lt2_conf", "level", "discipline", "metric",
+     "expected_aerobic", "expected_vlamax"),
+    VLAMAX_PROXY_CASES,
+)
+def test_vlamax_proxy_cross_validation(
+    lt1, lt2, lt1_conf, lt2_conf, level, discipline, metric,
+    expected_aerobic, expected_vlamax,
+):
+    profile = build_capacity_profile(
+        lt1_value=lt1,
+        lt2_value=lt2,
+        lt1_conf=lt1_conf,
+        lt2_conf=lt2_conf,
+        athlete_level=level,
+        discipline=discipline,
+        metric_type=metric,
+    )
+    assert profile.aerobic_level == expected_aerobic, (
+        f"aerobic: expected {expected_aerobic}, got {profile.aerobic_level} "
+        f"(LT1={lt1}, LT2={lt2}, ratio={profile.lt1_lt2_ratio})"
+    )
+    assert profile.vlamax_level == expected_vlamax, (
+        f"vlamax: expected {expected_vlamax}, got {profile.vlamax_level} "
+        f"(LT1={lt1}, LT2={lt2}, ratio={profile.lt1_lt2_ratio}, aerobic={profile.aerobic_level})"
+    )

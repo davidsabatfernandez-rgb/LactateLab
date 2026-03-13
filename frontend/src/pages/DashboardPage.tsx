@@ -1008,7 +1008,7 @@ export function DashboardPage({ athletes, token, viewerId }: DashboardPageProps)
             <span className="eyebrow">Inicio</span>
             <h2>Vista previa</h2>
           </div>
-          <div className="lab-template-picker" ref={templateMenuRef}>
+          <div className="lab-template-picker dp-template-switcher" ref={templateMenuRef}>
             <button type="button" className="lab-template-trigger" onClick={() => setIsTemplateMenuOpen((current) => !current)}>
               <EyeIcon />
               <span>{selectedTemplate.title}</span>
@@ -1019,7 +1019,7 @@ export function DashboardPage({ athletes, token, viewerId }: DashboardPageProps)
                   <button
                     key={template.id}
                     type="button"
-                    className={`lab-template-option ${template.id === selectedTemplateId ? "active" : ""}`}
+                    className={`lab-template-option dp-template-btn ${template.id === selectedTemplateId ? "active" : ""}`}
                     onClick={() => {
                       setSelectedTemplateId(template.id);
                       setIsTemplateMenuOpen(false);
@@ -1034,14 +1034,14 @@ export function DashboardPage({ athletes, token, viewerId }: DashboardPageProps)
           </div>
         </div>
 
-        <div className="lab-summary-strip lab-dashboard-summary">
+        <div className="lab-summary-strip lab-dashboard-summary dp-summary-grid">
           {summaryCards.map((card) => (
-            <article key={card.label} className={`lab-summary-card lab-dashboard-summary-card ${card.tone}`}>
+            <article key={card.label} className={`lab-summary-card lab-dashboard-summary-card dp-summary-card ${card.tone}`}>
               <div className="lab-summary-copy">
-                <span>{card.label}</span>
-                <small>{card.detail}</small>
+                <span className="dp-summary-label">{card.label}</span>
+                <small className="dp-summary-detail">{card.detail}</small>
               </div>
-              <strong>{card.value}</strong>
+              <strong className="dp-summary-value">{card.value}</strong>
             </article>
           ))}
         </div>

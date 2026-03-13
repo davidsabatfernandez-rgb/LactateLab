@@ -291,3 +291,41 @@ def test_general_workout_library_endpoint_returns_templates_without_athlete_cont
     assert any(item["session_family"] == "fatmax_endurance" for item in payload)
     assert all(item["variants"] for item in payload[:5])
     assert all(item["builder_variables"] for item in payload[:5])
+
+
+# ── D5: Test de integridad — todos los template_ids en blueprints existen ──
+
+def test_all_blueprint_template_ids_exist_in_workout_templates():
+    """Verifica que cada template_id referenciado en WORKOUT_BLUEPRINTS
+    existe en WORKOUT_TEMPLATES. Evita crashes en runtime por IDs huérfanos."""
+    from app.services.workout_library import WORKOUT_BLUEPRINTS, WORKOUT_TEMPLATES
+
+    valid_ids = {t.template_id for t in WORKOUT_TEMPLATES}
+    missing = []
+
+    for (discipline, block_type), phases in WORKOUT_BLUEPRINTS.items():
+        for phase, slots in phases.items():
+            for slot in slots:
+                if slot.template_id not in valid_ids:
+                    missing.append(
+                        f"{discipline}/{block_type}/{phase}: '{slot.template_id}'"
+                    )
+
+    assert not missing, (
+        f"Template IDs en WORKOUT_BLUEPRINTS que no existen en WORKOUT_TEMPLATES:\n"
+        + "\n".join(f"  - {m}" for m in missing)
+    )
+
+
+def test_fallback_blueprint_template_ids_exist():
+    """Verifica que los template_ids del fallback blueprint (cuando no hay
+    match en WORKOUT_BLUEPRINTS) también existen en WORKOUT_TEMPLATES."""
+    from app.services.workout_library import WORKOUT_TEMPLATES
+
+    valid_ids = {t.template_id for t in WORKOUT_TEMPLATES}
+    fallback_ids = {"test_profile_anchor", "recovery_regeneration"}
+
+    missing = fallback_ids - valid_ids
+    assert not missing, (
+        f"Template IDs del fallback blueprint que no existen: {missing}"
+    )
