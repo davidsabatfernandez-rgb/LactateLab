@@ -6,7 +6,12 @@ import { Layout } from "./components/Layout";
 import { LoginForm } from "./components/LoginForm";
 import { api, getApiDebugInfo } from "./lib/api";
 import { AthleteDetailPage } from "./pages/AthleteDetailPage";
-import { AthletePortalPage } from "./pages/AthletePortalPage";
+import { AthleteDataProvider } from "./athlete/context/AthleteDataContext";
+import { TodayPage } from "./athlete/pages/TodayPage";
+import { WeekPage } from "./athlete/pages/WeekPage";
+import { ProgressPage } from "./athlete/pages/ProgressPage";
+import { RecoveryPage } from "./athlete/pages/RecoveryPage";
+import { SettingsPage } from "./athlete/pages/SettingsPage";
 import { AthleteTargetsPage } from "./pages/AthleteTargetsPage";
 import { AthletesPage } from "./pages/AthletesPage";
 import { CoachDashboardPage } from "./pages/CoachDashboardPage";
@@ -262,9 +267,16 @@ export default function App() {
   if (authUser?.role === "athlete") {
     return (
       <AthleteLayout onLogout={handleLogout} fullName={authUser.full_name}>
-        <Routes>
-          <Route path="*" element={<AthletePortalPage user={authUser} token={token} />} />
-        </Routes>
+        <AthleteDataProvider user={authUser} token={token}>
+          <Routes>
+            <Route path="/athlete/today" element={<TodayPage />} />
+            <Route path="/athlete/week" element={<WeekPage />} />
+            <Route path="/athlete/progress" element={<ProgressPage />} />
+            <Route path="/athlete/recovery" element={<RecoveryPage />} />
+            <Route path="/athlete/settings" element={<SettingsPage />} />
+            <Route path="*" element={<TodayPage />} />
+          </Routes>
+        </AthleteDataProvider>
       </AthleteLayout>
     );
   }

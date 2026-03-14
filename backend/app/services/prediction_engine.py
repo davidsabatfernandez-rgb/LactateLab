@@ -9,7 +9,7 @@ from app.models.athlete import Athlete
 from app.models.metrics import PhysiologicalSnapshot
 
 
-# ── Constants: ACSM metabolic equations ─────────────────────────────────────
+# ── Constants ───────────────────────────────────────────────────────────────
 _VO2_REST = 3.5  # ml/kg/min
 
 # ── Distance-specific fractional utilization tables ─────────────────────────
@@ -23,14 +23,21 @@ _RACE_DISTANCE_KM: dict[str, float] = {
     "Maratón": 42.195,
 }
 
-# Base fractional utilization (%VO2max at race pace) for a "neutral" athlete
-# (endurance_score ~0.5, VLamax ~0.35 mmol/L/s).
-_F_BASE: dict[str, float] = {
-    "5K": 0.95,
-    "10K": 0.90,
-    "HM": 0.85,
-    "Maratón": 0.78,
-}
+# Fractional utilization is NOT fixed per distance — it depends on race DURATION.
+# Daniels & Gilbert (1979): %VO2max sustainable decays with time.
+# F(T) = 0.8 + 0.1894393 * e^(-0.012778*T) + 0.2989558 * e^(-0.1932605*T)
+# where T = race duration in minutes.
+# This naturally handles: fast athletes (short 5K) sustain higher F than slow athletes (long 5K).
+
+
+def _daniels_sustainable_fraction(duration_minutes: float) -> float:
+    """Daniels & Gilbert (1979): sustainable %VO2max as a function of race duration.
+
+    Validated against thousands of race results across all distances.
+    Returns the fraction of VO2max that can be sustained for the given duration.
+    """
+    t = duration_minutes
+    return 0.8 + 0.1894393 * math.exp(-0.012778 * t) + 0.2989558 * math.exp(-0.1932605 * t)
 
 # How much VLamax shifts fractional utilization per unit deviation from 0.35.
 # Positive = high VLamax REDUCES sustained fraction (more at longer distances).
@@ -60,12 +67,34 @@ _CONFIDENCE_PENALTY: dict[str, float] = {
     "Maratón": 0.08,
 }
 
-# Base spread per distance
+# Base spread per distance — recalibrated from literature:
+# Daniels VDOT ±2-3%, McLaughlin 2010 SEE ~5-7%, Roecker 1998 SEE ~3.5%
 _BASE_SPREAD: dict[str, float] = {
-    "5K": 0.03,
-    "10K": 0.035,
-    "HM": 0.05,
-    "Maratón": 0.065,
+    "5K": 0.020,
+    "10K": 0.025,
+    "HM": 0.035,
+    "Maratón": 0.045,
+}
+
+# Asymmetric spread fractions (optimistic, pessimistic). Sum = 1.0.
+# Santos-Lozano 2014: 87% of marathons are positive splits.
+# Smyth 2021: 28% of male runners hit the wall.
+# Asymmetry scales with distance because downside risk grows with duration.
+_ASYMMETRY: dict[str, tuple[float, float]] = {
+    "5K": (0.45, 0.55),
+    "10K": (0.42, 0.58),
+    "HM": (0.38, 0.62),
+    "Maratón": (0.35, 0.65),
+}
+_MARATHON_HIGH_VLAMAX_ASYMMETRY = (0.30, 0.70)
+
+# Durability: LT2 speed decay per hour of racing (Zanini et al. 2025).
+# High endurance (LT1/LT2 ratio >0.87): ~2.5%/h.
+# Medium: ~3.5%/h. Low: ~4.5%/h.
+_DURABILITY_DECAY: dict[str, float] = {
+    "high": 0.025,
+    "medium": 0.035,
+    "low": 0.045,
 }
 
 # VLamax reference point (neutral athlete)
@@ -126,33 +155,157 @@ def _confidence_label(confidence: float, evidence_points: int) -> str:
     return "high"
 
 
-# ── Running economy: ACSM metabolic equation ───────────────────────────────
-def _running_economy_ml_per_km(speed_kph: float) -> float:
-    """VO2 cost in ml/kg per km at given speed.
+# ── Quality score Q — replaces additive spread penalties ─────────────────
+def _quality_score(
+    agreement: float,
+    stability: float,
+    history_depth: int,
+    lt1_available: bool,
+    vo2max_source: str,
+) -> float:
+    """Integrated data quality score Q ∈ [0, 1].
 
-    Uses ACSM running equation: VO2 = 0.2 × speed(m/min) + 0.9 × speed(m/min) × grade + 3.5
-    For flat running (grade=0): VO2 = 0.2 × speed(m/min) + 3.5
-    Cost per km = VO2(ml/kg/min) / speed(km/min) = VO2 / (speed_kph / 60)
-
-    In practice, running economy varies ~5-10% between athletes (Conley & Krahenbuhl 1980).
-    We derive it implicitly from LT2 pace + fractional utilization when possible.
+    Replaces the previous additive spread penalties with a single score.
+    When Q = 1.0 (perfect data), spread = base_spread.
+    When Q = 0.0 (worst data), spread = 2 × base_spread.
+    Formula: spread = base / (0.5 + 0.5 * Q).
     """
-    speed_m_per_min = speed_kph * 1000 / 60
-    vo2 = 0.2 * speed_m_per_min + _VO2_REST  # ml/kg/min at this speed
-    cost_per_km = vo2 / (speed_kph / 60)  # ml/kg per km
-    return cost_per_km
+    history_norm = _clamp(min(history_depth, 6) / 6, 0.0, 1.0)
+    lt1_factor = 1.0 if lt1_available else 0.6
+    vo2_factor = {"swain_hr": 1.0, "lt2_derived": 0.7, "none": 0.5}.get(vo2max_source, 0.6)
 
+    q = (
+        agreement * 0.25
+        + stability * 0.25
+        + history_norm * 0.20
+        + lt1_factor * 0.15
+        + vo2_factor * 0.15
+    )
+    return round(_clamp(q, 0.0, 1.0), 3)
+
+
+# ── Glycogen risk flag (qualitative) ─────────────────────────────────────
+def _glycogen_risk(vlamax: float, estimate_type: str) -> Optional[dict[str, str]]:
+    """Qualitative glycogen depletion risk based on VLamax.
+
+    Only relevant for HM (if VLamax very high) and Maratón.
+    Based on Mader 2003, Olbrecht, Rapoport 2010.
+    High VLamax = higher glycolytic flux = faster glycogen depletion.
+    """
+    if estimate_type not in ("HM", "Maratón"):
+        return None
+    if estimate_type == "HM" and vlamax <= 0.50:
+        return None
+
+    if vlamax < 0.30:
+        return {
+            "level": "low",
+            "label": (
+                "Perfil diesel (VLamax baja). Alta capacidad de oxidacion de grasas. "
+                "Riesgo de deplecion glucogenica bajo con nutricion basica en carrera."
+            ),
+        }
+    elif vlamax <= 0.45:
+        return {
+            "level": "moderate",
+            "label": (
+                "Riesgo glucogenico moderado. Nutricion en carrera recomendada "
+                "desde el inicio (~60 g/h CHO minimo)."
+            ),
+        }
+    else:
+        return {
+            "level": "high",
+            "label": (
+                "Riesgo glucogenico alto (VLamax elevada). Estrategia agresiva de "
+                "reposicion de CHO imprescindible (60-90 g/h). "
+                "El muro es probable sin nutricion adecuada."
+            ),
+        }
+
+
+# ── Durability factor (Zanini et al. 2025) ───────────────────────────────
+def _durability_decay_rate(endurance_score: float) -> float:
+    """LT2 speed decay rate per hour of racing.
+
+    Zanini et al. 2025: LT2 declines ~3.6% after 90 min, ~7.1% after 120 min.
+    Hunter & Muniz-Pumares 2025: less durable runners run slower marathons.
+    """
+    if endurance_score > 0.7:
+        return _DURABILITY_DECAY["high"]
+    elif endurance_score >= 0.4:
+        return _DURABILITY_DECAY["medium"]
+    else:
+        return _DURABILITY_DECAY["low"]
+
+
+def _apply_durability(
+    race_speed_kph: float,
+    lt2_speed_kph: float,
+    endurance_score: float,
+    distance_km: float,
+) -> tuple[float, dict[str, Any]]:
+    """Apply LT2 threshold decline over race duration.
+
+    The Daniels F(T) models VO2 kinetics at fixed threshold.
+    This adds Zanini's separate mechanism: threshold itself drifts down.
+    No double-counting because they capture different physiological phenomena.
+
+    Returns: (adjusted_speed, durability_metadata)
+    """
+    duration_hours = (distance_km / race_speed_kph) if race_speed_kph > 0 else 1.0
+    decay_rate = _durability_decay_rate(endurance_score)
+    # Zanini 2025 data: 3.6% at 1.5h, 7.1% at 2h → not linear, closer to sqrt.
+    # sqrt model: decay = rate * sqrt(duration) fits both data points better
+    # than linear, and doesn't overestimate for 3h+ marathons.
+    total_decay = decay_rate * math.sqrt(duration_hours)
+    # Clamp: maximum 15% decay (prevents over-correction for ultra-slow paces)
+    decay_factor = _clamp(1.0 - total_decay, 0.85, 1.0)
+    adjusted_speed = race_speed_kph * decay_factor
+
+    metadata = {
+        "duration_hours": round(duration_hours, 2),
+        "decay_rate_pct_per_hour": round(decay_rate * 100, 1),
+        "total_decay_pct": round(total_decay * 100, 1),
+        "effective_lt2_speed_kph": round(lt2_speed_kph * decay_factor, 2),
+        "decay_factor": round(decay_factor, 4),
+        "endurance_tier": (
+            "high" if endurance_score > 0.7
+            else "medium" if endurance_score >= 0.4
+            else "low"
+        ),
+    }
+    return adjusted_speed, metadata
+
+
+# ── Running oxygen cost: Daniels & Gilbert equation ────────────────────────
+# Replaces ACSM (VO2 = 0.2*v + 3.5) which overestimates O2 cost by 10-40%.
+# Daniels equation validated against thousands of race results (1979, updated 2014).
+#
+# VO2 = -4.60 + 0.182258 * v + 0.000104 * v^2   (v in m/min)
+#
+# This is more accurate across the full speed range (8-22 km/h) because
+# the quadratic term captures the non-linear relationship at higher speeds.
 
 def _vo2_at_speed(speed_kph: float) -> float:
-    """VO2 (ml/kg/min) at given running speed using ACSM flat equation."""
-    speed_m_per_min = speed_kph * 1000 / 60
-    return 0.2 * speed_m_per_min + _VO2_REST
+    """VO2 (ml/kg/min) at given running speed using Daniels & Gilbert equation."""
+    v = speed_kph * 1000 / 60  # m/min
+    return -4.60 + 0.182258 * v + 0.000104 * v * v
 
 
 def _speed_at_vo2(vo2: float) -> float:
-    """Inverse of ACSM: speed (km/h) that requires given VO2."""
-    speed_m_per_min = (vo2 - _VO2_REST) / 0.2
-    return speed_m_per_min * 60 / 1000
+    """Inverse of Daniels equation: speed (km/h) that requires given VO2.
+
+    Solves: 0.000104*v^2 + 0.182258*v + (-4.60 - vo2) = 0
+    """
+    a = 0.000104
+    b = 0.182258
+    c = -4.60 - vo2
+    disc = b * b - 4 * a * c
+    if disc < 0:
+        return 0.0
+    v = (-b + math.sqrt(disc)) / (2 * a)  # m/min
+    return v * 60 / 1000  # km/h
 
 
 # ── VLamax estimation from lactate curve ────────────────────────────────────
@@ -228,70 +381,69 @@ def _estimate_vlamax_from_thresholds(
     return vlamax, conf, method
 
 
-# ── Race pace prediction: di Prampero framework ────────────────────────────
+# ── Race pace prediction: di Prampero + Daniels framework ──────────────────
 def _predict_race_pace(
     vo2max: float,
     vlamax: float,
     lt2_speed_kph: float,
     estimate_type: str,
 ) -> Optional[float]:
-    """Predict race pace using di Prampero framework.
+    """Predict race pace using di Prampero framework with Daniels F(duration).
 
-    Core equation: v_race = F(d, VLamax) × VO2max / C
+    Core equation: v_race = F(T) × VO2max / C
 
     Where:
-    - F = fractional utilization at race distance, modulated by VLamax
-    - C = running economy (VO2 cost per unit speed)
+    - F(T) = Daniels sustainable fraction at race duration T, modulated by VLamax
+    - C = running economy (VO2 cost per unit speed, from Daniels equation)
     - VO2max = maximal aerobic capacity
 
-    Running economy (C) is derived implicitly from LT2 data:
-    we know the athlete runs at lt2_speed at ~F_LT2 × VO2max,
-    so C = (F_LT2 × VO2max) / lt2_speed.
+    F depends on race duration which depends on race speed → iterative solution.
+    Converges in 3-5 iterations.
 
     References:
     - di Prampero 1986: v = F × VO2max / C
-    - Péronnet-Thibault 1989: endurance index for F decay
+    - Daniels & Gilbert 1979: F(T) = sustainable %VO2max
     - Mader 2003: VLamax modulation of sustainable %VO2max
     """
     if vo2max < 20 or lt2_speed_kph < 4:
         return None
 
+    distance_km = _RACE_DISTANCE_KM[estimate_type]
+
     # Step 1: Derive running economy from LT2 data
-    # At LT2, athlete sustains ~F_LT2 of VO2max
     vo2_at_lt2 = _vo2_at_speed(lt2_speed_kph)
-    f_at_lt2 = _clamp(vo2_at_lt2 / vo2max, 0.70, 0.98)
+    economy = vo2_at_lt2 / lt2_speed_kph  # ml/kg/min per km/h
 
-    # Running economy: VO2 cost per km/h
-    # C = vo2_at_lt2 / lt2_speed_kph (ml/kg/min per km/h)
-    economy = vo2_at_lt2 / lt2_speed_kph
+    # Step 2: Iterative solution — F depends on duration, duration depends on speed
+    # Start with a rough estimate of race speed (LT2 speed as starting point)
+    race_speed_kph = lt2_speed_kph
 
-    # Step 2: Calculate distance-specific fractional utilization
-    f_base = _F_BASE[estimate_type]
+    for _ in range(8):  # converges in 3-5 iterations
+        # Estimate race duration at current speed
+        duration_min = (distance_km / race_speed_kph) * 60
 
-    # VLamax modulation: deviation from neutral shifts sustainable %VO2max
-    vlamax_delta = vlamax - _VLAMAX_NEUTRAL
-    sensitivity = _VLAMAX_SENSITIVITY[estimate_type]
-    # High VLamax → lower F (can't sustain as high %VO2max for long)
-    # Low VLamax → higher F (diesel athlete sustains more)
-    f_adjusted = f_base - vlamax_delta * sensitivity
+        # Daniels sustainable fraction at this duration
+        f_base = _daniels_sustainable_fraction(duration_min)
 
-    # Anaerobic bonus for short distances: high VLamax helps at 5K/10K
-    anaerobic_bonus = _ANAEROBIC_CONTRIBUTION[estimate_type] * (vlamax_delta / _VLAMAX_NEUTRAL)
-    f_adjusted += anaerobic_bonus
+        # VLamax modulation
+        vlamax_delta = vlamax - _VLAMAX_NEUTRAL
+        sensitivity = _VLAMAX_SENSITIVITY[estimate_type]
+        f_adjusted = f_base - vlamax_delta * sensitivity
 
-    f_race = _clamp(f_adjusted, 0.65, 0.99)
+        # Anaerobic bonus for short distances
+        anaerobic_bonus = _ANAEROBIC_CONTRIBUTION[estimate_type] * (vlamax_delta / _VLAMAX_NEUTRAL)
+        f_adjusted += anaerobic_bonus
 
-    # Step 3: Predict race speed using di Prampero
-    # v_race = F_race × VO2max / economy
-    race_speed_kph = f_race * vo2max / economy
+        f_race = _clamp(f_adjusted, 0.65, 0.99)
+
+        # di Prampero: v_race = F × VO2max / economy
+        race_speed_kph = f_race * vo2max / economy
 
     # Sanity check: race speed should be reasonable relative to LT2
-    # 5K can be ~105-110% of LT2 speed, marathon ~85-92%
     ratio_to_lt2 = race_speed_kph / lt2_speed_kph
-    if ratio_to_lt2 > 1.20 or ratio_to_lt2 < 0.70:
-        # Implausible, clamp to reasonable bounds
-        max_ratio = {"5K": 1.12, "10K": 1.05, "HM": 0.98, "Maratón": 0.93}
-        min_ratio = {"5K": 0.98, "10K": 0.92, "HM": 0.85, "Maratón": 0.78}
+    if ratio_to_lt2 > 1.25 or ratio_to_lt2 < 0.65:
+        max_ratio = {"5K": 1.15, "10K": 1.08, "HM": 1.00, "Maratón": 0.95}
+        min_ratio = {"5K": 0.95, "10K": 0.88, "HM": 0.80, "Maratón": 0.72}
         race_speed_kph = lt2_speed_kph * _clamp(
             ratio_to_lt2,
             min_ratio[estimate_type],
@@ -325,6 +477,12 @@ def _estimate_payload(
     cautions: Optional[list[str]] = None,
     anchors: Optional[list[dict[str, Any]]] = None,
     confidence_factors: Optional[list[dict[str, Any]]] = None,
+    ritmo_techo: Optional[float] = None,
+    ritmo_objetivo: Optional[float] = None,
+    ritmo_seguro: Optional[float] = None,
+    glycogen_risk: Optional[dict[str, str]] = None,
+    durability_info: Optional[dict[str, Any]] = None,
+    quality_score_val: Optional[float] = None,
 ) -> dict[str, Any]:
     if lower_bound is None or upper_bound is None:
         if unit == "ml/kg/min":
@@ -362,6 +520,12 @@ def _estimate_payload(
         "cautions": cautions or [],
         "anchors": anchors or [],
         "confidence_factors": confidence_factors or [],
+        "ritmo_techo": ritmo_techo,
+        "ritmo_objetivo": ritmo_objetivo,
+        "ritmo_seguro": ritmo_seguro,
+        "glycogen_risk": glycogen_risk,
+        "durability_info": durability_info,
+        "quality_score": quality_score_val,
     }
     return payload
 
@@ -758,57 +922,126 @@ def _running_estimates(
         if pace is None:
             continue
 
-        # Spread calculation
-        base_spread = _BASE_SPREAD[estimate_type]
-        spread = base_spread + (1 - inputs["agreement_score"]) * 0.045 + (1 - inputs["stability_score"]) * 0.035
-        if history_depth < 3:
-            spread += 0.015
-        if estimate_type in {"HM", "Maratón"} and inputs["lt1_missing"]:
-            spread += 0.02 if estimate_type == "HM" else 0.03
-        # VO2max source affects spread: Swain narrows it, LT2-derived widens it
-        if vo2max_source == "swain_hr":
-            spread -= 0.008  # tighter bounds with independent VO2max
-        elif vo2max_source == "lt2_derived":
-            spread += 0.005  # slightly wider for circular estimate
-        spread = round(_clamp(spread, 0.025, 0.12), 3)
+        # ── F. Durability factor (Zanini et al. 2025) ────────────────────
+        # LT2 speed declines ~3-4%/hour at marathon intensity.
+        # Applied to HM and Maratón; computed but not applied for 5K/10K.
+        race_speed_raw = _pace_to_speed_kph(pace)
+        durability_info: Optional[dict[str, Any]] = None
+        if race_speed_raw and race_speed_raw > 0:
+            distance_km = _RACE_DISTANCE_KM[estimate_type]
+            if estimate_type in ("HM", "Maratón"):
+                adjusted_speed, durability_info = _apply_durability(
+                    race_speed_kph=race_speed_raw,
+                    lt2_speed_kph=lt2_speed,
+                    endurance_score=endurance_score,
+                    distance_km=distance_km,
+                )
+                pace = _speed_kph_to_pace(adjusted_speed)
+            else:
+                # Compute metadata for transparency but don't adjust pace
+                # (5K/10K duration <1h → decay <2.5%, negligible)
+                _, durability_info = _apply_durability(
+                    race_speed_kph=race_speed_raw,
+                    lt2_speed_kph=lt2_speed,
+                    endurance_score=endurance_score,
+                    distance_km=distance_km,
+                )
 
+        # ── D. Quality score Q ───────────────────────────────────────────
+        Q = _quality_score(
+            agreement=inputs["agreement_score"],
+            stability=inputs["stability_score"],
+            history_depth=history_depth,
+            lt1_available=not inputs["lt1_missing"],
+            vo2max_source=vo2max_source,
+        )
+
+        # ── E. Spread via Q-score (replaces additive penalties) ──────────
+        base_spread = _BASE_SPREAD[estimate_type]
+        spread = base_spread / (0.5 + 0.5 * Q)
+        spread = round(_clamp(spread, 0.015, 0.10), 3)
+
+        # ── A. Asymmetric spread (Santos-Lozano 2014, Smyth 2021) ───────
+        opt_frac, pess_frac = _ASYMMETRY[estimate_type]
+        if estimate_type == "Maratón" and vlamax > 0.45:
+            opt_frac, pess_frac = _MARATHON_HIGH_VLAMAX_ASYMMETRY
+        # Multiply by 2 because fractions sum to 1.0 (each side gets its share)
+        optimistic_spread = spread * opt_frac * 2
+        pessimistic_spread = spread * pess_frac * 2
+
+        # ── C. Three paces ──────────────────────────────────────────────
+        # In s/km: lower number = faster. Techo is fastest, seguro is slowest.
+        rt_objetivo = pace
+        rt_techo = pace * (1 - optimistic_spread)
+        rt_seguro = pace * (1 + pessimistic_spread)
+
+        # ── B. Glycogen risk flag ───────────────────────────────────────
+        glycogen = _glycogen_risk(vlamax, estimate_type)
+
+        # ── Confidence ──────────────────────────────────────────────────
         confidence = inputs["base_confidence"] - _CONFIDENCE_PENALTY[estimate_type]
         if estimate_type == "Maratón" and inputs["lt1_missing"]:
             confidence -= 0.04
-        # Bonus for Swain VO2max (independent signal improves confidence)
         if vo2max_source == "swain_hr":
             confidence += 0.03
         confidence = round(_clamp(confidence, 0.35, 0.91), 2)
 
+        # ── Explanation and cautions ────────────────────────────────────
         range_summary = (
-            f"Rango basado en acuerdo entre anclas ({round(inputs['agreement_score'] * 100)}%), "
-            f"estabilidad historica ({round(inputs['stability_score'] * 100)}%), "
-            f"profundidad ({history_depth} cortes)"
+            f"Q={round(Q, 2)} → spread base {round(base_spread*100, 1)}%, "
+            f"efectivo {round(spread*100, 1)}% "
+            f"(optimista {round(optimistic_spread*100, 1)}% / pesimista {round(pessimistic_spread*100, 1)}%). "
+            f"Acuerdo anclas {round(inputs['agreement_score'] * 100)}%, "
+            f"estabilidad {round(inputs['stability_score'] * 100)}%, "
+            f"{history_depth} cortes."
         )
-        if vo2max_source == "swain_hr":
-            range_summary += f" y VO2max Swain ({round(vo2max, 1)} ml/kg/min)."
-        else:
-            range_summary += "."
 
-        method_used = "di_prampero_vlamax_v1" if vo2max and vo2max > 20 else "riegel_endurance_fallback"
+        method_used = "di_prampero_vlamax_durability_v2" if vo2max and vo2max > 20 else "riegel_endurance_fallback"
         explanation = (
             f"Prediccion fisiologica: VO2max={round(vo2max, 1) if vo2max else '?'} ml/kg/min, "
             f"VLamax={round(vlamax, 2)} mmol/L/s, "
-            f"utilizacion fraccional ajustada por distancia y perfil metabolico (di Prampero 1986, Mader 2003)."
+            f"utilizacion fraccional ajustada por distancia y perfil metabolico (di Prampero 1986, Mader 2003)"
         )
+        if durability_info and estimate_type in ("HM", "Maratón"):
+            explanation += (
+                f", corregida por durabilidad (Zanini 2025): "
+                f"-{durability_info['total_decay_pct']}% en {durability_info['duration_hours']}h."
+            )
+        else:
+            explanation += "."
 
         cautions = list(inputs["cautions"])
+        # G. Running Economy caution (always — we use population-average RE)
+        cautions.append(
+            "Economia de carrera estimada con ecuacion poblacional (Daniels). "
+            "La prediccion mejorara con datos individuales de RE (variabilidad inter-individual ~21%, Hansen 2021)."
+        )
         if estimate_type == "Maratón" and history_depth < 4:
             cautions.append("Maraton necesita mas respaldo longitudinal que 5K o 10K; conviene confirmarla con trabajo especifico.")
         if vo2max_source == "lt2_derived":
             cautions.append("VO2max derivado de LT2 (circular); la prediccion mejorara con datos de FC.")
+        if glycogen and glycogen["level"] in ("moderate", "high"):
+            cautions.append(glycogen["label"])
+
+        calc_steps = list(inputs["calculation_steps"])
+        if durability_info and estimate_type in ("HM", "Maratón"):
+            calc_steps.append(
+                f"Factor durabilidad (Zanini 2025): LT2 efectivo cae {durability_info['total_decay_pct']}% "
+                f"en {durability_info['duration_hours']}h de carrera "
+                f"(tier: {durability_info['endurance_tier']}, decay: {durability_info['decay_rate_pct_per_hour']}%/h)."
+            )
+        calc_steps.append(
+            f"Spread asimetrico: techo (mejor dia) a -{round(optimistic_spread*100, 1)}%, "
+            f"seguro (salida conservadora) a +{round(pessimistic_spread*100, 1)}% "
+            f"(Santos-Lozano 2014, Smyth 2021)."
+        )
 
         estimates.append(
             _estimate_payload(
                 estimate_type=estimate_type,
                 discipline="running",
                 power_source=power_source,
-                value=pace,
+                value=round(rt_objetivo, 1),
                 unit="s/km",
                 confidence=confidence,
                 snapshot_date=snapshot_date,
@@ -816,14 +1049,22 @@ def _running_estimates(
                 evidence_points=history_depth,
                 explanation=explanation,
                 spread=spread,
+                lower_bound=round(rt_techo, 1),
+                upper_bound=round(rt_seguro, 1),
                 method_used=method_used,
                 primary_anchor="vo2max_vlamax_lt2" if vo2max else "lt2_blended_reference",
                 agreement_score=inputs["agreement_score"],
                 range_summary=range_summary,
-                calculation_steps=list(inputs["calculation_steps"]),
+                calculation_steps=calc_steps,
                 cautions=cautions,
                 anchors=list(inputs["anchors"]),
                 confidence_factors=list(inputs["confidence_factors"]),
+                ritmo_techo=round(rt_techo, 1),
+                ritmo_objetivo=round(rt_objetivo, 1),
+                ritmo_seguro=round(rt_seguro, 1),
+                glycogen_risk=glycogen,
+                durability_info=durability_info,
+                quality_score_val=Q,
             )
         )
 
@@ -942,10 +1183,19 @@ def _cycling_estimates(
 
     ftp_factor = 0.92 + endurance_score * 0.04
     ftp = reference_power * ftp_factor
-    ftp_spread = 0.028 + (1 - inputs["agreement_score"]) * 0.04 + (1 - inputs["stability_score"]) * 0.03
-    if history_depth < 3:
-        ftp_spread += 0.015
+
+    # Q-score for cycling (same principle as running)
+    lt1_available = inputs.get("endurance_score", 0.55) != 0.55
+    Q_cyc = _quality_score(
+        agreement=inputs["agreement_score"],
+        stability=inputs["stability_score"],
+        history_depth=history_depth,
+        lt1_available=lt1_available,
+        vo2max_source="lt2_derived",
+    )
+    ftp_spread = 0.028 / (0.5 + 0.5 * Q_cyc)
     ftp_spread = round(_clamp(ftp_spread, 0.025, 0.09), 3)
+
     estimates.append(
         _estimate_payload(
             estimate_type="FTP",
@@ -962,11 +1212,12 @@ def _cycling_estimates(
             method_used="blended_lt2_ftp_proxy_v2",
             primary_anchor="lt2_blended_reference",
             agreement_score=inputs["agreement_score"],
-            range_summary="El margen aumenta si el historico es corto o si LT2 fisiologico y practico no convergen.",
+            range_summary=f"Q={round(Q_cyc, 2)} → spread {round(ftp_spread*100, 1)}%. Acuerdo anclas {round(inputs['agreement_score'] * 100)}%.",
             calculation_steps=list(inputs["calculation_steps"]),
             cautions=list(inputs["cautions"]),
             anchors=list(inputs["anchors"]),
             confidence_factors=list(inputs["confidence_factors"]),
+            quality_score_val=Q_cyc,
         )
     )
 
@@ -1089,3 +1340,241 @@ def build_performance_estimates(
         )
 
     return []
+
+
+# ── Target curve: reverse-engineer required physiology from race goal ────────
+
+# Distance categories to km mapping (matches AthleteTarget.distance_category)
+_DISTANCE_CATEGORY_KM: dict[str, float] = {
+    "5k": 5.0,
+    "10k": 10.0,
+    "hm": 21.0975,
+    "marathon": 42.195,
+}
+
+# Distance category to estimate_type mapping
+_CATEGORY_TO_ESTIMATE: dict[str, str] = {
+    "5k": "5K",
+    "10k": "10K",
+    "hm": "HM",
+    "marathon": "Maratón",
+}
+
+
+def _lt2_fraction_for_vlamax(vlamax: float) -> float:
+    """Fraction of VO2max at which LT2 occurs, given VLamax.
+
+    Low VLamax (diesel) → LT2 at higher % of VO2max (~0.91).
+    High VLamax (sprinter) → LT2 at lower % of VO2max (~0.82).
+    Source: Mader 2003, Olbrecht.
+    """
+    return _clamp(0.97 - vlamax * 0.30, 0.78, 0.93)
+
+
+def _pace_label_to_seconds(pace_label: Optional[str]) -> Optional[float]:
+    """Convert '4:30' or '4:30/km' to seconds per km."""
+    if not pace_label:
+        return None
+    try:
+        clean = pace_label.replace("/km", "").strip()
+        parts = clean.split(":")
+        if len(parts) == 2:
+            mins, secs = int(parts[0]), int(parts[1])
+            return mins * 60 + secs
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+def _format_pace(pace_seconds: Optional[float]) -> str:
+    """Format pace in seconds to 'M:SS' string."""
+    if pace_seconds is None or pace_seconds <= 0:
+        return "?"
+    mins = int(pace_seconds // 60)
+    secs = int(pace_seconds % 60)
+    return f"{mins}:{secs:02d}"
+
+
+def build_target_curve(
+    *,
+    distance_category: str,
+    target_pace_label: Optional[str] = None,
+    target_pace_seconds: Optional[float] = None,
+    current_lt1_speed_kph: Optional[float] = None,
+    current_lt2_speed_kph: Optional[float] = None,
+    current_lt1_lactate: Optional[float] = None,
+    current_lt2_lactate: Optional[float] = None,
+    current_vo2max: Optional[float] = None,
+    current_vlamax: Optional[float] = None,
+    baseline_lactate: float = 0.9,
+) -> Optional[dict[str, Any]]:
+    """Build a target lactate curve from a race goal.
+
+    Given a target race (distance + pace), reverse-engineers the required
+    VO2max, LT2 speed, and LT1 speed, then generates a synthetic exponential
+    lactate curve through the target thresholds.
+
+    The curve uses the athlete's CURRENT lactate values at their thresholds
+    (because training shifts the curve right, not down — Olbrecht principle).
+    If real thresholds are available, those lactate values are used.
+    Otherwise, defaults to 2.0 (LT1) and 4.0 (LT2).
+
+    Returns a dict with target analysis and synthetic curve points, or None
+    if insufficient data.
+    """
+    distance_km = _DISTANCE_CATEGORY_KM.get(distance_category)
+    if distance_km is None:
+        return None
+
+    # Resolve target pace
+    pace_s = target_pace_seconds
+    if pace_s is None:
+        pace_s = _pace_label_to_seconds(target_pace_label)
+    if pace_s is None or pace_s <= 0:
+        return None
+
+    target_speed_kph = 3600 / pace_s
+    estimate_type = _CATEGORY_TO_ESTIMATE.get(distance_category, "10K")
+
+    # ── Step 1: Required VO2max ────────────────────────────────────────
+    duration_min = (distance_km / target_speed_kph) * 60
+    vlamax = current_vlamax if current_vlamax and current_vlamax > 0.1 else 0.35
+
+    f_base = _daniels_sustainable_fraction(duration_min)
+    vlamax_delta = vlamax - _VLAMAX_NEUTRAL
+    sensitivity = _VLAMAX_SENSITIVITY.get(estimate_type, 0.08)
+    f_adjusted = f_base - vlamax_delta * sensitivity
+    anaerobic_bonus = _ANAEROBIC_CONTRIBUTION.get(estimate_type, 0.03) * (vlamax_delta / _VLAMAX_NEUTRAL)
+    f_adjusted += anaerobic_bonus
+    f_race = _clamp(f_adjusted, 0.65, 0.99)
+
+    vo2_at_race = _vo2_at_speed(target_speed_kph)
+    vo2max_needed = vo2_at_race / f_race
+
+    if vo2max_needed < 20 or vo2max_needed > 95:
+        return None
+
+    # ── Step 2: Target LT2 speed ──────────────────────────────────────
+    lt2_frac = _lt2_fraction_for_vlamax(vlamax)
+    vo2_at_target_lt2 = lt2_frac * vo2max_needed
+    target_lt2_speed_kph = _speed_at_vo2(vo2_at_target_lt2)
+    target_lt2_pace = _speed_kph_to_pace(target_lt2_speed_kph)
+
+    # ── Step 3: Target LT1 speed ──────────────────────────────────────
+    # Preserve current LT1/LT2 speed ratio (reflects VLamax / curve shape)
+    if current_lt1_speed_kph and current_lt2_speed_kph and current_lt2_speed_kph > 0:
+        lt1_lt2_ratio = current_lt1_speed_kph / current_lt2_speed_kph
+    else:
+        # Default ratio from VLamax
+        lt1_lt2_ratio = _clamp(0.96 - vlamax * 0.20, 0.78, 0.94)
+
+    target_lt1_speed_kph = target_lt2_speed_kph * lt1_lt2_ratio
+    target_lt1_pace = _speed_kph_to_pace(target_lt1_speed_kph)
+
+    # ── Step 4: Lactate values at thresholds ──────────────────────────
+    # Use real values (individual) if available, else defaults
+    lt1_lac = current_lt1_lactate if current_lt1_lactate and current_lt1_lactate > 0.5 else 2.0
+    lt2_lac = current_lt2_lactate if current_lt2_lactate and current_lt2_lactate > 1.0 else 4.0
+    if lt2_lac <= lt1_lac:
+        lt2_lac = lt1_lac + 1.5
+
+    # ── Step 5: Synthetic exponential curve ───────────────────────────
+    # Model: La(v) = La_baseline + a * exp(b * v)
+    # Fit through (LT1_speed, LT1_lac) and (LT2_speed, LT2_lac)
+    curve_points: list[dict[str, Any]] = []
+
+    delta_lt1 = lt1_lac - baseline_lactate
+    delta_lt2 = lt2_lac - baseline_lactate
+
+    if delta_lt1 > 0.05 and delta_lt2 > delta_lt1 and target_lt2_speed_kph > target_lt1_speed_kph:
+        speed_gap = target_lt2_speed_kph - target_lt1_speed_kph
+        b = math.log(delta_lt2 / delta_lt1) / speed_gap
+        a_coeff = delta_lt1 / math.exp(b * target_lt1_speed_kph)
+
+        # Generate points from well below LT1 to slightly above LT2
+        min_speed = target_lt1_speed_kph * 0.75
+        max_speed = target_lt2_speed_kph * 1.10
+        n_points = 20
+        step = (max_speed - min_speed) / (n_points - 1)
+
+        for i in range(n_points):
+            v = min_speed + i * step
+            lac = baseline_lactate + a_coeff * math.exp(b * v)
+            lac = min(lac, 12.0)
+            pace = _speed_kph_to_pace(v)
+            curve_points.append({
+                "x": round(pace, 1) if pace else 0,
+                "speed_kph": round(v, 2),
+                "lactate": round(lac, 2),
+            })
+
+    # ── Step 6: Gap analysis ──────────────────────────────────────────
+    gap: dict[str, Any] = {}
+    if current_vo2max and current_vo2max > 0:
+        gap["vo2max"] = {
+            "current": round(current_vo2max, 1),
+            "target": round(vo2max_needed, 1),
+            "delta": round(vo2max_needed - current_vo2max, 1),
+            "delta_pct": round((vo2max_needed - current_vo2max) / current_vo2max * 100, 1),
+        }
+    if current_lt2_speed_kph and current_lt2_speed_kph > 0:
+        current_lt2_pace = _speed_kph_to_pace(current_lt2_speed_kph)
+        gap["lt2_speed"] = {
+            "current_pace": round(current_lt2_pace, 1) if current_lt2_pace else None,
+            "target_pace": round(target_lt2_pace, 1) if target_lt2_pace else None,
+            "delta_s_per_km": round((current_lt2_pace or 0) - (target_lt2_pace or 0), 1),
+        }
+    if current_lt1_speed_kph and current_lt1_speed_kph > 0:
+        current_lt1_pace = _speed_kph_to_pace(current_lt1_speed_kph)
+        gap["lt1_speed"] = {
+            "current_pace": round(current_lt1_pace, 1) if current_lt1_pace else None,
+            "target_pace": round(target_lt1_pace, 1) if target_lt1_pace else None,
+            "delta_s_per_km": round((current_lt1_pace or 0) - (target_lt1_pace or 0), 1),
+        }
+
+    # ── Step 7: VLamax recommendation ─────────────────────────────────
+    vlamax_note = None
+    if distance_category in ("marathon", "hm") and vlamax > 0.40:
+        vlamax_note = (
+            f"VLamax actual ({round(vlamax, 2)}) es alta para {distance_category}. "
+            "Reducirla (mas trabajo aerobico) mejoraria la utilizacion fraccional en carrera."
+        )
+    elif distance_category in ("5k", "10k") and vlamax < 0.25:
+        vlamax_note = (
+            f"VLamax actual ({round(vlamax, 2)}) es baja para {distance_category}. "
+            "Un componente anaerobico algo mayor beneficiaria el rendimiento en distancias cortas."
+        )
+
+    return {
+        "distance_category": distance_category,
+        "distance_km": distance_km,
+        "target_pace_s_per_km": round(pace_s, 1),
+        "target_speed_kph": round(target_speed_kph, 2),
+        "race_duration_min": round(duration_min, 1),
+        "fractional_utilization": round(f_race, 3),
+        "vo2max_needed": round(vo2max_needed, 1),
+        "target_lt2_pace": round(target_lt2_pace, 1) if target_lt2_pace else None,
+        "target_lt2_speed_kph": round(target_lt2_speed_kph, 2),
+        "target_lt1_pace": round(target_lt1_pace, 1) if target_lt1_pace else None,
+        "target_lt1_speed_kph": round(target_lt1_speed_kph, 2),
+        "lt1_lactate_used": round(lt1_lac, 2),
+        "lt2_lactate_used": round(lt2_lac, 2),
+        "lt1_lt2_ratio_used": round(lt1_lt2_ratio, 3),
+        "curve_points": curve_points,
+        "gap": gap,
+        "vlamax_note": vlamax_note,
+        "method": "di_prampero_daniels_reverse_v1",
+        "explanation": [
+            f"Objetivo: {distance_category.upper()} en {_format_pace(pace_s)}/km "
+            f"({int(duration_min // 60)}h{int(duration_min % 60):02d}min).",
+            f"VO2max necesario: {round(vo2max_needed, 1)} ml/kg/min "
+            f"(utilizacion fraccional {round(f_race * 100, 1)}% a esa duracion).",
+            f"LT2 objetivo: {_format_pace(target_lt2_pace)}/km "
+            f"(al {round(lt2_frac * 100)}% del VO2max).",
+            f"LT1 objetivo: {_format_pace(target_lt1_pace)}/km "
+            f"(ratio LT1/LT2 = {round(lt1_lt2_ratio, 2)}).",
+            "Curva objetivo: exponencial a traves de LT1 y LT2 objetivo "
+            "con los lactatos individuales del atleta (Olbrecht: el entrenamiento "
+            "desplaza la curva a la derecha, no hacia abajo).",
+        ],
+    }

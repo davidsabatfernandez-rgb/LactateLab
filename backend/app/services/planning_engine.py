@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.athlete import Athlete
+from app.models.metrics import PhysiologicalSnapshot
 from app.models.planned_session import PlannedSession
 from app.models.session import Session as AthleteSession
 from app.services.analytics import athlete_analysis_payload
@@ -204,9 +205,13 @@ def _extract_lt2_heart_rate(analysis: dict, discipline: str) -> Optional[int]:
 def _extract_hr_max(athlete: Athlete, discipline: str) -> Optional[int]:
     """Extract max HR from observed session data.
 
-    Takes the maximum heart_rate_max across all intervals in the discipline.
-    Falls back to age-based estimate (220 − age) if no observed data.
+    Priority: athlete.training_hr_max (coach override) > observed > age-based.
     """
+    # Coach override takes priority
+    coach_hr_max = getattr(athlete, "training_hr_max", None)
+    if coach_hr_max and coach_hr_max >= 150:
+        return coach_hr_max
+
     max_hr_observed = None
     for session in (athlete.sessions or []):
         if session.discipline != discipline:
@@ -1135,6 +1140,113 @@ def _score_block_candidates(
     return sorted(candidates.values(), key=lambda c: c.score, reverse=True)
 
 
+# ── I2 — Detección de estancamiento crónico ──────────────────────────────────
+_STAGNATION_MIN_TESTS = 3
+_STAGNATION_MAX_IMPROVEMENT_PCT = 0.05  # <5% mejora = estancamiento
+_STAGNATION_LOOKBACK_DAYS = 180  # últimos 6 meses
+
+
+def _detect_stagnation(
+    db: Session,
+    athlete_id: int,
+    discipline: str,
+) -> tuple[bool, int, list[str]]:
+    """Detecta estancamiento crónico en LT2.
+
+    Busca ≥3 snapshots recientes y compara el LT2 (ritmo o potencia).
+    Si la mejora total es <5% entre el primer y último test, se considera
+    estancamiento.
+
+    Returns:
+        (stagnation_detected, test_count, warnings)
+    """
+    cutoff = date.today() - __import__("datetime").timedelta(days=_STAGNATION_LOOKBACK_DAYS)
+    snapshots = db.scalars(
+        select(PhysiologicalSnapshot)
+        .where(
+            PhysiologicalSnapshot.athlete_id == athlete_id,
+            PhysiologicalSnapshot.discipline == discipline,
+            PhysiologicalSnapshot.snapshot_date >= cutoff,
+            PhysiologicalSnapshot.confidence > 0.0,
+        )
+        .order_by(PhysiologicalSnapshot.snapshot_date)
+    ).all()
+
+    if len(snapshots) < _STAGNATION_MIN_TESTS:
+        return False, len(snapshots), []
+
+    # Usar ritmo (s/km, menor = mejor) o potencia (W, mayor = mejor)
+    lt2_values: list[float] = []
+    metric_type = "pace"
+    for snap in snapshots:
+        if snap.lt2_pace_seconds_per_km is not None and snap.lt2_pace_seconds_per_km > 0:
+            lt2_values.append(snap.lt2_pace_seconds_per_km)
+        elif snap.lt2_power_watts is not None and snap.lt2_power_watts > 0:
+            lt2_values.append(snap.lt2_power_watts)
+            metric_type = "power"
+
+    if len(lt2_values) < _STAGNATION_MIN_TESTS:
+        return False, len(lt2_values), []
+
+    first_val = lt2_values[0]
+    last_val = lt2_values[-1]
+    best_val = min(lt2_values) if metric_type == "pace" else max(lt2_values)
+
+    if first_val == 0:
+        return False, len(lt2_values), []
+
+    if metric_type == "pace":
+        # En ritmo: mejora = bajar segundos. Menor es mejor.
+        improvement_pct = (first_val - best_val) / first_val
+    else:
+        # En potencia: mejora = subir watts. Mayor es mejor.
+        improvement_pct = (best_val - first_val) / first_val
+
+    warnings: list[str] = []
+    if improvement_pct < _STAGNATION_MAX_IMPROVEMENT_PCT:
+        warnings.append(
+            f"Estancamiento crónico: {len(lt2_values)} tests en {_STAGNATION_LOOKBACK_DAYS} días "
+            f"con mejora de solo {improvement_pct:.1%} en LT2. "
+            f"Considerar cambio de estímulo (Olbrecht: variar el eje AEC↔ANC)."
+        )
+        return True, len(lt2_values), warnings
+
+    return False, len(lt2_values), []
+
+
+# ── I1 — Detección de inactividad prolongada ─────────────────────────────────
+_INACTIVITY_THRESHOLD_DAYS = 14
+
+
+def _detect_inactivity(
+    sessions: list[AthleteSession],
+) -> tuple[bool, Optional[int], list[str]]:
+    """Detecta si el atleta lleva >14 días sin sesiones.
+
+    Returns:
+        (inactive, days_since_last, warnings)
+    """
+    if not sessions:
+        return True, None, [
+            "Sin sesiones registradas. Se recomienda semana de readaptación "
+            "antes de iniciar un bloque de entrenamiento."
+        ]
+
+    today = date.today()
+    latest = max(s.performed_at.date() for s in sessions)
+    days_since = (today - latest).days
+
+    if days_since > _INACTIVITY_THRESHOLD_DAYS:
+        return True, days_since, [
+            f"Inactividad prolongada: {days_since} días sin sesiones. "
+            f"Se recomienda una semana de readaptación progresiva antes "
+            f"de retomar la carga normal. No prescribir build_peak ni "
+            f"sesiones de fatigue_cost ≥ 4 en las primeras 2 semanas."
+        ]
+
+    return False, days_since, []
+
+
 def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[str] = None) -> dict[str, Any]:
     athlete = db.scalar(
         select(Athlete)
@@ -1175,6 +1287,15 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
     )
     robustness = "low" if len(recent_sessions) <= 4 else "medium" if len(recent_sessions) <= 8 else "high"
     evaluation_signal = _eval_signal(current_evaluation.get("direction") if current_evaluation else None)
+
+    # I1 — Detección de inactividad prolongada
+    inactive, days_since_last_session, inactivity_warnings = _detect_inactivity(sessions)
+
+    # I2 — Detección de estancamiento crónico
+    stagnation_detected, stagnation_tests, stagnation_warnings = _detect_stagnation(
+        db, athlete_id, selected_discipline
+    )
+
     physio_gap = None
     resolved_distance_category = infer_distance_category(next_target_obj, selected_discipline) if next_target_obj else None
     physio_ctx = None
@@ -1211,6 +1332,9 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
             weight_kg=getattr(athlete, "weight", None),
             garmin_vo2max=_garmin_vo2,
         )
+        # I2 — Inyectar estado de estancamiento al contexto fisiológico
+        physio_ctx.stagnation_detected = stagnation_detected
+        physio_ctx.stagnation_tests_count = stagnation_tests
         physio_gap = analyse_physiological_gap(physio_ctx)
 
     durability_state = _estimate_durability_state(
@@ -1431,6 +1555,14 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
                 "Re-boost AEC forzado en transición base_late→specific (Olbrecht: proteger base antes de intensificar)."
             )
 
+    # I1 — Si hay inactividad prolongada, forzar AEC y estructura corta
+    if inactive and recommended_type not in {"aerobic_capacity_block", "testing_decision_block"}:
+        recommended_type = "aerobic_capacity_block"
+        reasoning.append(
+            f"Inactividad prolongada ({days_since_last_session or '?'} días sin sesiones). "
+            "Se fuerza bloque de capacidad aeróbica para readaptación progresiva."
+        )
+
     control_points: list[str] = []
     progression_rules: list[str] = []
 
@@ -1444,6 +1576,12 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
         risk_flags.append("No hay target próximo cargado; la recomendación se apoya en histórico y bloque activo.")
     if not sessions:
         risk_flags.append("Hay muy pocos datos por disciplina; la recomendación es orientativa.")
+
+    # I1 — Warnings de inactividad prolongada
+    risk_flags.extend(inactivity_warnings)
+
+    # I2 — Warnings de estancamiento crónico
+    risk_flags.extend(stagnation_warnings)
 
     risk_flags = list(dict.fromkeys(risk_flags))
 
@@ -1612,6 +1750,12 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
             "evaluation_signal": evaluation_signal,
             "previous_major": previous_major,
             "days_to_target": days_to_target,
+            # I1 — Estado de inactividad
+            "inactivity_detected": inactive,
+            "days_since_last_session": days_since_last_session,
+            # I2 — Estado de estancamiento
+            "stagnation_detected": stagnation_detected,
+            "stagnation_tests_count": stagnation_tests,
         },
         "physiological_analysis": {
             "data_quality": physio_gap.data_quality if physio_gap else "none",
@@ -1699,4 +1843,806 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
         "mesocycle_draft": mesocycle_draft,
         "warnings": risk_flags,
         "explanation": explanation,
+    }
+
+
+# ── B4 — Análisis triatlón: disciplina débil + consejos secundarios ──────────
+
+# Regla de intensidad secundaria — DIFERENCIADA por disciplina secundaria.
+#
+# Running como secundario: baja 1 nivel (alto impacto musculoesquelético,
+# ECO=1.0). Doble umbral sistémico en carrera es contraproducente (Millet 2002).
+#
+# Ciclismo como secundario: puede igualar o complementar intensidad (ECO=0.50,
+# bajo impacto, diferente reclutamiento muscular). Intervalos cortos en bici
+# (SIT, 30/30, VO2max) no generan la misma fatiga musculoesquelética que en
+# carrera — son ideales para subir techo aeróbico sin romper piernas.
+# Olbrecht: "the bike can serve as a high-intensity stimulus with lower
+# orthopedic cost, allowing the athlete to accumulate quality work."
+
+# Mapa cuando la secundaria es RUNNING (conservador: 1 nivel abajo)
+_SECONDARY_BLOCK_MAP_RUNNING: dict[str, str] = {
+    "aerobic_capacity_block": "aerobic_capacity_block",       # AEC → AEC
+    "threshold_development_block": "aerobic_capacity_block",  # THR → AEC
+    "aerobic_power_block": "threshold_development_block",     # AEP → THR
+    "anaerobic_capacity_block": "aerobic_capacity_block",     # ANC → AEC
+    "anaerobic_power_block": "threshold_development_block",   # ANP → THR
+    "competition_specific_block": "aerobic_power_block",      # COMP → AEP
+    "testing_decision_block": "aerobic_capacity_block",
+    "recovery_consolidation_block": "recovery_consolidation_block",
+}
+
+# Mapa cuando la secundaria es CICLISMO (permisivo: puede igualar intensidad)
+# La bici tolera intensidad alta sin el coste musculoesquelético del running.
+# Si la primaria (running) necesita AEP/VO2max → la bici TAMBIÉN puede hacer
+# AEP (SIT, 30/30, microintervalos) porque aporta estímulo central (corazón,
+# mitocondrias) sin machacar las piernas para el running.
+_SECONDARY_BLOCK_MAP_CYCLING: dict[str, str] = {
+    "aerobic_capacity_block": "aerobic_capacity_block",       # AEC → AEC (mantenimiento)
+    "threshold_development_block": "threshold_development_block",  # THR → THR (puede igualar)
+    "aerobic_power_block": "aerobic_power_block",             # AEP → AEP (SIT/30-30 en bici OK)
+    "anaerobic_capacity_block": "anaerobic_capacity_block",   # ANC → ANC (sprints en bici OK)
+    "anaerobic_power_block": "aerobic_power_block",           # ANP → AEP (ANP es pre-comp, bici baja 1)
+    "competition_specific_block": "aerobic_power_block",      # COMP → AEP
+    "testing_decision_block": "aerobic_capacity_block",
+    "recovery_consolidation_block": "recovery_consolidation_block",
+}
+
+# ECO load weighting (Cejuela 2022)
+_ECO_WEIGHT: dict[str, float] = {
+    "running": 1.0,
+    "ciclismo": 0.50,
+    "natación": 0.75,
+}
+
+# Techo de carga semanal por fase (unidades: sum of fatigue_cost × ECO)
+_LOAD_CEILING: dict[str, float] = {
+    "base_early": 10.0,
+    "base_late": 12.0,
+    "specific": 14.0,
+    "pre_comp": 14.0,
+    "taper": 8.0,
+}
+
+# Cross-benchmarks nivel: (LT2 running km/h, LT2 ciclismo watts)
+# Para situar al atleta en percentil dentro de su nivel por disciplina.
+# Fuente: Friel, Coggan, Billat, Olbrecht
+_CROSS_PERCENTILE_BENCHMARKS: dict[str, dict[str, tuple[float, float]]] = {
+    "running": {
+        "recreational": (9.0, 11.5),
+        "trained": (11.0, 14.5),
+        "competitive": (13.5, 17.0),
+    },
+    "ciclismo": {
+        "recreational": (170.0, 240.0),
+        "trained": (220.0, 310.0),
+        "competitive": (270.0, 380.0),
+    },
+}
+
+
+def _percentile_in_band(value: float, band: tuple[float, float]) -> float:
+    """Devuelve el percentil (0-1) del valor dentro de la banda."""
+    lo, hi = band
+    if hi <= lo:
+        return 0.5
+    return max(0.0, min(1.0, (value - lo) / (hi - lo)))
+
+
+def _tri_pace_to_kmh(pace_label: Optional[str]) -> Optional[float]:
+    """Convierte '4:59' o '4:59/km' a km/h."""
+    if not pace_label:
+        return None
+    try:
+        clean = pace_label.replace("/km", "").strip()
+        parts = clean.split(":")
+        if len(parts) == 2:
+            total_secs = int(parts[0]) * 60 + int(parts[1])
+            return round(3600 / total_secs, 3) if total_secs > 0 else None
+    except Exception:
+        pass
+    return None
+
+
+def _signal_gap_vs_objective(
+    analysis: dict[str, Any],
+    athlete: Any,
+    athlete_level: str,
+) -> dict[str, Any]:
+    """Señal A: gap vs objetivo de carrera para running y ciclismo."""
+    result: dict[str, Any] = {"available": False, "run_gap_pct": None, "bike_gap_pct": None, "weakest": None}
+
+    targets = _discipline_targets(athlete, "triatlón") or _discipline_targets(athlete, athlete.primary_discipline)
+    today = date.today()
+    target = next((t for t in targets if t.target_date >= today), targets[0] if targets else None)
+    if target is None:
+        return result
+
+    dist_cat = infer_distance_category(target, "triatlón") or infer_distance_category(target, "running")
+
+    # Running gap
+    run_view = (analysis.get("discipline_views") or {}).get("running") or {}
+    run_thresholds = {str(t.get("name", "")).upper(): t for t in (run_view.get("thresholds") or []) if isinstance(t, dict)}
+    lt2_run = run_thresholds.get("LT2", {})
+    lt2_run_pace = lt2_run.get("pace_seconds_per_km")
+    lt2_run_kmh = round(3600 / lt2_run_pace, 3) if isinstance(lt2_run_pace, (int, float)) and lt2_run_pace > 0 else None
+
+    target_run_pace = getattr(target, "target_running_pace_label", None) or getattr(target, "target_pace_label", None)
+    target_run_kmh = _tri_pace_to_kmh(target_run_pace) if target_run_pace else None
+
+    if lt2_run_kmh and target_run_kmh and dist_cat:
+        from app.services.physiological_engine import LT2_RACE_FACTOR
+        factor_dict = LT2_RACE_FACTOR.get(dist_cat) or LT2_RACE_FACTOR.get("hm", {})
+        factor = factor_dict.get(athlete_level, 0.90)
+        required_lt2_run = target_run_kmh / factor if factor > 0 else target_run_kmh
+        run_gap = (required_lt2_run - lt2_run_kmh) / required_lt2_run if required_lt2_run > 0 else 0
+        result["run_gap_pct"] = round(run_gap * 100, 1)
+
+    # Cycling gap
+    bike_view = (analysis.get("discipline_views") or {}).get("ciclismo") or {}
+    bike_thresholds = {str(t.get("name", "")).upper(): t for t in (bike_view.get("thresholds") or []) if isinstance(t, dict)}
+    lt2_bike = bike_thresholds.get("LT2", {})
+    lt2_bike_power = lt2_bike.get("power_watts")
+    lt2_bike_power = float(lt2_bike_power) if isinstance(lt2_bike_power, (int, float)) and lt2_bike_power > 0 else None
+
+    target_bike_power = getattr(target, "target_cycling_power_watts", None) or getattr(target, "target_power_watts", None)
+    target_bike_power = float(target_bike_power) if isinstance(target_bike_power, (int, float)) and target_bike_power > 0 else None
+
+    if lt2_bike_power and target_bike_power and dist_cat:
+        from app.services.physiological_engine import LT2_RACE_FACTOR
+        # Para ciclismo, buscar el evento de bici del triatlón
+        bike_dist = dist_cat.replace("tri", "bike") if "tri" in dist_cat else dist_cat
+        if bike_dist not in LT2_RACE_FACTOR:
+            bike_dist = dist_cat
+        factor_dict = LT2_RACE_FACTOR.get(bike_dist) or LT2_RACE_FACTOR.get("road_tt_medium", {})
+        factor = factor_dict.get(athlete_level, 0.90)
+        required_lt2_bike = target_bike_power / factor if factor > 0 else target_bike_power
+        bike_gap = (required_lt2_bike - lt2_bike_power) / required_lt2_bike if required_lt2_bike > 0 else 0
+        result["bike_gap_pct"] = round(bike_gap * 100, 1)
+
+    if result["run_gap_pct"] is not None and result["bike_gap_pct"] is not None:
+        result["available"] = True
+        result["weakest"] = "ciclismo" if result["bike_gap_pct"] > result["run_gap_pct"] else "running"
+
+    return result
+
+
+def _signal_curve_trend(
+    db: Session,
+    athlete_id: int,
+) -> dict[str, Any]:
+    """Señal B: tendencia de curva LT2 en últimos 180d para running y ciclismo."""
+    result: dict[str, Any] = {"available": False, "run_trend_pct": None, "bike_trend_pct": None, "weakest": None}
+    cutoff = date.today() - __import__("datetime").timedelta(days=_STAGNATION_LOOKBACK_DAYS)
+
+    for disc, metric_key in [("running", "pace"), ("ciclismo", "power")]:
+        snapshots = db.scalars(
+            select(PhysiologicalSnapshot)
+            .where(
+                PhysiologicalSnapshot.athlete_id == athlete_id,
+                PhysiologicalSnapshot.discipline == disc,
+                PhysiologicalSnapshot.snapshot_date >= cutoff,
+                PhysiologicalSnapshot.confidence > 0.0,
+            )
+            .order_by(PhysiologicalSnapshot.snapshot_date)
+        ).all()
+
+        if len(snapshots) < 2:
+            continue
+
+        values: list[float] = []
+        for snap in snapshots:
+            if metric_key == "pace" and snap.lt2_pace_seconds_per_km and snap.lt2_pace_seconds_per_km > 0:
+                values.append(snap.lt2_pace_seconds_per_km)
+            elif metric_key == "power" and snap.lt2_power_watts and snap.lt2_power_watts > 0:
+                values.append(snap.lt2_power_watts)
+
+        if len(values) < 2 or values[0] == 0:
+            continue
+
+        if metric_key == "pace":
+            # Menor es mejor para pace
+            improvement_pct = (values[0] - values[-1]) / values[0] * 100
+        else:
+            # Mayor es mejor para power
+            improvement_pct = (values[-1] - values[0]) / values[0] * 100
+
+        if disc == "running":
+            result["run_trend_pct"] = round(improvement_pct, 1)
+        else:
+            result["bike_trend_pct"] = round(improvement_pct, 1)
+
+    if result["run_trend_pct"] is not None and result["bike_trend_pct"] is not None:
+        result["available"] = True
+        # La que menos ha mejorado (o más ha empeorado) es la débil
+        result["weakest"] = "ciclismo" if result["bike_trend_pct"] < result["run_trend_pct"] else "running"
+
+    return result
+
+
+def _signal_cross_benchmark(
+    analysis: dict[str, Any],
+    athlete_level: str,
+) -> dict[str, Any]:
+    """Señal C: percentil cruzado entre running y ciclismo.
+
+    Un atleta con LT2 running en percentil 80% de su nivel pero FTP en
+    percentil 30% tiene un desajuste claro → ciclismo es el débil.
+    """
+    result: dict[str, Any] = {"available": False, "run_percentile": None, "bike_percentile": None, "weakest": None}
+
+    # Running LT2 en km/h
+    run_view = (analysis.get("discipline_views") or {}).get("running") or {}
+    run_thresholds = {str(t.get("name", "")).upper(): t for t in (run_view.get("thresholds") or []) if isinstance(t, dict)}
+    lt2_run = run_thresholds.get("LT2", {})
+    lt2_run_pace = lt2_run.get("pace_seconds_per_km")
+    lt2_run_kmh = round(3600 / lt2_run_pace, 3) if isinstance(lt2_run_pace, (int, float)) and lt2_run_pace > 0 else None
+
+    # Cycling LT2 en watts
+    bike_view = (analysis.get("discipline_views") or {}).get("ciclismo") or {}
+    bike_thresholds = {str(t.get("name", "")).upper(): t for t in (bike_view.get("thresholds") or []) if isinstance(t, dict)}
+    lt2_bike = bike_thresholds.get("LT2", {})
+    lt2_bike_power = lt2_bike.get("power_watts")
+    lt2_bike_power = float(lt2_bike_power) if isinstance(lt2_bike_power, (int, float)) and lt2_bike_power > 0 else None
+
+    if lt2_run_kmh is None or lt2_bike_power is None:
+        return result
+
+    run_band = _CROSS_PERCENTILE_BENCHMARKS["running"].get(athlete_level)
+    bike_band = _CROSS_PERCENTILE_BENCHMARKS["ciclismo"].get(athlete_level)
+    if not run_band or not bike_band:
+        return result
+
+    run_pct = round(_percentile_in_band(lt2_run_kmh, run_band) * 100, 1)
+    bike_pct = round(_percentile_in_band(lt2_bike_power, bike_band) * 100, 1)
+
+    result["available"] = True
+    result["run_percentile"] = run_pct
+    result["bike_percentile"] = bike_pct
+    result["weakest"] = "ciclismo" if bike_pct < run_pct else "running"
+
+    return result
+
+
+def _check_threshold_homogeneity(
+    analysis: dict[str, Any],
+) -> dict[str, Any]:
+    """Verifica que los umbrales comparados sean del mismo tipo entre disciplinas."""
+    result: dict[str, str] = {}
+    for disc in ("running", "ciclismo"):
+        view = (analysis.get("discipline_views") or {}).get(disc) or {}
+        real = view.get("real_thresholds") or {}
+        thresholds = view.get("thresholds") or []
+        has_real = bool(real.get("lt2_real"))
+        has_basic = any(
+            str(t.get("name", "")).upper() == "LT2" and isinstance(t.get("confidence"), (int, float)) and t["confidence"] >= 0.6
+            for t in thresholds if isinstance(t, dict)
+        )
+        if has_real:
+            result[disc] = "real"
+        elif has_basic:
+            result[disc] = "fisiológico"
+        else:
+            result[disc] = "práctico"
+
+    homogeneous = result.get("running") == result.get("ciclismo")
+    return {
+        "running_type": result.get("running", "sin_datos"),
+        "ciclismo_type": result.get("ciclismo", "sin_datos"),
+        "homogeneous": homogeneous,
+        "warning": None if homogeneous else (
+            f"Comparación asimétrica: running usa LT2 {result.get('running', '?')}, "
+            f"ciclismo usa LT2 {result.get('ciclismo', '?')}. Confianza reducida."
+        ),
+    }
+
+
+def identify_weakest_discipline(
+    db: Session,
+    athlete_id: int,
+    analysis: dict[str, Any],
+    athlete: Any,
+) -> dict[str, Any]:
+    """Identifica la disciplina más débil entre running y ciclismo.
+
+    Usa 3 señales:
+      A: gap vs objetivo (di Prampero / race factors)
+      B: tendencia de curva LT2 (Δ% últimos 180d)
+      C: cross-benchmark (percentil cruzado entre disciplinas, Friel/Coggan)
+
+    Si A y B coinciden → confianza alta.
+    Si discrepan → B+C mandan (no dependen de modelo externo).
+
+    Returns:
+        Dict con disciplina_debil, confianza, señales, explicación, etc.
+    """
+    athlete_level = getattr(athlete, "athlete_level", "trained") or "trained"
+
+    signal_a = _signal_gap_vs_objective(analysis, athlete, athlete_level)
+    signal_b = _signal_curve_trend(db, athlete_id)
+    signal_c = _signal_cross_benchmark(analysis, athlete_level)
+    threshold_check = _check_threshold_homogeneity(analysis)
+
+    signals = []
+    votes: dict[str, int] = {"running": 0, "ciclismo": 0}
+
+    if signal_a["available"]:
+        signals.append({
+            "tipo": "gap_vs_objetivo",
+            "resultado": signal_a["weakest"],
+            "detalle": (
+                f"Gap running: {signal_a['run_gap_pct']}%. "
+                f"Gap ciclismo: {signal_a['bike_gap_pct']}%. "
+                f"{'Ciclismo' if signal_a['weakest'] == 'ciclismo' else 'Running'} tiene mayor brecha vs objetivo."
+            ),
+        })
+        votes[signal_a["weakest"]] += 1
+
+    if signal_b["available"]:
+        signals.append({
+            "tipo": "tendencia_curva",
+            "resultado": signal_b["weakest"],
+            "detalle": (
+                f"Running mejoró {signal_b['run_trend_pct']:+.1f}% en 6 meses. "
+                f"Ciclismo mejoró {signal_b['bike_trend_pct']:+.1f}% en 6 meses. "
+                f"{'Ciclismo' if signal_b['weakest'] == 'ciclismo' else 'Running'} está más estancado."
+            ),
+        })
+        votes[signal_b["weakest"]] += 1
+
+    if signal_c["available"]:
+        signals.append({
+            "tipo": "cross_benchmark",
+            "resultado": signal_c["weakest"],
+            "detalle": (
+                f"Running: percentil {signal_c['run_percentile']}% en nivel {athlete_level}. "
+                f"Ciclismo: percentil {signal_c['bike_percentile']}% en nivel {athlete_level}. "
+                f"{'Ciclismo' if signal_c['weakest'] == 'ciclismo' else 'Running'} está por debajo del nivel esperado."
+            ),
+        })
+        votes[signal_c["weakest"]] += 1
+
+    total_signals = sum(1 for s in [signal_a, signal_b, signal_c] if s["available"])
+
+    if total_signals == 0:
+        return {
+            "disciplina_debil": None,
+            "confianza": "insufficient_data",
+            "señales": [],
+            "explicacion": {
+                "resumen": "No hay datos suficientes de running y ciclismo para comparar disciplinas.",
+                "señales": [],
+                "acuerdo": "Sin señales disponibles",
+                "tipo_umbral_usado": threshold_check,
+            },
+            "warnings": ["Se necesitan tests de lactato en running y ciclismo para el análisis triatlón."],
+        }
+
+    # Determinar disciplina débil
+    if votes["ciclismo"] > votes["running"]:
+        weakest = "ciclismo"
+    elif votes["running"] > votes["ciclismo"]:
+        weakest = "running"
+    else:
+        # Empate: B+C mandan (no dependen de modelo externo)
+        bc_votes = {"running": 0, "ciclismo": 0}
+        if signal_b["available"]:
+            bc_votes[signal_b["weakest"]] += 1
+        if signal_c["available"]:
+            bc_votes[signal_c["weakest"]] += 1
+        weakest = "ciclismo" if bc_votes["ciclismo"] >= bc_votes["running"] else "running"
+
+    # Confianza
+    agreeing = votes[weakest]
+    if agreeing == total_signals and total_signals >= 2:
+        confidence = "high"
+        acuerdo = f"{agreeing}/{total_signals} señales coinciden → confianza alta"
+    elif agreeing > total_signals // 2:
+        confidence = "moderate"
+        acuerdo = f"{agreeing}/{total_signals} señales coinciden → confianza moderada"
+    else:
+        confidence = "low"
+        acuerdo = f"Señales discrepan — se priorizan tendencia de curva y cross-benchmark"
+
+    # Reducir confianza si umbrales no homogéneos
+    if not threshold_check["homogeneous"] and confidence == "high":
+        confidence = "moderate"
+        acuerdo += " (reducida por comparación asimétrica de umbrales)"
+
+    secondary = "running" if weakest == "ciclismo" else "ciclismo"
+
+    return {
+        "disciplina_debil": weakest,
+        "disciplina_secundaria": secondary,
+        "confianza": confidence,
+        "señales": signals,
+        "explicacion": {
+            "resumen": (
+                f"{'Ciclismo' if weakest == 'ciclismo' else 'Running'} es tu mayor margen de mejora. "
+                f"{'Running' if weakest == 'ciclismo' else 'Ciclismo'} ya está en mejor nivel relativo."
+            ),
+            "señales": signals,
+            "acuerdo": acuerdo,
+            "tipo_umbral_usado": threshold_check,
+        },
+        "warnings": [threshold_check["warning"]] if threshold_check["warning"] else [],
+    }
+
+
+def _secondary_discipline_advice(
+    primary_block: str,
+    secondary_discipline: str,
+    season_phase: str,
+    secondary_own_block: Optional[str] = None,
+) -> dict[str, Any]:
+    """Genera consejos para la disciplina secundaria.
+
+    Enfoque en 2 fases:
+    1. Consultar qué bloque necesita la disciplina secundaria POR SU PROPIO
+       estado fisiológico (secondary_own_block, viene de recommend_next_mesocycle).
+    2. Aplicar techo de intensidad solo si es necesario:
+       - Running secundario: techo = 1 nivel por debajo del primario (ECO=1.0).
+       - Ciclismo secundario: techo = mismo nivel del primario (ECO=0.50).
+       Si el bloque propio de la secundaria ya está por debajo del techo → se
+       respeta tal cual (no se sube artificialmente).
+       Si el bloque propio supera el techo → se baja al techo.
+
+    Esto evita prescribir AEP en bici cuando la bici necesita AEC (no tiene base),
+    o frenar la bici con AEC cuando podría estar haciendo THR.
+    """
+    if secondary_discipline == "ciclismo":
+        ceiling_map = _SECONDARY_BLOCK_MAP_CYCLING
+    else:
+        ceiling_map = _SECONDARY_BLOCK_MAP_RUNNING
+
+    ceiling_block = ceiling_map.get(primary_block, "aerobic_capacity_block")
+
+    # Escala de intensidad para comparar bloques
+    _INTENSITY_RANK: dict[str, int] = {
+        "recovery_consolidation_block": 0,
+        "aerobic_capacity_block": 1,
+        "threshold_development_block": 2,
+        "aerobic_power_block": 3,
+        "anaerobic_capacity_block": 3,
+        "competition_specific_block": 4,
+        "anaerobic_power_block": 4,
+        "testing_decision_block": 0,
+    }
+
+    if secondary_own_block:
+        own_rank = _INTENSITY_RANK.get(secondary_own_block, 1)
+        ceiling_rank = _INTENSITY_RANK.get(ceiling_block, 1)
+
+        if own_rank <= ceiling_rank:
+            # El bloque propio ya está por debajo o igual al techo → respetar
+            secondary_block = secondary_own_block
+            source = "fisiológico_propio"
+        else:
+            # El bloque propio supera el techo → bajar al techo
+            secondary_block = ceiling_block
+            source = "techo_aplicado"
+    else:
+        # Sin análisis fisiológico de la secundaria → usar techo como default
+        secondary_block = ceiling_block
+        source = "techo_default"
+
+    block_labels = {
+        "aerobic_capacity_block": "Capacidad aeróbica (LT1 extensivo)",
+        "threshold_development_block": "Desarrollo de umbral (LT2)",
+        "aerobic_power_block": "Potencia aeróbica (VO2max)",
+        "anaerobic_capacity_block": "Capacidad anaeróbica",
+        "competition_specific_block": "Especificidad competitiva",
+        "recovery_consolidation_block": "Recuperación y consolidación",
+    }
+
+    # Guidelines más detalladas según disciplina secundaria
+    if secondary_discipline == "ciclismo":
+        session_guidelines = {
+            "aerobic_capacity_block": (
+                "2-3/semana LT1 extensivo en bici. Construir base ciclista — "
+                "no tiene sentido empujar intensidad sin base aeróbica en bici."
+            ),
+            "threshold_development_block": (
+                "2-3/semana con 1 sesión de umbral (sweet spot / FTP). "
+                "La bici tolera umbral simultáneo al running porque el impacto mecánico es mínimo."
+            ),
+            "aerobic_power_block": (
+                "2-3/semana con 1 sesión VO2max (SIT 30/30, 40/20, o microintervalos). "
+                "Estímulo central (corazón + mitocondrias) sin machacar piernas para el running. "
+                "Ideal para subir techo aeróbico compartido entre disciplinas."
+            ),
+            "anaerobic_capacity_block": (
+                "2/semana con 1 sesión de sprints cortos (10-30'' MAX + recuperación larga). "
+                "Activa la glucólisis sin impacto musculoesquelético."
+            ),
+        }
+    else:  # running secundario
+        session_guidelines = {
+            "aerobic_capacity_block": (
+                "2-3/semana LT1 extensivo, 1 KEY máximo. "
+                "Mantener volumen y economía de carrera, no buscar adaptación nueva."
+            ),
+            "threshold_development_block": (
+                "2/semana con 1 sesión de umbral moderada (tempo o cruise intervals cortos). "
+                "No combinar con KEY bici en días consecutivos — fatiga cruzada bike→run."
+            ),
+            "aerobic_power_block": (
+                "2/semana con intervalos VO2max cortos (3-4' al 95-100% vVO2max). "
+                "Cuidar fatiga sistémica — no el mismo día que KEY bici."
+            ),
+        }
+
+    # ── Explicación contextual según de dónde viene el bloque ────────────
+    matches_primary = (secondary_block == primary_block)
+
+    if source == "fisiológico_propio":
+        recomendacion = (
+            f"{secondary_discipline.capitalize()} necesita {block_labels.get(secondary_block, secondary_block).lower()} "
+            f"según su propio estado fisiológico. Este bloque es compatible con la carga del "
+            f"mesociclo focalizado — se respeta sin modificación."
+        )
+        regla = (
+            "El bloque secundario se determina primero por el estado fisiológico de esa disciplina "
+            "(gaps de LT1/LT2, perfil VO2max/VLamax), y después se comprueba que no exceda "
+            "el techo de carga sistémica. Si ya está por debajo → se respeta."
+        )
+    elif source == "techo_aplicado":
+        recomendacion = (
+            f"{secondary_discipline.capitalize()} necesitaría {block_labels.get(secondary_own_block or '', 'un bloque más intenso').lower()} "
+            f"por su estado fisiológico, pero se modera a {block_labels.get(secondary_block, secondary_block).lower()} "
+            f"para no sobrecargar el sistema junto con el mesociclo focalizado."
+        )
+        if secondary_discipline == "ciclismo":
+            regla = (
+                "Olbrecht: aunque la bici tolera más intensidad (bajo impacto mecánico), "
+                "el estrés sistémico (hormonal, SNC) sigue siendo acumulativo. "
+                "Se modera al techo para proteger la adaptación prioritaria."
+            )
+        else:
+            regla = (
+                "Millet 2002: running como secundario debe moderar intensidad (alto impacto "
+                "musculoesquelético, ECO=1.0). Doble umbral sistémico es contraproducente."
+            )
+    elif secondary_discipline == "ciclismo" and matches_primary:
+        recomendacion = (
+            f"La bici puede trabajar al mismo nivel de intensidad ({block_labels.get(secondary_block, secondary_block).lower()}) "
+            f"que el running focalizado. El bajo impacto mecánico del ciclismo (ECO=0.50) permite "
+            f"acumular estímulo central sin comprometer la recuperación muscular para correr."
+        )
+        regla = (
+            "Olbrecht: la bici aporta estímulo cardiovascular y mitocondrial con menor coste "
+            "ortopédico. Intervalos cortos de alta intensidad en bici (SIT, 30/30) son ideales "
+            "para elevar el techo VO2max compartido sin riesgo de lesión por impacto."
+        )
+    else:
+        recomendacion = (
+            f"Mantener {secondary_discipline} en modo {block_labels.get(secondary_block, 'mantenimiento').lower()}. "
+            f"No competir por adaptación fisiológica con la disciplina focalizada."
+        )
+        regla = (
+            "Millet 2002, Olbrecht: la disciplina secundaria se ajusta al techo de intensidad "
+            "para proteger la adaptación prioritaria del mesociclo focalizado."
+        )
+
+    return {
+        "disciplina": secondary_discipline,
+        "bloque_recomendado": secondary_block,
+        "bloque_label": block_labels.get(secondary_block, secondary_block),
+        "recomendacion": recomendacion,
+        "sesiones_sugeridas": session_guidelines.get(secondary_block, "2-3/semana en zona baja."),
+        "regla_cientifica": regla,
+        "iguala_intensidad_primaria": matches_primary,
+        "bloque_propio_fisiologico": secondary_own_block,
+        "bloque_techo": ceiling_block,
+        "source": source,
+    }
+
+
+def _get_activities_for_load(db: Session, athlete: Athlete) -> list[dict]:
+    """Fetch Garmin activities for training load calculation. Returns empty on error."""
+    try:
+        from app.services.garmin import list_garmin_activities
+        return list_garmin_activities(
+            athlete,
+            start_date=date.today() - timedelta(days=132),  # 90d + 42d warmup
+            end_date=date.today(),
+        )
+    except Exception:
+        return []
+
+
+def _spacing_rules(primary_discipline: str) -> list[str]:
+    """Reglas de spacing entre disciplinas (Millet 2002, Hausswirth 2013)."""
+    rules = [
+        "No 2 sesiones KEY de disciplinas diferentes en días consecutivos.",
+        "La semana de recovery del mesociclo focalizado debe ser recovery en todas las disciplinas.",
+    ]
+    if primary_discipline == "ciclismo":
+        rules.append(
+            "Si combinas bike+run el mismo día → siempre bike primero. "
+            "Fatiga cruzada bike→run: -12% economía de carrera (Millet 2002, tau=12h)."
+        )
+    elif primary_discipline == "running":
+        rules.append(
+            "Evitar sesión KEY de bici el día anterior a KEY running. "
+            "La fatiga neuromuscular del ciclismo afecta la economía de carrera (Hausswirth 2013)."
+        )
+    return rules
+
+
+def triathlon_analysis(
+    db: Session,
+    athlete_id: int,
+) -> dict[str, Any]:
+    """Análisis triatlón completo: identifica disciplina débil y genera consejos.
+
+    Solo compara running vs ciclismo. Natación queda fuera del motor —
+    el coach la gestiona manualmente (limitante técnico no resoluble con bloques fisiológicos).
+
+    Returns:
+        Dict con disciplina débil, explicación, mesociclo sugerido para primaria,
+        consejos para secundaria, y presupuesto de carga.
+    """
+    from sqlalchemy.orm import joinedload
+
+    athlete = db.scalar(
+        select(Athlete)
+        .options(
+            joinedload(Athlete.sessions),
+            joinedload(Athlete.focus_blocks),
+            joinedload(Athlete.planned_sessions),
+            joinedload(Athlete.targets),
+        )
+        .where(Athlete.id == athlete_id)
+    )
+    if athlete is None:
+        raise ValueError("Athlete not found")
+
+    analysis = athlete_analysis_payload(db, athlete_id)
+
+    weakness = identify_weakest_discipline(db, athlete_id, analysis, athlete)
+
+    if weakness["disciplina_debil"] is None:
+        return {
+            "athlete_id": athlete_id,
+            "athlete_name": athlete.name,
+            "generated_on": date.today(),
+            "weakness_analysis": weakness,
+            "primary_mesocycle": None,
+            "secondary_advice": None,
+            "spacing_rules": [],
+            "load_budget": None,
+            "nota_natacion": (
+                "La natación no entra en la comparación automática. "
+                "Con los datos actuales, el limitante en natación suele ser técnico "
+                "(hidrodinámica, patada, agarre), no metabólico. "
+                "Un bloque fisiológico no lo resolvería — recomendamos trabajo técnico continuado."
+            ),
+        }
+
+    weak_disc = weakness["disciplina_debil"]
+    secondary_disc = weakness["disciplina_secundaria"]
+
+    # Generar mesociclo enfocado para la disciplina débil
+    primary_meso = recommend_next_mesocycle(db, athlete_id, discipline=weak_disc)
+    primary_block = primary_meso["next_recommendation"]["recommended_block_type"]
+    season_phase = (
+        primary_meso["next_recommendation"].get("physiological_analysis", {}) or {}
+    ).get("season_phase", "base_early") or "base_early"
+
+    # Consultar el motor fisiológico de la disciplina SECUNDARIA
+    # para saber qué bloque necesita por su propio estado.
+    secondary_own_block: Optional[str] = None
+    try:
+        secondary_meso = recommend_next_mesocycle(db, athlete_id, discipline=secondary_disc)
+        secondary_own_block = secondary_meso["next_recommendation"]["recommended_block_type"]
+    except Exception:
+        pass  # Sin datos suficientes → se usará el techo por defecto
+
+    # Consejos para disciplina secundaria — basados en su propio estado + techo
+    secondary_advice = _secondary_discipline_advice(
+        primary_block, secondary_disc, season_phase,
+        secondary_own_block=secondary_own_block,
+    )
+
+    # Presupuesto de carga
+    ceiling = _LOAD_CEILING.get(season_phase, 12.0)
+    primary_budget = round(ceiling * 0.55, 1)  # 55% para la disciplina focalizada
+    secondary_budget = round(ceiling * 0.30, 1)  # 30% para la secundaria
+    swim_budget = round(ceiling * 0.15, 1)  # 15% para natación
+
+    load_budget = {
+        "techo_semanal": ceiling,
+        "fase": season_phase,
+        "presupuesto_primaria": {
+            "disciplina": weak_disc,
+            "eco_weight": _ECO_WEIGHT.get(weak_disc, 1.0),
+            "budget": primary_budget,
+        },
+        "presupuesto_secundaria": {
+            "disciplina": secondary_disc,
+            "eco_weight": _ECO_WEIGHT.get(secondary_disc, 0.5),
+            "budget": secondary_budget,
+        },
+        "presupuesto_natacion": {
+            "disciplina": "natación",
+            "eco_weight": 0.75,
+            "budget": swim_budget,
+        },
+    }
+
+    # ── Build integrated triathlon mesocycle draft ────────────────────────────
+    from app.services.triathlon_motor import build_triathlon_mesocycle_draft, resolve_swim_block
+
+    secondary_block = secondary_advice.get("bloque_recomendado", "aerobic_capacity_block") if isinstance(secondary_advice, dict) else secondary_advice.bloque_recomendado if hasattr(secondary_advice, "bloque_recomendado") else "aerobic_capacity_block"
+    swim_block = resolve_swim_block(season_phase)
+    rec = primary_meso["next_recommendation"]
+    duration_weeks = rec["duration_weeks"]
+    structure = rec.get("structure", f"{duration_weeks - 1}+1")
+
+    # Fetch current training load for projections
+    current_ctl = 0.0
+    current_atl = 0.0
+    current_ctl_by_disc: dict[str, float] = {}
+    try:
+        from app.services.training_load_calculator import compute_training_load_series
+        from app.models.athlete import Athlete as _A
+        tl_activities = _get_activities_for_load(db, athlete)
+        if tl_activities:
+            tl_result = compute_training_load_series(
+                db, athlete, tl_activities,
+                start_date=date.today() - timedelta(days=90),
+                end_date=date.today(),
+            )
+            current_ctl = tl_result.get("current_ctl", 0.0)
+            current_atl = tl_result.get("current_atl", 0.0)
+            current_ctl_by_disc = tl_result.get("current_ctl_by_discipline", {})
+    except Exception:
+        logger.debug("Could not fetch training load for triathlon projection", exc_info=True)
+
+    triathlon_draft = None
+    try:
+        triathlon_draft = build_triathlon_mesocycle_draft(
+            primary_discipline=weak_disc,
+            primary_block_type=primary_block,
+            secondary_discipline=secondary_disc,
+            secondary_block_type=secondary_block,
+            swim_block_type=swim_block,
+            duration_weeks=duration_weeks,
+            structure=structure,
+            season_phase=season_phase,
+            start_date=date.today(),
+            weakness_confidence=weakness.get("confianza", "moderate") if isinstance(weakness, dict) else weakness.confianza if hasattr(weakness, "confianza") else "moderate",
+            current_ctl=current_ctl,
+            current_atl=current_atl,
+            current_ctl_by_discipline=current_ctl_by_disc,
+        )
+    except Exception:
+        logger.warning("Failed to build triathlon mesocycle draft", exc_info=True)
+
+    return {
+        "athlete_id": athlete_id,
+        "athlete_name": athlete.name,
+        "generated_on": date.today(),
+        "weakness_analysis": weakness,
+        "primary_mesocycle": {
+            "discipline": weak_disc,
+            "recommended_block_type": primary_block,
+            "recommended_block_label": primary_meso["next_recommendation"]["recommended_block_label"],
+            "reasoning": primary_meso["next_recommendation"]["reasoning"],
+            "risk_flags": primary_meso["next_recommendation"]["risk_flags"],
+            "confidence": primary_meso["next_recommendation"]["confidence"],
+            "duration_weeks": duration_weeks,
+            "mesocycle_draft": primary_meso.get("mesocycle_draft"),
+        },
+        "secondary_advice": secondary_advice,
+        "spacing_rules": _spacing_rules(weak_disc),
+        "load_budget": load_budget,
+        "nota_natacion": (
+            "La natación no entra en la comparación automática. "
+            "El limitante en natación suele ser técnico (hidrodinámica, patada, agarre), no metabólico. "
+            "Un bloque fisiológico no lo resolvería — recomendamos trabajo técnico continuado con "
+            f"presupuesto de carga máximo de {swim_budget} AU/semana."
+        ),
+        "triathlon_mesocycle": triathlon_draft,
     }

@@ -43,6 +43,12 @@ type WorkoutPreviewModalProps = {
   onPushToGarmin?: () => Promise<void>;
   /** Called when the user selects a dose step from the dose ladder panel. */
   onSelectDoseStep?: (stepIndex: number, label: string) => void;
+  /** Called when the user renames the session title (only for persisted sessions). */
+  onRenameSession?: (newTitle: string) => Promise<void>;
+  /** Called when the user saves the coach note / strength prescription. */
+  onSaveCoachNote?: (note: string) => Promise<void>;
+  /** Current coach note from the planned session. */
+  coachNote?: string | null;
   garminConnected?: boolean;
   publishStatus?: string | null;
   thresholdReference?: {
@@ -54,7 +60,18 @@ type WorkoutPreviewModalProps = {
   onClose: () => void;
 };
 
-function disciplineLabel(value: string) {
+const STRENGTH_FAMILIES = new Set([
+  "general_strength", "anatomical_adaptation", "max_strength",
+  "strength_endurance_circuit", "strength_velocity", "torque_strength", "fuerza_q2",
+]);
+
+function isStrengthFamily(family: string) {
+  return STRENGTH_FAMILIES.has(family);
+}
+
+function disciplineLabel(value: string, family?: string) {
+  if (family && isStrengthFamily(family)) return "Fuerza";
+  if (value === "all") return "Multidisciplina";
   if (value === "ciclismo") return "Ciclismo";
   if (value === "natación") return "Natación";
   return "Carrera";
@@ -165,7 +182,9 @@ function readinessLabel(value?: string) {
   return value ?? "Sin requisito";
 }
 
-function disciplineIcon(value: string) {
+function disciplineIcon(value: string, family?: string) {
+  if (family && isStrengthFamily(family)) return "Fuerza";
+  if (value === "all") return "Multi";
   if (value === "ciclismo") return "Bike";
   if (value === "natación") return "Swim";
   return "Run";
@@ -353,11 +372,32 @@ function previewSegmentHeight(tone: string) {
   return 0.6;
 }
 
-export function WorkoutPreviewModal({ template, selection, rawInformation, workoutDefinition, onSaveWorkout, onPushToGarmin, onSelectDoseStep, garminConnected, publishStatus, thresholdReference, onClose }: WorkoutPreviewModalProps) {
+export function WorkoutPreviewModal({ template, selection, rawInformation, workoutDefinition, onSaveWorkout, onPushToGarmin, onSelectDoseStep, onRenameSession, onSaveCoachNote, coachNote, garminConnected, publishStatus, thresholdReference, onClose }: WorkoutPreviewModalProps) {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [pushResult, setPushResult] = useState<"ok" | "error" | null>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [strengthNote, setStrengthNote] = useState("");
+  const [strengthNoteEditing, setStrengthNoteEditing] = useState(false);
+  const [strengthNoteSaving, setStrengthNoteSaving] = useState(false);
+
+  // Initialize strength note when modal opens
+  useEffect(() => {
+    if (coachNote != null) setStrengthNote(coachNote);
+  }, [coachNote]);
+
+  const handleSaveStrengthNote = useCallback(async () => {
+    if (!onSaveCoachNote) return;
+    setStrengthNoteSaving(true);
+    try {
+      await onSaveCoachNote(strengthNote);
+      setStrengthNoteEditing(false);
+    } finally {
+      setStrengthNoteSaving(false);
+    }
+  }, [onSaveCoachNote, strengthNote]);
 
   const handlePushToGarmin = useCallback(async () => {
     if (!onPushToGarmin) return;
@@ -447,58 +487,86 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
         warmupSummary: summarizeWarmupTemplate(template),
         cooldownSummary: summarizeCooldownTemplate(template),
       },
-      disciplineIconLabel: disciplineIcon(template.discipline),
+      isStrength: isStrengthFamily(template.session_family),
+      disciplineIconLabel: disciplineIcon(template.discipline, template.session_family),
+      disciplineText: disciplineLabel(template.discipline, template.session_family),
     };
   }, [selection, template]);
 
   if (!preview) return null;
 
-  const previewToneClass = preview.selection.source === "example" ? "example" : "dose";
-  const previewSourceLabel = preview.selection.source === "dose" ? "dose_ladder" : preview.selection.source === "example" ? "csv_example" : "planning";
+  const previewSourceLabel = preview.selection.source === "dose" ? "Peldaño" : preview.selection.source === "example" ? "Ejemplo" : "Planificación";
 
   return (
     <div className="target-modal-backdrop" onClick={onClose}>
       <section className="card target-modal-card library-workout-modal" onClick={(event) => event.stopPropagation()}>
-        <div className="library-workout-modal-head">
-          <div className="library-workout-title-wrap">
-            <span className="eyebrow">Workout preview</span>
-            <h2>{preview.selection.label}</h2>
-            <p>{preview.template.public_label} · {disciplineLabel(preview.template.discipline)}</p>
-          </div>
-          <div className="library-workout-head-actions">
-            <span className={`library-preview-source ${previewToneClass}`}>{previewSourceLabel}</span>
-            {rawInformation?.statusLabel ? (
-              <span className={`status-badge ${rawInformation.statusTone ?? "neutral"}`}>{rawInformation.statusLabel}</span>
-            ) : null}
-            {rawInformation ? (
-              <button
-                type="button"
-                className={`ghost-button library-workout-raw-toggle ${rawInformation.active ? "active" : ""}`}
-                onClick={rawInformation.onToggle}
+        {/* ── Header ── */}
+        <div className="wpm-header">
+          <div className="wpm-header-left">
+            <div className="wpm-header-badges">
+              <span className="wpm-badge-sport">{preview.disciplineIconLabel}</span>
+              <span className="wpm-badge-zone">{preview.zone}</span>
+              <span className="wpm-badge-source">{previewSourceLabel}</span>
+              {rawInformation?.statusLabel ? (
+                <span className={`wpm-badge-status ${rawInformation.statusTone ?? "neutral"}`}>{rawInformation.statusLabel}</span>
+              ) : null}
+            </div>
+            {editingTitle ? (
+              <form className="library-workout-title-edit" onSubmit={(e) => {
+                e.preventDefault();
+                const trimmed = titleDraft.trim();
+                if (trimmed && onRenameSession) {
+                  onRenameSession(trimmed).then(() => setEditingTitle(false));
+                } else {
+                  setEditingTitle(false);
+                }
+              }}>
+                <input
+                  className="library-workout-title-input"
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                  autoFocus
+                  onBlur={() => setEditingTitle(false)}
+                  onKeyDown={(e) => { if (e.key === "Escape") setEditingTitle(false); }}
+                />
+              </form>
+            ) : (
+              <h2
+                className={`wpm-title ${onRenameSession ? "wpm-title-editable" : ""}`}
+                onClick={() => {
+                  if (!onRenameSession) return;
+                  setTitleDraft(preview.template.public_label);
+                  setEditingTitle(true);
+                }}
+                title={onRenameSession ? "Clic para cambiar el título" : undefined}
               >
-                {rawInformation.label ?? "Raw information"}
+                {preview.selection.label}
+              </h2>
+            )}
+            <p className="wpm-subtitle">{preview.template.public_label} · {preview.disciplineText}</p>
+          </div>
+          <div className="wpm-header-actions">
+            {rawInformation ? (
+              <button type="button" className={`wpm-action-btn ${rawInformation.active ? "active" : ""}`} onClick={rawInformation.onToggle}>
+                {rawInformation.label ?? "Raw"}
               </button>
             ) : null}
             {canEdit && (
-              <button
-                type="button"
-                className={`ghost-button library-workout-edit-toggle ${editMode ? "active" : ""}`}
-                onClick={() => setEditMode((v) => !v)}
-              >
-                {editMode ? "Vista previa" : "Editar entreno"}
+              <button type="button" className={`wpm-action-btn ${editMode ? "active" : ""}`} onClick={() => setEditMode((v) => !v)}>
+                {editMode ? "Vista previa" : "Editar"}
               </button>
             )}
             {garminConnected && onPushToGarmin && !editMode && (
               <button
                 type="button"
-                className={`ghost-button garmin-push-button ${publishStatus === "published" ? "published" : ""} ${pushResult === "ok" ? "success" : pushResult === "error" ? "error" : ""}`}
+                className={`wpm-action-btn wpm-garmin-btn ${publishStatus === "published" ? "published" : ""} ${pushResult === "ok" ? "success" : pushResult === "error" ? "error" : ""}`}
                 onClick={handlePushToGarmin}
                 disabled={pushing}
               >
-                {pushing ? "Enviando..." : pushResult === "ok" ? "Enviado a Garmin" : publishStatus === "published" ? "Reenviar a Garmin" : "Enviar a Garmin"}
+                {pushing ? "Enviando..." : pushResult === "ok" ? "Enviado" : publishStatus === "published" ? "Reenviar Garmin" : "Enviar Garmin"}
               </button>
             )}
-            <button type="button" className="ghost-button library-workout-close" onClick={onClose}>Cerrar</button>
+            <button type="button" className="wpm-close-btn" onClick={onClose} aria-label="Cerrar">&times;</button>
           </div>
         </div>
 
@@ -513,245 +581,329 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
           </div>
         ) : (
         <>
-        <div className="library-workout-hero">
-          <div className="library-workout-summary-card">
-            <div className="library-workout-badge-row">
-              <span className="library-workout-sport">{preview.disciplineIconLabel}</span>
-              <span className="library-workout-zone">{preview.zone}</span>
-              <span className="library-workout-readiness">{readinessLabel(preview.selection.readiness)}</span>
-            </div>
-            <div className="library-workout-metrics">
-              <div><small>Duración planificada</small><strong>{formatMinutesLabel(preview.totalDuration)}</strong></div>
-              <div><small>Trabajo útil</small><strong>{formatMinutesLabel(preview.usefulDuration)}</strong></div>
-              <div><small>Fatiga</small><strong>{preview.template.fatigue_cost}/5</strong></div>
-              <div><small>Confianza</small><strong>{Math.round(preview.template.confidence * 100)}%</strong></div>
-            </div>
-            <p className="library-workout-objective">{preview.template.objective}</p>
-            {preview.selection.prescriptionHint ? (
-              <div className="library-workout-threshold-note">
-                <small>Lectura por umbrales</small>
-                <p>{preview.selection.prescriptionHint}</p>
-                {preview.selection.thresholdBasis ? <span>{preview.selection.thresholdBasis}</span> : null}
-              </div>
-            ) : null}
-            {thresholdReference && (thresholdReference.lt1Label || thresholdReference.lt2Label) ? (
-              <div className="library-workout-threshold-ref">
-                {thresholdReference.lt1Label ? (
-                  <span className="threshold-ref-item lt1">
-                    <strong>LT1</strong> {thresholdReference.lt1Label}
-                    {thresholdReference.lt1Source ? <em>{thresholdReference.lt1Source}</em> : null}
-                  </span>
-                ) : null}
-                {thresholdReference.lt2Label ? (
-                  <span className="threshold-ref-item lt2">
-                    <strong>LT2</strong> {thresholdReference.lt2Label}
-                    {thresholdReference.lt2Source ? <em>{thresholdReference.lt2Source}</em> : null}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="library-workout-timeline-card">
-            <div className="library-workout-phase-grid">
-              <article className="library-workout-phase-card warmup">
-                <header><span>Calentamiento</span><strong>{formatMinutesLabel(preview.phaseTotals.warmup)}</strong></header>
-                <div className="library-workout-phase-visual warmup">
-                  <div
-                    className="library-workout-phase-warmup-base"
-                    style={{ width: `${Math.max(42, ((preview.phaseDetails.warmup.find((segment) => segment.tone === "warmup")?.durationMin ?? 0) / Math.max(preview.phaseTotals.warmup, 1)) * 100)}%` }}
-                  />
-                  <div className="library-workout-phase-warmup-markers">
-                    {preview.phaseDetails.warmup.filter((segment) => segment.tone !== "warmup").map((segment) => (
-                      <span key={segment.id} className={`library-workout-phase-warmup-marker ${segment.tone}`} title={`${segment.label} · ${formatMinutesLabel(segment.durationMin)}`} />
-                    ))}
-                  </div>
-                </div>
-                <p>{preview.phaseMeta.warmupSummary}</p>
-              </article>
-
-              <article className="library-workout-phase-card main">
-                <header><span>Bloque principal</span><strong>{formatMinutesLabel(preview.phaseTotals.main)}</strong></header>
-                <div className="library-workout-phase-visual main">
-                  <div className="library-workout-phase-main-sequence">
-                    {preview.phaseDetails.main.map((segment, index) => (
-                      <div
-                        key={segment.id}
-                        className={`library-workout-phase-main-item ${segment.tone} ${segment.tone === "recovery" ? "recovery" : "work"}`}
-                        style={{ flexGrow: Math.max(segment.durationMin, segment.tone === "recovery" ? 0.5 : 1) }}
-                        title={`${segment.label} · ${formatMinutesLabel(segment.durationMin)}`}
-                      >
-                        {segment.tone !== "recovery" && <span className="library-workout-phase-main-bar" style={{ height: `${previewSegmentHeight(segment.tone) * 100}%` }} />}
-                        {segment.tone === "recovery" && <span className="library-workout-phase-main-link" />}
-                        {index < preview.phaseDetails.main.length - 1 && segment.tone !== "recovery" && <small>{formatMinutesLabel(segment.durationMin)}</small>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="library-workout-phase-caption">
-                  <strong>{preview.selection.label}</strong>
-                  <small>
-                    {preview.phaseMeta.mainWorkCount} bloques de trabajo
-                    {preview.phaseMeta.mainRecoveryCount > 0 ? ` · ${preview.phaseMeta.mainRecoveryCount} recuperaciones` : ""}
-                    {preview.selection.restMin ? ` · rec ${preview.selection.restMin} min` : ""}
-                  </small>
-                </div>
-              </article>
-
-              <article className="library-workout-phase-card cooldown">
-                <header><span>Enfriamiento</span><strong>{formatMinutesLabel(preview.phaseTotals.cooldown)}</strong></header>
-                <div className="library-workout-phase-visual cooldown">
-                  <div className="library-workout-phase-cooldown-line" style={{ width: `${Math.max(38, ((preview.phaseTotals.cooldown || 0) / Math.max(preview.totalDuration || 1, 1)) * 220)}%` }} />
-                </div>
-                <p>{preview.phaseMeta.cooldownSummary}</p>
-              </article>
-            </div>
-          </div>
-        </div>
-
-        <div className="library-workout-modal-body">
+        {preview.isStrength ? (
+        /* ── Strength-specific layout ── */
+        <div className="library-workout-modal-body strength-layout">
           <div className="library-workout-main-column">
             <section className="library-workout-panel">
               <div className="library-workout-panel-head">
-                <span className="eyebrow">Estructura</span>
-                <h3>Vista rápida del entreno</h3>
-              </div>
-              <div className="library-workout-structure">
-                {preview.template.calentamiento_template && (
-                  <article className="library-workout-block warmup">
-                    <header><span>Calentamiento</span><strong>{preview.template.calentamiento_min}'</strong></header>
-                    <p>{preview.template.calentamiento_template}</p>
-                  </article>
-                )}
-                <article className="library-workout-block main">
-                  <header><span>Bloque principal</span><strong>{preview.selection.label}</strong></header>
-                  <div className="library-workout-block-list">
-                    {preview.blocks.map((block) => (
-                      <div key={block.id} className={`library-workout-interval ${block.tone}`}>
-                        <div><strong>{block.label}</strong><p>{block.hint}</p></div>
-                        <span>{formatMinutesLabel(block.durationMin)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="library-workout-block-note">{preview.selection.notes ?? preview.template.dose_guidance}</p>
-                </article>
-                {preview.template.enfriamiento_template && (
-                  <article className="library-workout-block cooldown">
-                    <header><span>Enfriamiento</span><strong>{preview.template.enfriamiento_min}'</strong></header>
-                    <p>{preview.template.enfriamiento_template}</p>
-                  </article>
-                )}
-              </div>
-            </section>
-
-            <section className="library-workout-panel">
-              <div className="library-workout-panel-head">
-                <span className="eyebrow">Guía</span>
-                <h3>Lectura del entrenador</h3>
+                <span className="eyebrow">Objetivo</span>
+                <h3>{preview.template.objective}</h3>
               </div>
               <div className="library-workout-copy-grid">
                 <article><small>Resumen</small><p>{preview.template.summary}</p></article>
                 <article><small>Dose guidance</small><p>{preview.template.dose_guidance}</p></article>
-                {preview.selection.prescriptionHint ? (
-                  <article>
-                    <small>Interpretación activa</small>
-                    <p>{preview.selection.prescriptionHint}</p>
-                  </article>
-                ) : null}
-                {preview.selection.thresholdBasis ? (
-                  <article>
-                    <small>Base usada</small>
-                    <p>{preview.selection.thresholdBasis}</p>
-                  </article>
-                ) : null}
               </div>
             </section>
+
+            <section className="library-workout-panel strength-prescription-panel">
+              <div className="library-workout-panel-head">
+                <span className="eyebrow">Prescripción de ejercicios</span>
+                <h3>Nota del entrenador</h3>
+              </div>
+              {strengthNoteEditing ? (
+                <div className="strength-prescription-editor">
+                  <textarea
+                    className="strength-prescription-textarea"
+                    value={strengthNote}
+                    onChange={(e) => setStrengthNote(e.target.value)}
+                    placeholder={"Ej:\n3×12 Sentadilla búlgara\n3×10 Hip thrust\n3×15 Gemelos excéntricos\n2×20'' Plancha lateral\n\nNotas: RPE 7, descanso 90'' entre series"}
+                    rows={10}
+                    autoFocus
+                  />
+                  <div className="strength-prescription-actions">
+                    <button type="button" className="ghost-button" onClick={() => { setStrengthNoteEditing(false); setStrengthNote(coachNote ?? ""); }}>Cancelar</button>
+                    <button type="button" className="ghost-button accent" onClick={handleSaveStrengthNote} disabled={strengthNoteSaving}>
+                      {strengthNoteSaving ? "Guardando..." : "Guardar prescripción"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="strength-prescription-display">
+                  {strengthNote ? (
+                    <pre className="strength-prescription-content">{strengthNote}</pre>
+                  ) : (
+                    <p className="strength-prescription-empty">Sin prescripción de ejercicios todavía. Haz clic en "Editar" para añadir ejercicios, series y repeticiones.</p>
+                  )}
+                  {onSaveCoachNote && (
+                    <button type="button" className="ghost-button strength-prescription-edit-btn" onClick={() => setStrengthNoteEditing(true)}>
+                      {strengthNote ? "Editar prescripción" : "Añadir prescripción"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {preview.template.csv_examples.length > 0 && (
+              <section className="library-workout-panel">
+                <div className="library-workout-panel-head">
+                  <span className="eyebrow">Ejemplos</span>
+                  <h3>Sesiones de referencia</h3>
+                </div>
+                <div className="library-workout-dose-ladder">
+                  {preview.template.csv_examples.map((example, i) => (
+                    <div key={example} className="library-workout-dose-step">
+                      <span className="library-workout-dose-step-index">{i + 1}</span>
+                      <div className="library-workout-dose-step-body"><strong>{example}</strong></div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
 
           <aside className="library-workout-side-column">
             <section className="library-workout-panel compact">
-              <div className="library-workout-panel-head">
-                <span className="eyebrow">Métricas</span>
-                <h3>Ficha</h3>
-              </div>
+              <div className="library-workout-panel-head"><span className="eyebrow">Métricas</span><h3>Ficha</h3></div>
               <div className="library-workout-stats-list">
                 <div><span>Zona</span><strong>{preview.zone}</strong></div>
-                <div><span>Recuperación entre reps</span><strong>{preview.selection.restMin ? `${preview.selection.restMin} min` : "No marcada"}</strong></div>
-                {preview.totalRestMin > 0 && <div><span>Descanso total en sesión</span><strong>{preview.totalRestMin} min</strong></div>}
+                <div><span>Fatiga</span><strong>{preview.template.fatigue_cost}/5</strong></div>
+                <div><span>Confianza</span><strong>{Math.round(preview.template.confidence * 100)}%</strong></div>
                 <div><span>Readiness</span><strong>{readinessLabel(preview.selection.readiness)}</strong></div>
-                <div><span>Fuente</span><strong>{preview.selection.source === "dose" ? "Peldaño estructurado" : preview.selection.source === "planning" ? "Planificación" : "Ejemplo CSV"}</strong></div>
               </div>
             </section>
-
-            {preview.template.dose_ladder.length > 0 && (
+            {preview.template.control_points.length > 0 && (
               <section className="library-workout-panel compact">
-                <div className="library-workout-panel-head">
-                  <span className="eyebrow">Dose ladder</span>
-                  <h3>Peldanos ({preview.template.dose_ladder.length})</h3>
+                <div className="library-workout-panel-head"><span className="eyebrow">Control</span><h3>Puntos a vigilar</h3></div>
+                <ul className="library-workout-list">{preview.template.control_points.map((point) => <li key={point}>{point}</li>)}</ul>
+              </section>
+            )}
+            {preview.template.coach_tips.length > 0 && (
+              <section className="library-workout-panel compact">
+                <div className="library-workout-panel-head"><span className="eyebrow">Coach tips</span><h3>Consejos</h3></div>
+                <ul className="library-workout-list">{preview.template.coach_tips.map((tip) => <li key={tip}>{tip}</li>)}</ul>
+              </section>
+            )}
+            {preview.template.cautions.length > 0 && (
+              <section className="library-workout-panel compact caution">
+                <div className="library-workout-panel-head"><span className="eyebrow">Cautelas</span><h3>Qué no hacer</h3></div>
+                <ul className="library-workout-list">{preview.template.cautions.map((caution) => <li key={caution}>{caution}</li>)}</ul>
+              </section>
+            )}
+          </aside>
+        </div>
+        ) : (
+        /* ── Cardio layout (redesigned) ── */
+        <>
+        {/* ── Metrics strip ── */}
+        <div className="wpm-metrics-strip">
+          <div className="wpm-metric"><small>Duración</small><strong>{formatMinutesLabel(preview.totalDuration)}</strong></div>
+          <div className="wpm-metric"><small>Trabajo útil</small><strong>{formatMinutesLabel(preview.usefulDuration)}</strong></div>
+          <div className="wpm-metric"><small>Fatiga</small><strong>{preview.template.fatigue_cost}/5</strong></div>
+          <div className="wpm-metric"><small>Readiness</small><strong>{readinessLabel(preview.selection.readiness)}</strong></div>
+          {preview.selection.restMin ? (
+            <div className="wpm-metric"><small>Rec reps</small><strong>{preview.selection.restMin} min</strong></div>
+          ) : null}
+        </div>
+
+        {/* ── Threshold reference (prominent for coaches) ── */}
+        {thresholdReference && (thresholdReference.lt1Label || thresholdReference.lt2Label) ? (
+          <div className="wpm-threshold-bar">
+            {thresholdReference.lt1Label ? (
+              <span className="wpm-threshold-item lt1">
+                <strong>LT1</strong> {thresholdReference.lt1Label}
+                {thresholdReference.lt1Source ? <em> · {thresholdReference.lt1Source}</em> : null}
+              </span>
+            ) : null}
+            {thresholdReference.lt2Label ? (
+              <span className="wpm-threshold-item lt2">
+                <strong>LT2</strong> {thresholdReference.lt2Label}
+                {thresholdReference.lt2Source ? <em> · {thresholdReference.lt2Source}</em> : null}
+              </span>
+            ) : null}
+            {preview.selection.prescriptionHint ? (
+              <span className="wpm-threshold-hint">{preview.selection.prescriptionHint}</span>
+            ) : null}
+          </div>
+        ) : preview.selection.prescriptionHint ? (
+          <div className="wpm-threshold-bar">
+            <span className="wpm-threshold-hint">{preview.selection.prescriptionHint}</span>
+            {preview.selection.thresholdBasis ? <span className="wpm-threshold-basis">{preview.selection.thresholdBasis}</span> : null}
+          </div>
+        ) : null}
+
+        {/* ── Timeline visualization (hero) ── */}
+        <div className="wpm-timeline">
+          <div className="wpm-timeline-phases">
+            {/* Warmup */}
+            <div className="wpm-phase wpm-phase-warmup">
+              <div className="wpm-phase-label"><span>Calentamiento</span><strong>{formatMinutesLabel(preview.phaseTotals.warmup)}</strong></div>
+              <div className="wpm-phase-visual warmup">
+                <div className="library-workout-phase-warmup-base" style={{ width: `${Math.max(42, ((preview.phaseDetails.warmup.find((s) => s.tone === "warmup")?.durationMin ?? 0) / Math.max(preview.phaseTotals.warmup, 1)) * 100)}%` }} />
+                <div className="library-workout-phase-warmup-markers">
+                  {preview.phaseDetails.warmup.filter((s) => s.tone !== "warmup").map((s) => (
+                    <span key={s.id} className={`library-workout-phase-warmup-marker ${s.tone}`} title={`${s.label} · ${formatMinutesLabel(s.durationMin)}`} />
+                  ))}
                 </div>
-                <div className="library-workout-dose-ladder">
+              </div>
+              <p className="wpm-phase-desc">{preview.phaseMeta.warmupSummary}</p>
+            </div>
+
+            {/* Main block */}
+            <div className="wpm-phase wpm-phase-main">
+              <div className="wpm-phase-label"><span>Bloque principal</span><strong>{formatMinutesLabel(preview.phaseTotals.main)}</strong></div>
+              <div className="wpm-phase-visual main">
+                <div className="library-workout-phase-main-sequence">
+                  {preview.phaseDetails.main.map((segment, index) => (
+                    <div
+                      key={segment.id}
+                      className={`library-workout-phase-main-item ${segment.tone} ${segment.tone === "recovery" ? "recovery" : "work"}`}
+                      style={{ flexGrow: Math.max(segment.durationMin, segment.tone === "recovery" ? 0.5 : 1) }}
+                      title={`${segment.label} · ${formatMinutesLabel(segment.durationMin)}`}
+                    >
+                      {segment.tone !== "recovery" && <span className="library-workout-phase-main-bar" style={{ height: `${previewSegmentHeight(segment.tone) * 100}%` }} />}
+                      {segment.tone === "recovery" && <span className="library-workout-phase-main-link" />}
+                      {index < preview.phaseDetails.main.length - 1 && segment.tone !== "recovery" && <small>{formatMinutesLabel(segment.durationMin)}</small>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <p className="wpm-phase-desc">
+                <strong>{preview.selection.label}</strong>
+                <span> · {preview.phaseMeta.mainWorkCount} bloques{preview.phaseMeta.mainRecoveryCount > 0 ? ` · ${preview.phaseMeta.mainRecoveryCount} rec` : ""}{preview.selection.restMin ? ` · rec ${preview.selection.restMin}'` : ""}</span>
+              </p>
+            </div>
+
+            {/* Cooldown */}
+            <div className="wpm-phase wpm-phase-cooldown">
+              <div className="wpm-phase-label"><span>Vuelta calma</span><strong>{formatMinutesLabel(preview.phaseTotals.cooldown)}</strong></div>
+              <div className="wpm-phase-visual cooldown">
+                <div className="library-workout-phase-cooldown-line" style={{ width: `${Math.max(38, ((preview.phaseTotals.cooldown || 0) / Math.max(preview.totalDuration || 1, 1)) * 220)}%` }} />
+              </div>
+              <p className="wpm-phase-desc">{preview.phaseMeta.cooldownSummary}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Body: structure + sidebar ── */}
+        <div className="wpm-body">
+          <div className="wpm-main">
+            {/* Objective + guidance */}
+            <div className="wpm-objective-block">
+              <p className="wpm-objective">{preview.template.objective}</p>
+              {(preview.selection.notes ?? preview.template.dose_guidance) ? (
+                <p className="wpm-guidance">{preview.selection.notes ?? preview.template.dose_guidance}</p>
+              ) : null}
+            </div>
+
+            {/* Structure */}
+            <div className="wpm-structure">
+              {preview.template.calentamiento_template && (
+                <div className="wpm-structure-phase warmup">
+                  <div className="wpm-structure-phase-head"><span>Calentamiento</span><strong>{preview.template.calentamiento_min}'</strong></div>
+                  <p>{preview.template.calentamiento_template}</p>
+                </div>
+              )}
+              <div className="wpm-structure-phase main">
+                <div className="wpm-structure-phase-head"><span>Bloque principal</span><strong>{preview.selection.label}</strong></div>
+                {preview.blocks.map((block) => (
+                  <div key={block.id} className={`wpm-interval ${block.tone}`}>
+                    <div className="wpm-interval-content"><strong>{block.label}</strong><p>{block.hint}</p></div>
+                    <span className="wpm-interval-duration">{formatMinutesLabel(block.durationMin)}</span>
+                  </div>
+                ))}
+              </div>
+              {preview.template.enfriamiento_template && (
+                <div className="wpm-structure-phase cooldown">
+                  <div className="wpm-structure-phase-head"><span>Vuelta calma</span><strong>{preview.template.enfriamiento_min}'</strong></div>
+                  <p>{preview.template.enfriamiento_template}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Coach note */}
+            {onSaveCoachNote && (
+              <div className="wpm-coach-note">
+                <div className="wpm-coach-note-head">
+                  <span className="eyebrow">Nota del entrenador</span>
+                  {!strengthNoteEditing && (
+                    <button type="button" className="wpm-action-btn small" onClick={() => setStrengthNoteEditing(true)}>
+                      {strengthNote ? "Editar" : "Añadir nota"}
+                    </button>
+                  )}
+                </div>
+                {strengthNoteEditing ? (
+                  <div className="wpm-coach-note-editor">
+                    <textarea
+                      className="wpm-coach-note-textarea"
+                      value={strengthNote}
+                      onChange={(e) => setStrengthNote(e.target.value)}
+                      placeholder="Notas para esta sesión..."
+                      rows={4}
+                      autoFocus
+                    />
+                    <div className="wpm-coach-note-actions">
+                      <button type="button" className="wpm-action-btn" onClick={() => { setStrengthNoteEditing(false); setStrengthNote(coachNote ?? ""); }}>Cancelar</button>
+                      <button type="button" className="wpm-action-btn accent" onClick={handleSaveStrengthNote} disabled={strengthNoteSaving}>
+                        {strengthNoteSaving ? "Guardando..." : "Guardar"}
+                      </button>
+                    </div>
+                  </div>
+                ) : strengthNote ? (
+                  <p className="wpm-coach-note-text">{strengthNote}</p>
+                ) : null}
+              </div>
+            )}
+          </div>
+
+          <aside className="wpm-sidebar">
+            {/* Dose ladder */}
+            {preview.template.dose_ladder.length > 0 && (
+              <div className="wpm-sidebar-section">
+                <span className="eyebrow">Peldaños ({preview.template.dose_ladder.length})</span>
+                <div className="wpm-dose-ladder">
                   {preview.template.dose_ladder.map((step) => {
                     const isActive = preview.selection.label === step.label;
                     return (
                       <button
                         key={step.step}
                         type="button"
-                        className={`library-workout-dose-step ${isActive ? "active" : ""}`}
+                        className={`wpm-dose-step ${isActive ? "active" : ""}`}
                         onClick={() => onSelectDoseStep?.(step.step, step.label)}
                         title={step.notes || step.label}
                       >
-                        <span className="library-workout-dose-step-index">{step.step}</span>
-                        <div className="library-workout-dose-step-body">
+                        <span className="wpm-dose-index">{step.step}</span>
+                        <div className="wpm-dose-body">
                           <strong>{step.label}</strong>
-                          {step.total_duration_min > 0 && <small>{step.total_duration_min} min</small>}
+                          {step.total_duration_min > 0 && <small>{step.total_duration_min}'</small>}
                         </div>
-                        {isActive && <span className="library-workout-dose-step-active">Activo</span>}
+                        {isActive && <span className="wpm-dose-active">Activo</span>}
                       </button>
                     );
                   })}
                 </div>
-              </section>
+              </div>
             )}
 
+            {/* Control points */}
             {preview.template.control_points.length > 0 && (
-              <section className="library-workout-panel compact">
-                <div className="library-workout-panel-head">
-                  <span className="eyebrow">Control</span>
-                  <h3>Puntos a vigilar</h3>
-                </div>
-                <ul className="library-workout-list">
-                  {preview.template.control_points.map((point) => <li key={point}>{point}</li>)}
-                </ul>
-              </section>
+              <div className="wpm-sidebar-section">
+                <span className="eyebrow">Puntos a vigilar</span>
+                <ul className="wpm-sidebar-list">{preview.template.control_points.map((p) => <li key={p}>{p}</li>)}</ul>
+              </div>
             )}
 
+            {/* Coach tips */}
             {preview.template.coach_tips.length > 0 && (
-              <section className="library-workout-panel compact">
-                <div className="library-workout-panel-head">
-                  <span className="eyebrow">Coach tips</span>
-                  <h3>Consejos</h3>
-                </div>
-                <ul className="library-workout-list">
-                  {preview.template.coach_tips.map((tip) => <li key={tip}>{tip}</li>)}
-                </ul>
-              </section>
+              <div className="wpm-sidebar-section">
+                <span className="eyebrow">Consejos</span>
+                <ul className="wpm-sidebar-list">{preview.template.coach_tips.map((t) => <li key={t}>{t}</li>)}</ul>
+              </div>
             )}
 
+            {/* Cautions */}
             {preview.template.cautions.length > 0 && (
-              <section className="library-workout-panel compact caution">
-                <div className="library-workout-panel-head">
-                  <span className="eyebrow">Cautelas</span>
-                  <h3>Qué no hacer</h3>
-                </div>
-                <ul className="library-workout-list">
-                  {preview.template.cautions.map((caution) => <li key={caution}>{caution}</li>)}
-                </ul>
-              </section>
+              <div className="wpm-sidebar-section wpm-caution">
+                <span className="eyebrow">Cautelas</span>
+                <ul className="wpm-sidebar-list">{preview.template.cautions.map((c) => <li key={c}>{c}</li>)}</ul>
+              </div>
             )}
           </aside>
         </div>
 
         {rawInformation?.active && rawInformation.panel ? rawInformation.panel : null}
+        </>
+        )}
         </>
         )}
       </section>

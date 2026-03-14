@@ -482,8 +482,10 @@ def _selection_index(
 
 def _resolve_template_block_hint(template_id: Optional[str]) -> Optional[str]:
     for discipline, block_type in WORKOUT_BLUEPRINTS:
-        if any(slot.template_id == template_id for slots in WORKOUT_BLUEPRINTS[(discipline, block_type)].values() for slot in slots):
-            return block_type
+        for slots in WORKOUT_BLUEPRINTS[(discipline, block_type)].values():
+            for slot in slots:
+                if slot.template_id == template_id or template_id in slot.alternates:
+                    return block_type
     return None
 
 
@@ -653,6 +655,66 @@ def _prescribed_dose(
     return template.csv_examples[index], _selection_reason(template, phase, state, index), index
 
 
+def _rotate_slots(
+    raw_slots: list[DraftSlot],
+    week_index: int,
+    template_usage_counts: Counter,
+    library: dict[str, Any],
+) -> list[DraftSlot]:
+    """Rota los templates de cada slot usando el pool de alternates.
+
+    Estrategia (inspirada en patrones de Nacho):
+    - Dentro de un mesociclo, cada semana usa una variante distinta del pool
+    - Prioriza la variante menos usada en el bloque actual
+    - Si hay empate, usa round-robin por week_index
+    - El template primario tiene prioridad en semana 1
+    - Evita repetir el mismo template_id en la misma semana (cross-slot dedup)
+
+    Esto genera variabilidad tipo Nacho: semana 1 usa LT1 extensivo,
+    semana 2 usa LT1 long reps, semana 3 usa escalated LT1 — mismo
+    estímulo fisiológico, diferente formato.
+    """
+    used_this_week: set[str] = set()
+    result: list[DraftSlot] = []
+
+    for slot in raw_slots:
+        if not slot.alternates:
+            result.append(slot)
+            used_this_week.add(slot.template_id)
+            continue
+
+        # Build candidate pool: primary first, then alternates
+        pool = [slot.template_id, *slot.alternates]
+        # Filter out templates that don't exist in library
+        pool = [tid for tid in pool if tid in library]
+        if not pool:
+            result.append(slot)
+            used_this_week.add(slot.template_id)
+            continue
+
+        # Filter out templates already used in this week (avoid duplicates)
+        available = [tid for tid in pool if tid not in used_this_week]
+        if not available:
+            available = pool  # fallback: allow if all are taken
+
+        # Score candidates: lower usage count wins, then round-robin by week
+        def _candidate_score(tid: str, idx: int) -> tuple[int, int]:
+            usage = template_usage_counts.get(tid, 0)
+            # Round-robin offset: shift the preference each week
+            robin = (idx + week_index) % len(available)
+            return (usage, robin)
+
+        best = min(
+            enumerate(available),
+            key=lambda pair: _candidate_score(pair[1], pair[0]),
+        )
+        chosen = best[1]
+        result.append(DraftSlot(slot.day_offset, chosen, slot.alternates))
+        used_this_week.add(chosen)
+
+    return result
+
+
 def _smart_day_offsets(
     slots: list[DraftSlot],
     library: dict[str, Any],
@@ -771,14 +833,23 @@ def build_prewritten_mesocycle_draft(
 
     for week_index, phase in enumerate(phases, start=1):
         raw_slots = blueprints.get(phase) or blueprints.get("build") or blueprints.get("load") or blueprints.get("recovery") or ()
-        slots = _smart_day_offsets(list(raw_slots), library)
+        rotated_slots = _rotate_slots(list(raw_slots), week_index, template_usage_counts, library)
+        slots = _smart_day_offsets(rotated_slots, library)
         sessions: list[dict[str, Any]] = []
         weekly_controls: list[str] = []
-        for slot in slots:
+        # Build a map from slot position to the original raw slot for rotation tracking
+        raw_slot_map: dict[int, DraftSlot] = {}
+        for i, rs in enumerate(list(raw_slots)):
+            raw_slot_map[i] = rs
+
+        for slot_pos, slot in enumerate(slots):
             if slot.template_id not in library:
                 # X1: fallback blueprint puede referenciar template_ids inexistentes
                 continue
             template = library[slot.template_id]
+            # Check if rotation was applied (template differs from blueprint primary)
+            original_slot = raw_slot_map.get(slot_pos)
+            was_rotated = original_slot is not None and original_slot.template_id != slot.template_id
             evidence = evidence_for_ids(template.evidence_ids)
             weekly_controls.extend(template.control_points[:2])
             prior_exposures = template_usage_counts[template.template_id]
@@ -812,7 +883,10 @@ def build_prewritten_mesocycle_draft(
                     "confidence": template.confidence,
                     "evidence_source_ids": [item.source_id for item in evidence],
                     "csv_examples": list(template.csv_examples[:3]),
-                    "selection_reason": selection_reason,
+                    "selection_reason": selection_reason + (
+                        [f"Rotación: {original_slot.template_id} → {template.template_id} (variabilidad semanal)."]
+                        if was_rotated and original_slot else []
+                    ),
                     "payload": {
                         "state_summary": state.summary,
                         "curve_direction": state.curve_direction,
@@ -822,6 +896,8 @@ def build_prewritten_mesocycle_draft(
                         "robustness": state.robustness,
                         "macro_phase": state.current_macro_phase,
                         "block_validation_signal": state.block_validation_signal,
+                        "rotated_from": original_slot.template_id if was_rotated and original_slot else None,
+                        "rotation_pool": [original_slot.template_id, *original_slot.alternates] if original_slot and original_slot.alternates else None,
                     },
                 }
             )

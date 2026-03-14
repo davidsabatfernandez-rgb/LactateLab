@@ -516,16 +516,152 @@ def _aggregate_threshold(name: str, methods: list[ThresholdMethodEstimate]) -> T
     )
 
 
+_BASELINE_ARRUINADO_THRESHOLD = 3.0
+_FEW_POINTS_THRESHOLD = 5
+# P6 — Cap gradual de confianza según número de escalones:
+# 3 puntos → max 0.45 (muy poca resolución)
+# 4 puntos → max 0.60 (insuficiente pero usable con cautela)
+# ≥5 puntos → sin cap adicional
+_CONFIDENCE_CAP_BY_POINTS = {3: 0.45, 4: 0.60}
+
+
 def _thresholds_from_session(session: AthleteSession) -> list[ThresholdResult]:
     candidates = _build_candidates(session)
     if len(candidates) < 3:
         return []
 
+    # B1 — Validación de baseline arruinado: si el mínimo de los primeros
+    # 4 valores de lactato ya supera 3.0 mmol, el test es inválido.
+    # El atleta no partió de reposo metabólico y los umbrales serán
+    # absurdos. No publicamos nada.
+    lactates = [item["lactate"] for item in candidates]
+    baseline_window = lactates[: min(4, len(lactates))]
+    baseline_min = min(baseline_window)
+    if baseline_min > _BASELINE_ARRUINADO_THRESHOLD:
+        return [
+            ThresholdResult(
+                name=name,
+                lactate=None,
+                pace_seconds_per_km=None,
+                power_watts=None,
+                heart_rate=None,
+                power_source=None,
+                method="baseline_invalid",
+                confidence=0.0,
+                rationale=(
+                    f"Test invalidado: el lactato basal mínimo ({baseline_min:.1f} mmol) "
+                    f"supera {_BASELINE_ARRUINADO_THRESHOLD} mmol. El atleta no partió de "
+                    f"reposo metabólico. Se recomienda repetir el test con un "
+                    f"calentamiento adecuado y escalones iniciales más suaves."
+                ),
+                methods_compared=[],
+                agreement_score=0.0,
+                evidence_level="low",
+            )
+            for name in ("LT1", "LT2")
+        ]
+
     method_outputs: list[ThresholdMethodEstimate] = []
     for builder in (_method_baseline_rise, _method_sustained_increase, _method_moddmax):
         method_outputs.extend(builder(candidates))
 
-    return [_aggregate_threshold("LT1", method_outputs), _aggregate_threshold("LT2", method_outputs)]
+    # P6 — Cap gradual de confianza con pocos puntos: con <5 escalones
+    # no hay suficiente resolución para confiar plenamente en los umbrales.
+    confidence_cap = _CONFIDENCE_CAP_BY_POINTS.get(len(candidates))
+    if confidence_cap is not None:
+        for estimate in method_outputs:
+            if estimate.confidence > confidence_cap:
+                estimate.confidence = confidence_cap
+
+    lt1 = _aggregate_threshold("LT1", method_outputs)
+    lt2 = _aggregate_threshold("LT2", method_outputs)
+
+    # B2 — Validación LT1 < LT2: tras agregar, verificamos que LT1 sea
+    # fisiológicamente inferior a LT2. Si LT1 >= LT2 en lactato, o si
+    # LT1 es más rápido que LT2 (en ritmo: menor s/km = más rápido),
+    # los umbrales son incoherentes y no se publican.
+    if lt1.lactate is not None and lt2.lactate is not None:
+        if lt1.lactate >= lt2.lactate:
+            return [
+                ThresholdResult(
+                    name=name,
+                    lactate=None,
+                    pace_seconds_per_km=None,
+                    power_watts=None,
+                    heart_rate=None,
+                    power_source=None,
+                    method="inverted_thresholds",
+                    confidence=0.0,
+                    rationale=(
+                        f"Umbrales invalidados: LT1 ({lt1.lactate:.2f} mmol) ≥ LT2 "
+                        f"({lt2.lactate:.2f} mmol). Esto es fisiológicamente imposible. "
+                        f"Posibles causas: protocolo de test inadecuado, baseline elevado "
+                        f"o curva anómala. Se recomienda repetir el test."
+                    ),
+                    methods_compared=[],
+                    agreement_score=0.0,
+                    evidence_level="low",
+                )
+                for name in ("LT1", "LT2")
+            ]
+
+    if (
+        lt1.pace_seconds_per_km is not None
+        and lt2.pace_seconds_per_km is not None
+        and lt1.pace_seconds_per_km < lt2.pace_seconds_per_km
+    ):
+        return [
+            ThresholdResult(
+                name=name,
+                lactate=None,
+                pace_seconds_per_km=None,
+                power_watts=None,
+                heart_rate=None,
+                power_source=None,
+                method="inverted_thresholds",
+                confidence=0.0,
+                rationale=(
+                    f"Umbrales invalidados: LT1 a ritmo más rápido "
+                    f"({lt1.pace_seconds_per_km:.0f} s/km) que LT2 "
+                    f"({lt2.pace_seconds_per_km:.0f} s/km). "
+                    f"Se recomienda repetir el test."
+                ),
+                methods_compared=[],
+                agreement_score=0.0,
+                evidence_level="low",
+            )
+            for name in ("LT1", "LT2")
+        ]
+
+    if (
+        lt1.power_watts is not None
+        and lt2.power_watts is not None
+        and lt1.power_watts > lt2.power_watts
+    ):
+        return [
+            ThresholdResult(
+                name=name,
+                lactate=None,
+                pace_seconds_per_km=None,
+                power_watts=None,
+                heart_rate=None,
+                power_source=None,
+                method="inverted_thresholds",
+                confidence=0.0,
+                rationale=(
+                    f"Umbrales invalidados: LT1 a mayor potencia "
+                    f"({lt1.power_watts:.0f} W) que LT2 "
+                    f"({lt2.power_watts:.0f} W). "
+                    f"Se recomienda repetir el test."
+                ),
+                methods_compared=[],
+                agreement_score=0.0,
+                evidence_level="low",
+            )
+            for name in ("LT1", "LT2")
+        ]
+
+    return [lt1, lt2]
 
 
 _REAL_MIN_CONFIDENCE = 0.75
@@ -868,6 +1004,19 @@ def _detect_real_thresholds(session: AthleteSession) -> dict[str, Any]:
         result["data_quality"]["sufficient"] = True
         result["data_quality"]["reason"] = "Datos suficientes para estimación conservadora"
 
+    # B1 — Baseline arruinado: si el mínimo de los primeros valores supera
+    # 3.0 mmol, no tiene sentido estimar umbrales reales.
+    if candidates:
+        real_lactates = [c["lactate"] for c in candidates]
+        real_baseline = min(real_lactates[: min(4, len(real_lactates))])
+        if real_baseline > _BASELINE_ARRUINADO_THRESHOLD:
+            result["data_quality"]["sufficient"] = False
+            result["data_quality"]["reason"] = (
+                f"Baseline arruinado ({real_baseline:.1f} mmol > {_BASELINE_ARRUINADO_THRESHOLD} mmol). "
+                f"Repetir test con escalones iniciales más suaves."
+            )
+            return result
+
     # Run detection methods
     method_outputs: list[ThresholdMethodEstimate] = []
     if len(candidates) >= 3:
@@ -876,6 +1025,20 @@ def _detect_real_thresholds(session: AthleteSession) -> dict[str, Any]:
 
     lt1_result = _aggregate_threshold("LT1", method_outputs)
     lt2_result = _aggregate_threshold("LT2", method_outputs)
+
+    # B2 — Validación LT1 < LT2 en umbrales reales
+    if (
+        lt1_result.lactate is not None
+        and lt2_result.lactate is not None
+        and lt1_result.lactate >= lt2_result.lactate
+    ):
+        result["data_quality"]["sufficient"] = False
+        result["data_quality"]["reason"] = (
+            f"LT1 ({lt1_result.lactate:.2f} mmol) ≥ LT2 ({lt2_result.lactate:.2f} mmol). "
+            f"Umbrales invertidos — test inválido."
+        )
+        return result
+
     quality_reason = result["data_quality"]["reason"]
     result["lt1_detection"] = _build_threshold_detection_status("LT1", lt1_result, method_outputs, quality_gate_passed, quality_reason)
     result["lt2_detection"] = _build_threshold_detection_status("LT2", lt2_result, method_outputs, quality_gate_passed, quality_reason)
@@ -1797,6 +1960,12 @@ def _discipline_view(
                 "cautions": item.payload.get("cautions", []),
                 "anchors": item.payload.get("anchors", []),
                 "confidence_factors": item.payload.get("confidence_factors", []),
+                "ritmo_techo": item.payload.get("ritmo_techo"),
+                "ritmo_objetivo": item.payload.get("ritmo_objetivo"),
+                "ritmo_seguro": item.payload.get("ritmo_seguro"),
+                "glycogen_risk": item.payload.get("glycogen_risk"),
+                "durability_info": item.payload.get("durability_info"),
+                "quality_score": item.payload.get("quality_score"),
             }
             for item in discipline_estimates[:10]
         ],
@@ -1844,16 +2013,18 @@ def _discipline_view(
         lt2_pace = latest_snapshot.lt2_pace_seconds_per_km
         lt2_power = latest_snapshot.lt2_power_watts
         lt2_speed = round(3600 / lt2_pace, 3) if lt2_pace and lt2_pace > 0 else None
-        # Gather HR max from session intervals
-        hr_max_obs = None
-        for s in discipline_sessions:
-            for iv in getattr(s, "intervals", []):
-                hr_m = getattr(iv, "heart_rate_max", None)
-                if hr_m and (hr_max_obs is None or hr_m > hr_max_obs):
-                    hr_max_obs = hr_m
-                hr_a = getattr(iv, "heart_rate_avg", None)
-                if hr_a and (hr_max_obs is None or hr_a > hr_max_obs):
-                    hr_max_obs = hr_a
+        # Gather HR max: coach override > observed > age-based
+        hr_max_obs = getattr(athlete, "training_hr_max", None)
+        if not hr_max_obs or hr_max_obs < 150:
+            hr_max_obs = None
+            for s in discipline_sessions:
+                for iv in getattr(s, "intervals", []):
+                    hr_m = getattr(iv, "heart_rate_max", None)
+                    if hr_m and (hr_max_obs is None or hr_m > hr_max_obs):
+                        hr_max_obs = hr_m
+                    hr_a = getattr(iv, "heart_rate_avg", None)
+                    if hr_a and (hr_max_obs is None or hr_a > hr_max_obs):
+                        hr_max_obs = hr_a
         if not hr_max_obs or hr_max_obs < 150:
             dob = getattr(athlete, "date_of_birth", None)
             if dob:
@@ -1883,6 +2054,65 @@ def _discipline_view(
                 "lt2_hr_used": lt2_hr,
             }
     payload["swain_vo2max"] = swain_vo2max
+
+    # ── Target curve from athlete's race goal ────────────────────────────
+    target_curve = None
+    if discipline == "running" and latest_snapshot:
+        from app.services.prediction_engine import build_target_curve as _build_tc
+        # Find the nearest running target
+        targets = getattr(athlete, "targets", [])
+        running_target = None
+        for t in targets:
+            t_disc = getattr(t, "discipline", None)
+            t_cat = getattr(t, "distance_category", None)
+            if t_disc in ("running", "triatlón") and t_cat in ("5k", "10k", "hm", "marathon"):
+                if running_target is None or (getattr(t, "priority_level", "") or "") == "A":
+                    running_target = t
+        if running_target:
+            t_pace = (
+                getattr(running_target, "target_pace_label", None)
+                or getattr(running_target, "target_running_pace_label", None)
+            )
+            # Gather current physiological data from latest estimates
+            _cur_vo2 = swain_vo2max["vo2max"] if swain_vo2max else None
+            _cur_vlamax = None
+            for est in discipline_estimates:
+                if est.estimate_type == "VLAMAX":
+                    _cur_vlamax = est.value
+                    break
+            # Current LT1/LT2 speeds
+            _lt2_spd = round(3600 / latest_snapshot.lt2_pace_seconds_per_km, 3) if latest_snapshot.lt2_pace_seconds_per_km and latest_snapshot.lt2_pace_seconds_per_km > 0 else None
+            _lt1_spd = round(3600 / latest_snapshot.lt1_pace_seconds_per_km, 3) if latest_snapshot.lt1_pace_seconds_per_km and latest_snapshot.lt1_pace_seconds_per_km > 0 else None
+            # Use real lactate values at thresholds
+            _lt1_lac = latest_snapshot.lt1_lactate
+            _lt2_lac = latest_snapshot.lt2_lactate
+            # Check for individual/real thresholds (more accurate lactate values)
+            if individual_thresholds:
+                _it_lt1 = individual_thresholds.get("lt1_individual") if isinstance(individual_thresholds, dict) else None
+                _it_lt2 = individual_thresholds.get("lt2_individual") if isinstance(individual_thresholds, dict) else None
+                if _it_lt1 and _it_lt1.get("lactate"):
+                    _lt1_lac = _it_lt1["lactate"]
+                if _it_lt2 and _it_lt2.get("lactate"):
+                    _lt2_lac = _it_lt2["lactate"]
+            elif real_thresholds:
+                _rt_lt1 = real_thresholds.get("lt1_real") if isinstance(real_thresholds, dict) else None
+                _rt_lt2 = real_thresholds.get("lt2_real") if isinstance(real_thresholds, dict) else None
+                if _rt_lt1 and _rt_lt1.get("lactate"):
+                    _lt1_lac = _rt_lt1["lactate"]
+                if _rt_lt2 and _rt_lt2.get("lactate"):
+                    _lt2_lac = _rt_lt2["lactate"]
+
+            target_curve = _build_tc(
+                distance_category=running_target.distance_category,
+                target_pace_label=t_pace,
+                current_lt1_speed_kph=_lt1_spd,
+                current_lt2_speed_kph=_lt2_spd,
+                current_lt1_lactate=_lt1_lac,
+                current_lt2_lactate=_lt2_lac,
+                current_vo2max=_cur_vo2,
+                current_vlamax=_cur_vlamax,
+            )
+    payload["target_curve"] = target_curve
 
     if discipline == "ciclismo" and power_source is None:
         payload["power_source_views"] = {
@@ -2141,11 +2371,13 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
         if snapshot.lt2_heart_rate and snapshot.discipline == "running":
             from app.services.physiological_engine import estimate_vo2max_swain as _est_swain
             _lt2_spd = round(3600 / snapshot.lt2_pace_seconds_per_km, 3) if snapshot.lt2_pace_seconds_per_km and snapshot.lt2_pace_seconds_per_km > 0 else None
-            _hr_max_snap = None
-            for _iv in getattr(session, "intervals", []):
-                _hrm = getattr(_iv, "heart_rate_max", None)
-                if _hrm and (_hr_max_snap is None or _hrm > _hr_max_snap):
-                    _hr_max_snap = _hrm
+            _hr_max_snap = getattr(athlete, "training_hr_max", None)
+            if not _hr_max_snap or _hr_max_snap < 150:
+                _hr_max_snap = None
+                for _iv in getattr(session, "intervals", []):
+                    _hrm = getattr(_iv, "heart_rate_max", None)
+                    if _hrm and (_hr_max_snap is None or _hrm > _hr_max_snap):
+                        _hr_max_snap = _hrm
             if not _hr_max_snap or _hr_max_snap < 150:
                 _dob = getattr(athlete, "date_of_birth", None)
                 if _dob:

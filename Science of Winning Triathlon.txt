@@ -1,0 +1,760 @@
+Review Article
+
+Triathlon: swimming for winning
+JAN OLBRECHT
+
+1
+
+Faculty of Biological Engineering, KULeuven, Belgium
+
+ABSTRACT
+Olbrecht J. Triathlon: swimming for winning. J. Hum. Sport Exerc. Vol. 6, No. 2, pp. 233-246, 2011.
+Swimming performance in triathlon gradually gets of overriding importance in view of the final positioning in
+a race. It is important to end up swimming in the leading group(s) and to consider the impact of the swim
+stage on the 2 remaining sports disciplines in order to outbalance the athlete’s effort and to be able to keep
+racing for a good position until the end of the race. Unlike cycling and running where the performance
+mainly depends on conditioning, the performance in swimming is a subtle combination of conditioning and
+technical abilities. Even elite swimmers may lose a lot of performance if their outstanding conditioning is not
+coupled with an excellent swimming technique. Triathletes very often suffer from a lack of technique and
+despite the wetsuit, which partially outbalances this shortcoming, they spend a lot of energy in the swim
+stage without reaping any success, energy which is then not on hand anymore for the rest of the race.
+Therefore, swimming technique should be the groundwork in the multi-year planning AND should be
+focussed on in each training session during the whole carrier of the triathlete. Monitoring the combination of
+time/stroke rate/stroke length is thus a must. Periodisation in triathlon is much more complex than in
+“single” sports. Not only the sports specific weaknesses/strengths of the athlete but also the intrinsic
+interaction between cycling, running and swimming on training effects and his swim-technical qualities will
+rule the periodisation. Additionally the level of technique will also set volume, intensity and form of training
+exercises. Simple to complex tests can help to make the right choice. This makes from triathlon an exciting
+sport, not only for the athlete but also for the coach and supporting teams. This article will summarise some
+practical implications on periodisation and on swimming training in triathlon. Key words: TECHNIQUE,
+PERIODISATION, TRAINING MONITORING, SWIMMING
+
+1
+
+Corresponding author. Diepestraat 7a, B-3090 Overijse. Belgium.
+E-mail: j_olbrecht@hotmail.com
+Submitted for publication February 2011
+Accepted for publication March 2011
+JOURNAL OF HUMAN SPORT & EXERCISE ISSN 1988-5202
+© Faculty of Education. University of Alicante
+doi:10.4100/jhse.2011.62.04
+
+VOLUME 6 | ISSUE 2 | 2011 | 233
+
+Olbrecht J / Swimming for winning
+
+JOURNAL OF HUMAN SPORT & EXERCISE
+
+measured by the “perturbation method” (De Lucas, 2000). However for the same speed AD was decreased
+wearing WS. It was also found that triathletes with less skills in swimming achieved greater benefits from
+wearing a wetsuit than skilled swimmers.Another way to quantify the swim-technical performance is by the
+IdC, the Index of Coordination (Chollet, 2000). This index consists in the time that separates the beginning
+of the propulsive phase of one arm and the end of the propulsive phase of the other arm. It is expressed as
+a percentage of the mean duration of the stroke. When there is a lag time between the propulsive phases
+of the two arms, the stroke coordination is called “catch-up” (IdC < 0). When the propulsive phase of one
+arm starts when the other arm finishes it, the coordination is called “in opposition” (IdC = 0). When the
+propulsive phases of the two arms overlap, the coordination is called “superposition” (IdC > 0). The IdC for
+swimmers always increases with speed (Chollet 2003). For 19 French, Italian and Swiss elite triathletes,
+the IdC at submaximal swim speed (ca 84 and 94% of Vmax = 10 m sprint between 12.5 and 22.5 m) was
+slightly but not significantly higher than for elite swimmers, but the latest swam significantly faster. At Vmax,
+the triathletes, however, showed a significant reduction of IdC while elite swimmers continued to increase it
+(Figure 1). The lower swimming speed of triathletes was associated with a shorter stroke length (e.g. 1.70
+versus 2.10 m at Vmax). Stroke rates were not statistically different (55.1 versus 51.2 str·min-1 at Vmax).
+With increasing swimming speed, triathletes increased the propulsive time less than the swimmers (3.4 ±
+4.4% versus 8.5 ± 5.8; p<0.01) but also increased the recovery phase while swimmers decreased it (0.8 ±
+2.2% versus -1.6 ± 2.8%; p<0.01). Moreover the triathletes reduced both the pull and propulsive phase
+while swimmers increased them (Millet, 2002).
+triathletes
+swimmers
+
+10
+
+IDC %
+
+5
+0
+-5
+-10
+-15
+-20
+1
+
+1,2
+
+1,4
+
+1,6
+
+1,8
+
+2
+
+velocity m·s-1
+
+Figure 1. Index of Coordination (IdC) according to swimming speed (triathletes and swimmers; Chollet,
+2003).
+For running and cycling, modern-day triathletes are able to obtain similar VO2max as single sport athletes
+despite dividing their training time among 3 disciplines (Suriano, 2010). VO2max is a useful tool to assess the
+aerobic fitness, but other measures that are less expensive and requiring less experienced manpower such
+as peak aerobic power tests can be used. The determination of the peak aerobic power may be an
+appropriate measure for assessing triathletes since it is predictive for the overall triathlon performance and
+even stronger a predictor than VO2max (Millet, 2003; Millet, 2004).
+VOLUME 6 | ISSUE 2 | 2011 | 235
+
+Olbrecht J / Swimming for winning
+
+JOURNAL OF HUMAN SPORT & EXERCISE
+
+While VO2max and peak aerobic power determine the maximal limit of the aerobic performance, submaximal
+tests seem to provide a better prediction of the endurance performance. Individuals with similar VO2max can
+vary greatly in endurance power depending on the percentage of their VO2max that they can sustain during a
+long lasting event (Costill, 1973; Coyle, 1988; Costill, 1972).
+Periodisation in triathlon is much more complex than in “single” sports. Not only the sports specific
+weaknesses/strengths of the athlete but also the intrinsic interaction between cycling, running and
+swimming on training effects and his swim-technical qualities will rule the periodisation. Swimming requires
+more “specialist training” to achieve a good aerobic performance (Roels, 2003). Only little cross-training
+benefit from running and cycling is to be expected on swimming conditioning (Millet, 2002).
+In this article we will work out these considerations in order to find a way to improve the efficiency of swim
+training for triathletes.
+PLANNING AND PERIODISATION
+Swimming fast depends on: (1) the ability to produce a high mechanical power output enabling the
+generation of high propulsive forces, (2) the ability to reduce drag, while (3) keeping low the power losses
+to pushed-away water (Toussaint 2005). These 3 criteria will contribute to a high propulsive swim
+efficiency.
+This is a very difficult task since no fixed standard swimming pattern is applicable for all swimmers. Each
+swimmer individually has to look with his/her coach for the best way of swimming in order to meet the 3
+requirements above. This is what coaches define as the never-ending-story: continuously looking for the
+best individual technique of a swimmer. Consequently a lot of time needs to be spent on technique right
+from the start of the triathlete’s development. Thus, the multi-year plan of the triathlete in spe, will contain
+many sessions of drills and technique in the swimming pool... but with low volumes. Kyle published a
+practical overview of 10 rules to take into consideration on how to build a good swim technique for
+triathletes (Kyle, 2010).
+Volume per training will only increase when the quality of the stroke pattern is sufficiently available and
+stable. A high mileage of swimming before mastering a good technique will not only prevent the swimmer
+from a continuous conditioning improvement over years but also increase the risk of shoulder injuries.
+Recording the stroke length is an easy and reliable measure to pragmatically control the stroke quality
+(technique). A stroke length near to 2 m at submaximal speed should be a benchmark for every triathlete
+before considerably increasing mileage and/or intensity of the swim training. Once the triathlete has made
+himself familiar with this stroke length, he will be instructed during specific technique sets to increase stroke
+rate but at the same time to maintain stroke length. The next step will be to keep the stroke length during
+the whole training session, even at higher speeds (e.g. sprints). Thus, the stroke length should first be
+improved and only thereafter the stroke rate. This will not only increase swimming velocity but will also
+provide the triathlete with the skill to adapt his stroke pattern to different swimming circumstances (wetsuit,
+competing in open water).
+A further increase in stroke length at submaximal speed and the transfer of it into the whole training and/or
+into higher intensities will even later on remain important technical objectives for swim training. Very often
+this requires more swim-kicking support but, as shown in literature (Delextrat, 2003) and corroborated by
+236 | 2011 | ISSUE 2 | VOLUME 6
+
+© 2011 University of Alicante
+
+Olbrecht J / Swimming for winning
+
+JOURNAL OF HUMAN SPORT & EXERCISE
+
+the observation in “single” swimming, there seems to be more room for work by the legs in swimming
+without negatively affecting cycling or running.
+In the base period of a macro cycle in triathlon, it is common to focus on only one discipline per week. This
+enables to emphasise the endurance training of that specific sport. If technique development is the main
+objective of the swimming program, it imperatively should be focussed on in the first week of the meso
+cycle and the fractions of the swim set should be kept short. If, however, it is the conditional development of
+swimming that is the main objective, it can be planned during any week of the working phase of the meso
+cycle for well technically skilled athletes, while for less skilled athletes it should still be scheduled in the first
+week of the meso cycle. Moreover longer fractions and/or higher volumes can here be used. For well
+technically skilled triathletes swimming in the second part of the meso cycle can support recovery.
+Anticipating the negative interaction of swimming on the physiology and mechanics of running and cycling,
+the training intensity in running and possibly in cycling will be reduced in the base period of the macro cycle
+if the main focus of the week is on swimming or if swimming precedes a running or cycling training on the
+same day. During the competition preparation phase, the intensity of swimming and cycling and/or running
+may be high when it is endurance power that is focussed.
+In the second part of the base period of a macro cycle it is very useful to stress the metabolic power in
+swimming. At this stage the athletes are still not too fatigued to perform correctly this kind of swim exercise
+and will benefit the most from this type of conditioning training. It will also allow to switch the swim training
+objective from “improving” to “maintaining conditioning” once volume/intensity of running and cycling
+become more important. This way of periodisation can bypass the rather negative interaction of swimming
+on the training effect of running and cycling and vice versa. In the last meso cycle of the base period, just
+before entering the competition preparation phase, the aerobic capacity has to be re-boosted in swimming
+whereas volume/intensity in running and cycling is minimised. This allows the triathlete to recover from
+voluminous work in running and cycling and, at the same time, to refresh the aerobic capacity in swimming
+just before starting aerobic power in 2 or 3 sports at the same time (grouped).
+TRAINING EXERCISES AND TRAINING MONITORING
+Exercise volume, intensity, interval (fraction) and rest are the only training elements a coach can modulate
+to provoke adaptations in the conditional and technical performance components. However, the
+adaptations to training stimuli vary from one component to the other and from one athlete to the other
+regarding response time and amplitude. Consequently the success of training depends on a well balanced
+content and timing of training stimuli, tuned to the athlete’s specific needs and training response
+capabilities. A systematic program is therefore required not only to detect the needs of each athlete
+individually but also to monitor the real execution of the training exercises as well as the development of the
+main components. This will enable to reveal for each athlete the optimal training content and timing.
+A scientific training support will not only consist in transferring research findings into training praxis, but also
+in applying a scientific methodology to reveal for each athlete the priorities as well as the most effective
+training structures (periodisation) to meet the training objectives.
+
+VOLUME 6 | ISSUE 2 | 2011 | 237
+
+Olbrecht J / Swimming for winning
+
+JOURNAL OF HUMAN SPORT & EXERCISE
+
+There is no need for huge research to disclose that swimming performance in triathlon (even in the sprint
+event) is endurance driven. However, while mainly the aerobic, and to a small extend the anaerobic power,
+determine the swimming performance in competition, it is the aerobic and anaerobic capacity that
+determine which training objective and what intensity or form of training exercise are most appropriate to
+improve competition performance (Olbrecht, 2000).
+According to Mader’s model (Mader, 1984, 2003), firstly published in 1984, which mathematically describes
+the regulation of ATP-rephosphorylation in human skeletal muscle during and after exercise, the activation
+of the aerobic and lactic anaerobic (glycolysis, pH adjusted) metabolism can be calculated based on their
+maximal metabolic activity rate. We therefore label both maximal activity rates as respectively the aerobic
+or oxidative (VO2max) and anaerobic or glycolitic (VLamax) capacity while the involved part of both capacities
+during exercise respectively represents the aerobic and anaerobic power (Olbrecht, 2000).
+This model also shows evidence that a given lactate after a submaximal swim may result from many
+combinations of maximal oxidative and glycolitic rates. An estimation of the endurance performance based
+on a submaximal performance at a fix/individual lactate threshold or on a lactate-speed relation will reflect
+rather power than capacity. It can therefore be a very good prediction reference for competition
+performance (Costill, 1973; Coyle, 1988; Costill, 1972) but a very misleading marker to deduce training
+intensities or to trace changes in the aerobic and anaerobic capacities (Olbrecht, 2010) due to training.
+Literature also shows that a number of factors beside variations in aerobic fitness (Costill, 1973), such as
+fibre size (Bishop, 2000) and percentage of type I muscle fibres (Coyle, 1991) may be responsible for the
+differences in lactate thresholds between subjects.
+If different capacities can result in the same lactate-speed relation, it is quite obvious that, despite the same
+lactate in training, athletes may undergo different training load depending on their capacities and,
+consequently, show different training response (Olbrecht, 2010). This explains the coaches’ remarks that
+some triathletes are even unable to complete a swim set at 2 mmol·l-1.
+Therefore it will be the aerobic and anaerobic capacities and not the lactate-speed relation as such, that will
+be predominantly involved to set the training objectives and the range of affordable training intensity and
+load (Olbrecht, 2000). Any performance, however, will depend on the extent to which the athlete appeals to
+both capacities. The extent to use both, the aerobic and anaerobic capacities, is considered as respectively
+the aerobic and anaerobic power (always part of the capacities).
+It is possible to define both capacities using a simulation model based on blood lactate measured after
+submaximal exercises (Olbrecht, 1992, 2010). In swimming however, the outcome risks a technique bias.
+Less swim technically skilled triathletes (unfortunately there are many) will rather end up with
+underestimated capacities for swimming. Therefore this test procedure is rather used in running and
+cycling. For swimming we are often forced, due to the swim technical weakness of the triathlete, to use a
+classic lactate test and to outbalance the lactate-speed relation with an estimation of the aerobic and
+anaerobic capacities based on training observations (Capacities’ level chart, Table 1).
+
+238 | 2011 | ISSUE 2 | VOLUME 6
+
+© 2011 University of Alicante
+
+Olbrecht J / Swimming for winning
+
+JOURNAL OF HUMAN SPORT & EXERCISE
+
+Table 1. Capacities’ Level Chart: chart of criteria to estimate the swimmers’ level (high and low) of aerobic
+and anaerobic capacity (Olbrecht, 2000, p 135).
+
+Low
+A n a e r o b i c
+C a p a c i t y High
+No better competition performances after Performs very good even when not tapered
+intense or extensive and voluminous work
+High No real feeling of exhaustion after races and Several best times during successive days High
+impression of being able to swim faster
+of competitions
+Swimmer performs best in competition Very fast recovery from training and
+shortly (4-6 days) after voluminous training
+competition
+A
+Swimmer does not like short interval Reaches high lactates after short and long A
+workouts or fartlek exercises
+events
+E
+No clear improvement of competition results Is fast on short and long events
+E
+if taper lasts longer than 1 week
+R
+No high lactates after maximal short as well
+R
+as long distance events
+O
+Competition best times on long distances are
+O
+relatively better than on short events
+B
+Best times in long and short course pools
+B
+are nearly the same
+I
+I
+C
+
+Reaches high lactates after short and rather C
+low values after long events
+Develops overuse-injuries easily
+
+Swimmer “dies” in last part of event
+
+No high lactates after maximal short events,
+but high values possible after long events
+Low Bad results on long events and moderate
+performances in short competitions
+Slow recovery from training and competition
+Low
+
+A n a e r o b i c
+
+Only 1 (or 2) good events in competitions of
+more than 1 day
+Bad results on long events but very good in Low
+short races
+Best performances after long rest
+
+C a p a c i t y High
+
+VOLUME 6 | ISSUE 2 | 2011 | 239
+
+Olbrecht J / Swimming for winning
+
+JOURNAL OF HUMAN SPORT & EXERCISE
+
+However, it would be too simplistic to assume that the coach's job only consists in improving both the
+aerobic and anaerobic capacities. Both capacities need to be developed in the right proportion to each
+other in order to achieve the best performance in competition. A long distance athlete with a too high
+anaerobic capacity for example, will not be able to activate his aerobic capacity to its highest level. He will
+show a poor aerobic power and therefore perform poorly in long distance competitions despite a good
+aerobic capacity. So, according to the outcome of both capacities, the main conditioning objective for a
+triathlete might be to increase further both capacities, to increase the aerobic capacity while suppressing
+the anaerobic capacity, or to improve aerobic power while maintaining the aerobic capacity. According to
+the main training objective and the level of capacities volume, intensity, fraction and rest will then be
+modulated (Table 2).
+Table 2. Classification of training exercises according to their main training effect (improving the aerobic or
+anaerobic capacity, or the aerobic or anaerobic power) and with the description of volume, intensity,
+Interval (fraction) and rest for each class.
+
+Classification of Training Exercises
+Aerobic
+Anaerobic
+Capacity (=AEC) Capacity (=ANC)
+Type of
+swimmer
+
+S
+
+Volume* Long
+Interval
+
+L
+
+S
+
+L
+
+Very High
+
+Moderate
+
+High
+
+Aerobic
+Power (=AEP)
+(S) M
+
+L
+
+110-90% Comp. distance
+
+Short
+
+Long
+
+Very Short
+
+Short progresses to Long
+
+(100-300m)
+
+(300-800m)
+
+(25-75m)
+
+(50-100m) =>
+
+Extensive alternated
+
+Intensive nearly all-out
+
+Intensity with intensive and short
+
+Anaerobic
+Power (=ANP)
+S
+
+M (L)
+
+110-90% Comp. distance
+Short
+(25-100m)
+
+(100-300m)
+
+All-out
+
+Race Pace
+or somewhat faster
+
+intervals in the same or
+next training session
+
+Rest
+
+Short
+(40-20s)
+
+Example 8x100m
+R=20s
+1,3 fast
+
+Long >= 2x swim time
+(20-10s)
+
+(35s-1:30min)
+
+6x500m
+R=20s
+1,2 (50fast/50slow)
+
+*depends on conditioning level
+
+6x(3x50m)
+R=1:20min
+P/3
+
+4x3x50m
+All Out
+R=60s
+
+Short
+progress. to very short
+(45-30s) => (10-20s)
+
+Short
+(10-20s)
+
+5x75m R=45s 12x100m R=30s
+to
+to
+3x125m R=15s 5x300m R=20s
+
+Brokens / Comp.Test
+4x50m R=10s
+25+50+25+50m R=5-10s
+
+Sprint and technique are not in this classification
+Adapted: J. Olbrecht:Schwimmen, Lernen und Optimieren 1994
+
+Beside lactate; other measures like the maximal performance in an extended exercise (e.g. Cooper test,...),
+the heart rate or gas-exchange (ergo-spirometry) are certainly useful to support the optimisation of the
+training efficiency. However they all have their advantages and disadvantages. It is therefore very important
+to use these measures appropriately in accordance with the reliability of information they provide (Table 3).
+
+240 | 2011 | ISSUE 2 | VOLUME 6
+
+© 2011 University of Alicante
+
+Olbrecht J / Swimming for winning
+
+JOURNAL OF HUMAN SPORT & EXERCISE
+
+Table 3. Main outcome with advantages and disadvantages of different ways to assess the aerobic
+endurance and to monitor endurance training.
+
+OUTCOME
+
+Ergo-spirometry
+
+Metabolic power as Detailed information on Holistic impact on the Aerobic and anaerobic
+predictor for maximal metabolic profile/activity athlete regarding:
+activity
+performances
+to determine:
+training load
+Rough estimation of objectives & periodisation recovery
+training intensity and intensity & exercise form environment
+competition performance
+
+PRO
+
+Heart rate test
+
+Sport specific
+Sport specific
+Sport specific
+Most direct measure of
+Non invasive
+Easy to carry out
+Very easy to record aerobic endurance
+Very easy to carry out
+Motivation independent (if Complementary to Reflects
+metabolic
+Reflects indirectly the limit submaximal)
+metabolic data
+power
+of metabolic power
+
+CON
+
+Maximal
+extended
+Lactate test
+exercise test
+
+Motivation
+influences Very complex and difficult If used to identify Rarely sport specific
+results
+interpretation
+types/intensity
+of Experienced
+people
+No detailed assessment
+training exercises
+needed
+of aerobic and anaerobic
+Accuracy of devices
+activity
+VO2max vs VO2peak
+confusion
+
+The maximal extended exercise test is the easiest to carry out; no special expertise is required to do such a
+test and it is almost sport specific. It needs however a high commitment of the athlete to go all-out in order
+to obtain reliable results. It is the most indirect way to assess the aerobic endurance but you will not be able
+to estimate the exact contribution of the aerobic and anaerobic metabolism. To assess training intensity (%
+of maximal performance), the performance in a maximal extended exercise test is more reliable than heart
+rate.
+The information provided by the heart rate gives an excellent indication of the general fitness of an athlete
+and a good reflection on how the body is assimilating training in combination with the environment. The
+estimation of training intensity for athletes based on heart rate, however, lacks any scientific validity. Many
+have tried to relate heart rates to the metabolic characteristics of a specific effort or exercise but in fact,
+despite a same heart rate, different forms of exercises will induce different metabolic responses. Heart rate
+increases when an athlete works harder/longer, but the metabolic significance of a given effort cannot be
+deduced by means of heart rate frequencies. Pragmatically, variations in heart rate in training may still be
+beneficial in terms of variations in training intensity (primary requirement for supercompensation), but a
+coach will never be able to define correctly the type of metabolic activity nor its extend that goes together
+with a given heart rate. Within this metabolic perspective, training intensities expressed as a percentage of
+the maximal performance of an extended test are therefore more reliable.
+
+VOLUME 6 | ISSUE 2 | 2011 | 241
+
+Olbrecht J / Swimming for winning
+
+JOURNAL OF HUMAN SPORT & EXERCISE
+
+The use of heart rate or its derivates reflecting the activity of the autonomic nervous system (ANS),
+however, may be useful to design and control individual training (Garet, 2004). Swim performance was
+found to correlate individually with nocturnal ANS activity as reflected by Heart Rate Variability indices.
+Indeed the decrease in ANS activity during intensive training correlated with the loss of performance and
+the rebound in ANS activity during tapering with the gain in performance. Interestingly, the speed of the
+rebound during the tapering period varied from swimmer to swimmer. Other derivates of ANS activity such
+as EPOC, nocturnal recovery index... may also enable to assess training load (Kaikkonen, 2010) and
+recovery from training load (Kaikkonen, 2007) and so to adjust training programs according to the athletes’
+training-response capacity. Over the last years, power output and heart rate recovery (the change in heart
+rate in the 60 s of recovery immediately after exercise) for 3 submaximal efforts carried out at a pre-fixed
+percentage of the maximal heart rate (LSCT; Lambert Submaximal Cycle Test (Lamberts, 2010)) have
+been investigated to assess recovery during some weeks of training. In triathlon this procedure may be of
+interest for cycling or running but for swimming the first question that has to be solved is whether the
+outcome is biased by the variation in swim efficiency or not.
+Ergo-spirometry is the most direct way to measure oxygen uptake and aerobic endurance power. But,
+strong expertise is needed to perform the test correctly and even despite good practice and equipment, the
+accuracy of oxygen uptake measurements remains lower than of biochemical analyses. Based on an
+accuracy of ±2% for lactate (Gutmann, 1974; D’Auria, 2000) and of ±0.04% for the oxygen uptake
+measurements, the accuracy-dependent difference in performance is 5 times higher for oxygen uptake
+measures than for lactate. In swimming and running practice, this means that respectively an error in
+performance of 1s/100m and 5s/km is related to the accuracy of the measurement and that, using
+spirometry, it is not possible to make a distinction in performance between athletes if, e.g. their running
+performance does not differ with more than 5s/km. With lactate measures on the contrary, it is possible to
+acknowledge differences in running performance of 1s/km between athletes.
+A measured oxygen uptake always refers to that part of the aerobic capacity the athlete appeals to.
+Therefore this measure reflects the aerobic power and not the aerobic capacity. We therefore like to label
+the highest measured oxygen uptake as VO2peak and not as VO2max. The benefit of the information for
+training optimisation provided by ergo-spirometry does rarely compensate its restricted sports specificity
+and time consuming procedure. Therefore, it is preferable to do this type of test only once a year or even
+once every 2 years.
+According to the importance of a good swim technique for a good swimming performance, stroke
+mechanism should constantly be focussed on in training, whether it is regeneration or intensive work that is
+on the program. Less swim skilled triathletes can use “golf-swimming” to support their motor-learning for an
+efficient swim stroke (Kyle, 2010); the swimmer who can make the smallest sum of swim time added to the
+number of strokes wins. Counting the strokes remains for all levels of swimmers/triathletes a useful tool. It
+helps the athlete concentrate on technique during the whole swim set and, combined with the task to
+reduce stroke rate for the required intensity (swim time), it continuously forces him to look for a longer
+stroke length. Once the improvement of stroke length is acquired, it is important to return to normal stroke
+rates and to limit the gliding or recovery phase. This will avoid an increase of active drag due to the
+intracycle-speed variation that is linked with a longer gliding/recovery phase.
+
+242 | 2011 | ISSUE 2 | VOLUME 6
+
+© 2011 University of Alicante
+
+Olbrecht J / Swimming for winning
+
+JOURNAL OF HUMAN SPORT & EXERCISE
+
+Apnea training can also improve stroke length and seems to positively affect swimming coordination. After
+3 months of breath-hold (apnea) training, swimming performance (clean velocity and 50m time) was not
+improved, but stroke rate decreased while stroke length and IdC increased, showing a greater propulsive
+continuity of both arms (Lemaître, 2009). The evaluation of the coordination (IdC) is more difficult since a
+good analysis requires video analysis which is not always feasible in training.
+In contrast to elite swimmers in competition, triathletes do not have an own lane to compete in, nor super
+lane-ropes to break waves eliminating as much as possible any external disturbance of the stroke
+mechanism. On the other hand, drafting in triathlon swimming is allowed in competition and it has been
+observed that the use of drafting tactics shows a 3.2% performance improvement, for a 400 m distance,
+with a 3.4% stroke frequency reduction and an increase in distance per stroke of 6.2% (Chatard, 1998;
+Chollet, 2000). A triathlete must as well be able to maximally exploit the advantage of drafting and of
+wearing a wetsuit to cope with all external disturbances during the swim stage. Therefore he will have to
+train flexibility in stroke length and rate appropriately. Group-starts in one lane or even swimming closely
+side by side during training sets are certainly triathlon specific exercises that will help to provide the
+athletes with a stroke rate/length flexibility to cope well with competition situations.
+CONCLUSION
+Swimming performance in triathlon gradually gets of overriding importance in view of the final positioning in
+a race and although it requires a subtle combination of conditioning and technique, triathletes almost
+exclusively focuss on conditioning and too often neglect technique. Planning and periodisation (technique
+before volume) as well as training execution (active concentration on technique) should always provide an
+answer to a demand of swim-skill building or automation. The monitoring of training intensity and of the
+adaptations should therefore not only be focussed on metabolic measures but should always be linked with
+a swim technical evaluation. Stroke length seems to be the most important variable that can easily be used
+to control and improve the technical performance of a swimming triathlete.
+REFERENCES
+1. BENTLEY DJ, MILLET GP, VLECK VE, MCNAUGHTON LR. Specific aspects of contemporary
+triathlon. Sports Med. 2002; 32:1-15. [Abstract] [Back to text]
+2. BISHOP D, JENKINS DG, MCENIERY M, CAREY MF. Relationship between plasma lactate
+parameters and muscle characteristics in female cyclists. Med Sci Sports Exerc. 2000; 32:1088-93.
+[Abstract] [Back to text]
+3. BOHNERT B, WARD SA, WHIPP BJ. Effects of prior arm exercise on pulmonary gas exchange
+kinetics during high-intensity leg exercise in humans. Exp Physiol. 1998; 83:557-70. [Full Text]
+[Back to text]
+4. CHATARD JC, CHOLLET D, MILLET G. Performance and drag during drafting swimming in highly
+trained triathletes. Med Sci Sports Exerc. 1998; 30:1276-80. [Abstract] [Back to text]
+5. CHOLLET D, CHALIES S, CHATARD JC. A new index of coordination for the front crawl:
+description and usefulness. Int J Sports Med. 2000; 21:54-9. doi:10.1055/s-2000-8855 [Back to
+text]
+6. CHOLLET D, HUE O, AUCLAIR F, MILLET G, CHATARD JC. The effect of drafting on stroking
+variations during swimming in elite male triathletes. Eur J Appl Physiol. 2000; 82:413-7.
+doi:10.1007/s004210000233 [Back to text]
+VOLUME 6 | ISSUE 2 | 2011 | 243
+
+Olbrecht J / Swimming for winning
+
+JOURNAL OF HUMAN SPORT & EXERCISE
+
+7. CHOLLET D, MILLET GP, LERDA R, HUE O, CHATARD JC. Crawl evaluation with index of
+coordination. In: Chatard JC. Biomechanics and Medicine in Swimming IX. 2003. [Abstract] [Back
+to text]
+8. COAST JR, KRAUSE KM. Relationship of oxygen consumption and cardiac output to work of
+breathing. Med Sci Sports Exerc. 1993; 25:335-40. [Abstract] [Back to text]
+9. COSTILL DL, THOMASON H, ROBERTS E. Fractional utilization of the aerobic capacity during
+distance running. Med Sci Sports Exerc. 1973; 5:248-52. [Abstract] [Back to text]
+10. COSTILL DL. Physiology of marathon running. J Am Med Assoc. 1972; 221:1024-9. [Abstract]
+[Back to text]
+11. COYLE EF, COGGAN AR, HOPPER MK, WALTERS TJ. Determinants of endurance in welltrained cyclists. J Appl Physiol. 1988; 64:2622-30. [Full Text] [Back to text]
+12. COYLE EF, FELTNER ME, KAUTZ SA, HAMILTON MT, MONTAIN SJ, BAYLOR AM, ET AL.
+Physiological and biomechanical factors associated with elite endurance cycling performance. Med
+Sci Sports Exerc. 1991; 23:93-107. [Full Text] [Back to text]
+13. D’AURIA S, GRYCZYNSKI Z, GRYCZYNSKI I, ROSSI M, LAKOWICZ JR. A Protein Biosensor for
+Lactate. Analytical Biochemistry. 2000; 283:83–8. [Full Text] [Back to text]
+14. DE LUCAS RC, BALIKIAN P, NEIVA CM, GRECO CC, DENADAI BS. The effects of wet suits on
+physiological and biomechanical indices during swimming. J Sci Med Sports. 2000; 21:1025-30.
+[Abstract] [Back to text]
+15. DELEXTRAT A, BERNARD T, VERCRUYSSEN F, HAUSSWIRTH C, BRISSWALTER J. Influence
+of swimming characteristics on performance during a swim-to-cycle transition. Science & Sports.
+2003; 18:188-95. doi:10.1016/S0765-1597(03)00147-3 [Back to text]
+16. FARBER HW, SCHAEFER EJ, FRANEY R, GRIMALDI R, HILL NS. The endurance triathlon:
+metabolic changes after each event and during recovery. Med Sci Sports Exerc. 1991; 23:959-65.
+[Abstract] [Back to text]
+17. GARET M, TOURNAIRE N, ROCHE F, LAURENT R, LACOUR JR, BARTHÉLÉMY JC,
+PICHOTOV V. Individual Interdependence between Nocturnal ANS Activity and Performance in
+Swimmers. Med Sci Sports Exerc. 2004; 36:2112-18. [Abstract] [Back to text]
+18. GUTMANN I, WAHLEFELD AW. Methods of enzymatic analysis. Weinheim Germany: Verlag
+Chemie; 1974. Pp. 1464-8. [Back to text]
+19. HALJAND R. LEN Swimming Competition Analysis. c2010; [cited 14 january 2010]. Available from
+http://www.swim.ee/competition/index.html [Back to text]
+20. HÒLMER I. Oxygen uptake during swimming in man. J Appl Physiol. 1972; 33:502-9. [Abstract]
+[Back to text]
+21. HUE O, LE GALLAIS D, CHOLLET D, BOUSSANA A, PRÉFAUT C. The influence of prior cycling
+on biomechanical and cardiorespiratory response profiles during running in triathletes. Eur J Appl
+Physiol. 1998; 77:98-105. [Abstract] [Back to text]
+22. KAIKKONEN P, HYNYNEN E, MANN T, RUSKO H, NUMMELA A. Can HRV be used to evaluate
+training load in constant load exercises? Eur J Appl Physiol. 2010; 108:435-42.
+doi:10.1007/s00421-009-1240-1 [Back to text]
+23. KAIKKONEN P, NUMMELA A, RUSKO H. Heart rate variability dynamics during early recovery
+after different endurance exercises. Eur J Appl Physiol. 2007; 102:79-86. doi:10.1007/s00421-0070559-8 [Back to text]
+24. KREIDER RB, BOONE T, THOMPSON WR, BURKES S, CORTES CW. Cardiovascular and
+thermal responses of triathlon performance. Med Sci Sports Exerc. 1988; 20:385-90. [Abstract]
+[Back to text]
+244 | 2011 | ISSUE 2 | VOLUME 6
+
+© 2011 University of Alicante
+
+Olbrecht J / Swimming for winning
+
+JOURNAL OF HUMAN SPORT & EXERCISE
+
+25. KREIDER RB, CUNDIFF DE, HAMMETT JB, CORTES CW, WILLIAMS KW. Effects of cycling on
+running performance in triathletes. Annals Sports Med. 1988b; 3:220-5. [Back to text]
+26. KYLE J. 10 Swim Tips for Triathlon Training Trifuel c2001-2011; [cited 26 july 2010]. Available from
+http://www.trifuel.com/training/triathlon-training/10-swim-tips-for-triathlon-training [Back to text]
+27. LAMBERTS RP, RIETJENS GJ, TIJDINK HH, NOAKES TD, LAMBERT MI. Measuring submaximal
+performance parameters to monitor fatigue and predict cycling performance: a case study of a
+world-class cyclo-cross cyclist. Eur J Appl Physiol. 2010; 108:183-90. doi:10.1007/s00421-0091291-3 [Back to text]
+28. LAURSEN PB, RHODES EC, LANGILL RH. The effects of 3000m swimming on subsequent 3h
+cycling performance: implications for ultraendurance triathletes. Eur J Appl Physiol. 2000; 83:2833. [Full Text] [Back to text]
+29. LEMAÎTRE F, SEIFERT L, POLIN D, JUGE J, TOURNY-CHOLLET C, CHOLLET D. Apnea
+training effects on swimming coordination. J Strength Cond Res. 2009; 23:1909-14.
+doi:10.1519/JSC.0b013e3181b073a8 [Back to text]
+30. MADER A, MADSEN Ø, HOLLMANN W. Zur Bedeutung der laktaziden Energiebereitstellung fur
+Trainings- und Wettkampfleistungen im Sportschwimmen. Leistungssport. 1980; 10:263-79 and
+408-18. [Back to text]
+31. MADER A. Eine Theorie zur Berechnung der Dynamik und des steady state von
+Phosphorylierungszustande und Stoffwechselaktivität der Muskelzelle als Folge des
+Energiebedarfs. Habilitationschrift Köln: Deutsche Sporthochschule Köln; 1984. [Back to text]
+32. MADER A. Glycolysis and oxidative phosphorylation as a function of cytosolic phosphorylation
+state and power output of the muscle cell. Eur J Physiol. 2003; 88:317-38. doi:10.1007/s00421002-0676-3 [Back to text]
+33. MADOR MJ, ACEVEDO FA. Effect of respiratory muscle fatigue on subsequent exercise
+performance. J Appl Physiol. 1991; 70:2059-65. [Abstract] [Back to text]
+34. MARGARITIS I. Facteurs limitants de la performance en triathlon. Can J Appl Physiol. 1996; 21:115. doi:10.1139/h96-001 [Back to text]
+35. MILLET GP, BENTLEY DJ. The physiological responses to running after cycling in elite junior and
+senior triathletes. Int J Sports Med. 2004; 25:191-7. doi:10.1055/s-2003-45259 [Back to text]
+36. MILLET GP, CANDAU RB, BARBIER B, BUSSO B, ROUILLON JD, CHATARD JC. Modelling the
+transfers of training effects on performance in elite triathletes. Int J Sports Med. 2002; 23:55-63.
+[Full Text] [Back to text]
+37. MILLET GP, CHOLLET D, CHALIES S, CHATARD JC. Coordination in front crawl in elite
+triathletes and elite swimmers. Int J Sports Med. 2002; 23:1-6. doi:10.1055/s-2002-20126 [Back to
+text]
+38. MILLET GP, DREANO P, BENTLEY DJ. Physiological characteristics of elite short- and longdistance triathletes. Eur J Appl Physiol. 2003; 88:427-30. doi:10.1007/s00421-002-0731-0 [Back to
+text]
+39. MILLET GP, VLECK VE. Physiological and biomechanical adaptations to the cycle to run transition
+in Olympic triathlon: review and practical recommendations for training. Br J Sports Med. 2001;
+34:384-90. [Full Text] [Back to text]
+40. NAGLE EF, ZOELER RL, ROBERTSEN RJ, CHIAPETTA LB, GOSS FL, MOYNA NM. Prediction
+of performance using physiological and stroke variables in a sample of adult competitive
+swimmers. J Swimming Research. 2004; 16:31-7. [Back to text]
+41. OLBRECHT J, MADER A, HECK H, HOLLMANN W. The importance of a calculation scheme to
+support the interpretation of lactate tests. In: D Maclaren, T Reilly, A Lees A (Eds). Swimming
+Sciences VI, Biomechanics and Medicine. London: E & F.N. Spon; 1992. [Back to text]
+VOLUME 6 | ISSUE 2 | 2011 | 245
+
+Olbrecht J / Swimming for winning
+
+JOURNAL OF HUMAN SPORT & EXERCISE
+
+42. OLBRECHT J. Lactate production and metabolism in swimming. In: Seifert L, Chollet D, Mujika I.
+World Book of Swimming: From Science to Performance. Nova Science Publishers; 2010. [Back to
+text]
+43. OLBRECHT J. The science of winning: planning, periodizing and optimizing swim training.
+Antwerp: F&G Partners; 2000. [Back to text]
+44. ROELS B, SCHMITT L, LIBICZ S, BENTLEY D, RICHALET JP, MILLET G. Specificity of VO2max
+and the ventilatory threshold in free swimming and cycle ergometry: comparison between
+triathletes and swimmers. Br J Sports Med. 2003; 39:965-68. [Full Text] [Back to text]
+45. SURIANO R, BISHOP D. Physiological attributes of triathletes. Jsams. 2010; 13:340-47.
+doi:10.1016/j.jsams.2009.03.008 [Back to text]
+46. TOMIKAWA M, NOMURA T. Relationship between swim performance, maximal oxygen uptake
+and peak power output when wearing a wetsuit. Jsams. 2009; 12:317-22. [Abstract] [Back to text]
+47. TOUSSAINT H, TRUIJENS M. Biomechanical aspects of peak performance in human swimming.
+Animal Biology. 2005; 55:17-40. [Full Text] [Back to text]
+48. VLECK VE, BENTLEY DJ, MILLET GP, BÜRGI A. Pacing during an elite distance triathlon:
+Comparison between male and female competitors. Jsams. 2008; 11:424-32.
+doi:10.1016/j.jsams.2007.01.006 [Back to text]
+
+246 | 2011 | ISSUE 2 | VOLUME 6
+
+© 2011 University of Alicante
+
+

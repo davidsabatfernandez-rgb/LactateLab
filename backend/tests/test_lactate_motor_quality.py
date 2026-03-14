@@ -102,8 +102,8 @@ SHORT_CURVE_4 = LactateCurve(
     name="Curva corta 4 escalones",
     discipline="running", level="recreational",
     test_age_days=10,
-    expected_data_quality="good",
-    description="Solo 4 puntos: resolución baja, puede no detectar LT1 claro. LOO unreliable.",
+    expected_data_quality="low",
+    description="Solo 4 puntos: resolución baja (P6 cap confianza a 0.60), puede no detectar LT1 claro. LOO unreliable.",
     steps=[
         _step(pace=420, lac=1.0,  hr=130),   # 7:00
         _step(pace=380, lac=1.6,  hr=145),   # 6:20

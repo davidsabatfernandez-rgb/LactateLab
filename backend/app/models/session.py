@@ -17,6 +17,7 @@ class Session(Base):
     power_source: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
     session_type: Mapped[str] = mapped_column(String(50), index=True)
     goal: Mapped[str] = mapped_column(String(255))
+    session_heart_rate_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     surface: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     temperature_c: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     comments: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

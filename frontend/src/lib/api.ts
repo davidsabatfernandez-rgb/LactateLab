@@ -406,12 +406,27 @@ export const api = {
   coachEditSession: (
     token: string,
     sessionId: number,
-    edit: { coach_note?: string; dose_step_override?: number | null; swapped_template_id?: string | null; scheduled_date?: string }
+    edit: { coach_note?: string; dose_step_override?: number | null; swapped_template_id?: string | null; scheduled_date?: string; public_label?: string }
   ) =>
     request(`/planning/planned-sessions/${sessionId}/coach-edit`, {
       token,
       method: "PATCH",
       body: JSON.stringify(edit),
+    }),
+  athleteEditSession: (
+    token: string,
+    sessionId: number,
+    edit: { public_label?: string; athlete_note?: string; scheduled_date?: string; scheduled_time?: string }
+  ) =>
+    request(`/planning/planned-sessions/${sessionId}/athlete-edit`, {
+      token,
+      method: "PATCH",
+      body: JSON.stringify(edit),
+    }),
+  deletePlannedSession: (token: string, sessionId: number) =>
+    request(`/planning/planned-sessions/${sessionId}`, {
+      token,
+      method: "DELETE",
     }),
   saveWorkoutSteps: (token: string, sessionId: number, workout: Record<string, unknown>) =>
     request(`/planning/planned-sessions/${sessionId}/workout-steps`, {
@@ -448,9 +463,32 @@ export const api = {
   importCommit: (token: string, formData: FormData) => requestForm("/sessions/import/commit", formData, token),
   compare: (token: string, sessionA: number, sessionB: number) =>
     request(`/analytics/compare?session_a=${sessionA}&session_b=${sessionB}`, { token }),
+  // ── Training Zones ──
+  trainingZoneSets: (token: string, athleteId: number, discipline?: string, activeOnly?: boolean) => {
+    const params = new URLSearchParams();
+    if (discipline) params.set("discipline", discipline);
+    if (activeOnly) params.set("active_only", "true");
+    return request(`/athletes/${athleteId}/training-zones${params.size ? `?${params.toString()}` : ""}`, { token });
+  },
+  activeTrainingZoneSet: (token: string, athleteId: number, discipline: string) =>
+    request(`/athletes/${athleteId}/training-zones/active?discipline=${encodeURIComponent(discipline)}`, { token }),
+  thresholdProfileForZones: (token: string, athleteId: number, discipline: string) =>
+    request(`/athletes/${athleteId}/training-zones/threshold-profile?discipline=${encodeURIComponent(discipline)}`, { token }),
+  createTrainingZoneSet: (token: string, athleteId: number, payload: unknown) =>
+    request(`/athletes/${athleteId}/training-zones`, { token, method: "POST", body: JSON.stringify(payload) }),
+  updateTrainingZoneSet: (token: string, athleteId: number, zoneSetId: number, payload: unknown) =>
+    request(`/athletes/${athleteId}/training-zones/${zoneSetId}`, { token, method: "PATCH", body: JSON.stringify(payload) }),
+  activateTrainingZoneSet: (token: string, athleteId: number, zoneSetId: number) =>
+    request(`/athletes/${athleteId}/training-zones/${zoneSetId}/activate`, { token, method: "PATCH" }),
+  deleteTrainingZoneSet: (token: string, athleteId: number, zoneSetId: number) =>
+    request(`/athletes/${athleteId}/training-zones/${zoneSetId}`, { token, method: "DELETE" }),
   interpolateCyclingFromRunning: (token: string, athleteId: number) =>
     request<{ status: string; lt1_hr_cycling: number | null; lt2_hr_cycling: number | null; lt1_hr_running: number | null; lt2_hr_running: number | null; hr_offset_applied: number; confidence: number; warnings: string[]; snapshot_id: number }>(
       `/athletes/${athleteId}/interpolate-cycling-from-running`,
       { token, method: "POST" },
     ),
+
+  // ── Training Load ──
+  trainingLoad: (token: string, athleteId: number, startDate: string, endDate: string) =>
+    request(`/athletes/${athleteId}/training-load?start_date=${startDate}&end_date=${endDate}`, { token }),
 };

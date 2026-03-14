@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { TrainingZonesEditor, TrainingZonesDisplay } from "../../components/TrainingZonesEditor";
+import "../../components/training-zones.css";
 import { WorkoutPreviewModal } from "../../components/WorkoutPreviewModal";
 import { api } from "../../lib/api";
 import type {
@@ -10,6 +12,7 @@ import type {
   PlanningOverview,
   PlanningPlannedSession,
   PlanningWorkoutTemplate,
+  TrainingZoneSet,
   WorkoutDefinition,
 } from "../../types";
 import type {
@@ -49,6 +52,98 @@ import { MesocycleComposer } from "./MesocycleComposer";
 import { CalendarView } from "./CalendarView";
 import { IntelligenceBanner } from "./IntelligenceBanner";
 import type { PlanningState } from "../context/PlanningContext";
+
+// ── Inline CalendarZonesTab ────────────────────────────────────────────────
+
+function CalendarZonesTab({ athleteId, discipline, token, athleteName }: {
+  athleteId: string | null;
+  discipline: string;
+  token: string;
+  athleteName: string;
+}) {
+  const [zoneSets, setZoneSets] = useState<TrainingZoneSet[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editingSet, setEditingSet] = useState<TrainingZoneSet | null>(null);
+
+  const loadZones = useCallback(() => {
+    if (!athleteId) return;
+    setLoading(true);
+    api.trainingZoneSets(token, Number(athleteId), discipline)
+      .then((data) => setZoneSets(data as TrainingZoneSet[]))
+      .catch(() => setZoneSets([]))
+      .finally(() => setLoading(false));
+  }, [token, athleteId, discipline]);
+
+  useEffect(() => { loadZones(); }, [loadZones]);
+
+  const activeSet = zoneSets.find((zs) => zs.is_active) ?? null;
+
+  if (!athleteId) {
+    return <div className="planning-calendar-tab-empty"><p>Selecciona un atleta para ver sus zonas.</p></div>;
+  }
+
+  if (editing) {
+    return (
+      <div style={{ padding: "24px 28px" }}>
+        <TrainingZonesEditor
+          athleteId={Number(athleteId)}
+          discipline={discipline}
+          token={token}
+          existingSet={editingSet}
+          onSave={() => { setEditing(false); setEditingSet(null); loadZones(); }}
+          onCancel={() => { setEditing(false); setEditingSet(null); }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "24px 28px", display: "grid", gap: 18 }}>
+      <div style={{ display: "grid", gap: 6 }}>
+        <span className="eyebrow">Zonas de entrenamiento</span>
+        <h2 style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: "1.3rem" }}>
+          {athleteName} — {discipline === "ciclismo" ? "Ciclismo" : discipline === "natación" ? "Natación" : "Carrera a pie"}
+        </h2>
+      </div>
+
+      {loading ? (
+        <p style={{ color: "var(--muted)", fontSize: "0.84rem", margin: 0 }}>Cargando zonas...</p>
+      ) : activeSet ? (
+        <TrainingZonesDisplay
+          zoneSet={activeSet}
+          discipline={discipline}
+          onEdit={() => { setEditingSet(activeSet); setEditing(true); }}
+        />
+      ) : (
+        <p style={{ color: "var(--muted)", fontSize: "0.84rem", margin: 0 }}>
+          No hay zonas definidas. Crea un conjunto para esta disciplina.
+        </p>
+      )}
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button type="button" className="tz-suggest-btn" onClick={() => { setEditingSet(null); setEditing(true); }}>
+          {activeSet ? "Crear nuevo conjunto" : "Crear zonas de entrenamiento"}
+        </button>
+        {zoneSets.filter((zs) => !zs.is_active).length > 0 ? (
+          <details style={{ fontSize: "0.78rem", color: "var(--muted)" }}>
+            <summary>{zoneSets.filter((zs) => !zs.is_active).length} archivado{zoneSets.filter((zs) => !zs.is_active).length > 1 ? "s" : ""}</summary>
+            <div style={{ display: "grid", gap: 4, marginTop: 6 }}>
+              {zoneSets.filter((zs) => !zs.is_active).map((zs) => (
+                <div key={zs.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span>{zs.name}</span>
+                  <button type="button" className="tz-edit-btn" onClick={() => {
+                    api.activateTrainingZoneSet(token, Number(athleteId), zs.id).then(() => loadZones());
+                  }}>Activar</button>
+                </div>
+              ))}
+            </div>
+          </details>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 type CalendarOverlayProps = {
   state: PlanningState;
@@ -231,28 +326,53 @@ export function CalendarOverlay({
   }, [activePlannedPreviewSession, plannedSessionStructuredPreview]);
 
   // ── Drag-and-drop: move session to a different day ──
-  const handleMoveSession = useCallback(async (sessionId: number, newDate: string) => {
-    // Find the original date for potential revert
-    const originalSession = overview?.planned_sessions.find((s) => s.id === sessionId);
-    const originalDate = originalSession?.scheduled_date;
+  const handleMoveSession = useCallback(async (session: CalendarEntry, newDate: string) => {
+    console.log("[DnD] handleMoveSession called:", { sessionId: session.id, rawId: session.rawId, newDate });
 
-    // Optimistic update
-    dispatch({ type: "MOVE_SESSION", payload: { sessionId, newDate } });
+    if (session.rawId != null) {
+      // Persisted session — API call
+      const originalSession = overview?.planned_sessions.find((s) => s.id === session.rawId);
+      const originalDate = originalSession?.scheduled_date;
+      console.log("[DnD] Persisted session:", { originalDate, found: !!originalSession });
 
-    try {
-      await api.coachEditSession(token, sessionId, { scheduled_date: newDate });
-      // Reload to sync fully
-      if (athleteId) {
-        await loadPlanningContext(String(athleteId), selectedDiscipline);
+      // Optimistic update
+      dispatch({ type: "MOVE_SESSION", payload: { sessionId: session.rawId, newDate } });
+
+      try {
+        const result = await api.coachEditSession(token, session.rawId, { scheduled_date: newDate });
+        console.log("[DnD] API response:", result);
+        // Reload to sync fully
+        if (athleteId) {
+          await loadPlanningContext(String(athleteId), selectedDiscipline);
+        }
+        console.log("[DnD] Context reloaded successfully");
+      } catch (err) {
+        console.error("[DnD] Error al mover sesión:", err);
+        // Revert optimistic update
+        if (originalDate) {
+          dispatch({ type: "MOVE_SESSION", payload: { sessionId: session.rawId, newDate: originalDate } });
+        }
       }
-    } catch (err) {
-      // Revert optimistic update
-      if (originalDate) {
-        dispatch({ type: "MOVE_SESSION", payload: { sessionId, newDate: originalDate } });
-      }
-      console.error("Error al mover sesión:", err);
+    } else {
+      // Synthetic session — local-only override
+      console.log("[DnD] Synthetic session override:", { syntheticId: session.id, newDate });
+      dispatch({ type: "MOVE_SYNTHETIC_SESSION", payload: { syntheticId: session.id, newDate } });
     }
   }, [athleteId, dispatch, loadPlanningContext, overview?.planned_sessions, selectedDiscipline, token]);
+
+  const handleRenameSession = useCallback(async (newTitle: string) => {
+    const sessionId = activePlannedPreviewSession?.id;
+    if (!sessionId || !athleteId) return;
+    await api.coachEditSession(token, sessionId, { public_label: newTitle });
+    await loadPlanningContext(String(athleteId), selectedDiscipline);
+  }, [activePlannedPreviewSession, athleteId, loadPlanningContext, selectedDiscipline, token]);
+
+  const handleSaveCoachNote = useCallback(async (note: string) => {
+    const sessionId = activePlannedPreviewSession?.id;
+    if (!sessionId || !athleteId) return;
+    await api.coachEditSession(token, sessionId, { coach_note: note });
+    await loadPlanningContext(String(athleteId), selectedDiscipline);
+  }, [activePlannedPreviewSession, athleteId, loadPlanningContext, selectedDiscipline, token]);
 
   // Lock body overflow when overlay is open
   useEffect(() => {
@@ -296,6 +416,17 @@ export function CalendarOverlay({
           openPlannedWorkoutPreview={openPlannedWorkoutPreview}
           openPlannedWorkoutRawInformation={openPlannedWorkoutRawInformation}
           openLibraryWorkoutPreview={openLibraryWorkoutPreview}
+        />
+      );
+    }
+
+    if (calendarWorkspaceTab === "zones") {
+      return (
+        <CalendarZonesTab
+          athleteId={athleteId}
+          discipline={selectedDiscipline}
+          token={token}
+          athleteName={overview?.athlete_name ?? "Atleta"}
         />
       );
     }
@@ -371,6 +502,7 @@ export function CalendarOverlay({
         athleteId={athleteId}
         token={token}
         onBatchGarminComplete={athleteId ? () => loadPlanningContext(String(athleteId), selectedDiscipline) : undefined}
+        trainingLoadDays={state.trainingLoadDays}
         jumpCalendarToToday={jumpCalendarToToday}
         shiftCalendarBackward={shiftCalendarBackward}
         shiftCalendarForward={shiftCalendarForward}
@@ -429,6 +561,13 @@ export function CalendarOverlay({
               onClick={() => openCalendarWorkspaceTab("summary")}
             >
               Resumen
+            </button>
+            <button
+              type="button"
+              className={`planning-calendar-app-tab ${calendarWorkspaceTab === "zones" ? "active" : ""}`}
+              onClick={() => openCalendarWorkspaceTab("zones")}
+            >
+              Zonas
             </button>
             <button type="button" className="planning-calendar-app-tab">Panel de control</button>
           </nav>
@@ -541,6 +680,9 @@ export function CalendarOverlay({
             ),
           } : null}
           workoutDefinition={editableWorkoutDefinition}
+          onRenameSession={activePlannedPreviewSession ? handleRenameSession : undefined}
+          onSaveCoachNote={activePlannedPreviewSession ? handleSaveCoachNote : undefined}
+          coachNote={activePlannedPreviewSession?.coach_note ?? null}
           onSaveWorkout={activePlannedPreviewSession ? handleSaveWorkoutSteps : undefined}
           onPushToGarmin={activePlannedPreviewSession ? handlePushToGarmin : undefined}
           garminConnected={selectedAthlete?.garmin_connected ?? false}

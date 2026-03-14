@@ -79,6 +79,13 @@ class PerformanceEstimateRead(BaseModel):
     cautions: list[str] = Field(default_factory=list)
     anchors: list[dict[str, Any]] = Field(default_factory=list)
     confidence_factors: list[dict[str, Any]] = Field(default_factory=list)
+    # v2: three-pace output, glycogen risk, durability, quality score
+    ritmo_techo: Optional[float] = None
+    ritmo_objetivo: Optional[float] = None
+    ritmo_seguro: Optional[float] = None
+    glycogen_risk: Optional[dict[str, str]] = None
+    durability_info: Optional[dict[str, Any]] = None
+    quality_score: Optional[float] = None
 
 
 class PowerBestRead(BaseModel):
@@ -190,6 +197,7 @@ class DisciplineAnalysisRead(BaseModel):
     real_thresholds: Optional[RealThresholdsRead] = None
     individual_thresholds: Optional[IndividualThresholdsRead] = None
     swain_vo2max: Optional[dict] = None
+    target_curve: Optional[dict] = None
 
 
 class SessionAnalysisRead(BaseModel):

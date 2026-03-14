@@ -14,6 +14,10 @@ export type Athlete = {
   garmin_user_id?: number | null;
   garmin_connected: boolean;
   athlete_level: string;
+  hr_rest?: number | null;
+  ftp_cycling_watts?: number | null;
+  ftpa_running_pace?: number | null;
+  css_swimming_pace?: number | null;
   created_at: string;
   weights?: Array<{
     id: number;
@@ -356,6 +360,7 @@ export type SessionSummary = {
   power_source?: string | null;
   session_type: string;
   goal: string;
+  session_heart_rate_max?: number | null;
   surface?: string | null;
   temperature_c?: number | null;
   comments?: string | null;
@@ -457,6 +462,20 @@ export type Estimate = {
     weight: number;
     explanation: string;
   }>;
+  // v2: three-pace output, glycogen risk, durability, quality score
+  ritmo_techo?: number | null;
+  ritmo_objetivo?: number | null;
+  ritmo_seguro?: number | null;
+  glycogen_risk?: { level: string; label: string } | null;
+  durability_info?: {
+    duration_hours: number;
+    decay_rate_pct_per_hour: number;
+    total_decay_pct: number;
+    effective_lt2_speed_kph: number;
+    decay_factor: number;
+    endurance_tier: string;
+  } | null;
+  quality_score?: number | null;
 };
 
 export type Zone = {
@@ -618,6 +637,27 @@ export type DisciplineView = {
     hr_max_used?: number | null;
     hr_rest_used?: number | null;
     lt2_hr_used?: number | null;
+  } | null;
+  target_curve?: {
+    distance_category: string;
+    distance_km: number;
+    target_pace_s_per_km: number;
+    target_speed_kph: number;
+    race_duration_min: number;
+    fractional_utilization: number;
+    vo2max_needed: number;
+    target_lt2_pace: number | null;
+    target_lt2_speed_kph: number;
+    target_lt1_pace: number | null;
+    target_lt1_speed_kph: number;
+    lt1_lactate_used: number;
+    lt2_lactate_used: number;
+    lt1_lt2_ratio_used: number;
+    curve_points: Array<{ x: number; speed_kph: number; lactate: number }>;
+    gap: Record<string, { current?: number | null; target?: number | null; delta?: number | null; current_pace?: number | null; target_pace?: number | null; delta_s_per_km?: number | null; delta_pct?: number | null }>;
+    vlamax_note: string | null;
+    method: string;
+    explanation: string[];
   } | null;
 };
 
@@ -905,6 +945,8 @@ export type PlanningMesocycleDraftSession = {
   evidence_source_ids: string[];
   csv_examples: string[];
   selection_reason?: string[];
+  estimated_tss?: number | null;
+  coach_override_expected?: boolean;
   payload?: Record<string, unknown>;
 };
 
@@ -951,9 +993,12 @@ export type PlanningPlannedSession = {
   progression_note?: string | null;
   expected_signal?: string | null;
   coach_note?: string | null;
+  athlete_note?: string | null;
+  scheduled_time?: string | null;
   confidence: number;
   status: string;
   bla_check: boolean;
+  estimated_tss?: number | null;
   structured_workout_payload?: WorkoutDefinition | null;
   publish_status?: string;
   publish_provider?: string | null;
@@ -1222,4 +1267,138 @@ export type DashboardData = {
   physiological_alerts: string[];
   improving_athletes: string[];
   degrading_athletes: string[];
+};
+
+// ── Training Zones ──────────────────────────────────────────────────────────
+
+export type TrainingZoneItem = {
+  id: number;
+  zone_number: number;
+  zone_label: string;
+  zone_color?: string | null;
+  pace_lower_seconds?: number | null;
+  pace_upper_seconds?: number | null;
+  hr_lower?: number | null;
+  hr_upper?: number | null;
+  power_lower?: number | null;
+  power_upper?: number | null;
+  description?: string | null;
+};
+
+export type TrainingZoneSet = {
+  id: number;
+  discipline: string;
+  name: string;
+  is_active: boolean;
+  threshold_source?: string | null;
+  threshold_context?: Record<string, unknown> | null;
+  notes?: string | null;
+  created_at: string;
+  zones: TrainingZoneItem[];
+};
+
+export type ThresholdItemForZones = {
+  lactate: number;
+  pace_seconds_per_km?: number | null;
+  heart_rate?: number | null;
+  power_watts?: number | null;
+  pace_label?: string | null;
+};
+
+export type ThresholdProfileForZones = {
+  lt1?: ThresholdItemForZones | null;
+  lt2?: ThresholdItemForZones | null;
+  source: string;
+  source_label: string;
+  confidence?: number | null;
+  snapshot_date?: string | null;
+};
+
+// ── Training Load (TSS / ATL / CTL / TSB) ───────────────────────────────────
+
+export type DailyTrainingLoad = {
+  date: string;
+  tss_total: number;
+  tss_by_discipline: Record<string, number>;
+  atl: number;
+  ctl: number;
+  tsb: number;
+  acwr?: number | null;
+  atl_by_discipline?: Record<string, number>;
+  ctl_by_discipline?: Record<string, number>;
+  tsb_by_discipline?: Record<string, number>;
+};
+
+export type TrainingLoadResponse = {
+  athlete_id: number;
+  start_date: string;
+  end_date: string;
+  days: DailyTrainingLoad[];
+  current_atl: number;
+  current_ctl: number;
+  current_tsb: number;
+  current_acwr?: number | null;
+  current_atl_by_discipline?: Record<string, number>;
+  current_ctl_by_discipline?: Record<string, number>;
+  threshold_sources: Record<string, unknown>;
+  warnings: string[];
+  avg_confidence: number;
+};
+
+// ── Triathlon Integrated Mesocycle ───────────────────────────────────────────
+
+export type TriathlonDraftSession = {
+  session_id: string;
+  discipline: string;
+  scheduled_date?: string | null;
+  week_index: number;
+  day_offset: number;
+  template_id?: string | null;
+  session_role: string;
+  session_family: string;
+  public_label: string;
+  objective: string;
+  dose_prescription?: string | null;
+  dose_guidance: string;
+  progression_note?: string;
+  expected_signal?: string;
+  coach_note?: string;
+  confidence: number;
+  estimated_tss?: number | null;
+  coach_override_expected?: boolean;
+  scheduled_time?: string | null;
+  payload?: Record<string, unknown>;
+};
+
+export type TriathlonWeekDraft = {
+  week_index: number;
+  phase: string;
+  load_label: string;
+  sessions: TriathlonDraftSession[];
+  tss_target_total: number;
+  tss_target_by_discipline?: Record<string, number>;
+  spacing_warnings?: string[];
+};
+
+export type WeekLoadProjection = {
+  week_index: number;
+  projected_tss: number;
+  projected_ctl: number;
+  projected_atl: number;
+  projected_tsb: number;
+  projected_acwr?: number | null;
+  safety_flag: string;
+};
+
+export type TriathlonMesocycleDraft = {
+  primary_discipline: string;
+  primary_block_type: string;
+  secondary_discipline: string;
+  secondary_block_type: string;
+  swim_block_type: string;
+  duration_weeks: number;
+  season_phase: string;
+  weeks: TriathlonWeekDraft[];
+  spacing_warnings?: string[];
+  load_projection?: WeekLoadProjection[];
 };

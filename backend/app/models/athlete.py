@@ -33,6 +33,16 @@ class Athlete(Base):
     garmin_token_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     garmin_connected_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     garmin_last_sync_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    training_hr_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    """FC máxima real del atleta (medida en test). Tiene prioridad sobre la observada en sesiones."""
+    hr_rest: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    """FC reposo (para hrTSS)."""
+    ftp_cycling_watts: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    """FTP ciclismo (watts)."""
+    ftpa_running_pace: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    """rFTPa running (sec/km, = LT2 pace)."""
+    css_swimming_pace: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    """CSS natación (sec/100m)."""
     cycling_interpolated_from_running: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     """Si True, los umbrales de ciclismo se interpolan automáticamente desde running."""
     created_at: Mapped[date] = mapped_column(Date)
@@ -47,6 +57,7 @@ class Athlete(Base):
     focus_blocks = relationship("AthleteFocusBlock", back_populates="athlete", cascade="all, delete-orphan", order_by="AthleteFocusBlock.start_date.desc()")
     planned_sessions = relationship("PlannedSession", back_populates="athlete", cascade="all, delete-orphan", order_by="PlannedSession.scheduled_date.asc()")
     targets = relationship("AthleteTarget", back_populates="athlete", cascade="all, delete-orphan", order_by="AthleteTarget.target_date.desc()")
+    training_zone_sets = relationship("TrainingZoneSet", back_populates="athlete", cascade="all, delete-orphan")
 
     @property
     def strava_connected(self) -> bool:

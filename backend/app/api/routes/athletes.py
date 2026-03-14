@@ -7,6 +7,7 @@ from typing import Union
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.athlete import Athlete, AthleteFocusBlock, AthleteTarget, AthleteWeightHistory
+from app.models.training_zone import TrainingZone, TrainingZoneSet
 from app.models.user import User
 from app.schemas.ai import (
     AthleteAIInterpretationRequest,
@@ -28,6 +29,12 @@ from app.schemas.athlete import (
     AthleteWeightHistoryRead,
 )
 from app.schemas.analytics import AthleteAnalysisRead
+from app.schemas.training_zone import (
+    ThresholdProfileForZones,
+    TrainingZoneSetCreate,
+    TrainingZoneSetRead,
+    TrainingZoneSetUpdate,
+)
 from app.schemas.report import PhysiologyReportRead
 from app.services.analytics import athlete_analysis_payload, recalculate_athlete
 from app.services.ai_interpreter import build_athlete_prompt, generate_reasoning_interpretation
@@ -293,6 +300,293 @@ def delete_focus_block(
     if block is None:
         raise HTTPException(status_code=404, detail="Focus block not found")
     db.delete(block)
+    db.commit()
+
+
+# ── Training Zones CRUD ─────────────────────────────────────────────────────
+
+
+@router.get("/{athlete_id}/training-zones", response_model=list[TrainingZoneSetRead])
+def list_training_zone_sets(
+    athlete_id: int,
+    discipline: str = None,
+    active_only: bool = False,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    q = (
+        select(TrainingZoneSet)
+        .options(joinedload(TrainingZoneSet.zones))
+        .where(TrainingZoneSet.athlete_id == athlete_id)
+    )
+    if discipline:
+        q = q.where(TrainingZoneSet.discipline == discipline)
+    if active_only:
+        q = q.where(TrainingZoneSet.is_active == True)  # noqa: E712
+    q = q.order_by(TrainingZoneSet.created_at.desc())
+    return db.scalars(q).unique().all()
+
+
+@router.get("/{athlete_id}/training-zones/active", response_model=TrainingZoneSetRead)
+def get_active_training_zone_set(
+    athlete_id: int,
+    discipline: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    zone_set = db.scalars(
+        select(TrainingZoneSet)
+        .options(joinedload(TrainingZoneSet.zones))
+        .where(
+            TrainingZoneSet.athlete_id == athlete_id,
+            TrainingZoneSet.discipline == discipline,
+            TrainingZoneSet.is_active == True,  # noqa: E712
+        )
+    ).first()
+    if zone_set is None:
+        raise HTTPException(status_code=404, detail="No hay zonas activas para esta disciplina.")
+    return zone_set
+
+
+@router.get("/{athlete_id}/training-zones/threshold-profile", response_model=ThresholdProfileForZones)
+def threshold_profile_for_zones(
+    athlete_id: int,
+    discipline: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Devuelve el perfil de umbral del atleta para la disciplina indicada.
+
+    El entrenador lo usa como referencia al crear zonas: ve si el ancla es
+    individual (multi-sesión), fisiológico (2.0/4.0 mmol) o análisis (sesión única).
+    """
+    from app.models.metrics import PhysiologicalSnapshot
+    from app.schemas.training_zone import ThresholdItemForZones
+
+    athlete = db.scalar(select(Athlete).where(Athlete.id == athlete_id))
+    if athlete is None:
+        raise HTTPException(status_code=404, detail="Athlete not found")
+
+    # Buscar snapshot más reciente para la disciplina
+    snapshot = db.scalars(
+        select(PhysiologicalSnapshot)
+        .where(PhysiologicalSnapshot.athlete_id == athlete_id, PhysiologicalSnapshot.discipline == discipline)
+        .order_by(PhysiologicalSnapshot.snapshot_date.desc())
+    ).first()
+
+    if snapshot is None:
+        return ThresholdProfileForZones(
+            source="none",
+            source_label="Sin datos de umbral",
+        )
+
+    payload = snapshot.payload or {}
+
+    def _pace_label(seconds: float | None) -> str | None:
+        if seconds is None or seconds <= 0:
+            return None
+        mins = int(seconds) // 60
+        secs = int(seconds) % 60
+        return f"{mins}:{secs:02d}/km"
+
+    # Priority: individual > dynamic/physiological > analysis thresholds
+    individual = payload.get("individual_thresholds")
+    if individual and individual.get("data_quality", {}).get("sufficient") is not False:
+        lt1_ind = individual.get("lt1_individual")
+        lt2_ind = individual.get("lt2_individual")
+        return ThresholdProfileForZones(
+            lt1=ThresholdItemForZones(
+                lactate=lt1_ind.get("lactate", 2.0),
+                pace_seconds_per_km=lt1_ind.get("pace_seconds_per_km"),
+                heart_rate=lt1_ind.get("heart_rate"),
+                power_watts=lt1_ind.get("power_watts"),
+                pace_label=_pace_label(lt1_ind.get("pace_seconds_per_km")),
+            ) if lt1_ind else None,
+            lt2=ThresholdItemForZones(
+                lactate=lt2_ind.get("lactate", 4.0),
+                pace_seconds_per_km=lt2_ind.get("pace_seconds_per_km"),
+                heart_rate=lt2_ind.get("heart_rate"),
+                power_watts=lt2_ind.get("power_watts"),
+                pace_label=_pace_label(lt2_ind.get("pace_seconds_per_km")),
+            ) if lt2_ind else None,
+            source="individual",
+            source_label="Individual (multi-sesión)",
+            confidence=lt2_ind.get("confidence") if lt2_ind else None,
+            snapshot_date=str(snapshot.snapshot_date),
+        )
+
+    dynamic = payload.get("dynamic_thresholds")
+    if dynamic:
+        chronic = dynamic.get("chronic", {})
+        ref_2 = chronic.get("reference_2mmol")
+        ref_4 = chronic.get("reference_4mmol")
+        if ref_2 or ref_4:
+            return ThresholdProfileForZones(
+                lt1=ThresholdItemForZones(
+                    lactate=ref_2.get("target_lactate", 2.0),
+                    pace_seconds_per_km=ref_2.get("estimated_pace_seconds_per_km"),
+                    heart_rate=ref_2.get("estimated_hr_at_target"),
+                    power_watts=ref_2.get("estimated_power_watts"),
+                    pace_label=_pace_label(ref_2.get("estimated_pace_seconds_per_km")),
+                ) if ref_2 else None,
+                lt2=ThresholdItemForZones(
+                    lactate=ref_4.get("target_lactate", 4.0),
+                    pace_seconds_per_km=ref_4.get("estimated_pace_seconds_per_km"),
+                    heart_rate=ref_4.get("estimated_hr_at_target"),
+                    power_watts=ref_4.get("estimated_power_watts"),
+                    pace_label=_pace_label(ref_4.get("estimated_pace_seconds_per_km")),
+                ) if ref_4 else None,
+                source="physiological",
+                source_label="Fisiológico (2.0 / 4.0 mmol)",
+                confidence=ref_4.get("confidence_score") if ref_4 else None,
+                snapshot_date=str(snapshot.snapshot_date),
+            )
+
+    # Fallback: session analysis thresholds
+    thresholds = payload.get("thresholds", [])
+    lt1_th = next((t for t in thresholds if t.get("name", "").lower().startswith("lt1")), None)
+    lt2_th = next((t for t in thresholds if t.get("name", "").lower().startswith("lt2")), None)
+    return ThresholdProfileForZones(
+        lt1=ThresholdItemForZones(
+            lactate=lt1_th.get("lactate", 2.0),
+            pace_seconds_per_km=lt1_th.get("pace_seconds_per_km"),
+            heart_rate=lt1_th.get("heart_rate"),
+            power_watts=lt1_th.get("power_watts"),
+            pace_label=_pace_label(lt1_th.get("pace_seconds_per_km")),
+        ) if lt1_th else None,
+        lt2=ThresholdItemForZones(
+            lactate=lt2_th.get("lactate", 4.0),
+            pace_seconds_per_km=lt2_th.get("pace_seconds_per_km"),
+            heart_rate=lt2_th.get("heart_rate"),
+            power_watts=lt2_th.get("power_watts"),
+            pace_label=_pace_label(lt2_th.get("pace_seconds_per_km")),
+        ) if lt2_th else None,
+        source="analysis",
+        source_label="Análisis de sesión",
+        confidence=lt2_th.get("confidence") if lt2_th else None,
+        snapshot_date=str(snapshot.snapshot_date),
+    )
+
+
+@router.post("/{athlete_id}/training-zones", response_model=TrainingZoneSetRead, status_code=status.HTTP_201_CREATED)
+def create_training_zone_set(
+    athlete_id: int,
+    payload: TrainingZoneSetCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    athlete = db.scalar(select(Athlete).where(Athlete.id == athlete_id))
+    if athlete is None:
+        raise HTTPException(status_code=404, detail="Athlete not found")
+
+    # Desactivar sets existentes de la misma disciplina
+    existing = db.scalars(
+        select(TrainingZoneSet).where(
+            TrainingZoneSet.athlete_id == athlete_id,
+            TrainingZoneSet.discipline == payload.discipline,
+            TrainingZoneSet.is_active == True,  # noqa: E712
+        )
+    ).all()
+    for zone_set in existing:
+        zone_set.is_active = False
+
+    from datetime import datetime, timezone
+
+    zone_set = TrainingZoneSet(
+        athlete_id=athlete_id,
+        discipline=payload.discipline,
+        name=payload.name,
+        threshold_source=payload.threshold_source,
+        threshold_context=payload.threshold_context,
+        notes=payload.notes,
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+    )
+    for z in payload.zones:
+        zone_set.zones.append(TrainingZone(**z.model_dump()))
+    db.add(zone_set)
+    db.commit()
+    db.refresh(zone_set)
+    return zone_set
+
+
+@router.patch("/{athlete_id}/training-zones/{zone_set_id}", response_model=TrainingZoneSetRead)
+def update_training_zone_set(
+    athlete_id: int,
+    zone_set_id: int,
+    payload: TrainingZoneSetUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    zone_set = db.scalars(
+        select(TrainingZoneSet)
+        .options(joinedload(TrainingZoneSet.zones))
+        .where(TrainingZoneSet.id == zone_set_id, TrainingZoneSet.athlete_id == athlete_id)
+    ).first()
+    if zone_set is None:
+        raise HTTPException(status_code=404, detail="Zone set not found")
+
+    if payload.name is not None:
+        zone_set.name = payload.name
+    if payload.notes is not None:
+        zone_set.notes = payload.notes
+    if payload.zones is not None:
+        # Full replace: delete old zones, add new
+        for old_zone in list(zone_set.zones):
+            db.delete(old_zone)
+        for z in payload.zones:
+            zone_set.zones.append(TrainingZone(**z.model_dump()))
+    db.commit()
+    db.refresh(zone_set)
+    return zone_set
+
+
+@router.patch("/{athlete_id}/training-zones/{zone_set_id}/activate", response_model=TrainingZoneSetRead)
+def activate_training_zone_set(
+    athlete_id: int,
+    zone_set_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    zone_set = db.scalars(
+        select(TrainingZoneSet)
+        .options(joinedload(TrainingZoneSet.zones))
+        .where(TrainingZoneSet.id == zone_set_id, TrainingZoneSet.athlete_id == athlete_id)
+    ).first()
+    if zone_set is None:
+        raise HTTPException(status_code=404, detail="Zone set not found")
+
+    # Desactivar otros sets de la misma disciplina
+    others = db.scalars(
+        select(TrainingZoneSet).where(
+            TrainingZoneSet.athlete_id == athlete_id,
+            TrainingZoneSet.discipline == zone_set.discipline,
+            TrainingZoneSet.id != zone_set_id,
+            TrainingZoneSet.is_active == True,  # noqa: E712
+        )
+    ).all()
+    for other in others:
+        other.is_active = False
+
+    zone_set.is_active = True
+    db.commit()
+    db.refresh(zone_set)
+    return zone_set
+
+
+@router.delete("/{athlete_id}/training-zones/{zone_set_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_training_zone_set(
+    athlete_id: int,
+    zone_set_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    zone_set = db.scalar(
+        select(TrainingZoneSet).where(TrainingZoneSet.id == zone_set_id, TrainingZoneSet.athlete_id == athlete_id)
+    )
+    if zone_set is None:
+        raise HTTPException(status_code=404, detail="Zone set not found")
+    db.delete(zone_set)
     db.commit()
 
 

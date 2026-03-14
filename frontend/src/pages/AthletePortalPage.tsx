@@ -4,13 +4,14 @@ import { Area, CartesianGrid, ComposedChart, Line, LineChart, ReferenceArea, Ref
 import { api } from "../lib/api";
 import { buildTargetObjective } from "../lib/targetCatalog";
 import { ResolvedTrainingThreshold, resolveTrainingThreshold } from "../lib/trainingThresholds";
-import { AthleteAnalysis, AthleteHealthDaily, AthleteHealthMetric, AthleteHealthOverview, AuthUser, CurvePoint, DisciplineView, Estimate, GarminActivity, GarminActivitiesPreviewResponse, HistoricalPoint, PlanningOverview, PlanningPlannedSession, SessionSummary } from "../types";
+import { AthleteAnalysis, AthleteHealthDaily, AthleteHealthMetric, AthleteHealthOverview, AuthUser, CurvePoint, DailyTrainingLoad, DisciplineView, Estimate, GarminActivity, GarminActivitiesPreviewResponse, HistoricalPoint, PlanningOverview, PlanningPlannedSession, SessionSummary, TrainingLoadResponse } from "../types";
 
 import { MetricDrawer } from "../components/athlete/MetricDrawer";
 import { TimeRangeSelector, type TimeRange } from "../components/athlete/TimeRangeSelector";
 import { ViewModeToggle, type ViewMode } from "../components/athlete/ViewModeToggle";
 import { WhyButton } from "../components/athlete/WhyButton";
 import { InsightCard } from "../components/athlete/InsightCard";
+import { LactateFactsCarousel, type LactateFactContext } from "../components/LactateFacts";
 
 type AthletePortalPageProps = {
   user: AuthUser | null;
@@ -928,7 +929,15 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
   const [weightSaving, setWeightSaving] = useState(false);
   const [plannedSessions, setPlannedSessions] = useState<PlanningPlannedSession[]>([]);
   const [calWeekOffset, setCalWeekOffset] = useState(0);
+  const [editingSession, setEditingSession] = useState<PlanningPlannedSession | null>(null);
+  const [editForm, setEditForm] = useState({ label: "", note: "", date: "", time: "" });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editDeleting, setEditDeleting] = useState(false);
+  const [dragSessionId, setDragSessionId] = useState<number | null>(null);
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"home" | "training" | "fitness" | "nutrition" | "lactate">("home");
+  const [trainingLoad, setTrainingLoad] = useState<TrainingLoadResponse | null>(null);
+  const [trainingLoadLoading, setTrainingLoadLoading] = useState(false);
 
   useEffect(() => {
     fetch("https://api.open-meteo.com/v1/forecast?latitude=41.6167&longitude=2.0861&current=temperature_2m,weather_code&timezone=auto")
@@ -1029,6 +1038,27 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
     };
   }, [analysis?.athlete.garmin_connected, loading, token, user?.athlete_id]);
 
+  // ── Load training load (TSS/ATL/CTL/TSB) ─────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTrainingLoad() {
+      if (!user?.athlete_id || loading || !analysis?.athlete.garmin_connected) return;
+      setTrainingLoadLoading(true);
+      try {
+        const end = new Date().toISOString().slice(0, 10);
+        const start = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+        const result = (await api.trainingLoad(token, user.athlete_id, start, end)) as TrainingLoadResponse;
+        if (!cancelled) setTrainingLoad(result);
+      } catch {
+        if (!cancelled) setTrainingLoad(null);
+      } finally {
+        if (!cancelled) setTrainingLoadLoading(false);
+      }
+    }
+    loadTrainingLoad();
+    return () => { cancelled = true; };
+  }, [analysis?.athlete.garmin_connected, loading, token, user?.athlete_id]);
+
   // ── Load planned sessions ─────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -1126,6 +1156,16 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
     getPrimaryEstimate(selectedSnapshot?.view, focusDiscipline === "ciclismo" ? "FTP" : focusDiscipline === "running" ? "HM" : "VO2max");
   const selectedPredictions = selectedSnapshot?.view.estimates?.slice(0, 3) ?? [];
   const vlamaxEstimate = selectedSnapshot?.view.estimates?.find((estimate) => estimate.estimate_type === "VLAMAX");
+
+  const lactateFactContext = useMemo<LactateFactContext>(() => ({
+    hasLT1: Boolean(selectedSnapshot?.lt1),
+    hasLT2: Boolean(selectedSnapshot?.lt2),
+    discipline: focusDiscipline,
+    lt1Lactate: selectedSnapshot?.lt1?.lactate,
+    lt2Lactate: selectedSnapshot?.lt2?.lactate,
+    hasDynamicThresholds: Boolean(selectedSnapshot?.view?.dynamic_thresholds),
+    hasMultipleSessions: (selectedSnapshot?.view?.recent_sessions?.length ?? 0) > 1,
+  }), [selectedSnapshot, focusDiscipline]);
   const featuredPrediction = selectedPredictions[0] ?? null;
   const secondaryPredictions = featuredPrediction ? selectedPredictions.slice(1, 3) : [];
   const portalSignals = [activeBlock?.evaluation?.recommendation, ...coachSignals].filter((item): item is string => Boolean(item)).slice(0, 3);
@@ -1688,19 +1728,30 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
   }, [selectedGarminActivity]);
 
   const fitnessData = useMemo(() => {
+    // Use real training load data from backend when available
+    if (trainingLoad?.days?.length) {
+      return trainingLoad.days.map((day) => ({
+        date: day.date,
+        label: new Date(day.date).toLocaleDateString("es-ES", { day: "numeric", month: "short" }).replace(".", ""),
+        atl: day.atl,
+        ctl: day.ctl,
+        tsb: day.tsb,
+        acwr: day.acwr,
+        tss: day.tss_total,
+      }));
+    }
+
+    // Fallback: duration proxy
     if (!athleteHealthCalendar.length) return [];
-    // Sort calendar by date
     const sorted = [...athleteHealthCalendar].sort((a, b) => a.date.localeCompare(b.date));
 
-    // Use duration as a proxy for training load (TRIMP-like)
-    // Convert seconds to a load score (minutes of activity as load)
     let atl = 0;
     let ctl = 0;
-    const atlDecay = 2 / (7 + 1);   // 7-day exponential
-    const ctlDecay = 2 / (42 + 1);  // 42-day exponential
+    const atlDecay = 2 / (7 + 1);
+    const ctlDecay = 2 / (42 + 1);
 
     return sorted.map((day) => {
-      const load = day.total_duration_seconds / 60; // minutes as load proxy
+      const load = day.total_duration_seconds / 60;
       atl = atl * (1 - atlDecay) + load * atlDecay;
       ctl = ctl * (1 - ctlDecay) + load * ctlDecay;
       const tsb = ctl - atl;
@@ -1710,9 +1761,11 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
         atl: Math.round(atl * 10) / 10,
         ctl: Math.round(ctl * 10) / 10,
         tsb: Math.round(tsb * 10) / 10,
+        acwr: ctl >= 10 ? Math.round((atl / ctl) * 100) / 100 : null as number | null,
+        tss: load,
       };
     });
-  }, [athleteHealthCalendar]);
+  }, [athleteHealthCalendar, trainingLoad]);
 
   const personalBests = useMemo(() => {
     const recent = athleteHealthRecent ?? [];
@@ -2781,7 +2834,32 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
 
           <div className="ap-week-cal-grid">
             {calWeekSessions.map((day) => (
-              <div key={day.iso} className={`ap-week-cal-day ${day.isToday ? "today" : ""}`}>
+              <div
+                key={day.iso}
+                className={`ap-week-cal-day ${day.isToday ? "today" : ""} ${dragOverDate === day.iso ? "drag-over" : ""}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOverDate(day.iso); }}
+                onDragLeave={() => { if (dragOverDate === day.iso) setDragOverDate(null); }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  setDragOverDate(null);
+                  if (dragSessionId == null) return;
+                  const sess = plannedSessions.find((s) => s.id === dragSessionId);
+                  if (!sess || sess.scheduled_date === day.iso) { setDragSessionId(null); return; }
+                  // Optimistic update
+                  setPlannedSessions((prev) =>
+                    prev.map((s) => (s.id === dragSessionId ? { ...s, scheduled_date: day.iso } : s))
+                  );
+                  try {
+                    await api.athleteEditSession(token, dragSessionId, { scheduled_date: day.iso });
+                  } catch {
+                    // Revert on error
+                    setPlannedSessions((prev) =>
+                      prev.map((s) => (s.id === dragSessionId ? { ...s, scheduled_date: sess.scheduled_date } : s))
+                    );
+                  }
+                  setDragSessionId(null);
+                }}
+              >
                 <div className="ap-week-cal-day-head">
                   <span className="ap-week-cal-day-label">{day.label}</span>
                   <span className={`ap-week-cal-day-num ${day.isToday ? "today" : ""}`}>{day.dayNum}</span>
@@ -2791,10 +2869,49 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
                     day.sessions.map((session) => {
                       const roleClass = session.session_role === "KEY" ? "key" : session.session_role === "SUPPORT" ? "support" : "long";
                       const durationMin = typeof session.payload?.total_duration_min === "number" ? session.payload.total_duration_min as number : null;
+                      const isDragging = dragSessionId === session.id;
                       return (
-                        <div key={session.id} className={`ap-week-cal-session ${roleClass}`}>
+                        <div
+                          key={session.id}
+                          className={`ap-week-cal-session ${roleClass} ${isDragging ? "dragging" : ""}`}
+                          draggable
+                          onDragStart={(e) => {
+                            setDragSessionId(session.id);
+                            e.dataTransfer.effectAllowed = "move";
+                            if (e.currentTarget instanceof HTMLElement) {
+                              e.dataTransfer.setDragImage(e.currentTarget, 20, 20);
+                            }
+                          }}
+                          onDragEnd={() => { setDragSessionId(null); setDragOverDate(null); }}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            if (dragSessionId != null) return;
+                            setEditingSession(session);
+                            setEditForm({
+                              label: session.public_label,
+                              note: session.athlete_note ?? "",
+                              date: session.scheduled_date,
+                              time: session.scheduled_time ?? "",
+                            });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              setEditingSession(session);
+                              setEditForm({
+                                label: session.public_label,
+                                note: session.athlete_note ?? "",
+                                date: session.scheduled_date,
+                                time: session.scheduled_time ?? "",
+                              });
+                            }
+                          }}
+                        >
                           <span className="ap-week-cal-session-role">{session.session_role}</span>
                           <strong className="ap-week-cal-session-label">{session.public_label}</strong>
+                          {session.scheduled_time ? (
+                            <span className="ap-week-cal-session-time">{session.scheduled_time}</span>
+                          ) : null}
                           {session.dose_prescription ? (
                             <span className="ap-week-cal-session-dose">{session.dose_prescription}</span>
                           ) : null}
@@ -2803,6 +2920,9 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
                           ) : null}
                           {session.objective ? (
                             <span className="ap-week-cal-session-obj">{session.objective}</span>
+                          ) : null}
+                          {session.athlete_note ? (
+                            <span className="ap-week-cal-session-note">{session.athlete_note}</span>
                           ) : null}
                         </div>
                       );
@@ -2815,6 +2935,136 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
             ))}
           </div>
         </section>
+
+        {/* Session edit modal */}
+        {editingSession && (
+          <div className="ap-session-edit-overlay" onClick={() => setEditingSession(null)}>
+            <div className="ap-session-edit-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="ap-session-edit-header">
+                <h3>Editar sesión</h3>
+                <button type="button" className="ap-session-edit-close" onClick={() => setEditingSession(null)}>&times;</button>
+              </div>
+
+              <div className="ap-session-edit-meta">
+                <span className={`ap-session-edit-role ${editingSession.session_role.toLowerCase()}`}>{editingSession.session_role}</span>
+                <span className="ap-session-edit-discipline">{editingSession.discipline}</span>
+                {editingSession.dose_prescription ? <span className="ap-session-edit-dose">{editingSession.dose_prescription}</span> : null}
+              </div>
+
+              {editingSession.objective ? (
+                <p className="ap-session-edit-obj">{editingSession.objective}</p>
+              ) : null}
+
+              {editingSession.coach_note ? (
+                <div className="ap-session-edit-coach-note">
+                  <span className="ap-session-edit-field-label">Nota del entrenador</span>
+                  <p>{editingSession.coach_note}</p>
+                </div>
+              ) : null}
+
+              <div className="ap-session-edit-fields">
+                <label className="ap-session-edit-field">
+                  <span className="ap-session-edit-field-label">Título</span>
+                  <input
+                    type="text"
+                    value={editForm.label}
+                    onChange={(e) => setEditForm((f) => ({ ...f, label: e.target.value }))}
+                    placeholder="Nombre de la sesión"
+                  />
+                </label>
+                <label className="ap-session-edit-field">
+                  <span className="ap-session-edit-field-label">Mi nota</span>
+                  <textarea
+                    value={editForm.note}
+                    onChange={(e) => setEditForm((f) => ({ ...f, note: e.target.value }))}
+                    placeholder="Sensaciones, recordatorios, material..."
+                    rows={3}
+                  />
+                </label>
+                <div className="ap-session-edit-row">
+                  <label className="ap-session-edit-field">
+                    <span className="ap-session-edit-field-label">Fecha</span>
+                    <input
+                      type="date"
+                      value={editForm.date}
+                      onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))}
+                    />
+                  </label>
+                  <label className="ap-session-edit-field">
+                    <span className="ap-session-edit-field-label">Hora</span>
+                    <input
+                      type="time"
+                      value={editForm.time}
+                      onChange={(e) => setEditForm((f) => ({ ...f, time: e.target.value }))}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="ap-session-edit-actions">
+                <button
+                  type="button"
+                  className="ap-session-edit-delete"
+                  disabled={editDeleting}
+                  onClick={async () => {
+                    if (!editingSession) return;
+                    if (!confirm("¿Eliminar esta sesión? Esta acción no se puede deshacer.")) return;
+                    setEditDeleting(true);
+                    try {
+                      await api.deletePlannedSession(token, editingSession.id);
+                      setPlannedSessions((prev) => prev.filter((s) => s.id !== editingSession.id));
+                      setEditingSession(null);
+                    } catch {
+                      // keep modal open
+                    } finally {
+                      setEditDeleting(false);
+                    }
+                  }}
+                >
+                  {editDeleting ? "Eliminando..." : "Eliminar"}
+                </button>
+                <div className="ap-session-edit-actions-right">
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => setEditingSession(null)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    disabled={editSaving}
+                    onClick={async () => {
+                      if (!editingSession) return;
+                      setEditSaving(true);
+                      try {
+                        const patch: Record<string, string> = {};
+                        if (editForm.label !== editingSession.public_label) patch.public_label = editForm.label;
+                        if (editForm.note !== (editingSession.athlete_note ?? "")) patch.athlete_note = editForm.note;
+                        if (editForm.date !== editingSession.scheduled_date) patch.scheduled_date = editForm.date;
+                        if (editForm.time !== (editingSession.scheduled_time ?? "")) patch.scheduled_time = editForm.time;
+                        if (Object.keys(patch).length > 0) {
+                          const updated = (await api.athleteEditSession(token, editingSession.id, patch)) as PlanningPlannedSession;
+                          setPlannedSessions((prev) =>
+                            prev.map((s) => (s.id === updated.id ? updated : s))
+                          );
+                        }
+                        setEditingSession(null);
+                      } catch {
+                        // keep modal open on error
+                      } finally {
+                        setEditSaving(false);
+                      }
+                    }}
+                  >
+                    {editSaving ? "Guardando..." : "Guardar"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Cumplimiento del plan */}
@@ -3099,22 +3349,30 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
           ═══════════════════════════════════════════════════════════════════ */}
       {activeTab === "fitness" && (<>
 
-      {/* ATL / CTL / TSB */}
-      {fitnessData.length > 7 && (
+      {/* ATL / CTL / TSB / ACWR */}
+      {fitnessData.length > 7 && (() => {
+        const last = fitnessData[fitnessData.length - 1];
+        const acwr = last?.acwr;
+        const acwrColor = typeof acwr === "number" ? (acwr >= 0.8 && acwr <= 1.3 ? "#4fb46b" : acwr <= 1.5 ? "#e6a23c" : "#e6707a") : "var(--dk-muted)";
+        return (
         <section className="ap-block ap-fitness">
-          <span className="ap-eyebrow">Fitness / Fatiga / Forma</span>
+          <span className="ap-eyebrow">Fitness / Fatiga / Forma{trainingLoad ? " (TSS real)" : " (proxy duración)"}{trainingLoad ? ` · Confianza ${Math.round(trainingLoad.avg_confidence * 100)}%` : ""}</span>
           <div className="ap-fitness-kpis">
             <span className="ap-fitness-kpi ctl">
               <small>Fitness (CTL)</small>
-              <strong>{fitnessData[fitnessData.length - 1]?.ctl.toFixed(0)}</strong>
+              <strong>{last?.ctl.toFixed(0)}</strong>
             </span>
             <span className="ap-fitness-kpi atl">
               <small>Fatiga (ATL)</small>
-              <strong>{fitnessData[fitnessData.length - 1]?.atl.toFixed(0)}</strong>
+              <strong>{last?.atl.toFixed(0)}</strong>
             </span>
-            <span className={`ap-fitness-kpi tsb ${(fitnessData[fitnessData.length - 1]?.tsb ?? 0) >= 0 ? "positive" : "negative"}`}>
+            <span className={`ap-fitness-kpi tsb ${(last?.tsb ?? 0) >= 0 ? "positive" : "negative"}`}>
               <small>Forma (TSB)</small>
-              <strong>{fitnessData[fitnessData.length - 1]?.tsb.toFixed(0)}</strong>
+              <strong>{last?.tsb.toFixed(0)}</strong>
+            </span>
+            <span className="ap-fitness-kpi" style={{ borderColor: acwrColor }}>
+              <small>ACWR</small>
+              <strong style={{ color: acwrColor }}>{typeof acwr === "number" ? acwr.toFixed(2) : "n/d"}</strong>
             </span>
           </div>
           <ResponsiveContainer width="100%" height={160}>
@@ -3133,7 +3391,8 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
             </ComposedChart>
           </ResponsiveContainer>
         </section>
-      )}
+        );
+      })()}
 
       {/* Training zones distribution */}
       {zoneDistribution && (
@@ -3664,6 +3923,8 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
               <p>{latestInterpretation[1] ?? "La idea es que entiendas tu evolución sin tener que descifrar una curva de laboratorio."}</p>
             </article>
           </div>
+
+          <LactateFactsCarousel context={lactateFactContext} />
         </div>
       </section>
 

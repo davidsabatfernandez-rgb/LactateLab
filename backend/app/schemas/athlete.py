@@ -132,6 +132,11 @@ class AthleteBase(BaseModel):
     training_goal: Optional[str] = None
     notes: Optional[str] = None
     athlete_level: str = "trained"
+    training_hr_max: Optional[int] = Field(default=None, ge=100, le=230)
+    hr_rest: Optional[int] = Field(default=None, ge=20, le=100)
+    ftp_cycling_watts: Optional[int] = Field(default=None, ge=50, le=600)
+    ftpa_running_pace: Optional[float] = Field(default=None, ge=120, le=600)
+    css_swimming_pace: Optional[float] = Field(default=None, ge=50, le=300)
     created_at: date
 
 
@@ -150,6 +155,11 @@ class AthleteUpdate(BaseModel):
     training_goal: Optional[str] = None
     notes: Optional[str] = None
     athlete_level: Optional[str] = None
+    training_hr_max: Optional[int] = Field(default=None, ge=100, le=230)
+    hr_rest: Optional[int] = Field(default=None, ge=20, le=100)
+    ftp_cycling_watts: Optional[int] = Field(default=None, ge=50, le=600)
+    ftpa_running_pace: Optional[float] = Field(default=None, ge=120, le=600)
+    css_swimming_pace: Optional[float] = Field(default=None, ge=50, le=300)
 
 
 class AthleteRead(AthleteBase):

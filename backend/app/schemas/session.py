@@ -82,6 +82,7 @@ class SessionBase(BaseModel):
     power_source: Optional[str] = None
     session_type: str
     goal: str
+    session_heart_rate_max: Optional[int] = Field(default=None, ge=0)
     surface: Optional[str] = None
     temperature_c: Optional[float] = None
     comments: Optional[str] = None
@@ -97,6 +98,7 @@ class SessionUpdate(BaseModel):
     power_source: Optional[str] = None
     session_type: Optional[str] = None
     goal: Optional[str] = None
+    session_heart_rate_max: Optional[int] = Field(default=None, ge=0)
     surface: Optional[str] = None
     temperature_c: Optional[float] = None
     comments: Optional[str] = None

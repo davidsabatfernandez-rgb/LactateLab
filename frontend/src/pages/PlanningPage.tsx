@@ -6,6 +6,7 @@ import { api } from "../lib/api";
 import type {
   Athlete,
   AthleteAnalysis,
+  DailyTrainingLoad,
   PlanningMesocycleDraftSession,
   PlanningOverview,
   PlanningPlannedSession,
@@ -18,6 +19,7 @@ import type {
   CalendarMesocycleOption,
   CalendarMonthSection,
   CalendarWorkspaceTab,
+  GarminCalendarActivity,
   OpenWorkoutPreviewState,
   PlanningCalendarSource,
   PlanningSourceModalState,
@@ -47,8 +49,9 @@ import {
   BLOCK_LABELS, buildDraftWorkoutPreviewSelection, buildLibraryWorkoutPreview,
   buildMicrocycle, buildPersistedCalendarSessions, buildPlannedWorkoutPreviewSelection,
   buildSyntheticCalendarSessions, buildSyntheticCalendarWorkoutPreview,
-  defaultPhaseForRecommendation, detectedBlockTitle, durationInterpretation,
-  energySystemFocusForRecommendation, objectiveFromTemplate, objectiveOptionsForDiscipline,
+  computeSessionCompliance, defaultPhaseForRecommendation, detectedBlockTitle,
+  durationInterpretation, energySystemFocusForRecommendation, garminSportToDiscipline,
+  objectiveFromTemplate, objectiveOptionsForDiscipline,
   phaseOptionsForRecommendation, resolveMesocycleTemplateForSource, resolveWorkoutTemplate,
   weaknessOptionsForDiscipline, workoutLayerForTemplate,
 } from "../planning/utils-workout";
@@ -139,7 +142,8 @@ function PlanningPageInner() {
     plannedSessionStructuredPreview, plannedSessionStructuredPreviewLoading,
     plannedSessionStructuredPreviewError, plannedSessionRegeneratingId,
     planningSourceModal, calendarComposerDate, calendarQuickAdd,
-    loading, error, disciplineOverviews,
+    loading, error, disciplineOverviews, syntheticDateOverrides,
+    garminActivities, garminActivitiesLoading,
   } = state;
 
   // ── Computed values (same logic as before) ──
@@ -410,20 +414,87 @@ function PlanningPageInner() {
     [disciplineOverviews, overlaySources],
   );
 
+  const adjustedPlannedSessions = useMemo(() => {
+    if (!Object.keys(syntheticDateOverrides).length) return plannedSessions;
+    return plannedSessions.map((s) => {
+      const override = syntheticDateOverrides[s.id];
+      return override ? { ...s, date: override } : s;
+    });
+  }, [plannedSessions, syntheticDateOverrides]);
+
   const primaryEntries = useMemo<CalendarEntry[]>(
-    () => plannedSessions.map((session) => ({ ...session, layerDiscipline: selectedCalendarSource.discipline, isOverlay: false })),
-    [plannedSessions, selectedCalendarSource.discipline],
+    () => adjustedPlannedSessions.map((session) => ({ ...session, layerDiscipline: selectedCalendarSource.discipline, isOverlay: false })),
+    [adjustedPlannedSessions, selectedCalendarSource.discipline],
   );
 
   const sessionsByDate = useMemo(() => {
     const map = new Map<string, CalendarEntry[]>();
+    const today = isoDateFromToday();
+
+    // Index garmin activities by date+discipline for matching
+    const garminByDateDiscipline = new Map<string, GarminCalendarActivity[]>();
+    for (const act of garminActivities) {
+      const actDate = act.started_at.slice(0, 10);
+      const actDisc = garminSportToDiscipline(act.sport_type);
+      const key = `${actDate}|${actDisc}`;
+      const arr = garminByDateDiscipline.get(key) ?? [];
+      arr.push(act);
+      garminByDateDiscipline.set(key, arr);
+    }
+    const matchedActivityIds = new Set<number>();
+
+    // Build primary + overlay entries with Garmin enrichment
     [...primaryEntries, ...overlayEntries].forEach((session) => {
-      const current = map.get(session.date) ?? [];
-      current.push(session);
-      map.set(session.date, current);
+      const enriched = { ...session };
+      if (!session.isOverlay) {
+        const key = `${session.date}|${session.discipline}`;
+        const candidates = garminByDateDiscipline.get(key);
+        if (candidates?.length) {
+          const act = candidates.find((a) => !matchedActivityIds.has(a.provider_activity_id)) ?? null;
+          if (act) {
+            matchedActivityIds.add(act.provider_activity_id);
+            enriched.garminActivity = act;
+            enriched.compliance = computeSessionCompliance(session, act, today);
+          } else {
+            enriched.compliance = computeSessionCompliance(session, null, today);
+          }
+        } else {
+          enriched.compliance = computeSessionCompliance(session, null, today);
+        }
+      }
+      const current = map.get(enriched.date) ?? [];
+      current.push(enriched);
+      map.set(enriched.date, current);
     });
+
+    // Add unplanned Garmin activities (not matched to any session)
+    for (const act of garminActivities) {
+      if (matchedActivityIds.has(act.provider_activity_id)) continue;
+      const actDate = act.started_at.slice(0, 10);
+      const actDisc = garminSportToDiscipline(act.sport_type);
+      const extraEntry: CalendarEntry = {
+        id: `garmin-extra-${act.provider_activity_id}`,
+        date: actDate,
+        discipline: actDisc,
+        title: act.sport_type.replace(/_/g, " "),
+        sessionType: "extra",
+        objective: "",
+        description: "",
+        dose: "",
+        confidence: "media",
+        estimatedMinutes: Math.round(act.moving_time_seconds / 60),
+        garminActivity: act,
+        compliance: { status: "unplanned", reasons: [] },
+        layerDiscipline: actDisc,
+        isOverlay: false,
+      };
+      const current = map.get(actDate) ?? [];
+      current.push(extraEntry);
+      map.set(actDate, current);
+    }
+
     return map;
-  }, [overlayEntries, primaryEntries]);
+  }, [overlayEntries, primaryEntries, garminActivities]);
 
   useEffect(() => {
     const initialDate = plannedSessions[0]?.date ?? selectedCalendarSource.startDate;
@@ -444,6 +515,77 @@ function PlanningPageInner() {
     if (selectedCalendarDate && params.get("calDate") !== selectedCalendarDate) { params.set("calDate", selectedCalendarDate); changed = true; }
     if (changed) setSearchParams(params, { replace: true });
   }, [calendarPanelOpen, calendarVisualMode, selectedCalendarDate, searchParams, setSearchParams]);
+
+  // ── Fetch Garmin activities for visible range ──
+
+  useEffect(() => {
+    if (!calendarPanelOpen || !athleteId) return;
+    let cancelled = false;
+    const fetchGarmin = async () => {
+      // Determine visible range based on calendar mode
+      const rangeStart = calendarVisualMode === "week"
+        ? startOfWeek(selectedCalendarDate || selectedCalendarSource.startDate)
+        : calendarMonth;
+      const rangeEnd = calendarVisualMode === "week"
+        ? addDays(rangeStart, 6)
+        : addDays(addMonths(calendarMonth, 1), -1);
+
+      dispatch({ type: "SET_GARMIN_ACTIVITIES_LOADING", payload: true });
+      try {
+        const result = await api.garminPreview(token, Number(athleteId), rangeStart, rangeEnd);
+        if (cancelled) return;
+        const activities: GarminCalendarActivity[] = (result.activities || []).map((a: Record<string, unknown>) => ({
+          provider_activity_id: Number(a.provider_activity_id ?? a.activityId ?? 0),
+          sport_type: String(a.sport_type ?? a.activityType ?? ""),
+          started_at: String(a.started_at ?? a.startTimeLocal ?? ""),
+          distance_m: Number(a.distance_m ?? a.distance ?? 0),
+          moving_time_seconds: Number(a.moving_time_seconds ?? a.movingDuration ?? a.duration ?? 0),
+          average_heartrate: a.average_heartrate != null ? Number(a.average_heartrate) : (a.averageHR != null ? Number(a.averageHR) : null),
+          max_heartrate: a.max_heartrate != null ? Number(a.max_heartrate) : (a.maxHR != null ? Number(a.maxHR) : null),
+          average_watts: a.average_watts != null ? Number(a.average_watts) : null,
+        }));
+        dispatch({ type: "SET_GARMIN_ACTIVITIES", payload: activities });
+      } catch {
+        // Silently ignore — athlete may not have Garmin connected
+        if (!cancelled) dispatch({ type: "SET_GARMIN_ACTIVITIES", payload: [] });
+      } finally {
+        if (!cancelled) dispatch({ type: "SET_GARMIN_ACTIVITIES_LOADING", payload: false });
+      }
+    };
+    fetchGarmin();
+    return () => { cancelled = true; };
+  }, [calendarPanelOpen, athleteId, token, calendarVisualMode, selectedCalendarDate, calendarMonth, selectedCalendarSource.startDate, dispatch]);
+
+  // ── Fetch Training Load for visible range ──
+
+  useEffect(() => {
+    if (!calendarPanelOpen || !athleteId) return;
+    let cancelled = false;
+    const fetchTrainingLoad = async () => {
+      // Fetch a wide range: 90 days back from visible start to visible end
+      const visibleStart = calendarVisualMode === "week"
+        ? startOfWeek(selectedCalendarDate || selectedCalendarSource.startDate)
+        : calendarMonth;
+      const visibleEnd = calendarVisualMode === "week"
+        ? addDays(visibleStart, 6)
+        : addDays(addMonths(calendarMonth, 1), -1);
+      // Start 42 days before visible start for EWMA warmup context
+      const fetchStart = addDays(visibleStart, -42);
+
+      dispatch({ type: "SET_TRAINING_LOAD_LOADING", payload: true });
+      try {
+        const result = await api.trainingLoad(token, Number(athleteId), fetchStart, visibleEnd) as { days?: DailyTrainingLoad[] };
+        if (cancelled) return;
+        dispatch({ type: "SET_TRAINING_LOAD_DAYS", payload: result.days ?? [] });
+      } catch {
+        if (!cancelled) dispatch({ type: "SET_TRAINING_LOAD_DAYS", payload: [] });
+      } finally {
+        if (!cancelled) dispatch({ type: "SET_TRAINING_LOAD_LOADING", payload: false });
+      }
+    };
+    fetchTrainingLoad();
+    return () => { cancelled = true; };
+  }, [calendarPanelOpen, athleteId, token, calendarVisualMode, selectedCalendarDate, calendarMonth, selectedCalendarSource.startDate, dispatch]);
 
   // ── Threshold state ──
 

@@ -181,6 +181,17 @@ _ANC_CANDIDATE_EVENTS: frozenset[str] = frozenset({
     "pool_400", "hill_climb", "road_race", "road_tt_short",
 })
 
+# I3 — Eventos largos donde ANC aplica cuando hay estancamiento crónico.
+# Olbrecht SoW: "Even distance athletes with very low VLamax may need
+# anaerobic capacity work to break through plateaus — the glycolytic
+# system acts as a 'spark plug' for aerobic adaptations."
+_ANC_STAGNATION_EVENTS: frozenset[str] = frozenset({
+    "hm", "marathon", "70.3", "ironman",
+    "granfondo", "road_tt_long", "road_tt_medium",
+    "open_water_long",
+    "olympic_tri", "olympic_run", "olympic_bike",
+})
+
 # ── Eventos donde ANP es la prescripción pre-comp correcta ────────────────────
 # Olbrecht: "sprinters and middle distance athletes concentrate on ANP
 # in the competition training period; long distance athletes use AEP."
@@ -272,6 +283,9 @@ class PhysiologicalContext:
     weeks_to_goal: Optional[int]
     raw_curve_points: Optional[list[dict]] = None
     capacity_profile: Optional[CapacityProfile] = None
+    # I2 — Estancamiento crónico: True si ≥3 tests con <5% mejora en LT2
+    stagnation_detected: bool = False
+    stagnation_tests_count: int = 0
 
 
 @dataclass
@@ -835,6 +849,7 @@ def _apply_capacity_profile(
     season: str = "base_early",
     distance_category: Optional[str] = None,
     athlete_level: str = "trained",
+    stagnation_detected: bool = False,
 ) -> str:
     """Cualifica o refina el bloque recomendado con el perfil de capacidades.
 
@@ -883,6 +898,22 @@ def _apply_capacity_profile(
                         f"Perfil diesel (VLamax baja, ratio={ratio_str}) en prueba corta ({dist}). "
                         "Base tardía: desarrollar capacidad anaeróbica (ANC, Olbrecht) para "
                         "activar la glucólisis necesaria en la fase específica."
+                    )
+                    return "anaerobic_capacity_block"
+                elif (
+                    stagnation_detected
+                    and season in {"base_late", "specific"}
+                    and dist in _ANC_STAGNATION_EVENTS
+                    and athlete_level in {"trained", "competitive"}
+                ):
+                    # I3 — ANC para eventos largos con estancamiento crónico.
+                    # Olbrecht SoW: el sistema glucolítico actúa como "chispa"
+                    # para desbloquear adaptaciones aeróbicas estancadas.
+                    # Solo cuando hay evidencia de plateau (≥3 tests sin mejora).
+                    reasons.append(
+                        f"Estancamiento crónico detectado en perfil diesel (ratio={ratio_str}). "
+                        f"Evento largo ({dist}) pero la glucólisis baja limita las adaptaciones "
+                        "aeróbicas. ANC como estímulo de desbloqueo (Olbrecht: 'spark plug')."
                     )
                     return "anaerobic_capacity_block"
                 elif aerobic == "high":
@@ -1499,6 +1530,7 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
         recommended = _apply_capacity_profile(
             ctx.capacity_profile, recommended, reasons, season,
             ctx.distance_category, ctx.athlete_level,
+            stagnation_detected=ctx.stagnation_detected,
         )
 
     # ── Borderline gap detection ──────────────────────────────────────────────

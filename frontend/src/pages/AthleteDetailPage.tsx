@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useEffect, useState } from "react";
+import { FormEvent, ReactNode, useCallback, useEffect, useState } from "react";
 import {
   CartesianGrid,
   ComposedChart,
@@ -21,10 +21,13 @@ import { Link } from "react-router-dom";
 import { CurveChart } from "../components/CurveChart";
 import { GeneratePhysiologyReportButton } from "../components/GeneratePhysiologyReportButton";
 import { PhysiologyReportPreview } from "../components/PhysiologyReportPreview";
+import { TrainingZonesEditor, TrainingZonesDisplay } from "../components/TrainingZonesEditor";
+import "../components/training-zones.css";
 import { api } from "../lib/api";
 import { buildTargetObjective, targetCategoryLabel, targetCategoryOptions } from "../lib/targetCatalog";
 import { ResolvedTrainingThreshold, resolveTrainingThreshold } from "../lib/trainingThresholds";
 import {
+  Athlete,
   AthleteAnalysis,
   AthleteFocusBlock,
   AthleteFocusBlockEvaluation,
@@ -40,6 +43,7 @@ import {
   RealThresholds,
   ThresholdDetectionStatus,
   Threshold,
+  TrainingZoneSet,
 } from "../types";
 
 type PracticalChartReference = {
@@ -584,11 +588,22 @@ function racePredictionSummary(estimate: Estimate) {
   if (estimate.unit !== "s/km" || !distanceKm) {
     return null;
   }
+  // v2: use three-pace fields if available
+  const techo = estimate.ritmo_techo ?? estimate.lower_bound;
+  const objetivo = estimate.ritmo_objetivo ?? estimate.value;
+  const seguro = estimate.ritmo_seguro ?? estimate.upper_bound;
   return {
-    pace: formatPace(estimate.value),
-    totalTime: formatDuration(estimate.value * distanceKm),
-    lowerTime: estimate.lower_bound ? formatDuration(estimate.lower_bound * distanceKm) : "-",
-    upperTime: estimate.upper_bound ? formatDuration(estimate.upper_bound * distanceKm) : "-",
+    pace: formatPace(objetivo),
+    totalTime: formatDuration(objetivo * distanceKm),
+    techoTime: techo ? formatDuration(techo * distanceKm) : "-",
+    objetivoTime: formatDuration(objetivo * distanceKm),
+    seguroTime: seguro ? formatDuration(seguro * distanceKm) : "-",
+    techoPace: techo ? formatPace(techo) : "-",
+    objetivoPace: formatPace(objetivo),
+    seguroPace: seguro ? formatPace(seguro) : "-",
+    // legacy compat
+    lowerTime: techo ? formatDuration(techo * distanceKm) : "-",
+    upperTime: seguro ? formatDuration(seguro * distanceKm) : "-",
   };
 }
 
@@ -608,19 +623,22 @@ function estimateVisualRange(estimate: Estimate, athleteWeight?: number | null) 
   const raceSummary = racePredictionSummary(estimate);
   const distanceKm = raceDistanceKm(estimate.estimate_type);
   if (raceSummary && distanceKm) {
-    const bestSeconds = estimate.lower_bound ? estimate.lower_bound * distanceKm : estimate.value * distanceKm;
-    const conservativeSeconds = estimate.upper_bound ? estimate.upper_bound * distanceKm : estimate.value * distanceKm;
-    const currentSeconds = estimate.value * distanceKm;
+    const techo = estimate.ritmo_techo ?? estimate.lower_bound ?? estimate.value;
+    const seguro = estimate.ritmo_seguro ?? estimate.upper_bound ?? estimate.value;
+    const objetivo = estimate.ritmo_objetivo ?? estimate.value;
+    const bestSeconds = techo * distanceKm;
+    const conservativeSeconds = seguro * distanceKm;
+    const currentSeconds = objetivo * distanceKm;
     const span = Math.max(1, conservativeSeconds - bestSeconds);
     const position = ((conservativeSeconds - currentSeconds) / span) * 100;
     return {
       primary: raceSummary.totalTime,
       secondary: raceSummary.pace,
-      bestSecondaryLabel: formatPace(estimate.lower_bound ?? estimate.value),
-      conservativeSecondaryLabel: formatPace(estimate.upper_bound ?? estimate.value),
-      conservativeLabel: raceSummary.upperTime,
-      bestLabel: raceSummary.lowerTime,
-      markerLabel: "Estimado",
+      bestSecondaryLabel: formatPace(techo),
+      conservativeSecondaryLabel: formatPace(seguro),
+      conservativeLabel: raceSummary.seguroTime,
+      bestLabel: raceSummary.techoTime,
+      markerLabel: "Objetivo",
       position,
     };
   }
@@ -1273,8 +1291,10 @@ function buildRunningTargetInsight(params: {
   dynamicThresholds: DynamicThresholds | null;
   vo2maxEstimate?: Estimate;
   physiologicalAnalysis?: MesocycleRecommendation["physiological_analysis"] | null;
+  displayView?: DisciplineView;
 }): GoalMovementInsight {
-  const { target, estimatesByType, lt1, lt2, dynamicThresholds, vo2maxEstimate, physiologicalAnalysis } = params;
+  const { target, estimatesByType, lt1, lt2, dynamicThresholds, vo2maxEstimate, physiologicalAnalysis, displayView } = params;
+  const tc = displayView?.target_curve;
   const triathlonRace = target.discipline === "triatlón" ? parseTriathlonDistanceLabel(target.distance_label) : null;
   const targetLabel = buildTargetObjective({ category: target.distance_category, distanceLabel: target.distance_label, fallback: target.objective });
   const distanceKm = triathlonRace?.runKm ?? parseDistanceKm(target.distance_label || targetLabel);
@@ -1407,27 +1427,55 @@ function buildRunningTargetInsight(params: {
 
   const focuses: GoalMovementFocus[] = prioritizeLt1 ? [lt1Focus, lt2Focus] : [lt2Focus, lt1Focus];
 
-  if (!longEvent && vo2maxEstimate) {
+  if (vo2maxEstimate || tc?.gap?.vo2max) {
+    const vo2Gap = tc?.gap?.vo2max;
+    const vo2Current = vo2maxEstimate?.value ?? vo2Gap?.current;
+    const vo2Target = vo2Gap?.target;
+    const vo2Delta = vo2Gap?.delta;
+    const vo2Sufficient = vo2Delta !== undefined && vo2Delta !== null && vo2Delta <= 0;
     focuses.push({
       label: "VO2max",
-      current: `${Math.round(vo2maxEstimate.value * 10) / 10} ml/kg/min`,
-      tone: paceGap !== null && paceGap <= 4 ? "neutral" : "negative",
-      description: "En objetivos más cortos, el techo aeróbico también tiene que acompañar. No sustituye a LT2, pero sí ayuda a empujarlo hacia arriba.",
+      current: vo2Current ? `${Math.round(vo2Current * 10) / 10} ml/kg/min` : "Sin estimar",
+      target: vo2Target ? `${Math.round(vo2Target * 10) / 10} ml/kg/min` : undefined,
+      delta: vo2Delta !== undefined && vo2Delta !== null
+        ? vo2Sufficient
+          ? `Suficiente (+${Math.abs(vo2Delta).toFixed(1)} ml/kg/min de margen)`
+          : `Faltan ${vo2Delta.toFixed(1)} ml/kg/min`
+        : undefined,
+      tone: vo2Sufficient ? "positive" : paceGap !== null && paceGap <= 4 ? "neutral" : "negative",
+      description: vo2Sufficient
+        ? "El techo aerobico ya cubre el objetivo. El cuello de botella esta en los umbrales, no en la capacidad maxima."
+        : longEvent
+          ? "Aunque en larga distancia los umbrales pesan mas, el VO2max tiene que acompanar. Si el techo no llega, los umbrales tampoco pueden subir indefinidamente."
+          : "En objetivos mas cortos, el techo aerobico es una palanca directa. No sustituye a LT2, pero si ayuda a empujarlo hacia arriba.",
     });
   }
 
+  // Use target_curve (di Prampero model) lactate values when available — these are
+  // the athlete's individual lactate levels at their real thresholds (Olbrecht principle).
+  const tcLt1Lac = tc?.lt1_lactate_used ?? lt1?.lactate ?? 2.0;
+  const tcLt2Lac = tc?.lt2_lactate_used ?? lt2?.lactate ?? 4.0;
+  // Prefer target_curve LT paces when available (physiological model > heuristic factors)
+  const scenarioLt1Target = tc?.target_lt1_pace ?? targetLt1Pace;
+  const scenarioLt2Target = tc?.target_lt2_pace ?? targetLt2Pace;
+
+  const scenarioDescription = tc
+    ? `Modelo di Prampero + Daniels: VO2max necesario ${tc.vo2max_needed} ml/kg/min, F(${Math.round(tc.race_duration_min)}min) = ${(tc.fractional_utilization * 100).toFixed(1)}%. ` +
+      `Lactatos individuales del atleta (LT1 ${tcLt1Lac.toFixed(1)}, LT2 ${tcLt2Lac.toFixed(1)} mmol).`
+    : useBackendTargets
+      ? "Visualización directa de los umbrales requeridos que está usando el selector de mesociclo. Si falta alguna ancla, no se inventa."
+      : "Proyección conservadora con anclas LT1 y LT2. La línea objetivo es una referencia de trabajo, no un test medido.";
+
   const scenario = buildGoalScenario(
     "Escenario objetivo de lactato",
-    useBackendTargets
-      ? "Visualización directa de los umbrales requeridos que está usando el selector de mesociclo. Si falta alguna ancla, no se inventa."
-      : "Proyección conservadora con anclas LT1 y LT2. La línea objetivo es una referencia de trabajo, no un test medido.",
+    scenarioDescription,
     "Ritmo",
     true,
     [
-      goalScenarioPoint("LT1 actual", "Actual", currentLt1Pace, lt1?.lactate ?? 2.0),
-      goalScenarioPoint("LT2 actual", "Actual", currentLt2Pace, lt2?.lactate ?? 4.0),
-      goalScenarioPoint("LT1 objetivo", "Objetivo", targetLt1Pace, 2.0),
-      goalScenarioPoint("LT2 objetivo", "Objetivo", targetLt2Pace, 4.0),
+      goalScenarioPoint("LT1 actual", "Actual", currentLt1Pace, lt1?.lactate ?? tcLt1Lac),
+      goalScenarioPoint("LT2 actual", "Actual", currentLt2Pace, lt2?.lactate ?? tcLt2Lac),
+      goalScenarioPoint("LT1 objetivo", "Objetivo", scenarioLt1Target, tcLt1Lac),
+      goalScenarioPoint("LT2 objetivo", "Objetivo", scenarioLt2Target, tcLt2Lac),
     ],
   );
 
@@ -1439,6 +1487,8 @@ function buildRunningTargetInsight(params: {
     "La prioridad cambia con la distancia: cuanto más larga la prueba, más pesa la carga sostenible a lactatos bajos y la durabilidad; cuanto más corta, más manda LT2 y el techo aeróbico.",
     ...(target.discipline === "triatlón" ? ["Lectura aplicada solo al segmento de carrera a pie del triatlón objetivo."] : []),
     ...(raceEstimate?.low_evidence ? ["La estimación específica de esta distancia todavía tiene evidencia limitada."] : []),
+    ...(tc?.vlamax_note ? [tc.vlamax_note] : []),
+    ...(tc ? tc.explanation.slice(0, 3) : []),
     ...(target.notes ? [target.notes] : []),
   ];
 
@@ -1788,6 +1838,7 @@ function buildTargetMovementInsight(params: {
       dynamicThresholds,
       vo2maxEstimate,
       physiologicalAnalysis,
+      displayView,
     });
   }
 
@@ -2181,6 +2232,201 @@ function parseMinPerKm(value: string) {
   return minutes * 60 + seconds;
 }
 
+// ── Training Zones section (inline component) ──────────────────────────────
+
+function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: number; discipline: string; token: string }) {
+  const [zoneSets, setZoneSets] = useState<TrainingZoneSet[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editingSet, setEditingSet] = useState<TrainingZoneSet | null>(null);
+
+  const loadZones = useCallback(() => {
+    setLoading(true);
+    api.trainingZoneSets(token, athleteId, discipline)
+      .then((data) => setZoneSets(data as TrainingZoneSet[]))
+      .catch(() => setZoneSets([]))
+      .finally(() => setLoading(false));
+  }, [token, athleteId, discipline]);
+
+  useEffect(() => { loadZones(); }, [loadZones]);
+
+  const activeSet = zoneSets.find((zs) => zs.is_active) ?? null;
+
+  if (editing) {
+    return (
+      <TrainingZonesEditor
+        athleteId={athleteId}
+        discipline={discipline}
+        token={token}
+        existingSet={editingSet}
+        onSave={() => { setEditing(false); setEditingSet(null); loadZones(); }}
+        onCancel={() => { setEditing(false); setEditingSet(null); }}
+      />
+    );
+  }
+
+  if (loading) return <p style={{ color: "var(--muted)", fontSize: "0.84rem", margin: 0 }}>Cargando zonas...</p>;
+
+  if (!activeSet) {
+    return (
+      <div style={{ display: "grid", gap: 8 }}>
+        <p style={{ color: "var(--muted)", fontSize: "0.84rem", margin: 0 }}>
+          No hay zonas definidas para {discipline === "ciclismo" ? "ciclismo" : discipline === "natación" ? "natación" : "carrera a pie"}.
+        </p>
+        <button
+          type="button"
+          className="tz-suggest-btn"
+          onClick={() => { setEditingSet(null); setEditing(true); }}
+        >
+          Crear zonas de entrenamiento
+        </button>
+        {zoneSets.length > 0 ? (
+          <details style={{ fontSize: "0.78rem", color: "var(--muted)" }}>
+            <summary>{zoneSets.length} conjunto{zoneSets.length > 1 ? "s" : ""} archivado{zoneSets.length > 1 ? "s" : ""}</summary>
+            <div style={{ display: "grid", gap: 4, marginTop: 6 }}>
+              {zoneSets.map((zs) => (
+                <div key={zs.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span>{zs.name}</span>
+                  <button type="button" className="tz-edit-btn" onClick={() => {
+                    api.activateTrainingZoneSet(token, athleteId, zs.id).then(() => loadZones());
+                  }}>Activar</button>
+                </div>
+              ))}
+            </div>
+          </details>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      <TrainingZonesDisplay
+        zoneSet={activeSet}
+        discipline={discipline}
+        onEdit={() => { setEditingSet(activeSet); setEditing(true); }}
+      />
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button type="button" className="tz-suggest-btn" onClick={() => { setEditingSet(null); setEditing(true); }}>
+          Crear nuevo conjunto
+        </button>
+        {zoneSets.length > 1 ? (
+          <details style={{ fontSize: "0.78rem", color: "var(--muted)" }}>
+            <summary>{zoneSets.length - 1} más</summary>
+            <div style={{ display: "grid", gap: 4, marginTop: 6 }}>
+              {zoneSets.filter((zs) => zs.id !== activeSet.id).map((zs) => (
+                <div key={zs.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span>{zs.name}</span>
+                  <button type="button" className="tz-edit-btn" onClick={() => {
+                    api.activateTrainingZoneSet(token, athleteId, zs.id).then(() => loadZones());
+                  }}>Activar</button>
+                </div>
+              ))}
+            </div>
+          </details>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+// ── Functional Thresholds Editor ────────────────────────────────────────────
+
+function paceToSeconds(pace: string): number | null {
+  const parts = pace.trim().split(":");
+  if (parts.length !== 2) return null;
+  const min = parseInt(parts[0], 10);
+  const sec = parseInt(parts[1], 10);
+  if (isNaN(min) || isNaN(sec)) return null;
+  return min * 60 + sec;
+}
+
+function secondsToPace(seconds: number | null | undefined): string {
+  if (!seconds || seconds <= 0) return "";
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function FunctionalThresholdsEditor({ athlete, token }: { athlete: Athlete; token: string }) {
+  const [ftpWatts, setFtpWatts] = useState(athlete.ftp_cycling_watts?.toString() ?? "");
+  const [rftpaPace, setRftpaPace] = useState(secondsToPace(athlete.ftpa_running_pace));
+  const [cssPace, setCssPace] = useState(secondsToPace(athlete.css_swimming_pace));
+  const [hrRest, setHrRest] = useState(athlete.hr_rest?.toString() ?? "");
+  const [saving, setSaving] = useState(false);
+  const [savedField, setSavedField] = useState<string | null>(null);
+
+  async function saveField(field: string, value: unknown) {
+    setSaving(true);
+    setSavedField(null);
+    try {
+      await api.updateAthlete(token, athlete.id, { [field]: value || null });
+      setSavedField(field);
+      setTimeout(() => setSavedField(null), 2000);
+    } catch {
+      // Silently fail — field will keep its old value
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="ad-functional-thresholds" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem", padding: "0.75rem 0" }}>
+      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FTP Ciclismo (W)</span>
+        <input
+          type="number"
+          placeholder="Sin dato"
+          value={ftpWatts}
+          onChange={(e) => setFtpWatts(e.target.value)}
+          onBlur={() => { const v = parseInt(ftpWatts, 10); saveField("ftp_cycling_watts", isNaN(v) ? null : v); }}
+          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+        />
+        {savedField === "ftp_cycling_watts" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
+      </label>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>rFTPa Running (mm:ss/km)</span>
+        <input
+          type="text"
+          placeholder="ej. 4:45"
+          value={rftpaPace}
+          onChange={(e) => setRftpaPace(e.target.value)}
+          onBlur={() => { const v = paceToSeconds(rftpaPace); saveField("ftpa_running_pace", v); }}
+          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+        />
+        {savedField === "ftpa_running_pace" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
+      </label>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>CSS Natación (mm:ss/100m)</span>
+        <input
+          type="text"
+          placeholder="ej. 1:35"
+          value={cssPace}
+          onChange={(e) => setCssPace(e.target.value)}
+          onBlur={() => { const v = paceToSeconds(cssPace); saveField("css_swimming_pace", v); }}
+          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+        />
+        {savedField === "css_swimming_pace" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
+      </label>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FC Reposo (bpm)</span>
+        <input
+          type="number"
+          placeholder="Sin dato"
+          value={hrRest}
+          onChange={(e) => setHrRest(e.target.value)}
+          onBlur={() => { const v = parseInt(hrRest, 10); saveField("hr_rest", isNaN(v) ? null : v); }}
+          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+        />
+        {savedField === "hr_rest" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
+      </label>
+    </div>
+  );
+}
+
 type AthleteDetailPageProps = {
   analysis: AthleteAnalysis | null;
   token: string;
@@ -2196,6 +2442,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const [performedAt, setPerformedAt] = useState(new Date().toISOString().slice(0, 16));
   const [discipline, setDiscipline] = useState("running");
   const [sessionBaselineLactate, setSessionBaselineLactate] = useState("");
+  const [sessionHeartRateMax, setSessionHeartRateMax] = useState("");
   const [sessionPowerSource, setSessionPowerSource] = useState("outdoor");
   const [sessionType, setSessionType] = useState("test incremental");
   const [goal, setGoal] = useState("Registro manual de lactato");
@@ -2646,8 +2893,8 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     ...(targetMovementInsight ? [{ id: "goal-gap", label: "Qué mover para el objetivo", shortLabel: "Objetivo" }] : []),
     ...(activeDiscipline === "ciclismo" && displayView.measurement_log.length ? [{ id: "cycling-insights", label: "Insights de ciclismo", shortLabel: "Ciclismo" }] : []),
     ...(dynamicThresholds ? [{ id: "dynamic-references", label: "Referencias dinámicas", shortLabel: "Dinámicas" }] : []),
+    { id: "training-zones", label: "Zonas de entrenamiento", shortLabel: "Zonas" },
     { id: "estimates", label: "Referencias estimadas", shortLabel: "Estimadas" },
-    { id: "history", label: "Evolución histórica", shortLabel: "Histórico" },
     { id: "measurements", label: "Histórico de muestras", shortLabel: "Muestras" },
   ];
   const summaryCards = [
@@ -2782,6 +3029,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const relevantEstimates = Array.from(latestEstimateByType(athleteEstimatePool).values())
     .filter((estimate) => allowedEstimateTypes.includes(estimate.estimate_type))
     .filter((estimate) => estimate.discipline === activeDiscipline)
+    .filter((estimate) => estimate.estimate_type !== "VO2MAX")
     .sort((a, b) => relevantEstimateRank(a.estimate_type) - relevantEstimateRank(b.estimate_type));
   const selectedRelevantEstimate =
     relevantEstimates.find((estimate) => estimate.estimate_type === selectedEstimateType) ?? relevantEstimates[0] ?? null;
@@ -3094,6 +3342,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         power_source: discipline === "ciclismo" ? sessionPowerSource : null,
         session_type: sessionType,
         goal,
+        session_heart_rate_max: sessionHeartRateMax ? Number(sessionHeartRateMax) : null,
         surface: surface || null,
         temperature_c: temperature ? Number(temperature) : null,
         comments: comments || null,
@@ -3130,6 +3379,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       setSurface("");
       setTemperature("");
       setSessionBaselineLactate("");
+      setSessionHeartRateMax("");
       setLactateOverlayOpen(false);
       await onSaved();
     } catch (error) {
@@ -3916,6 +4166,16 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                 />
               </label>
               <label>
+                FC máx entreno (bpm)
+                <input
+                  type="number"
+                  min="0"
+                  value={sessionHeartRateMax}
+                  onChange={(event) => setSessionHeartRateMax(event.target.value)}
+                  placeholder="Opcional"
+                />
+              </label>
+              <label>
                 Número de bloques
                 <input type="number" min="1" value={blocksCount} onChange={(event) => applyBlocksCount(event.target.value)} />
               </label>
@@ -4347,6 +4607,24 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               </div>
             ) : null}
           </div>
+          <div className="hero-summary-inline">
+            <div className="athlete-detail-summary-grid">
+              {summaryCards.map((card) => (
+                <article key={card.label} className={`athlete-detail-summary-card ${card.tone}`}>
+                  <span className="eyebrow">{card.label}</span>
+                  <strong>{card.value}</strong>
+                  <small>{card.detail}</small>
+                </article>
+              ))}
+            </div>
+            <div className="athlete-detail-section-nav ad-section-nav" aria-label="Secciones del análisis">
+              {sectionLinks.map((link) => (
+                <button key={link.id} type="button" className="athlete-detail-section-pill ad-section-link" onClick={() => scrollToSection(link.id)} title={link.label}>
+                  {link.shortLabel}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="hero-focus-stack">
           <article className="hero-focus-card current">
@@ -4426,31 +4704,6 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         </div>
       </section>
 
-      <section className="card athlete-detail-nav-card">
-        <div className="athlete-detail-nav-head">
-          <div>
-            <span className="eyebrow">Lectura rápida</span>
-            <h2>Resumen del atleta</h2>
-          </div>
-          <small>Salta a cada bloque sin recorrer toda la página.</small>
-        </div>
-        <div className="athlete-detail-summary-grid">
-          {summaryCards.map((card) => (
-            <article key={card.label} className={`athlete-detail-summary-card ${card.tone}`}>
-              <span className="eyebrow">{card.label}</span>
-              <strong>{card.value}</strong>
-              <small>{card.detail}</small>
-            </article>
-          ))}
-        </div>
-        <div className="athlete-detail-section-nav ad-section-nav" aria-label="Secciones del análisis">
-          {sectionLinks.map((link) => (
-            <button key={link.id} type="button" className="athlete-detail-section-pill ad-section-link" onClick={() => scrollToSection(link.id)} title={link.label}>
-              {link.shortLabel}
-            </button>
-          ))}
-        </div>
-      </section>
 
       {/* Botón de interpolación ciclismo desde running */}
       {activeDiscipline === "ciclismo" && !visibleThresholdCards.length && analysis?.discipline_views?.running && (
@@ -4563,14 +4816,26 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                   <small>
                     LT2 al {Math.round(displayView.swain_vo2max.fractional_utilization * 100)}% del techo · FC {displayView.swain_vo2max.lt2_hr_used ?? "?"}/{displayView.swain_vo2max.hr_max_used ?? "?"} bpm
                   </small>
+                ) : raceSummary ? (
+                  <>
+                    <small>
+                      Techo {raceSummary.techoPace} · Objetivo {raceSummary.objetivoPace} · Seguro {raceSummary.seguroPace}
+                    </small>
+                    <small>
+                      Tiempo {raceSummary.techoTime} - {raceSummary.seguroTime}
+                    </small>
+                  </>
                 ) : (
                   <small>
-                    {raceSummary ? "Ritmo " : ""}
                     Mejor {visualRange.bestSecondaryLabel} · Conservador {visualRange.conservativeSecondaryLabel}
                   </small>
                 )}
-                {raceSummary ? <small>IC tiempo {raceSummary.lowerTime} - {raceSummary.upperTime}</small> : null}
-                <small>{estimate.low_evidence ? "Evidencia limitada" : "Evidencia suficiente"}</small>
+                {estimate.glycogen_risk ? (
+                  <small style={{ color: estimate.glycogen_risk.level === "high" ? "#c53030" : estimate.glycogen_risk.level === "moderate" ? "#c05621" : "#2f855a" }}>
+                    {estimate.glycogen_risk.level === "high" ? "⚠ " : ""}Glucógeno: {estimate.glycogen_risk.level}
+                  </small>
+                ) : null}
+                <small>{estimate.low_evidence ? "Evidencia limitada" : "Evidencia suficiente"}{estimate.quality_score != null ? ` · Q ${Math.round(estimate.quality_score * 100)}%` : ""}</small>
               </article>
             );
           })}
@@ -5044,9 +5309,9 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                   )
                 ) : plotView.pool.length ? (
                   /* Standard lactate scatter chart */
-                  <ResponsiveContainer width="100%" height={360}>
+                  <ResponsiveContainer width="100%" height={420}>
                     <ScatterChart margin={{ top: 16, right: 20, bottom: 16, left: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.07)" />
                       <XAxis
                         type="number"
                         dataKey="x"
@@ -5065,7 +5330,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                           x2={plotLt2X ?? undefined}
                           y1={Math.min(plotView.lt1.lactate ?? 0, plotView.lt2.lactate ?? 0)}
                           y2={Math.max(plotView.lt1.lactate ?? 0, plotView.lt2.lactate ?? 0)}
-                          fill="rgba(210, 106, 54, 0.10)"
+                          fill="rgba(210, 106, 54, 0.14)"
                           strokeOpacity={0}
                         />
                       ) : null}
@@ -5073,7 +5338,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                         <ReferenceLine
                           x={plotLt1X}
                           stroke="#257a4d"
-                          strokeWidth={3}
+                          strokeWidth={3.5}
                           strokeDasharray={plotView.lt1 ? "10 4" : "4 6"}
                         />
                       ) : null}
@@ -5081,7 +5346,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                         <ReferenceLine
                           x={plotLt2X}
                           stroke="#d26a36"
-                          strokeWidth={3}
+                          strokeWidth={3.5}
                           strokeDasharray={plotView.lt2 ? "10 4" : "4 6"}
                         />
                       ) : null}
@@ -5153,7 +5418,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                           </>
                         ) : null;
                       })()}
-                      <Scatter data={plotView.pool} fill="rgba(22, 53, 61, 0.22)" />
+                      <Scatter data={plotView.pool} fill="rgba(22, 53, 61, 0.35)" />
                       {plotView.lt1 ? <Scatter data={plotView.plotData.filter((point) => point.name === "LT1")} fill="#257a4d" shape="circle" /> : null}
                       {plotView.lt2 ? <Scatter data={plotView.plotData.filter((point) => point.name === "LT2")} fill="#d26a36" shape="circle" /> : null}
                       {thresholdReferenceVisibility.lt1Candidate ? <Scatter data={plotView.candidatePlotData.filter((point) => point.name.startsWith("LT1"))} fill="#257a4d" shape="diamond" /> : null}
@@ -5166,6 +5431,35 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                       ) : null}
                       {!plotView.lt2 && plotView.provisionalLt2 ? (
                         <Scatter data={plotView.provisionalPlotData.filter((point) => point.name === "LT2 provisional")} fill="#d26a36" shape="star" />
+                      ) : null}
+                      {/* Target curve overlay */}
+                      {plotView.view.target_curve?.curve_points?.length ? (
+                        <Scatter
+                          data={plotView.view.target_curve.curve_points}
+                          fill="none"
+                          line={{ stroke: "#6366f1", strokeWidth: 2, strokeDasharray: "6 4" }}
+                          shape={<circle r={0} />}
+                          name="Curva objetivo"
+                          legendType="none"
+                        />
+                      ) : null}
+                      {plotView.view.target_curve?.target_lt2_pace ? (
+                        <ReferenceLine
+                          x={plotView.view.target_curve.target_lt2_pace}
+                          stroke="#6366f1"
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                          label={{ value: "LT2 obj", position: "top", fill: "#6366f1", fontSize: 10 }}
+                        />
+                      ) : null}
+                      {plotView.view.target_curve?.target_lt1_pace ? (
+                        <ReferenceLine
+                          x={plotView.view.target_curve.target_lt1_pace}
+                          stroke="#818cf8"
+                          strokeWidth={1.5}
+                          strokeDasharray="4 4"
+                          label={{ value: "LT1 obj", position: "top", fill: "#818cf8", fontSize: 10 }}
+                        />
                       ) : null}
                     </ScatterChart>
                   </ResponsiveContainer>
@@ -5237,148 +5531,146 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         </div>
       </section>
 
-      <section id="goal-gap" className="card goal-movement-card athlete-detail-anchor ad-section">
-        <div className="card-header">
-          <div>
-            <span className="eyebrow">Objetivo activo</span>
-            <h2>Qué tiene que moverse para cumplirlo</h2>
-            <p className="muted">
-              Lectura aplicada a la disciplina visible ahora mismo. El bloque prioriza el objetivo más relevante guardado para esta disciplina.
-            </p>
-          </div>
-          <button className="ghost-button" type="button" onClick={() => setTargetsOverlayOpen(true)}>
-            {targetMovementInsight ? "Editar objetivo" : "Definir objetivo"}
-          </button>
-        </div>
+      <section id="goal-gap" className="goal-v2 athlete-detail-anchor ad-section">
         {targetMovementInsight ? (
           <>
-            <div className="goal-movement-summary">
-              <article className="goal-movement-kpi">
-                <span className="eyebrow">Objetivo</span>
-                <strong>{targetMovementInsight.targetValue}</strong>
-                <small>{targetMovementInsight.target.objective}</small>
-              </article>
-              <article className="goal-movement-kpi">
-                <span className="eyebrow">Referencia actual</span>
-                <strong>{targetMovementInsight.currentValue}</strong>
-                <small>{targetMovementInsight.contextLabel}</small>
-              </article>
-              <article className="goal-movement-kpi">
-                <span className="eyebrow">Gap</span>
-                <strong>{targetMovementInsight.gapLabel}</strong>
-                <small>Objetivo {formatDate(targetMovementInsight.target.target_date)}</small>
-              </article>
+            {/* ── Hero strip ─────────────────────────────────── */}
+            <div className={`goal-v2-hero ${targetMovementInsight.tone}`}>
+              <div className="goal-v2-hero-left">
+                <div className="goal-v2-hero-badge">
+                  <span className={`goal-v2-tone-dot ${targetMovementInsight.tone}`} />
+                  <span className="goal-v2-hero-eyebrow">{targetMovementInsight.contextLabel}</span>
+                </div>
+                <h2 className="goal-v2-hero-title">{targetMovementInsight.targetValue}</h2>
+                <p className="goal-v2-hero-sub">{targetMovementInsight.target.objective}</p>
+              </div>
+              <div className="goal-v2-hero-right">
+                <div className="goal-v2-hero-metric">
+                  <span className="goal-v2-label">Ahora</span>
+                  <strong>{targetMovementInsight.currentValue}</strong>
+                </div>
+                <div className="goal-v2-hero-metric goal-v2-hero-gap">
+                  <span className="goal-v2-label">Gap</span>
+                  <strong>{targetMovementInsight.gapLabel}</strong>
+                  <small>{formatDate(targetMovementInsight.target.target_date)}</small>
+                </div>
+                <button className="ghost-button" type="button" onClick={() => setTargetsOverlayOpen(true)}>
+                  Editar
+                </button>
+              </div>
             </div>
 
-            <div className={`goal-movement-banner ${targetMovementInsight.tone}`}>
-              <div className="status-head">
-                <strong>{targetMovementInsight.movementHeadline}</strong>
-                <span className={`status-badge ${targetMovementInsight.tone}`}>
-                  {targetMovementInsight.tone === "positive" ? "encaja" : targetMovementInsight.tone === "neutral" ? "cerca" : "gap"}
-                </span>
-              </div>
+            {/* ── Diagnosis banner ───────────────────────────── */}
+            <div className={`goal-v2-diagnosis ${targetMovementInsight.tone}`}>
+              <strong>{targetMovementInsight.movementHeadline}</strong>
               <p>{targetMovementInsight.summary}</p>
             </div>
 
-            <div className="goal-movement-grid">
-              {targetMovementInsight.focuses.map((focus) => (
-                <article key={`${focus.label}-${focus.current}-${focus.target ?? "na"}`} className={`goal-movement-focus-card ${focus.tone}`}>
-                  <div className="status-head">
-                    <span className="eyebrow">{focus.label}</span>
-                    <span className={`status-badge ${focus.tone}`}>{focus.tone === "positive" ? "ok" : focus.tone === "neutral" ? "vigilar" : "mover"}</span>
-                  </div>
-                  <strong>{focus.current}</strong>
-                  {focus.target ? <p>Objetivo fisiológico: {focus.target}</p> : null}
-                  {focus.delta ? <small>{focus.delta}</small> : null}
-                  <p className="goal-movement-copy">{focus.description}</p>
-                </article>
-              ))}
-            </div>
-
-            {targetMovementInsight.scenario ? (
-              <div className="goal-scenario-card">
-                <div className="goal-scenario-head">
-                  <div>
-                    <span className="eyebrow">Escenario objetivo</span>
-                    <strong>{targetMovementInsight.scenario.title}</strong>
-                  </div>
-                  <p className="muted">{targetMovementInsight.scenario.description}</p>
-                </div>
-                <div className="goal-scenario-legend">
-                  <span>
-                    <i className="actual" />
-                    Actual
-                  </span>
-                  <span>
-                    <i className="target" />
-                    Objetivo
-                  </span>
-                </div>
-                <div className="goal-scenario-chart">
-                  <ResponsiveContainer width="100%" height={280}>
-                    <ScatterChart margin={{ top: 16, right: 20, bottom: 12, left: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.12)" />
-                      <XAxis
-                        type="number"
-                        dataKey="x"
-                        name={targetMovementInsight.scenario.xLabel}
-                        reversed={targetMovementInsight.scenario.reversed}
-                        domain={["auto", "auto"]}
-                        tickFormatter={(value) => (activeDiscipline === "ciclismo" ? `${Math.round(value)}W` : formatPace(value))}
-                      />
-                      <YAxis
-                        type="number"
-                        dataKey="lactate"
-                        name="Lactato"
-                        unit=" mmol/L"
-                        domain={[1.6, 4.4]}
-                        ticks={[2, 3.1, 4]}
-                      />
-                      <Tooltip
-                        content={({ active, payload }) =>
-                          customGoalScenarioTooltip(
-                            active,
-                            payload as Array<{ payload?: Record<string, unknown> }> | undefined,
-                            activeDiscipline,
-                            athleteWeight,
-                          )
-                        }
-                      />
-                      <Scatter
-                        name="Actual"
-                        data={targetMovementInsight.scenario.points.filter((point) => point.series === "Actual")}
-                        fill="#16353d"
-                        line={{ stroke: "#16353d", strokeWidth: 2 }}
-                      />
-                      <Scatter
-                        name="Objetivo"
-                        data={targetMovementInsight.scenario.points.filter((point) => point.series === "Objetivo")}
-                        fill="#d26a36"
-                        line={{ stroke: "#d26a36", strokeWidth: 2, strokeDasharray: "6 4" }}
-                      />
-                    </ScatterChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            ) : null}
-
-            {targetMovementInsight.notes.length ? (
-              <div className="goal-movement-notes">
-                {targetMovementInsight.notes.map((note, index) => (
-                  <div key={`${note}-${index}`} className="goal-movement-note">
-                    <span className="caution-eyebrow">Nota</span>
-                    <p>{note}</p>
-                  </div>
+            {/* ── Two‑column: focuses + chart ────────────────── */}
+            <div className="goal-v2-body">
+              {/* Left: focus cards */}
+              <div className="goal-v2-focuses">
+                {targetMovementInsight.focuses.map((focus) => (
+                  <article key={`${focus.label}-${focus.current}-${focus.target ?? "na"}`} className={`goal-v2-focus ${focus.tone}`}>
+                    <div className="goal-v2-focus-head">
+                      <span className={`goal-v2-tone-dot ${focus.tone}`} />
+                      <span className="goal-v2-focus-label">{focus.label}</span>
+                      <span className={`goal-v2-focus-badge ${focus.tone}`}>
+                        {focus.tone === "positive" ? "ok" : focus.tone === "neutral" ? "vigilar" : "mover"}
+                      </span>
+                    </div>
+                    <div className="goal-v2-focus-values">
+                      <strong>{focus.current}</strong>
+                      {focus.target ? <span className="goal-v2-focus-arrow">&rarr; {focus.target}</span> : null}
+                    </div>
+                    {focus.delta ? <small className="goal-v2-focus-delta">{focus.delta}</small> : null}
+                    <p className="goal-v2-focus-copy">{focus.description}</p>
+                  </article>
                 ))}
               </div>
+
+              {/* Right: scenario chart */}
+              {targetMovementInsight.scenario ? (
+                <div className="goal-v2-chart-wrap">
+                  <div className="goal-v2-chart-head">
+                    <strong>{targetMovementInsight.scenario.title}</strong>
+                    <div className="goal-v2-chart-legend">
+                      <span><i className="goal-v2-legend-line actual" /> Actual</span>
+                      <span><i className="goal-v2-legend-line target" /> Objetivo</span>
+                    </div>
+                  </div>
+                  <div className="goal-v2-chart-body">
+                    <ResponsiveContainer width="100%" height={260}>
+                      <ScatterChart margin={{ top: 12, right: 16, bottom: 8, left: 4 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.10)" />
+                        <XAxis
+                          type="number"
+                          dataKey="x"
+                          name={targetMovementInsight.scenario.xLabel}
+                          reversed={targetMovementInsight.scenario.reversed}
+                          domain={["auto", "auto"]}
+                          tickFormatter={(value) => (activeDiscipline === "ciclismo" ? `${Math.round(value)}W` : formatPace(value))}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <YAxis
+                          type="number"
+                          dataKey="lactate"
+                          name="Lactato"
+                          unit=" mmol/L"
+                          domain={[0.8, "auto"]}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <Tooltip
+                          content={({ active, payload }) =>
+                            customGoalScenarioTooltip(
+                              active,
+                              payload as Array<{ payload?: Record<string, unknown> }> | undefined,
+                              activeDiscipline,
+                              athleteWeight,
+                            )
+                          }
+                        />
+                        <Scatter
+                          name="Actual"
+                          data={targetMovementInsight.scenario.points.filter((point) => point.series === "Actual")}
+                          fill="#16353d"
+                          line={{ stroke: "#16353d", strokeWidth: 2.5 }}
+                        />
+                        <Scatter
+                          name="Objetivo"
+                          data={targetMovementInsight.scenario.points.filter((point) => point.series === "Objetivo")}
+                          fill="#d26a36"
+                          line={{ stroke: "#d26a36", strokeWidth: 2.5, strokeDasharray: "6 4" }}
+                        />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <p className="goal-v2-chart-caption">{targetMovementInsight.scenario.description}</p>
+                </div>
+              ) : null}
+            </div>
+
+            {/* ── Notes footer ───────────────────────────────── */}
+            {targetMovementInsight.notes.length ? (
+              <details className="goal-v2-notes-toggle">
+                <summary>Notas del modelo ({targetMovementInsight.notes.length})</summary>
+                <div className="goal-v2-notes">
+                  {targetMovementInsight.notes.map((note, index) => (
+                    <p key={`${note.slice(0, 30)}-${index}`}>{note}</p>
+                  ))}
+                </div>
+              </details>
             ) : null}
           </>
         ) : (
-          <div className="goal-movement-empty">
-            <strong>Sin objetivo específico para esta disciplina</strong>
-            <p>
-              Guarda un objetivo de running, ciclismo o triatlón y este bloque te dirá qué ancla fisiológica tiene que moverse primero para acercarte.
-            </p>
+          <div className="goal-v2-empty">
+            <div>
+              <strong>Sin objetivo activo</strong>
+              <p>Define un objetivo de running, ciclismo o triatlón y el sistema te mostrará qué ancla fisiológica necesita moverse primero.</p>
+            </div>
+            <button className="ghost-button" type="button" onClick={() => setTargetsOverlayOpen(true)}>
+              Definir objetivo
+            </button>
           </div>
         )}
       </section>
@@ -5464,142 +5756,24 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         </section>
       ) : null}
 
-      {dynamicThresholds ? (
-        <section className="card section-card">
-          <div className="section-heading compact">
-            <span className="eyebrow">Temporalidad</span>
-            <h2 className="section-title ad-section-title">Agudo vs crónico</h2>
-          </div>
-          <div className="temporal-grid">
-            <div className="list-item temporal-card">
-              <strong className="info-line">Modelo agudo <InfoHint label="Usa la ventana corta del modelo, pensada para reflejar el estado reciente del atleta. Sirve para detectar fatiga, pico de forma o cambios rápidos." /></strong>
-              <p>Ventana: {dynamicThresholds.acute.based_on_days} días · {dynamicThresholds.acute.sessions_considered} sesiones</p>
-              <div className="temporal-bar-stack">
-                {[
-                  { label: "Confianza", value: dynamicThresholds.acute.confidence_score, tone: "neutral" },
-                  { label: "Fiabilidad", value: dynamicThresholds.acute.reliability_score, tone: "positive" },
-                  { label: "Validez", value: dynamicThresholds.acute.validity_score, tone: "warning" },
-                ].map((item) => (
-                  <div key={`acute-${item.label}`} className="temporal-bar-group">
-                    <div className="temporal-bar-head">
-                      <span>{item.label}</span>
-                      <strong>{Math.round(item.value * 100)}%</strong>
-                    </div>
-                    <div className="temporal-bar-track">
-                      <div className={`temporal-bar-fill ${item.tone}`} style={{ width: `${Math.max(0, Math.min(100, item.value * 100))}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            <div className="list-item temporal-card">
-              <strong className="info-line">Modelo crónico <InfoHint label="Usa una ventana más larga para describir la referencia más estable del atleta. Ayuda a separar tendencia real de ruido de pocas sesiones." /></strong>
-              <p>Ventana: {dynamicThresholds.chronic.based_on_days} días · {dynamicThresholds.chronic.sessions_considered} sesiones</p>
-              <div className="temporal-bar-stack">
-                {[
-                  { label: "Confianza", value: dynamicThresholds.chronic.confidence_score, tone: "neutral" },
-                  { label: "Fiabilidad", value: dynamicThresholds.chronic.reliability_score, tone: "positive" },
-                  { label: "Validez", value: dynamicThresholds.chronic.validity_score, tone: "warning" },
-                ].map((item) => (
-                  <div key={`chronic-${item.label}`} className="temporal-bar-group">
-                    <div className="temporal-bar-head">
-                      <span>{item.label}</span>
-                      <strong>{Math.round(item.value * 100)}%</strong>
-                    </div>
-                    <div className="temporal-bar-track">
-                      <div className={`temporal-bar-fill ${item.tone}`} style={{ width: `${Math.max(0, Math.min(100, item.value * 100))}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+      {/* ── Functional Thresholds (editable) ── */}
+      <section id="functional-thresholds" className="card section-card athlete-detail-anchor ad-section">
+        <div className="section-heading compact">
+          <span className="eyebrow">Datos de referencia</span>
+          <h2 className="section-title ad-section-title">Umbrales funcionales</h2>
+        </div>
+        <FunctionalThresholdsEditor athlete={analysis.athlete} token={token} />
+      </section>
 
-            <div className="list-item temporal-card temporal-comparison-card">
-              <strong className="info-line">Lectura comparativa <InfoHint label="Compara modelo agudo y crónico. Si el agudo se separa mucho, puede haber mejora puntual, fatiga reciente o sesiones poco comparables." /></strong>
-              <p>{dynamicThresholds.comparison.summary}</p>
-              <div className="temporal-bar-stack">
-                <div className="temporal-bar-group">
-                  <div className="temporal-bar-head">
-                    <span>
-                      Efecto muestral <InfoHint label="Expresa cuánto respaldo tiene la referencia por volumen de datos. Cuanto más alto, menos depende de unas pocas muestras." />
-                    </span>
-                    <strong>{Math.round(dynamicThresholds.chronic.sample_size_effect * 100)}%</strong>
-                  </div>
-                  <div className="temporal-bar-track">
-                    <div className="temporal-bar-fill positive" style={{ width: `${Math.max(0, Math.min(100, dynamicThresholds.chronic.sample_size_effect * 100))}%` }} />
-                  </div>
-                </div>
-                <div className="temporal-bar-group">
-                  <div className="temporal-bar-head">
-                    <span>
-                      Influencia de punto nuevo <InfoHint label="Expresa cuánto podría moverse el modelo si añades una nueva muestra comparable. Cuanto más bajo, más estable es la referencia actual." />
-                    </span>
-                    <strong>{Math.round(dynamicThresholds.chronic.point_influence_score * 100)}%</strong>
-                  </div>
-                  <div className="temporal-bar-track">
-                    <div className="temporal-bar-fill negative" style={{ width: `${Math.max(0, Math.min(100, dynamicThresholds.chronic.point_influence_score * 100))}%` }} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {dynamicThresholds ? (
-        <section className="card split-card">
-          <div>
-            <details className="insight-disclosure">
-              <summary className="insight-disclosure-summary">
-                <div>
-                  <span className="eyebrow">Lectura guiada</span>
-                  <h2 className="section-title ad-section-title">Cautelas</h2>
-                </div>
-                <small>{dynamicWarningCards.length ? `${dynamicWarningCards.length} avisos` : "Sin avisos"}</small>
-              </summary>
-              <div className="list caution-list insight-disclosure-body">
-                {dynamicWarningCards.length ? (
-                  dynamicWarningCards.map((warning) => (
-                    <div key={warning.title} className={`list-item caution-card ad-warning-card ${warning.tone}`}>
-                      <span className="caution-eyebrow ad-warning-eyebrow">{warning.eyebrow}</span>
-                      <strong className="ad-warning-title">{warning.title}</strong>
-                      <p className="ad-warning-body">{warning.body}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="muted">Sin warnings adicionales para esta ventana.</p>
-                )}
-              </div>
-            </details>
-          </div>
-          <div>
-            <details className="insight-disclosure">
-              <summary className="insight-disclosure-summary">
-                <div>
-                  <span className="eyebrow">Trazabilidad</span>
-                  <h2 className="section-title ad-section-title">Cómo se ha calculado</h2>
-                </div>
-                <small>{Math.min(dynamicThresholds.explanation.length, 8)} pasos</small>
-              </summary>
-              <div className="list explanation-list insight-disclosure-body">
-                {dynamicThresholds.explanation.slice(0, 8).map((item, index) => (
-                  <div key={`${item}-${index}`} className="list-item explanation-card">
-                    <span className="explanation-step">{index + 1}</span>
-                    <div className="explanation-copy">
-                      <p>{item}</p>
-                      <small className="explanation-help">
-                        {explainTechnicalItem(item)}
-                        <InfoHint label={explainTechnicalItem(item)} />
-                      </small>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </details>
-          </div>
-        </section>
-      ) : null}
+      {/* ── Training Zones ── */}
+      <section id="training-zones" className="card section-card athlete-detail-anchor ad-section">
+        <div className="section-heading compact">
+          <span className="eyebrow">Zonas personalizadas</span>
+          <h2 className="section-title ad-section-title">Zonas de entrenamiento</h2>
+        </div>
+        <TrainingZonesSection athleteId={analysis.athlete.id} discipline={activeDiscipline} token={token} />
+      </section>
 
       <section id="estimates" className="card section-card athlete-detail-anchor ad-section">
         <div className="section-heading compact">
@@ -5658,19 +5832,9 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                         <small>Mejor {visual.bestLabel}</small>
                       </div>
                     </div>
-                    <p className="estimate-summary">{selectedRelevantEstimate.inputs_summary}</p>
-                    <div className="estimate-support-strip">
-                      <small>{Math.round(selectedRelevantEstimate.confidence * 100)}% confianza</small>
-                      <small>{selectedRelevantEstimate.evidence_points} cortes</small>
-                      {selectedRelevantEstimate.agreement_score !== null && selectedRelevantEstimate.agreement_score !== undefined ? (
-                        <small>{Math.round(selectedRelevantEstimate.agreement_score * 100)}% acuerdo</small>
-                      ) : null}
-                      <small>{estimateMethodLabel(selectedRelevantEstimate.method_used)}</small>
-                      {selectedRelevantEstimate.primary_anchor ? <small>{estimateAnchorLabel(selectedRelevantEstimate.primary_anchor)}</small> : null}
-                    </div>
-                    {selectedRelevantEstimate.anchors?.length ? (
+                    {selectedRelevantEstimate.anchors?.filter((a: any) => !a.label?.toLowerCase().includes("swain")).length ? (
                       <div className="estimate-anchor-grid">
-                        {selectedRelevantEstimate.anchors.map((anchor) => (
+                        {selectedRelevantEstimate.anchors.filter((a: any) => !a.label?.toLowerCase().includes("swain")).map((anchor) => (
                           <div key={`${anchor.label}-${anchor.unit}`} className="estimate-anchor-card">
                             <span className="eyebrow">{anchor.label}</span>
                             <strong>{formatValue(anchor.value, anchor.unit)}</strong>
@@ -5679,170 +5843,100 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                         ))}
                       </div>
                     ) : null}
-                    {selectedRelevantEstimate.range_summary ? <p className="estimate-range-summary">{selectedRelevantEstimate.range_summary}</p> : null}
                   </div>
                 );
               })()}
             </div>
-            {(selectedRelevantEstimate.cautions?.length || selectedRelevantEstimate.calculation_steps?.length) ? (
-              <div className="estimate-insight-grid">
-                <details className="insight-disclosure">
-                  <summary className="insight-disclosure-summary">
-                    <div>
-                      <span className="eyebrow">Predicción</span>
-                      <h2 className="section-title ad-section-title">Cautelas</h2>
-                    </div>
-                    <small>{selectedRelevantEstimate.cautions?.length ?? 0} avisos</small>
-                  </summary>
-                  <div className="list caution-list insight-disclosure-body">
-                    {selectedRelevantEstimate.cautions?.length ? (
-                      selectedRelevantEstimate.cautions.map((item, index) => (
-                        <div key={`${item}-${index}`} className={`list-item caution-card ad-warning-card ${selectedRelevantEstimate.low_evidence ? "warning" : "neutral"}`}>
-                          <span className="caution-eyebrow ad-warning-eyebrow">Contexto</span>
-                          <strong className="ad-warning-title">Cautela {index + 1}</strong>
-                          <p className="ad-warning-body">{item}</p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="muted">Sin cautelas adicionales para esta estimación.</p>
-                    )}
-                  </div>
-                </details>
-                <details className="insight-disclosure">
-                  <summary className="insight-disclosure-summary">
-                    <div>
-                      <span className="eyebrow">Predicción</span>
-                      <h2 className="section-title ad-section-title">Cómo se ha calculado</h2>
-                    </div>
-                    <small>{selectedRelevantEstimate.calculation_steps?.length ?? 0} pasos</small>
-                  </summary>
-                  <div className="list explanation-list insight-disclosure-body">
-                    {selectedRelevantEstimate.calculation_steps?.length ? (
-                      selectedRelevantEstimate.calculation_steps.map((item, index) => (
-                        <div key={`${item}-${index}`} className="list-item explanation-card">
-                          <span className="explanation-step">{index + 1}</span>
-                          <div className="explanation-copy">
-                            <p>{item}</p>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="muted">Sin pasos adicionales disponibles.</p>
-                    )}
-                  </div>
-                </details>
-              </div>
-            ) : null}
           </>
         ) : (
           <p className="muted">No hay estimaciones relevantes para esta disciplina.</p>
         )}
       </section>
 
-      <section id="history" className="card split-card athlete-detail-anchor ad-section">
-        <div>
-          <div className="section-heading compact">
-            <span className="eyebrow">Longitudinal</span>
-            <h2 className="section-title ad-section-title">Evolución histórica</h2>
-          </div>
-          <div className="list timeline-list polished-timeline-list">
-            {["LT1", "LT2", "lactate_anchor"].map((key) => {
-              const point = latestHistorical(displayView.historical_evolution[key]);
-              if (!point) return null;
-              return (
-                <div key={key} className="list-item timeline-item">
-                  <span className="eyebrow muted-eyebrow">{historicalMetricLabel(key)}</span>
-                  <strong>{formatValue(point.value, point.unit)}</strong>
-                  <p>Última actualización {point.date}</p>
-                  <small>{point.label}</small>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        <div>
-          <div className="section-heading compact">
-            <span className="eyebrow">Dirección</span>
-            <h2 className="section-title ad-section-title">Tendencias</h2>
-          </div>
-          <div className="list trend-grid polished-trend-grid">
-            {hasHistoricalEvolution && analysis.trends.length ? (
-              analysis.trends.map((trend) => (
-                <div key={trend.metric} className={`list-item trend-card ${metricTone(trend.direction)}`}>
-                  <span className="eyebrow muted-eyebrow">{trendDirectionLabel(trend.direction)}</span>
-                  <strong>{trendMetricLabel(trend.metric)}</strong>
-                  <p>
-                    {trendDirectionLabel(trend.direction)} {Math.round(trend.value * 1000) / 10}%
-                  </p>
-                  <small>Lectura longitudinal del bloque y sus anclas repetibles.</small>
-                </div>
-              ))
-            ) : (
-              <p className="muted">Aún no hay suficientes snapshots de esta disciplina para tendencias robustas.</p>
-            )}
-          </div>
-        </div>
-      </section>
 
-      <section id="measurements" className="table-card card athlete-detail-anchor ad-section">
-        <div className="card-header">
-          <div>
-            <span className="eyebrow">Mediciones</span>
-            <h2>Histórico de muestras de lactato</h2>
-          </div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Día</th>
-              <th>Intervalo</th>
-              <th>Duración</th>
-              <th>Descanso</th>
-              <th>mmol</th>
-              <th>Ritmo / Potencia</th>
-              <th>FC</th>
-              <th>Cadencia</th>
-              <th>Sesión</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayView.measurement_log.length ? (
-              displayView.measurement_log.map((entry, index) => (
-                <tr key={`${entry.interval_id}-${entry.session_id}-${entry.interval_label}-${index}`}>
-                  <td>{entry.session_date}</td>
-                  <td>{entry.interval_label}</td>
-                  <td>{formatIntervalDuration(entry.duration_seconds)}</td>
-                  <td>{formatIntervalDuration(entry.rest_seconds)}</td>
-                  <td>{entry.lactate_mmol.toFixed(1)}</td>
-                  <td>
-                    {activeDiscipline === "ciclismo"
-                      ? (entry.power_watts ? `${Math.round(entry.power_watts)} W` : "-")
-                      : formatPace(entry.pace_seconds_per_km)}
-                    {activeDiscipline === "ciclismo" && entry.power_watts ? ` · ${formatWattsPerKg(entry.power_watts, athleteWeight)}` : ""}
-                  </td>
-                  <td>{entry.heart_rate_avg ?? "-"}</td>
-                  <td>{entry.cadence ?? "-"}</td>
-                  <td>{entry.session_type}</td>
-                  <td className="measurement-action-cell">
-                    <button
-                      className="ghost-button danger"
-                      type="button"
-                      onClick={() => deleteMeasurement(entry.interval_id, `${entry.interval_label} · ${entry.session_date}`)}
-                      disabled={deletingMeasurementId === entry.interval_id}
-                    >
-                      {deletingMeasurementId === entry.interval_id ? "Borrando..." : "Borrar"}
-                    </button>
-                  </td>
+      <section id="measurements" className="card athlete-detail-anchor ad-section" style={{ borderRadius: 28, overflow: "hidden", boxShadow: "var(--shadow-soft)" }}>
+        <details className="measurement-log-details" open={false}>
+          <summary className="measurement-log-summary">
+            <div>
+              <span className="eyebrow">Mediciones</span>
+              <h2>Histórico de muestras de lactato</h2>
+            </div>
+            <small className="muted">{displayView.measurement_log.length} muestras</small>
+          </summary>
+          <div className="measurement-log-body">
+            <table>
+              <thead>
+                <tr>
+                  <th>Día</th>
+                  <th>Intervalo</th>
+                  <th>Duración</th>
+                  <th>Descanso</th>
+                  <th>mmol</th>
+                  <th>Ritmo / Potencia</th>
+                  <th>FC</th>
+                  <th>Cadencia</th>
+                  <th>Sesión</th>
+                  <th></th>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={10} className="muted">No hay mediciones registradas para esta disciplina.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {displayView.measurement_log.length ? (
+                  displayView.measurement_log.map((entry, index) => (
+                    <tr key={`${entry.interval_id}-${entry.session_id}-${entry.interval_label}-${index}`}>
+                      <td>{entry.session_date}</td>
+                      <td>{entry.interval_label}</td>
+                      <td>{formatIntervalDuration(entry.duration_seconds)}</td>
+                      <td>{formatIntervalDuration(entry.rest_seconds)}</td>
+                      <td>
+                        <input
+                          type="number"
+                          className="measurement-inline-edit"
+                          defaultValue={entry.lactate_mmol.toFixed(1)}
+                          step="0.1"
+                          min="0"
+                          max="30"
+                          onBlur={async (e) => {
+                            const newVal = parseFloat(e.target.value);
+                            if (!isNaN(newVal) && Math.abs(newVal - entry.lactate_mmol) > 0.01) {
+                              try {
+                                await api.updateInterval(token, entry.interval_id, { lactate_mmol: newVal });
+                                await onSaved();
+                              } catch { /* ignore */ }
+                            }
+                          }}
+                          style={{ width: 52, padding: "4px 6px", borderRadius: 8, border: "1px solid rgba(16,34,42,0.10)", background: "rgba(255,255,255,0.6)", fontFamily: "inherit", fontSize: "inherit", textAlign: "center" }}
+                        />
+                      </td>
+                      <td>
+                        {activeDiscipline === "ciclismo"
+                          ? (entry.power_watts ? `${Math.round(entry.power_watts)} W` : "-")
+                          : formatPace(entry.pace_seconds_per_km)}
+                        {activeDiscipline === "ciclismo" && entry.power_watts ? ` · ${formatWattsPerKg(entry.power_watts, athleteWeight)}` : ""}
+                      </td>
+                      <td>{entry.heart_rate_avg ?? "-"}</td>
+                      <td>{entry.cadence ?? "-"}</td>
+                      <td>{entry.session_type}</td>
+                      <td className="measurement-action-cell">
+                        <button
+                          className="ghost-button danger"
+                          type="button"
+                          onClick={() => deleteMeasurement(entry.interval_id, `${entry.interval_label} · ${entry.session_date}`)}
+                          disabled={deletingMeasurementId === entry.interval_id}
+                        >
+                          {deletingMeasurementId === entry.interval_id ? "Borrando..." : "Borrar"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={10} className="muted">No hay mediciones registradas para esta disciplina.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </details>
       </section>
     </div>
   );

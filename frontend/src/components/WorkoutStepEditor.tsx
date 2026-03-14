@@ -373,6 +373,9 @@ function StepRow({
           {formatStepDuration(step.length_type, step.length_value)}
         </span>
         <span className="workout-editor-step-zone">{step.target?.label ?? zone}</span>
+        {step.target?.target_type === "heart_rate" && step.target.value_from && step.target.value_to && (
+          <span className="workout-editor-step-hr">{Math.round(step.target.value_from)}-{Math.round(step.target.value_to)} bpm</span>
+        )}
         {step.instructions && <span className="workout-editor-step-note">{step.instructions}</span>}
       </button>
 
@@ -458,6 +461,11 @@ function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact }: Ste
   const [durationInput, setDurationInput] = useState(formatStepDuration(step.length_type, step.length_value));
   const currentZone = zoneFromTarget(step.target, step.intensity_label);
 
+  const hrFrom = step.target?.target_type === "heart_rate" ? step.target.value_from : null;
+  const hrTo = step.target?.target_type === "heart_rate" ? step.target.value_to : null;
+  const [hrMinInput, setHrMinInput] = useState(hrFrom != null ? String(Math.round(hrFrom)) : "");
+  const [hrMaxInput, setHrMaxInput] = useState(hrTo != null ? String(Math.round(hrTo)) : "");
+
   const handleDurationBlur = useCallback(() => {
     if (step.length_type === "distance") {
       const meters = parseDistanceToMeters(durationInput);
@@ -481,7 +489,31 @@ function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact }: Ste
       },
       intensity_label: newZone,
     });
+    setHrMinInput("");
+    setHrMaxInput("");
   }, [onUpdate]);
+
+  const handleHrBlur = useCallback(() => {
+    const min = hrMinInput.trim() ? Number(hrMinInput) : null;
+    const max = hrMaxInput.trim() ? Number(hrMaxInput) : null;
+    if (min != null || max != null) {
+      const zoneOption = ZONE_OPTIONS.find((z) => z.value === currentZone);
+      const zoneLabel = zoneOption?.label ?? currentZone;
+      const hrLabel = min && max ? `${zoneLabel} · ${min}-${max} bpm` : min ? `${zoneLabel} · >${min} bpm` : max ? `${zoneLabel} · <${max} bpm` : zoneLabel;
+      onUpdate({
+        target: {
+          target_type: "heart_rate",
+          value_from: min,
+          value_to: max,
+          unit: "bpm",
+          label: hrLabel,
+        },
+      });
+    } else if (step.target?.target_type === "heart_rate") {
+      // Clear HR target, revert to zone-only
+      handleZoneChange(currentZone);
+    }
+  }, [hrMinInput, hrMaxInput, currentZone, onUpdate, step.target?.target_type, handleZoneChange]);
 
   return (
     <div className={`workout-editor-edit-panel ${compact ? "compact" : ""}`}>
@@ -521,6 +553,37 @@ function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact }: Ste
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
+        </label>
+      </div>
+
+      <div className="workout-editor-edit-row">
+        <label className="workout-editor-hr-label">
+          FC min (bpm)
+          <input
+            type="number"
+            min={30}
+            max={220}
+            value={hrMinInput}
+            onChange={(e) => setHrMinInput(e.target.value)}
+            onBlur={handleHrBlur}
+            onKeyDown={(e) => { if (e.key === "Enter") handleHrBlur(); }}
+            placeholder="ej: 140"
+            className="workout-editor-hr-input"
+          />
+        </label>
+        <label className="workout-editor-hr-label">
+          FC max (bpm)
+          <input
+            type="number"
+            min={30}
+            max={220}
+            value={hrMaxInput}
+            onChange={(e) => setHrMaxInput(e.target.value)}
+            onBlur={handleHrBlur}
+            onKeyDown={(e) => { if (e.key === "Enter") handleHrBlur(); }}
+            placeholder="ej: 155"
+            className="workout-editor-hr-input"
+          />
         </label>
       </div>
 

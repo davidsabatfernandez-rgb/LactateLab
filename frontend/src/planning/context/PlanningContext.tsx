@@ -1,9 +1,10 @@
-import { createContext, useContext, useReducer, type Dispatch, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useReducer, type Dispatch, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import type {
   Athlete,
   AthleteAnalysis,
+  DailyTrainingLoad,
   PlanningOverview,
   PlanningPlannedSession,
   PlanningWorkoutTemplate,
@@ -12,10 +13,34 @@ import type {
 import type {
   CalendarQuickAddState,
   CalendarWorkspaceTab,
+  GarminCalendarActivity,
   OpenWorkoutPreviewState,
   PlanningSourceModalState,
 } from "../types";
 import { isoDateFromToday, parseCalendarWorkspaceTab, startOfMonth } from "../utils";
+
+// ── Synthetic overrides persistence ──
+
+const SYNTHETIC_OVERRIDES_KEY = "planning_synthetic_date_overrides";
+
+function loadSyntheticOverrides(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(SYNTHETIC_OVERRIDES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveSyntheticOverrides(overrides: Record<string, string>) {
+  try {
+    if (Object.keys(overrides).length) {
+      localStorage.setItem(SYNTHETIC_OVERRIDES_KEY, JSON.stringify(overrides));
+    } else {
+      localStorage.removeItem(SYNTHETIC_OVERRIDES_KEY);
+    }
+  } catch { /* ignore quota errors */ }
+}
 
 // ── State shape ──
 
@@ -64,6 +89,11 @@ export type PlanningState = {
   planningSourceModal: PlanningSourceModalState | null;
   calendarComposerDate: string | null;
   calendarQuickAdd: CalendarQuickAddState | null;
+  syntheticDateOverrides: Record<string, string>;
+  garminActivities: GarminCalendarActivity[];
+  garminActivitiesLoading: boolean;
+  trainingLoadDays: DailyTrainingLoad[];
+  trainingLoadLoading: boolean;
 };
 
 // ── Actions ──
@@ -116,7 +146,12 @@ export type PlanningAction =
   | { type: "SET_CALENDAR_COMPOSER_DATE"; payload: string | null }
   | { type: "SET_CALENDAR_QUICK_ADD"; payload: CalendarQuickAddState | null }
   | { type: "SET_OVERVIEW_AND_DISCIPLINE"; payload: { overview: PlanningOverview; discipline: string } }
-  | { type: "MOVE_SESSION"; payload: { sessionId: number; newDate: string } };
+  | { type: "MOVE_SESSION"; payload: { sessionId: number; newDate: string } }
+  | { type: "MOVE_SYNTHETIC_SESSION"; payload: { syntheticId: string; newDate: string } }
+  | { type: "SET_GARMIN_ACTIVITIES"; payload: GarminCalendarActivity[] }
+  | { type: "SET_GARMIN_ACTIVITIES_LOADING"; payload: boolean }
+  | { type: "SET_TRAINING_LOAD_DAYS"; payload: DailyTrainingLoad[] }
+  | { type: "SET_TRAINING_LOAD_LOADING"; payload: boolean };
 
 // ── Reducer ──
 
@@ -233,6 +268,22 @@ function planningReducer(state: PlanningState, action: PlanningAction): Planning
         },
       };
     }
+    case "SET_GARMIN_ACTIVITIES":
+      return { ...state, garminActivities: action.payload };
+    case "SET_GARMIN_ACTIVITIES_LOADING":
+      return { ...state, garminActivitiesLoading: action.payload };
+    case "SET_TRAINING_LOAD_DAYS":
+      return { ...state, trainingLoadDays: action.payload };
+    case "SET_TRAINING_LOAD_LOADING":
+      return { ...state, trainingLoadLoading: action.payload };
+    case "MOVE_SYNTHETIC_SESSION": {
+      const nextOverrides = {
+        ...state.syntheticDateOverrides,
+        [action.payload.syntheticId]: action.payload.newDate,
+      };
+      saveSyntheticOverrides(nextOverrides);
+      return { ...state, syntheticDateOverrides: nextOverrides };
+    }
     default:
       return state;
   }
@@ -316,6 +367,11 @@ export function PlanningProvider({ token, children }: PlanningProviderProps) {
     planningSourceModal: null,
     calendarComposerDate: null,
     calendarQuickAdd: null,
+    syntheticDateOverrides: loadSyntheticOverrides(),
+    garminActivities: [],
+    garminActivitiesLoading: false,
+    trainingLoadDays: [],
+    trainingLoadLoading: false,
   } satisfies PlanningState);
 
   return (

@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.planned_session import PlannedSession
 from app.schemas.planning import (
+    AthleteSessionEditRequest,
     BlaCheckUpdateRequest,
     CoachSessionEditRequest,
     MesocycleRecommendationRead,
@@ -16,10 +17,13 @@ from app.schemas.planning import (
     PlanningOverviewRead,
     PlanningPlannedSessionRead,
     PlanningWorkoutTemplateRead,
+    TriathlonAnalysisRead,
+    TriathlonMesocycleRequest,
+    TriathlonMesocycleDraftRead,
     WorkoutStepsEditRequest,
 )
 from app.schemas.workout_definition import WorkoutDefinition
-from app.services.planning_engine import recommend_next_mesocycle, workout_library_payload
+from app.services.planning_engine import recommend_next_mesocycle, triathlon_analysis, workout_library_payload
 from app.services.planned_session_publication import prepare_planned_session_for_publish
 from app.services.workout_definition_builder import build_library_workout_definition, build_workout_definition
 
@@ -37,6 +41,113 @@ def planning_overview(
         return recommend_next_mesocycle(db, athlete_id, discipline=discipline)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/athletes/{athlete_id}/triathlon-analysis", response_model=TriathlonAnalysisRead)
+def planning_triathlon_analysis(
+    athlete_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Análisis triatlón: identifica disciplina débil (running vs ciclismo) y genera
+    mesociclo enfocado + consejos para la disciplina secundaria.
+    """
+    try:
+        return triathlon_analysis(db, athlete_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/athletes/{athlete_id}/triathlon-mesocycle", response_model=TriathlonMesocycleDraftRead)
+def create_triathlon_mesocycle(
+    athlete_id: int,
+    body: TriathlonMesocycleRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Generate integrated triathlon mesocycle draft with 3 disciplines."""
+    from datetime import timedelta
+    from sqlalchemy import select
+    from app.models.athlete import Athlete
+
+    athlete = db.scalar(select(Athlete).where(Athlete.id == athlete_id))
+    if athlete is None:
+        raise HTTPException(status_code=404, detail="Athlete not found")
+
+    # Get triathlon analysis for weakness + blocks
+    try:
+        analysis = triathlon_analysis(db, athlete_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    weakness = analysis.get("weakness_analysis") or {}
+    primary_meso = analysis.get("primary_mesocycle") or {}
+    secondary_advice = analysis.get("secondary_advice") or {}
+
+    weak_disc = weakness.get("disciplina_debil") if isinstance(weakness, dict) else getattr(weakness, "disciplina_debil", None)
+    if not weak_disc:
+        raise HTTPException(status_code=400, detail="No weakness detected — cannot generate triathlon mesocycle")
+
+    secondary_disc = weakness.get("disciplina_secundaria") if isinstance(weakness, dict) else getattr(weakness, "disciplina_secundaria", None)
+    primary_block = primary_meso.get("recommended_block_type") if isinstance(primary_meso, dict) else getattr(primary_meso, "recommended_block_type", "aerobic_capacity_block")
+    secondary_block = secondary_advice.get("bloque_recomendado") if isinstance(secondary_advice, dict) else getattr(secondary_advice, "bloque_recomendado", "aerobic_capacity_block")
+
+    season_phase = "base_early"
+    if isinstance(primary_meso, dict):
+        pa = (primary_meso.get("physiological_analysis") or {})
+        season_phase = pa.get("season_phase", "base_early") or "base_early"
+
+    from app.services.triathlon_motor import build_triathlon_mesocycle_draft, resolve_swim_block
+
+    swim_block = resolve_swim_block(season_phase, body.swim_mode)
+    duration_weeks = body.duration_weeks
+    structure = f"{duration_weeks - 1}+1"
+
+    # Fetch current training load
+    current_ctl = 0.0
+    current_atl = 0.0
+    try:
+        from app.services.training_load_calculator import compute_training_load_series
+        from app.services.garmin import list_garmin_activities
+        if athlete.garmin_connected:
+            activities = list_garmin_activities(
+                athlete,
+                start_date=body.start_date - timedelta(days=132),
+                end_date=body.start_date,
+            )
+            tl = compute_training_load_series(
+                db, athlete, activities,
+                start_date=body.start_date - timedelta(days=90),
+                end_date=body.start_date,
+            )
+            current_ctl = tl.get("current_ctl", 0.0)
+            current_atl = tl.get("current_atl", 0.0)
+    except Exception:
+        pass
+
+    draft = build_triathlon_mesocycle_draft(
+        primary_discipline=weak_disc,
+        primary_block_type=primary_block,
+        secondary_discipline=secondary_disc or "ciclismo",
+        secondary_block_type=secondary_block,
+        swim_block_type=swim_block,
+        duration_weeks=duration_weeks,
+        structure=structure,
+        season_phase=season_phase,
+        start_date=body.start_date,
+        weakness_confidence=weakness.get("confianza", "moderate") if isinstance(weakness, dict) else "moderate",
+        current_ctl=current_ctl,
+        current_atl=current_atl,
+        ramp_rate=body.ramp_rate_tss_per_week,
+        custom_tss_split=body.custom_tss_split,
+        swim_mode=body.swim_mode,
+    )
+
+    # Attach weakness and budget info
+    draft["weakness_analysis"] = weakness
+    draft["tss_budget"] = analysis.get("load_budget")
+
+    return draft
 
 
 @router.get("/athletes/{athlete_id}/mesocycles", response_model=list[PlanningDetectedMesocycleRead])
@@ -200,6 +311,7 @@ def coach_edit_planned_session(
     session = db.get(PlannedSession, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Sesión no encontrada.")
+    print(f"[coach-edit] session_id={session_id} body={body.model_dump()}")
     if body.coach_note is not None:
         session.coach_note = body.coach_note
     if body.dose_step_override is not None:
@@ -209,10 +321,65 @@ def coach_edit_planned_session(
     if body.scheduled_date is not None:
         from datetime import date as date_type
         session.scheduled_date = date_type.fromisoformat(body.scheduled_date)
+        print(f"[coach-edit] scheduled_date updated to {session.scheduled_date}")
+    if body.public_label is not None:
+        session.public_label = body.public_label.strip()
     prepare_planned_session_for_publish(session)
     db.commit()
     db.refresh(session)
+    print(f"[coach-edit] after refresh: scheduled_date={session.scheduled_date}")
     return session
+
+
+@router.patch(
+    "/planned-sessions/{session_id}/athlete-edit",
+    response_model=PlanningPlannedSessionRead,
+)
+def athlete_edit_planned_session(
+    session_id: int,
+    body: AthleteSessionEditRequest,
+    db: Session = Depends(get_db),
+):
+    """Permite al atleta editar título, nota personal, fecha y hora de una sesión."""
+    session = db.get(PlannedSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Sesión no encontrada.")
+    if body.public_label is not None:
+        session.public_label = body.public_label.strip()
+    if body.athlete_note is not None:
+        session.athlete_note = body.athlete_note.strip() or None
+    if body.scheduled_date is not None:
+        from datetime import date as date_type
+        session.scheduled_date = date_type.fromisoformat(body.scheduled_date)
+    if body.scheduled_time is not None:
+        # Validate HH:MM format
+        import re
+        if body.scheduled_time == "":
+            session.scheduled_time = None
+        elif re.match(r"^\d{2}:\d{2}$", body.scheduled_time):
+            session.scheduled_time = body.scheduled_time
+        else:
+            raise HTTPException(status_code=422, detail="Formato de hora inválido. Usa HH:MM.")
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+@router.delete(
+    "/planned-sessions/{session_id}",
+    status_code=204,
+)
+def delete_planned_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+):
+    """Elimina una sesión planificada."""
+    session = db.get(PlannedSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Sesión no encontrada.")
+    db.delete(session)
+    db.commit()
+    return None
 
 
 @router.patch(

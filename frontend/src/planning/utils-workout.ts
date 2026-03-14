@@ -1,7 +1,7 @@
 import type { WorkoutPreviewSelection } from "../components/WorkoutPreviewModal";
 import type { PlanningMesocycleDraftSession, PlanningMesocycleTemplate, PlanningPlannedSession, PlanningWorkoutTemplate } from "../types";
 import type { resolveTrainingThreshold } from "../lib/trainingThresholds";
-import type { CalendarEntry, CalendarSession, MicrocycleWeek, OpenWorkoutPreviewState, PlanTone, PlanningCalendarSource, WorkoutLibraryLayer } from "./types";
+import type { CalendarEntry, CalendarSession, ComplianceStatus, GarminCalendarActivity, MicrocycleWeek, OpenWorkoutPreviewState, PlanTone, PlanningCalendarSource, WorkoutLibraryLayer } from "./types";
 import { addDays, buildPlanningPrescriptionHint, dateValue, disciplineLabel, estimateMinutesFromDose, formatThresholdCoachLine, formatThresholdPrimaryMetric, formatThresholdRange, objectiveFamily, startOfWeek } from "./utils";
 
 // ── Mesocycle template helpers ──
@@ -790,4 +790,80 @@ export function garminStatusInfo(publishStatus: string | undefined | null): Garm
   if (publishStatus === "sent") return { label: "Enviada", tone: "sent", color: "#3a9a5b", description: "Publicada a Garmin correctamente" };
   if (publishStatus === "failed") return { label: "Error", tone: "failed", color: "#c44040", description: "Error al enviar a Garmin" };
   return null;
+}
+
+// ── Garmin sport mapping ──
+
+const GARMIN_SPORT_MAP: Record<string, string> = {
+  running: "running",
+  trail_running: "running",
+  treadmill_running: "running",
+  cycling: "ciclismo",
+  indoor_cycling: "ciclismo",
+  road_biking: "ciclismo",
+  mountain_biking: "ciclismo",
+  swimming: "natación",
+  pool_swimming: "natación",
+  open_water: "natación",
+  open_water_swimming: "natación",
+  lap_swimming: "natación",
+};
+
+export function garminSportToDiscipline(sport: string): string {
+  return GARMIN_SPORT_MAP[sport.toLowerCase()] ?? sport;
+}
+
+export function formatDurationHMS(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.round(seconds % 60);
+  return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+export function formatDistanceKm(meters: number): string {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  return `${(meters / 1000).toFixed(2)} km`;
+}
+
+// ── Compliance engine ──
+
+export function computeSessionCompliance(
+  session: CalendarSession,
+  garminActivity: GarminCalendarActivity | null,
+  today: string,
+): ComplianceStatus | null {
+  if (dateValue(session.date) > dateValue(today)) return null;
+
+  if (!garminActivity) {
+    return { status: "missed", reasons: ["Sin actividad registrada"] };
+  }
+
+  const reasons: string[] = [];
+
+  // Duration check
+  const plannedSeconds = (session.estimatedMinutes ?? 0) * 60;
+  if (plannedSeconds > 0) {
+    const actualSeconds = garminActivity.moving_time_seconds;
+    const ratio = Math.abs(actualSeconds - plannedSeconds) / plannedSeconds;
+    if (ratio > 0.25) {
+      const actualMin = Math.round(actualSeconds / 60);
+      const plannedMin = Math.round(plannedSeconds / 60);
+      reasons.push(`Duración ${actualMin} min vs ${plannedMin} min planificados`);
+    }
+  }
+
+  // HR zone check (simplified: use session tone as proxy)
+  if (garminActivity.average_heartrate) {
+    const tone = sessionToneFromEntry(session as CalendarEntry);
+    const avgHr = garminActivity.average_heartrate;
+    // Generic thresholds: LT1 ~145, LT2 ~165 (rough defaults)
+    if (tone === "green" && avgHr > 155) {
+      reasons.push(`FC media ${avgHr} bpm alta para sesión LT1`);
+    } else if (tone === "amber" && avgHr < 135) {
+      reasons.push(`FC media ${avgHr} bpm baja para sesión LT2`);
+    }
+  }
+
+  if (reasons.length > 0) return { status: "partial", reasons };
+  return { status: "completed", reasons: [] };
 }

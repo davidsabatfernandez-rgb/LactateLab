@@ -155,6 +155,8 @@ class PlanningMesocycleDraftSessionRead(BaseModel):
     evidence_source_ids: list[str]
     csv_examples: list[str]
     selection_reason: list[str] = []
+    estimated_tss: Optional[float] = None
+    coach_override_expected: bool = False
     payload: dict = {}
 
 
@@ -206,6 +208,9 @@ class PlanningPlannedSessionRead(BaseModel):
     confidence: float
     status: str
     bla_check: bool = False
+    estimated_tss: Optional[float] = None
+    athlete_note: Optional[str] = None
+    scheduled_time: Optional[str] = None
     structured_workout_payload: Optional[WorkoutDefinition] = None
     publish_status: str = "draft"
     publish_provider: Optional[str] = None
@@ -215,12 +220,21 @@ class PlanningPlannedSessionRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AthleteSessionEditRequest(BaseModel):
+    """Edición del atleta sobre su propia sesión planificada."""
+    public_label: Optional[str] = None
+    athlete_note: Optional[str] = None
+    scheduled_date: Optional[str] = None   # ISO date (YYYY-MM-DD)
+    scheduled_time: Optional[str] = None   # HH:MM (24h)
+
+
 class CoachSessionEditRequest(BaseModel):
     """Edición manual del entrenador sobre una sesión planificada."""
     coach_note: Optional[str] = None
     dose_step_override: Optional[int] = None   # None = usar el calculado por el motor
     swapped_template_id: Optional[str] = None  # template_id si el entrenador swapea
     scheduled_date: Optional[str] = None        # ISO date (YYYY-MM-DD) para mover la sesión de día
+    public_label: Optional[str] = None          # Título visible de la sesión
 
 
 class WorkoutStepsEditRequest(BaseModel):
@@ -413,3 +427,163 @@ class PlanningOverviewRead(BaseModel):
     mesocycle_draft: Optional[PlanningMesocycleDraftRead] = None
     warnings: list[str]
     explanation: list[str]
+
+
+# ── B4 — Triathlon analysis schemas ──────────────────────────────────────────
+
+class TriSignalRead(BaseModel):
+    tipo: str
+    resultado: Optional[str] = None
+    detalle: str
+
+
+class TriThresholdCheckRead(BaseModel):
+    running_type: str
+    ciclismo_type: str
+    homogeneous: bool
+    warning: Optional[str] = None
+
+
+class TriExplicacionRead(BaseModel):
+    resumen: str
+    señales: list[TriSignalRead] = []
+    acuerdo: str
+    tipo_umbral_usado: Optional[TriThresholdCheckRead] = None
+
+    model_config = {"from_attributes": True}
+
+
+class TriWeaknessRead(BaseModel):
+    disciplina_debil: Optional[str] = None
+    disciplina_secundaria: Optional[str] = None
+    confianza: str
+    señales: list[TriSignalRead] = []
+    explicacion: TriExplicacionRead
+    warnings: list[str] = []
+
+    model_config = {"from_attributes": True}
+
+
+class TriPrimaryMesocycleRead(BaseModel):
+    discipline: str
+    recommended_block_type: str
+    recommended_block_label: str
+    reasoning: list[str] = []
+    risk_flags: list[str] = []
+    confidence: float
+    duration_weeks: int
+    mesocycle_draft: Optional[PlanningMesocycleDraftRead] = None
+
+    model_config = {"from_attributes": True}
+
+
+class TriSecondaryAdviceRead(BaseModel):
+    disciplina: str
+    bloque_recomendado: str
+    bloque_label: str
+    recomendacion: str
+    sesiones_sugeridas: str
+    regla_cientifica: str
+    iguala_intensidad_primaria: bool = False
+    bloque_propio_fisiologico: Optional[str] = None
+    bloque_techo: Optional[str] = None
+    source: str = "techo_default"
+
+    model_config = {"from_attributes": True}
+
+
+class TriLoadBudgetDisciplineRead(BaseModel):
+    disciplina: str
+    eco_weight: float
+    budget: float
+
+
+class TriLoadBudgetRead(BaseModel):
+    techo_semanal: float
+    fase: str
+    presupuesto_primaria: TriLoadBudgetDisciplineRead
+    presupuesto_secundaria: TriLoadBudgetDisciplineRead
+    presupuesto_natacion: TriLoadBudgetDisciplineRead
+
+
+class TriathlonAnalysisRead(BaseModel):
+    athlete_id: int
+    athlete_name: str
+    generated_on: date
+    weakness_analysis: TriWeaknessRead
+    primary_mesocycle: Optional[TriPrimaryMesocycleRead] = None
+    secondary_advice: Optional[TriSecondaryAdviceRead] = None
+    spacing_rules: list[str] = []
+    load_budget: Optional[TriLoadBudgetRead] = None
+    nota_natacion: str
+    triathlon_mesocycle: Optional["TriathlonMesocycleDraftRead"] = None
+
+    model_config = {"from_attributes": True}
+
+
+# ── Triathlon Integrated Mesocycle schemas ────────────────────────────────────
+
+class TriathlonMesocycleRequest(BaseModel):
+    duration_weeks: int = 4
+    start_date: date
+    swim_mode: str = "auto"  # "auto"|"aerobic"|"threshold"|"technical"
+    ramp_rate_tss_per_week: float = 5.0
+    custom_tss_split: Optional[dict[str, float]] = None
+
+
+class TriathlonDraftSessionRead(BaseModel):
+    session_id: str
+    discipline: str
+    scheduled_date: Optional[date] = None
+    week_index: int
+    day_offset: int
+    template_id: Optional[str] = None
+    session_role: str
+    session_family: str
+    public_label: str
+    objective: str
+    dose_prescription: Optional[str] = None
+    dose_guidance: str
+    progression_note: str = ""
+    expected_signal: str = ""
+    coach_note: str = ""
+    confidence: float = 0.7
+    estimated_tss: Optional[float] = None
+    coach_override_expected: bool = False
+    scheduled_time: Optional[str] = None
+    payload: dict = {}
+
+
+class TriathlonWeekDraftRead(BaseModel):
+    week_index: int
+    phase: str
+    load_label: str
+    sessions: list[TriathlonDraftSessionRead]
+    tss_target_total: float
+    tss_target_by_discipline: dict[str, float] = {}
+    spacing_warnings: list[str] = []
+
+
+class WeekLoadProjectionRead(BaseModel):
+    week_index: int
+    projected_tss: float
+    projected_ctl: float
+    projected_atl: float
+    projected_tsb: float
+    projected_acwr: Optional[float] = None
+    safety_flag: str  # "safe"|"high_acwr"|"spike"|"detraining"
+
+
+class TriathlonMesocycleDraftRead(BaseModel):
+    primary_discipline: str
+    primary_block_type: str
+    secondary_discipline: str
+    secondary_block_type: str
+    swim_block_type: str
+    duration_weeks: int
+    season_phase: str
+    weakness_analysis: Optional[TriWeaknessRead] = None
+    tss_budget: Optional[TriLoadBudgetRead] = None
+    weeks: list[TriathlonWeekDraftRead] = []
+    spacing_warnings: list[str] = []
+    load_projection: list[WeekLoadProjectionRead] = []

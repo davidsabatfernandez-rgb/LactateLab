@@ -41,6 +41,22 @@ export type PlanningCalendarSource = {
   density?: string | null;
 };
 
+export type GarminCalendarActivity = {
+  provider_activity_id: number;
+  sport_type: string;
+  started_at: string;
+  distance_m: number;
+  moving_time_seconds: number;
+  average_heartrate?: number | null;
+  max_heartrate?: number | null;
+  average_watts?: number | null;
+};
+
+export type ComplianceStatus = {
+  status: "completed" | "partial" | "missed" | "unplanned";
+  reasons: string[];
+};
+
 export type CalendarSession = {
   id: string;
   date: string;
@@ -56,6 +72,8 @@ export type CalendarSession = {
   blaCheck?: boolean;
   publishStatus?: string;
   publishError?: string | null;
+  garminActivity?: GarminCalendarActivity | null;
+  compliance?: ComplianceStatus | null;
 };
 
 export type CalendarEntry = CalendarSession & {
@@ -93,7 +111,7 @@ export type CalendarQuickAddState = {
   selectedLayer?: WorkoutLibraryLayer;
 };
 
-export type CalendarWorkspaceTab = "athletes" | "library" | "calendar" | "summary";
+export type CalendarWorkspaceTab = "athletes" | "library" | "calendar" | "summary" | "zones";
 
 export type SummaryQuickBar = {
   label: string;

@@ -8,6 +8,15 @@ from app.services.workout_definition_builder import build_library_workout_defini
 
 
 def prepare_planned_session_for_publish(session: PlannedSession) -> PlannedSession:
+    # If the coach manually edited the workout steps, preserve that payload.
+    existing = session.structured_workout_payload
+    if isinstance(existing, dict):
+        sp = existing.get("source_payload") or {}
+        if sp.get("coach_edited"):
+            session.publish_status = "ready"
+            session.publish_error = None
+            return session
+
     try:
         workout = build_structured_workout_for_planned_session(session)
         session.structured_workout_payload = workout.model_dump()
