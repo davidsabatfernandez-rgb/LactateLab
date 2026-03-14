@@ -4,6 +4,11 @@ import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
 import "./styles.css";
+import "./planning/styles/planning-layout.css";
+import "./planning/styles/planning-calendar.css";
+import "./planning/styles/planning-cards.css";
+import "./planning/styles/planning-library.css";
+import "./planning/styles/planning-composer.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

@@ -206,6 +206,9 @@ def coach_edit_planned_session(
         session.dose_step_override = body.dose_step_override
     if body.swapped_template_id is not None:
         session.swapped_template_id = body.swapped_template_id
+    if body.scheduled_date is not None:
+        from datetime import date as date_type
+        session.scheduled_date = date_type.fromisoformat(body.scheduled_date)
     prepare_planned_session_for_publish(session)
     db.commit()
     db.refresh(session)

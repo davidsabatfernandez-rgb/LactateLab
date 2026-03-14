@@ -1,0 +1,486 @@
+/* Planning CSS — composer */
+
+.planning-calendar-composer-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.planning-calendar-composer-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  min-height: 0;
+  padding: 18px;
+  background: #f2f5f8;
+  overflow: hidden;
+}
+
+.planning-calendar-composer-main {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.planning-calendar-composer-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+
+.planning-calendar-composer-context,
+.planning-calendar-composer-sidecard {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 14px 34px rgba(16, 34, 42, 0.06);
+}
+
+.planning-calendar-composer-context strong,
+.planning-calendar-composer-sidecard strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.planning-calendar-composer-context p,
+.planning-calendar-composer-sidecard p {
+  margin: 0;
+  color: #5a6975;
+}
+
+.planning-calendar-composer-headline {
+  font-size: 1.02rem;
+  line-height: 1.52;
+  color: #223745;
+}
+
+.planning-calendar-composer-context-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.96rem;
+  line-height: 1.5;
+  color: #425564;
+}
+
+.planning-calendar-composer-context-line strong {
+  font: inherit;
+  color: #223745;
+}
+
+.planning-calendar-composer-context-line span {
+  color: #94a3b0;
+}
+
+.planning-calendar-composer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.planning-calendar-composer-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.planning-calendar-composer-insight-grid article,
+.planning-calendar-composer-mini-grid article {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(16, 34, 42, 0.06);
+}
+
+.planning-calendar-composer-insight-grid span,
+.planning-calendar-composer-mini-grid span {
+  color: #d26a36;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.planning-calendar-composer-insight-grid p,
+.planning-calendar-composer-mini-grid p {
+  margin: 0;
+  color: #314452;
+  line-height: 1.5;
+}
+
+.planning-calendar-composer-options {
+  display: grid;
+  gap: 14px;
+}
+
+.planning-calendar-composer-option {
+  display: grid;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 253, 0.96));
+  text-align: left;
+  color: var(--primary);
+  box-shadow: 0 12px 26px rgba(16, 34, 42, 0.05);
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.planning-calendar-composer-option:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(16, 34, 42, 0.08);
+}
+
+.planning-calendar-composer-option.best {
+  border-color: rgba(17, 83, 173, 0.26);
+  background: linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(247, 250, 253, 0.98));
+}
+
+.planning-calendar-composer-option.selected {
+  border-color: rgba(17, 83, 173, 0.42);
+  box-shadow: 0 0 0 3px rgba(23, 101, 193, 0.08);
+}
+
+.planning-calendar-composer-option-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+}
+
+.planning-calendar-composer-option-head strong {
+  display: block;
+  margin-top: 4px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.3rem;
+}
+
+.planning-calendar-composer-option-head p {
+  margin: 4px 0 0;
+  color: #60707c;
+}
+
+.planning-calendar-composer-option-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 86px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(17, 83, 173, 0.08);
+  color: #0b4c9c;
+  font-weight: 700;
+}
+
+.planning-calendar-composer-option-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.planning-calendar-composer-option-columns article {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(16, 34, 42, 0.06);
+}
+
+.planning-calendar-composer-option-columns article span {
+  color: #d26a36;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.planning-calendar-composer-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.planning-calendar-composer-mini-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.planning-calendar-composer-sidecard label {
+  display: grid;
+  gap: 8px;
+  color: #4b5a66;
+  font-weight: 600;
+}
+
+.planning-calendar-composer-sidecard select,
+.planning-calendar-composer-sidecard textarea {
+  width: 100%;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  border-radius: 16px;
+  background: #f8fafc;
+  padding: 12px 14px;
+  font: inherit;
+  color: var(--primary);
+}
+
+.mesocycle-timeline {
+  padding: 8px 0 4px;
+}
+
+.mesocycle-timeline-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 72px;
+}
+
+.mesocycle-timeline.compact .mesocycle-timeline-bars {
+  min-height: 40px;
+}
+
+.mesocycle-timeline-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.mesocycle-timeline-bar {
+  width: 100%;
+  max-width: 48px;
+  border-radius: 4px 4px 0 0;
+  border: 2px solid transparent;
+  border-bottom: none;
+  transition: height 0.3s ease, background-color 0.3s ease;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  animation: timelineBarGrow 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes timelineBarGrow {
+  from {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+  to {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+.mesocycle-timeline-col.current .mesocycle-timeline-bar {
+  border-width: 2px;
+  border-bottom: none;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+}
+
+.mesocycle-timeline-bar-label {
+  font-size: 9px;
+  line-height: 1.1;
+  color: rgba(255,255,255,0.92);
+  text-align: center;
+  padding: 2px 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  font-weight: 500;
+}
+
+.mesocycle-timeline-week-label {
+  font-size: 10px;
+  color: var(--muted, #6b7280);
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.mesocycle-timeline-col.current .mesocycle-timeline-week-label {
+  font-weight: 700;
+  color: var(--text, #1f2937);
+}
+
+.mesocycle-timeline.compact .mesocycle-timeline-bar {
+  max-width: 24px;
+  border-radius: 3px 3px 0 0;
+}
+
+.mesocycle-timeline.compact .mesocycle-timeline-bar-label {
+  display: none;
+}
+
+.mesocycle-timeline.compact .mesocycle-timeline-week-label {
+  font-size: 8px;
+}
+
+.intelligence-banner {
+  border-top: 1px solid #e5e7eb;
+  background: #fffbeb;
+  flex-shrink: 0;
+}
+
+.intelligence-banner-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: #92400e;
+  transition: background 0.15s;
+}
+
+.intelligence-banner-toggle:hover {
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.intelligence-banner-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.intelligence-banner-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.intelligence-banner-count.critical {
+  background: #dc2626;
+}
+
+.intelligence-banner-count.warning {
+  background: #d97706;
+}
+
+.intelligence-banner-count.info {
+  background: #6b7280;
+}
+
+.intelligence-banner-summary {
+  font-size: 0.8rem;
+  color: #78716c;
+}
+
+.intelligence-banner-action {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #92400e;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.intelligence-banner-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 16px 12px;
+  max-height: 260px;
+  overflow-y: auto;
+  animation: intelligence-expand 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes intelligence-expand {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 260px; }
+}
+
+.intelligence-banner-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #fde68a;
+}
+
+.intelligence-banner-item.severity-critical {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.intelligence-banner-item.severity-info {
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+.intelligence-banner-item-icon {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.intelligence-banner-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.intelligence-banner-item-text {
+  font-size: 0.8rem;
+  color: #374151;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.intelligence-banner-item-actionable {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 3px 0 0;
+  font-style: italic;
+}
+
+.intelligence-banner-item-tag {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.intelligence-banner-item-tag.kind-risk {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.intelligence-banner-item-tag.kind-reliability {
+  color: #1e40af;
+  background: #dbeafe;
+}
+
+.intelligence-banner-item-tag.kind-spacing {
+  color: #7c2d12;
+  background: #ffedd5;
+}
+

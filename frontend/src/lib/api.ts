@@ -406,7 +406,7 @@ export const api = {
   coachEditSession: (
     token: string,
     sessionId: number,
-    edit: { coach_note?: string; dose_step_override?: number | null; swapped_template_id?: string | null }
+    edit: { coach_note?: string; dose_step_override?: number | null; swapped_template_id?: string | null; scheduled_date?: string }
   ) =>
     request(`/planning/planned-sessions/${sessionId}/coach-edit`, {
       token,

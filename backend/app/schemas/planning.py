@@ -220,6 +220,7 @@ class CoachSessionEditRequest(BaseModel):
     coach_note: Optional[str] = None
     dose_step_override: Optional[int] = None   # None = usar el calculado por el motor
     swapped_template_id: Optional[str] = None  # template_id si el entrenador swapea
+    scheduled_date: Optional[str] = None        # ISO date (YYYY-MM-DD) para mover la sesión de día
 
 
 class WorkoutStepsEditRequest(BaseModel):

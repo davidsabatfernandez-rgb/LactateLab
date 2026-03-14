@@ -1,0 +1,1221 @@
+/* Planning CSS — library */
+
+.library-block-row .planning-chip {
+  border: 0;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.library-block-row .planning-chip:hover {
+  transform: translateY(-1px);
+}
+
+.library-block-row .planning-chip.active {
+  background: var(--primary);
+  color: white;
+}
+
+.library-workout-modal {
+  width: min(1480px, calc(100vw - 40px));
+  padding: 28px;
+  display: grid;
+  gap: 22px;
+  background:
+    linear-gradient(180deg, rgba(249, 247, 243, 0.97), rgba(255, 255, 255, 0.98));
+}
+
+.library-workout-modal-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.library-workout-title-wrap {
+  display: grid;
+  gap: 6px;
+}
+
+.library-workout-title-wrap h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+}
+
+.library-workout-title-wrap p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+
+.library-workout-head-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.library-workout-close {
+  min-width: 112px;
+}
+
+.library-workout-raw-toggle.active {
+  background: rgba(22, 53, 61, 0.14);
+  border-color: rgba(22, 53, 61, 0.16);
+  color: var(--primary);
+}
+
+.library-workout-hero {
+  display: grid;
+  grid-template-columns: minmax(340px, 1fr) minmax(520px, 1.28fr);
+  gap: 18px;
+}
+
+.library-workout-summary-card,
+.library-workout-timeline-card {
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  border-radius: 28px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--shadow-soft);
+}
+
+.library-workout-summary-card {
+  display: grid;
+  gap: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(210, 106, 54, 0.12), transparent 34%),
+    rgba(244, 247, 241, 0.92);
+}
+
+.library-workout-badge-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.library-workout-zone,
+.library-workout-readiness {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.library-workout-sport {
+  background: rgba(22, 53, 61, 0.1);
+  color: var(--primary);
+}
+
+.library-workout-zone {
+  background: rgba(47, 122, 119, 0.12);
+  color: #255d5b;
+}
+
+.library-workout-readiness {
+  background: rgba(210, 106, 54, 0.12);
+  color: #b35a2e;
+}
+
+.library-workout-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.library-workout-metrics div {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(16, 34, 42, 0.06);
+}
+
+.library-workout-metrics small {
+  color: var(--muted);
+}
+
+.library-workout-metrics strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.18rem;
+}
+
+.library-workout-objective {
+  margin: 0;
+  font-size: 0.96rem;
+  line-height: 1.65;
+  max-width: 62ch;
+}
+
+.library-workout-threshold-note {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(47, 122, 119, 0.16);
+  background: rgba(239, 247, 244, 0.92);
+}
+
+.library-workout-threshold-note small {
+  color: #255d5b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+}
+
+.library-workout-threshold-note p,
+.library-workout-threshold-note span {
+  margin: 0;
+  color: var(--primary);
+  line-height: 1.55;
+}
+
+.library-workout-threshold-note span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.library-workout-threshold-ref {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(16, 34, 42, 0.03);
+  border: 1px solid rgba(16, 34, 42, 0.06);
+}
+
+.library-workout-timeline-card {
+  display: grid;
+  gap: 16px;
+}
+
+.library-workout-phase-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.95fr) minmax(0, 0.95fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.library-workout-phase-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: rgba(249, 247, 243, 0.9);
+}
+
+.library-workout-phase-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.library-workout-phase-card header span {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.library-workout-phase-card header strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.96rem;
+}
+
+.library-workout-phase-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.library-workout-phase-card.main {
+  background:
+    radial-gradient(circle at top right, rgba(37, 86, 145, 0.12), transparent 35%),
+    rgba(248, 248, 249, 0.95);
+}
+
+.library-workout-phase-visual {
+  position: relative;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  min-height: 128px;
+  padding: 12px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(16, 34, 42, 0.02), rgba(16, 34, 42, 0.07));
+  overflow: hidden;
+}
+
+.library-workout-phase-visual.main {
+  min-height: 156px;
+}
+
+.library-workout-phase-visual.warmup,
+.library-workout-phase-visual.cooldown {
+  align-items: center;
+}
+
+.library-workout-phase-warmup-base {
+  position: absolute;
+  left: 12px;
+  bottom: 18px;
+  height: 34px;
+  border-radius: 14px 14px 8px 8px;
+  background: linear-gradient(180deg, #4d7b8a, #2f6570);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.library-workout-phase-warmup-markers {
+  position: absolute;
+  right: 14px;
+  bottom: 18px;
+  display: flex;
+  align-items: end;
+  gap: 5px;
+}
+
+.library-workout-phase-warmup-marker {
+  width: 6px;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.library-workout-phase-warmup-marker.neuromuscular {
+  height: 92px;
+  background: linear-gradient(180deg, #8a5dc1, #69409d);
+}
+
+.library-workout-phase-warmup-marker.recovery {
+  height: 20px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(122, 141, 149, 0.94) 0,
+      rgba(122, 141, 149, 0.94) 5px,
+      rgba(176, 187, 192, 0.94) 5px,
+      rgba(176, 187, 192, 0.94) 10px
+    );
+}
+
+.library-workout-phase-main-sequence {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+
+.library-workout-phase-main-item {
+  height: 100%;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  position: relative;
+}
+
+.library-workout-phase-main-item.work {
+  min-width: 34px;
+}
+
+.library-workout-phase-main-item.recovery {
+  min-width: 14px;
+  align-items: center;
+}
+
+.library-workout-phase-main-bar {
+  width: 100%;
+  min-width: 26px;
+  border-radius: 16px 16px 8px 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.library-workout-phase-main-item.aerobic .library-workout-phase-main-bar {
+  background: linear-gradient(180deg, #3b7f7c, #2a6866);
+}
+
+.library-workout-phase-main-item.steady .library-workout-phase-main-bar {
+  background: linear-gradient(180deg, #376fa6, #285785);
+}
+
+.library-workout-phase-main-item.progressive .library-workout-phase-main-bar {
+  background: linear-gradient(180deg, #576fd2, #3d54b0);
+}
+
+.library-workout-phase-main-item.threshold .library-workout-phase-main-bar {
+  background: linear-gradient(180deg, #cc7a35, #a95e1f);
+}
+
+.library-workout-phase-main-item.hard .library-workout-phase-main-bar {
+  background: linear-gradient(180deg, #cd564f, #a82f2f);
+}
+
+.library-workout-phase-main-item.neuromuscular .library-workout-phase-main-bar {
+  background: linear-gradient(180deg, #8a5dc1, #69409d);
+}
+
+.library-workout-phase-main-link {
+  width: 100%;
+  height: 26px;
+  border-bottom: 6px solid rgba(151, 165, 171, 0.95);
+  border-left: 6px solid rgba(151, 165, 171, 0.95);
+  border-right: 6px solid rgba(151, 165, 171, 0.95);
+  border-radius: 0 0 12px 12px;
+  opacity: 0.88;
+}
+
+.library-workout-phase-main-item small {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.library-workout-phase-cooldown-line {
+  height: 38px;
+  align-self: end;
+  border-radius: 14px 14px 8px 8px;
+  background: linear-gradient(180deg, #7b8d8b, #61706e);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.library-workout-phase-caption {
+  display: grid;
+  gap: 4px;
+}
+
+.library-workout-phase-caption strong {
+  font-size: 0.96rem;
+}
+
+.library-workout-phase-caption small {
+  color: var(--muted);
+}
+
+.library-workout-modal-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.82fr);
+  gap: 18px;
+}
+
+.library-workout-main-column,
+.library-workout-side-column {
+  display: grid;
+  gap: 16px;
+}
+
+.library-workout-panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  border-radius: 24px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.library-workout-panel.compact {
+  gap: 12px;
+}
+
+.library-workout-panel.caution {
+  background: rgba(255, 248, 242, 0.92);
+}
+
+.library-workout-raw-panel {
+  margin-top: 18px;
+  background:
+    linear-gradient(180deg, rgba(15, 28, 33, 0.04), rgba(15, 28, 33, 0.02)),
+    rgba(255, 255, 255, 0.82);
+}
+
+.library-workout-raw-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.library-workout-raw-json pre {
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  background: rgba(18, 29, 35, 0.96);
+  color: rgba(238, 244, 246, 0.96);
+  overflow: auto;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+.library-workout-panel-head {
+  display: grid;
+  gap: 4px;
+}
+
+.library-workout-panel-head h3 {
+  margin: 0;
+}
+
+.library-workout-structure {
+  display: grid;
+  gap: 12px;
+}
+
+.library-workout-block {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(16, 34, 42, 0.07);
+  background: rgba(248, 245, 239, 0.84);
+}
+
+.library-workout-block header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.library-workout-block header span {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.library-workout-block header strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.05rem;
+}
+
+.library-workout-block p,
+.library-workout-block-note {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.library-workout-block-list {
+  display: grid;
+  gap: 10px;
+}
+
+.library-workout-interval {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(16, 34, 42, 0.06);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.library-workout-interval strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.library-workout-interval p {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.library-workout-interval span {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.library-workout-interval.aerobic {
+  border-left: 4px solid #2f7a77;
+}
+
+.library-workout-interval.threshold {
+  border-left: 4px solid #ba6a2c;
+}
+
+.library-workout-interval.hard {
+  border-left: 4px solid #b64848;
+}
+
+.library-workout-interval.progressive {
+  border-left: 4px solid #4f6bb8;
+}
+
+.library-workout-interval.neuromuscular {
+  border-left: 4px solid #7a56a2;
+}
+
+.library-workout-interval.steady {
+  border-left: 4px solid #3f7c9f;
+}
+
+.library-workout-copy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.library-workout-copy-grid article {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(16, 34, 42, 0.06);
+  background: rgba(248, 245, 239, 0.72);
+}
+
+.library-workout-copy-grid small {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.library-workout-copy-grid p {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.library-workout-stats-list {
+  display: grid;
+  gap: 10px;
+}
+
+.library-workout-stats-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(16, 34, 42, 0.06);
+  background: rgba(248, 245, 239, 0.7);
+}
+
+.library-workout-stats-list span {
+  color: var(--muted);
+}
+
+.library-workout-stats-list strong {
+  text-align: right;
+}
+
+.library-workout-dose-ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.library-workout-dose-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(16, 34, 42, 0.08);
+  border-radius: 8px;
+  background: rgba(248, 245, 239, 0.5);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+  width: 100%;
+}
+
+.library-workout-dose-step:hover {
+  background: rgba(46, 123, 211, 0.06);
+  border-color: rgba(46, 123, 211, 0.2);
+}
+
+.library-workout-dose-step.active {
+  background: rgba(46, 123, 211, 0.08);
+  border-color: #2e7bd3;
+  box-shadow: inset 3px 0 0 #2e7bd3;
+}
+
+.library-workout-dose-step-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(16, 34, 42, 0.08);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #374151;
+  flex-shrink: 0;
+}
+
+.library-workout-dose-step.active .library-workout-dose-step-index {
+  background: #2e7bd3;
+  color: #fff;
+}
+
+.library-workout-dose-step-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.library-workout-dose-step-body strong {
+  display: block;
+  font-size: 0.78rem;
+  color: #1a1f2e;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.library-workout-dose-step-body small {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.library-workout-dose-step-active {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #2e7bd3;
+  background: #dbeafe;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.library-workout-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  line-height: 1.6;
+}
+
+.library-workout-editor-container {
+  padding: 1.5rem 2rem;
+}
+
+.library-workout-edit-toggle {
+  font-weight: 600;
+}
+
+.library-workout-edit-toggle.active {
+  color: var(--accent, #285fe7);
+}
+
+.wlb-root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.wlb-root.wlb-compact {
+  padding: 0;
+  gap: 8px;
+}
+
+.wlb-toolbar {
+  padding: 0 4px;
+}
+
+.wlb-toolbar strong {
+  font-size: 1.05rem;
+  color: #1a1f2e;
+}
+
+.wlb-toolbar p {
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin: 2px 0 0;
+}
+
+.wlb-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.wlb-search-input {
+  flex: 1;
+  padding: 7px 12px;
+  font-size: 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #1a1f2e;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.wlb-search-input:focus {
+  border-color: #2e7bd3;
+}
+
+.wlb-search-input::placeholder {
+  color: #9ca3af;
+}
+
+.wlb-search-clear {
+  font-size: 0.78rem;
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.wlb-search-clear:hover {
+  background: #f3f4f6;
+  color: #1a1f2e;
+}
+
+.wlb-discipline-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.wlb-discipline-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.82rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.wlb-discipline-tab:hover {
+  background: #f3f4f6;
+}
+
+.wlb-discipline-tab.active {
+  background: #1a1f2e;
+  color: #fff;
+  border-color: #1a1f2e;
+}
+
+.wlb-discipline-tab.active svg {
+  fill: #fff;
+}
+
+.wlb-layer-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.wlb-layer-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.76rem;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.wlb-layer-tab:hover {
+  background: #f3f4f6;
+}
+
+.wlb-layer-tab.active {
+  background: #1a1f2e;
+  color: #fff;
+  border-color: #1a1f2e;
+}
+
+.wlb-layer-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 18px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 3px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.wlb-layer-glyph.tone-recovery { background: #8a98a8; }
+
+.wlb-layer-glyph.tone-aerobic { background: #3a9a5b; }
+
+.wlb-layer-glyph.tone-lt1 { background: #2e8b57; }
+
+.wlb-layer-glyph.tone-subthreshold { background: #b58a2e; }
+
+.wlb-layer-glyph.tone-lt2 { background: #c27a2e; }
+
+.wlb-layer-glyph.tone-vo2 { background: #c44040; }
+
+.wlb-layer-glyph.tone-technical { background: #3a7dc4; }
+
+.wlb-layer-glyph.tone-specific { background: #7c3aed; }
+
+.wlb-layer-glyph.tone-strength { background: #6b5b3e; }
+
+.wlb-layer-glyph.tone-other { background: #6b7280; }
+
+.wlb-layer-cue {
+  padding: 6px 12px;
+  margin: 0 4px;
+  border-radius: 6px;
+  background: #f9fafb;
+  border-left: 3px solid #2e7bd3;
+}
+
+.wlb-layer-cue p {
+  font-size: 0.8rem;
+  color: #4b5563;
+  margin: 0;
+}
+
+.wlb-results-info {
+  font-size: 0.78rem;
+  color: #6b7280;
+  padding: 0 4px;
+}
+
+.wlb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  padding: 0 4px;
+}
+
+.wlb-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  transition: box-shadow 0.15s;
+  border-left-width: 3px;
+}
+
+.wlb-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.wlb-card.wlb-card-recommended {
+  border-color: #2e7bd3;
+  background: #f0f6ff;
+}
+
+.wlb-card.tone-border-recovery { border-left-color: #8a98a8; }
+
+.wlb-card.tone-border-aerobic { border-left-color: #3a9a5b; }
+
+.wlb-card.tone-border-lt1 { border-left-color: #2e8b57; }
+
+.wlb-card.tone-border-subthreshold { border-left-color: #b58a2e; }
+
+.wlb-card.tone-border-lt2 { border-left-color: #c27a2e; }
+
+.wlb-card.tone-border-vo2 { border-left-color: #c44040; }
+
+.wlb-card.tone-border-technical { border-left-color: #3a7dc4; }
+
+.wlb-card.tone-border-specific { border-left-color: #7c3aed; }
+
+.wlb-card.tone-border-strength { border-left-color: #6b5b3e; }
+
+.wlb-card.tone-border-other { border-left-color: #6b7280; }
+
+.wlb-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.wlb-card-layer-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 4px;
+  color: #fff;
+}
+
+.wlb-card-layer-badge.tone-recovery { background: #8a98a8; }
+
+.wlb-card-layer-badge.tone-aerobic { background: #3a9a5b; }
+
+.wlb-card-layer-badge.tone-lt1 { background: #2e8b57; }
+
+.wlb-card-layer-badge.tone-subthreshold { background: #b58a2e; }
+
+.wlb-card-layer-badge.tone-lt2 { background: #c27a2e; }
+
+.wlb-card-layer-badge.tone-vo2 { background: #c44040; }
+
+.wlb-card-layer-badge.tone-technical { background: #3a7dc4; }
+
+.wlb-card-layer-badge.tone-specific { background: #7c3aed; }
+
+.wlb-card-layer-badge.tone-strength { background: #6b5b3e; }
+
+.wlb-card-layer-badge.tone-other { background: #6b7280; }
+
+.wlb-card-badge-rec {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #2e7bd3;
+  background: #dbeafe;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.wlb-card-title {
+  font-size: 0.88rem;
+  color: #1a1f2e;
+  line-height: 1.3;
+}
+
+.wlb-card-objective {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.wlb-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wlb-card-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.wlb-card-meta-item small {
+  font-size: 0.68rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.wlb-card-meta-item strong {
+  font-size: 0.76rem;
+  color: #374151;
+  font-weight: 600;
+}
+
+.wlb-fatigue-dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.wlb-fatigue-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+}
+
+.wlb-fatigue-dot.filled {
+  background: #c27a2e;
+  border-color: #c27a2e;
+}
+
+.wlb-card-blocks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.wlb-block-chip {
+  font-size: 0.66rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #f3f4f6;
+  color: #6b7280;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.wlb-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.wlb-card-action {
+  flex: 1;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.wlb-card-action:hover {
+  background: #f3f4f6;
+}
+
+.wlb-card-action.preview {
+  border-color: #2e7bd3;
+  color: #2e7bd3;
+}
+
+.wlb-card-action.preview:hover {
+  background: #eff6ff;
+}
+
+.wlb-card-action.add {
+  border-color: #3a9a5b;
+  color: #3a9a5b;
+}
+
+.wlb-card-action.add:hover {
+  background: #f0fdf4;
+}
+
+.wlb-card-action.add.active {
+  background: #3a9a5b;
+  color: #fff;
+  border-color: #3a9a5b;
+}
+
+.wlb-week-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  margin-top: 2px;
+}
+
+.wlb-week-picker-label {
+  font-size: 0.74rem;
+  color: #6b7280;
+}
+
+.wlb-week-picker-days {
+  display: flex;
+  gap: 4px;
+}
+
+.wlb-week-picker-day {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 2px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.wlb-week-picker-day:hover {
+  background: #2e7bd3;
+  border-color: #2e7bd3;
+  color: #fff;
+}
+
+.wlb-week-picker-day:hover .wlb-week-picker-day-label,
+.wlb-week-picker-day:hover .wlb-week-picker-day-num {
+  color: #fff;
+}
+
+.wlb-week-picker-day-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.wlb-week-picker-day-num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1a1f2e;
+}
+
+.wlb-library-subtabs {
+  display: flex;
+  gap: 2px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.wlb-library-subtabs .planning-inline-action {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  transition: all 0.15s;
+}
+
+.wlb-library-subtabs .planning-inline-action.active {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-weight: 600;
+}
+
+.wlb-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 24px 16px;
+  color: #6b7280;
+}
+
+.wlb-empty strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.wlb-empty p {
+  font-size: 0.8rem;
+  margin: 0;
+}
+

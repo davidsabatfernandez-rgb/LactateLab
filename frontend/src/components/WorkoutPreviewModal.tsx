@@ -41,6 +41,8 @@ type WorkoutPreviewModalProps = {
   workoutDefinition?: WorkoutDefinition | null;
   onSaveWorkout?: (workout: WorkoutDefinition) => Promise<void>;
   onPushToGarmin?: () => Promise<void>;
+  /** Called when the user selects a dose step from the dose ladder panel. */
+  onSelectDoseStep?: (stepIndex: number, label: string) => void;
   garminConnected?: boolean;
   publishStatus?: string | null;
   thresholdReference?: {
@@ -351,7 +353,7 @@ function previewSegmentHeight(tone: string) {
   return 0.6;
 }
 
-export function WorkoutPreviewModal({ template, selection, rawInformation, workoutDefinition, onSaveWorkout, onPushToGarmin, garminConnected, publishStatus, thresholdReference, onClose }: WorkoutPreviewModalProps) {
+export function WorkoutPreviewModal({ template, selection, rawInformation, workoutDefinition, onSaveWorkout, onPushToGarmin, onSelectDoseStep, garminConnected, publishStatus, thresholdReference, onClose }: WorkoutPreviewModalProps) {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pushing, setPushing] = useState(false);
@@ -680,6 +682,36 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
                 <div><span>Fuente</span><strong>{preview.selection.source === "dose" ? "Peldaño estructurado" : preview.selection.source === "planning" ? "Planificación" : "Ejemplo CSV"}</strong></div>
               </div>
             </section>
+
+            {preview.template.dose_ladder.length > 0 && (
+              <section className="library-workout-panel compact">
+                <div className="library-workout-panel-head">
+                  <span className="eyebrow">Dose ladder</span>
+                  <h3>Peldanos ({preview.template.dose_ladder.length})</h3>
+                </div>
+                <div className="library-workout-dose-ladder">
+                  {preview.template.dose_ladder.map((step) => {
+                    const isActive = preview.selection.label === step.label;
+                    return (
+                      <button
+                        key={step.step}
+                        type="button"
+                        className={`library-workout-dose-step ${isActive ? "active" : ""}`}
+                        onClick={() => onSelectDoseStep?.(step.step, step.label)}
+                        title={step.notes || step.label}
+                      >
+                        <span className="library-workout-dose-step-index">{step.step}</span>
+                        <div className="library-workout-dose-step-body">
+                          <strong>{step.label}</strong>
+                          {step.total_duration_min > 0 && <small>{step.total_duration_min} min</small>}
+                        </div>
+                        {isActive && <span className="library-workout-dose-step-active">Activo</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             {preview.template.control_points.length > 0 && (
               <section className="library-workout-panel compact">
