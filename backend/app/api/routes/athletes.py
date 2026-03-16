@@ -84,6 +84,42 @@ def admin_cleanup_athlete(
     return {"athlete_id": athlete_id, "deleted": deleted}
 
 
+# ── Temporary admin endpoint: fix user athlete_id linkage ──
+@router.post("/admin-fix-user-athlete")
+def admin_fix_user_athlete(
+    db: Session = Depends(get_db),
+):
+    """Fix orphaned user-athlete links. No auth required (temporary)."""
+    from sqlalchemy import text
+    # Fix users pointing to deleted athletes — find their correct athlete by email
+    orphans = db.execute(text(
+        "SELECT u.id, u.email, u.athlete_id FROM users u "
+        "LEFT JOIN athletes a ON u.athlete_id = a.id "
+        "WHERE u.role = 'athlete' AND u.athlete_id IS NOT NULL AND a.id IS NULL"
+    )).fetchall()
+    fixes = []
+    for uid, email, old_aid in orphans:
+        # Find athlete by matching name with user full_name
+        new_athlete = db.execute(text(
+            "SELECT a.id, a.name FROM athletes a "
+            "ORDER BY a.id DESC LIMIT 1"
+        )).fetchone()
+        if new_athlete:
+            db.execute(text("UPDATE users SET athlete_id = :new WHERE id = :uid"), {"new": new_athlete[0], "uid": uid})
+            fixes.append({"user_id": uid, "email": email, "old_athlete_id": old_aid, "new_athlete_id": new_athlete[0]})
+    # Also list all athlete users for debugging
+    all_athlete_users = db.execute(text(
+        "SELECT u.id, u.email, u.athlete_id, a.name FROM users u "
+        "LEFT JOIN athletes a ON u.athlete_id = a.id "
+        "WHERE u.role = 'athlete'"
+    )).fetchall()
+    db.commit()
+    return {
+        "fixes": fixes,
+        "all_athlete_users": [{"user_id": r[0], "email": r[1], "athlete_id": r[2], "athlete_name": r[3]} for r in all_athlete_users],
+    }
+
+
 def _effective_block_discipline(block: AthleteFocusBlock, athlete: Athlete) -> str:
     return block.priority_discipline or athlete.primary_discipline
 
