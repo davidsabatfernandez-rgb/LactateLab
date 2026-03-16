@@ -2593,6 +2593,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const [sessionHeartRateMax, setSessionHeartRateMax] = useState("");
   const [sessionPowerSource, setSessionPowerSource] = useState("outdoor");
   const [sessionType, setSessionType] = useState("test incremental");
+  const [sprintProtocol, setSprintProtocol] = useState<"15s" | "30s">("15s");
   const [goal, setGoal] = useState("Registro manual de lactato");
   const [surface, setSurface] = useState("");
   const [temperature, setTemperature] = useState("");
@@ -3197,7 +3198,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       tone: "warning" as const,
     },
     { label: "VO2max", value: displayView.swain_vo2max ? `${displayView.swain_vo2max.vo2max} ml/kg/min` : vo2maxEstimate ? `${Math.round(vo2maxEstimate.value * 10) / 10} ml/kg/min` : "n/d", tone: "neutral" as const },
-    { label: "VLAMAX", value: vlamaxEstimate ? `${Math.round(vlamaxEstimate.value * 100) / 100} mmol/L/s` : "n/d", tone: "warning" as const },
+    { label: "VLAMAX", value: vlamaxEstimate ? `${Math.round(vlamaxEstimate.value * 100) / 100} mmol/L/s${displayView.measured_vlamax?.sprint_protocol ? ` (${displayView.measured_vlamax.sprint_protocol})` : ""}` : "n/d", tone: "warning" as const },
   ];
   const athleteEstimatePool = [
     ...(currentView.estimates ?? []),
@@ -3486,6 +3487,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       plotLabel: disciplineKey === "ciclismo" ? "Potencia" : "Ritmo en min/km",
       vo2max: disciplineEstimates.get("VO2max"),
       vlamax: disciplineEstimates.get("VLAMAX"),
+      measuredVlamax: resolvedView.measured_vlamax ?? null,
       peakPoint,
       realThresholds,
       individualThresholds,
@@ -3524,6 +3526,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         surface: surface || null,
         temperature_c: temperature ? Number(temperature) : null,
         comments: comments || null,
+        sprint_protocol: sessionType === "vlamax_test" ? sprintProtocol : null,
         intervals: intervals.map((interval, index) => ({
           order_index: index + 1,
           duration_seconds: buildDurationSeconds(interval),
@@ -3558,6 +3561,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       setTemperature("");
       setSessionBaselineLactate("");
       setSessionHeartRateMax("");
+      setSprintProtocol("15s");
       setLactateOverlayOpen(false);
       await onSaved();
     } catch (error) {
@@ -4312,6 +4316,50 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                   <option value="recuperación">Recuperación</option>
                 </select>
               </label>
+              {sessionType === "vlamax_test" ? (
+                <div className="sprint-protocol-selector">
+                  <span className="sprint-protocol-label">Protocolo sprint</span>
+                  <div className="sprint-protocol-buttons">
+                    <button
+                      type="button"
+                      className={`sprint-protocol-btn${sprintProtocol === "15s" ? " active" : ""}`}
+                      onClick={() => setSprintProtocol("15s")}
+                    >
+                      VLamax 15&quot;
+                    </button>
+                    <button
+                      type="button"
+                      className={`sprint-protocol-btn${sprintProtocol === "30s" ? " active" : ""}`}
+                      onClick={() => setSprintProtocol("30s")}
+                    >
+                      VLamax 30&quot;
+                    </button>
+                  </div>
+                  {(() => {
+                    const peakVal = intervals.find((iv) => iv.lactate_mmol)?.lactate_mmol;
+                    const baseVal = sessionBaselineLactate;
+                    if (peakVal && baseVal) {
+                      const peak = Number(peakVal);
+                      const base = Number(baseVal);
+                      const dur = sprintProtocol === "15s" ? 15 : 30;
+                      if (peak > base && base > 0) {
+                        const preview = Math.round(((peak - base) / (2 * dur)) * 1000) / 1000;
+                        const clamped = Math.max(0.15, Math.min(0.90, preview));
+                        const warnings: string[] = [];
+                        if (sprintProtocol === "15s" && peak < 6) warnings.push("Pico <6 mmol/L: el sprint puede no haber sido maximal.");
+                        if (sprintProtocol === "30s" && peak > 20) warnings.push("Pico >20 mmol/L: plausible pero extremo.");
+                        return (
+                          <div className="sprint-protocol-preview">
+                            <span className="sprint-calc">VLamax = ({peak.toFixed(1)} - {base.toFixed(1)}) / (2 x {dur}) = <strong>{clamped.toFixed(3)} mmol/L/s</strong></span>
+                            {warnings.map((w, i) => <span key={i} className="sprint-warning">{w}</span>)}
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
+                  })()}
+                </div>
+              ) : null}
               {discipline === "ciclismo" ? (
                 <label>
                   Potenciómetro
@@ -4996,7 +5044,12 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               <small className="ad-threshold-detail">{thresholdDetailLine(threshold, activeDiscipline, athleteWeight)}</small>
             </article>
           ))}
-          {/* Evidence mode always on — predictions use only published formulas (Daniels + di Prampero) */}
+          {/* Disclaimer before race estimates */}
+          {relevantEstimates.length > 0 && (
+            <div style={{ gridColumn: "1 / -1", margin: "4px 0 -4px", padding: "10px 14px", background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.12)", borderRadius: 8, fontSize: 12, lineHeight: 1.5, color: "#64748b" }}>
+              <strong style={{ color: "#475569" }}>Predicciones multi-distancia</strong> — Calculadas con Daniels &amp; Gilbert (1979) y di Prampero (1986) a partir de VO2max estimado y umbrales de lactato. Las bandas techo/seguro son aproximaciones internas. Consulta la seccion <em>Beta</em> para el detalle completo del calculo y las referencias cientificas.
+            </div>
+          )}
           {relevantEstimates.map((estimate, index) => {
             const raceSummary = racePredictionSummary(estimate, useEvidenceMode);
             const visualRange = estimateVisualRange(estimate, athleteWeight, useEvidenceMode);
@@ -5361,9 +5414,15 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                   {plotView.peakPoint ? (
                     <HoverMetaPill
                       className="threshold-meta-pill warning"
-                      tooltip={`Sprint 15-30″ · Fecha ${formatDate(plotView.peakPoint.sessionDate)} · ${disciplineKey === "ciclismo" ? `Potencia ${Math.round(plotView.peakPoint.x)} W · ${formatWattsPerKg(plotView.peakPoint.x, athleteWeight)}` : `Ritmo ${formatPace(plotView.peakPoint.x)}`} · FC ${plotView.peakPoint.heartRate ?? "-"} bpm · Pico lactato ${plotView.peakPoint.lactate.toFixed(1)} mmol/L${plotView.vlamax ? ` · VLamax ${Math.round(plotView.vlamax.value * 100) / 100} mmol/L/s` : ""}`}
+                      tooltip={(() => {
+                        const mv = plotView.measuredVlamax;
+                        const protocolLabel = mv?.sprint_protocol ? `Protocolo ${mv.sprint_protocol}` : "Sprint 15-30\"";
+                        const calcLabel = mv?.calculation ? ` · ${mv.calculation}` : "";
+                        const warningLabel = mv?.warnings?.length ? ` · ${mv.warnings.join(" · ")}` : "";
+                        return `${protocolLabel} · Fecha ${formatDate(plotView.peakPoint.sessionDate)} · ${disciplineKey === "ciclismo" ? `Potencia ${Math.round(plotView.peakPoint.x)} W · ${formatWattsPerKg(plotView.peakPoint.x, athleteWeight)}` : `Ritmo ${formatPace(plotView.peakPoint.x)}`} · FC ${plotView.peakPoint.heartRate ?? "-"} bpm · Pico lactato ${plotView.peakPoint.lactate.toFixed(1)} mmol/L${plotView.vlamax ? ` · VLamax ${Math.round(plotView.vlamax.value * 100) / 100} mmol/L/s` : ""}${calcLabel}${warningLabel}`;
+                      })()}
                     >
-                      VLamax {plotView.vlamax ? `${Math.round(plotView.vlamax.value * 100) / 100} mmol/L/s` : `pico ${plotView.peakPoint.lactate.toFixed(1)} mmol/L`}
+                      VLamax {plotView.vlamax ? `${Math.round(plotView.vlamax.value * 100) / 100} mmol/L/s${plotView.measuredVlamax?.sprint_protocol ? ` (${plotView.measuredVlamax.sprint_protocol})` : ""}` : `pico ${plotView.peakPoint.lactate.toFixed(1)} mmol/L`}
                     </HoverMetaPill>
                   ) : null}
                   {plotLt1X !== null ? (
