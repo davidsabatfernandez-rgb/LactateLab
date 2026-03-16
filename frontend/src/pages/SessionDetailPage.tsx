@@ -45,7 +45,7 @@ export function SessionDetailPage({ analysis }: SessionDetailPageProps) {
     { label: "LT1", value: `${thresholdValue(lt1)} · ${lt1?.sourceLabel ?? "Sin ancla"}`, tone: "positive" as const },
     { label: "LT2", value: `${thresholdValue(lt2)} · ${lt2?.sourceLabel ?? "Sin ancla"}`, tone: "negative" as const },
     { label: "VO2max", value: "n/d", tone: "neutral" as const },
-    { label: "VLAMAX", value: "n/d", tone: "warning" as const },
+    { label: "VLAMAX", value: analysis.measured_vlamax ? `${analysis.measured_vlamax.vlamax_mmol_min} mmol/L/s${analysis.measured_vlamax.sprint_protocol ? ` (${analysis.measured_vlamax.sprint_protocol})` : ""}` : "n/d", tone: "warning" as const },
   ];
 
   return (

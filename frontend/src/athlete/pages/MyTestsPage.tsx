@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAthleteData } from "../context/AthleteDataContext";
 import { api } from "../../lib/api";
-import type { SessionSummary, SessionAnalysis, CurvePoint, Threshold, ConfidenceItem } from "../../types";
+import type { SessionSummary, SessionAnalysis, CurvePoint, Threshold, ConfidenceItem, DynamicThresholds, DynamicReference, DisciplineView } from "../../types";
 
 /* ── Helpers ── */
 function paceToSeconds(pace: string): number | null {
@@ -25,9 +25,12 @@ function formatDate(iso: string): string {
 }
 
 /* ── Types ── */
+type DurationUnit = "min" | "km";
+
 type StepRow = {
   zone_tag: string;
   duration_min: string;
+  rest_min: string;
   pace: string;
   power: string;
   hr: string;
@@ -39,35 +42,37 @@ type StepRow = {
 type Discipline = "running" | "ciclismo" | "natación";
 
 const ZONE_TAGS = ["LT1", "LT2", "VO2", "ANC", "REC", "BASE", "TEMPO", ""];
-const EMPTY_ROW: StepRow = { zone_tag: "", duration_min: "", pace: "", power: "", hr: "", hr_max: "", lactate: "", note: "" };
+const EMPTY_ROW: StepRow = { zone_tag: "", duration_min: "", rest_min: "", pace: "", power: "", hr: "", hr_max: "", lactate: "", note: "" };
 
 /* ── Mini curve SVG ── */
 function MiniCurve({ points }: { points: CurvePoint[] }) {
   if (points.length < 2) return <span className="ath-tests-nocurve">--</span>;
   const xs = points.map((p) => p.x);
-  const ys = points.map((p) => p.y);
+  const ys = points.map((p) => p.lactate);
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
   const rangeX = maxX - minX || 1, rangeY = maxY - minY || 1;
   const toSvg = (x: number, y: number) => `${10 + ((x - minX) / rangeX) * 80},${55 - ((y - minY) / rangeY) * 45}`;
-  const d = points.map((p, i) => `${i === 0 ? "M" : "L"}${toSvg(p.x, p.y)}`).join(" ");
+  const d = points.map((p, i) => `${i === 0 ? "M" : "L"}${toSvg(p.x, p.lactate)}`).join(" ");
 
   return (
     <svg viewBox="0 0 100 60" className="ath-tests-minicurve" preserveAspectRatio="xMidYMid meet">
       <path d={d} fill="none" stroke="var(--c-accent, #d26a36)" strokeWidth="2" strokeLinecap="round" />
       {points.map((p, i) => {
-        const [cx, cy] = toSvg(p.x, p.y).split(",").map(Number);
+        const [cx, cy] = toSvg(p.x, p.lactate).split(",").map(Number);
         return <circle key={i} cx={cx} cy={cy} r="2.5" fill="#fff" stroke="var(--c-accent, #d26a36)" strokeWidth="1.5" />;
       })}
     </svg>
   );
 }
 
+type DynRef = { label: string; xVal: number; color: string };
+
 /* ── Full curve with thresholds ── */
-function FullCurve({ points, thresholds }: { points: CurvePoint[]; thresholds: Threshold[] }) {
+function FullCurve({ points, thresholds, dynRefs }: { points: CurvePoint[]; thresholds: Threshold[]; dynRefs?: DynRef[] }) {
   if (points.length < 2) return <p className="ath-tests-empty">No hay suficientes puntos para la curva.</p>;
 
   const xs = points.map((p) => p.x);
-  const ys = points.map((p) => p.y);
+  const ys = points.map((p) => p.lactate);
   const minX = Math.min(...xs), maxX = Math.max(...xs);
   const minY = Math.min(0, ...ys), maxY = Math.max(...ys) * 1.1;
   const rangeX = maxX - minX || 1, rangeY = maxY - minY || 1;
@@ -77,7 +82,7 @@ function FullCurve({ points, thresholds }: { points: CurvePoint[]; thresholds: T
   const sx = (x: number) => pad.l + ((x - minX) / rangeX) * plotW;
   const sy = (y: number) => pad.t + plotH - ((y - minY) / rangeY) * plotH;
 
-  const d = points.map((p, i) => `${i === 0 ? "M" : "L"}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(" ");
+  const d = points.map((p, i) => `${i === 0 ? "M" : "L"}${sx(p.x).toFixed(1)},${sy(p.lactate).toFixed(1)}`).join(" ");
   const areaD = d + ` L${sx(points[points.length - 1].x).toFixed(1)},${sy(0).toFixed(1)} L${sx(points[0].x).toFixed(1)},${sy(0).toFixed(1)} Z`;
 
   const lt1 = thresholds.find((t) => t.name === "LT1");
@@ -105,36 +110,34 @@ function FullCurve({ points, thresholds }: { points: CurvePoint[]; thresholds: T
 
       {/* Points */}
       {points.map((p, i) => (
-        <circle key={i} cx={sx(p.x)} cy={sy(p.y)} r="4" fill="#fff" stroke="var(--c-accent, #d26a36)" strokeWidth="2" />
+        <circle key={i} cx={sx(p.x)} cy={sy(p.lactate)} r="4" fill="#fff" stroke="var(--c-accent, #d26a36)" strokeWidth="2" />
       ))}
 
-      {/* LT1 line */}
-      {lt1?.pace_seconds_per_km && (
-        <>
-          <line x1={sx(lt1.pace_seconds_per_km)} y1={pad.t} x2={sx(lt1.pace_seconds_per_km)} y2={H - pad.b} stroke="#22c55e" strokeWidth="1.5" strokeDasharray="5 3" />
-          <text x={sx(lt1.pace_seconds_per_km)} y={pad.t - 4} textAnchor="middle" fill="#22c55e" fontSize="10" fontWeight="700">LT1</text>
-        </>
-      )}
-      {lt1?.power_watts && !lt1?.pace_seconds_per_km && (
-        <>
-          <line x1={sx(lt1.power_watts)} y1={pad.t} x2={sx(lt1.power_watts)} y2={H - pad.b} stroke="#22c55e" strokeWidth="1.5" strokeDasharray="5 3" />
-          <text x={sx(lt1.power_watts)} y={pad.t - 4} textAnchor="middle" fill="#22c55e" fontSize="10" fontWeight="700">LT1</text>
-        </>
-      )}
+      {/* LT1/LT2 threshold lines — use whichever metric matches the curve X axis */}
+      {[
+        { th: lt1, label: "LT1", color: "#22c55e" },
+        { th: lt2, label: "LT2", color: "#f97316" },
+      ].map(({ th, label, color }) => {
+        const xVal = th?.pace_seconds_per_km ?? th?.power_watts ?? th?.heart_rate;
+        if (!th || xVal == null) return null;
+        return (
+          <g key={label}>
+            <line x1={sx(xVal)} y1={pad.t} x2={sx(xVal)} y2={H - pad.b} stroke={color} strokeWidth="1.5" strokeDasharray="5 3" />
+            <text x={sx(xVal)} y={pad.t - 4} textAnchor="middle" fill={color} fontSize="10" fontWeight="700">{label}</text>
+          </g>
+        );
+      })}
 
-      {/* LT2 line */}
-      {lt2?.pace_seconds_per_km && (
-        <>
-          <line x1={sx(lt2.pace_seconds_per_km)} y1={pad.t} x2={sx(lt2.pace_seconds_per_km)} y2={H - pad.b} stroke="#f97316" strokeWidth="1.5" strokeDasharray="5 3" />
-          <text x={sx(lt2.pace_seconds_per_km)} y={pad.t - 4} textAnchor="middle" fill="#f97316" fontSize="10" fontWeight="700">LT2</text>
-        </>
-      )}
-      {lt2?.power_watts && !lt2?.pace_seconds_per_km && (
-        <>
-          <line x1={sx(lt2.power_watts)} y1={pad.t} x2={sx(lt2.power_watts)} y2={H - pad.b} stroke="#f97316" strokeWidth="1.5" strokeDasharray="5 3" />
-          <text x={sx(lt2.power_watts)} y={pad.t - 4} textAnchor="middle" fill="#f97316" fontSize="10" fontWeight="700">LT2</text>
-        </>
-      )}
+      {/* Dynamic threshold reference lines (athlete's running average) */}
+      {dynRefs?.map(({ label, xVal, color }) => {
+        if (xVal < minX || xVal > maxX) return null;
+        return (
+          <g key={label}>
+            <line x1={sx(xVal)} y1={pad.t} x2={sx(xVal)} y2={H - pad.b} stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.55" />
+            <text x={sx(xVal)} y={H - pad.b + 12} textAnchor="middle" fill={color} fontSize="8" fontWeight="600" opacity="0.7">{label}</text>
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -150,8 +153,8 @@ function ThresholdBadge({ th }: { th: Threshold }) {
   return (
     <div className="ath-tests-th" style={{ borderColor: color }}>
       <span className="ath-tests-th__name" style={{ color }}>{th.name}</span>
-      <span className="ath-tests-th__main">{pace || power || "--"}</span>
-      {hr && <span className="ath-tests-th__detail">{hr}</span>}
+      <span className="ath-tests-th__main">{pace || power || hr || "--"}</span>
+      {hr && (pace || power) && <span className="ath-tests-th__detail">{hr}</span>}
       {lac && <span className="ath-tests-th__detail">{lac}</span>}
       {th.confidence != null && (
         <span className="ath-tests-th__conf">Confianza: {(th.confidence * 100).toFixed(0)}%</span>
@@ -164,7 +167,7 @@ function ThresholdBadge({ th }: { th: Threshold }) {
    TEST DETAIL MODAL
    ══════════════════════════════════════════════════════════════ */
 function TestDetail({ sessionId, onClose }: { sessionId: number; onClose: () => void }) {
-  const { token } = useAthleteData();
+  const { token, analysis: athleteAnalysis } = useAthleteData();
   const [analysis, setAnalysis] = useState<SessionAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -181,22 +184,78 @@ function TestDetail({ sessionId, onClose }: { sessionId: number; onClose: () => 
   if (loading) return <div className="ath-tests-modal-overlay" onClick={onClose}><div className="ath-tests-modal" onClick={(e) => e.stopPropagation()}>Cargando...</div></div>;
   if (error || !analysis) return <div className="ath-tests-modal-overlay" onClick={onClose}><div className="ath-tests-modal" onClick={(e) => e.stopPropagation()}><p className="ath-tests-error">{error || "Sin datos"}</p><button onClick={onClose}>Cerrar</button></div></div>;
 
-  const curvePoints = analysis.curve_by_pace?.length ? analysis.curve_by_pace : analysis.curve_by_power?.length ? analysis.curve_by_power : analysis.curve_by_hr ?? [];
-  const curveLabel = analysis.curve_by_pace?.length ? "Ritmo (s/km)" : analysis.curve_by_power?.length ? "Potencia (W)" : "FC (bpm)";
+  const hasPace = !!analysis.curve_by_pace?.length;
+  const hasPower = !hasPace && !!analysis.curve_by_power?.length;
+  const curvePoints = hasPace ? analysis.curve_by_pace : hasPower ? analysis.curve_by_power : analysis.curve_by_hr ?? [];
+  const curveLabel = hasPace ? "Ritmo (s/km)" : hasPower ? "Potencia (W)" : "FC (bpm)";
+
+  // Build dynamic reference lines from athlete's cross-session thresholds
+  const discipline = analysis.session?.discipline;
+  const dv = discipline ? (athleteAnalysis?.discipline_views ?? {})[discipline] : undefined;
+  const dt = dv?.dynamic_thresholds?.acute;
+  const dynRefs: DynRef[] = [];
+  if (dt) {
+    const extractX = (ref: DynamicReference | null | undefined): number | null => {
+      if (!ref) return null;
+      if (hasPace && ref.estimated_pace_seconds_per_km) return ref.estimated_pace_seconds_per_km;
+      if (hasPower && ref.estimated_power_watts) return ref.estimated_power_watts;
+      if (ref.estimated_hr_at_target) return ref.estimated_hr_at_target;
+      return null;
+    };
+    const lt1x = extractX(dt.practical_lt1);
+    const lt2x = extractX(dt.practical_lt2);
+    const ref2x = extractX(dt.reference_2mmol);
+    const ref4x = extractX(dt.reference_4mmol);
+    // Practical LT1/LT2 if available, otherwise fall back to 2mmol/4mmol references
+    if (lt1x != null) dynRefs.push({ label: "LT1 media", xVal: lt1x, color: "#15803d" });
+    else if (ref2x != null) dynRefs.push({ label: "Ref 2mmol", xVal: ref2x, color: "#15803d" });
+    if (lt2x != null) dynRefs.push({ label: "LT2 media", xVal: lt2x, color: "#c2410c" });
+    else if (ref4x != null) dynRefs.push({ label: "Ref 4mmol", xVal: ref4x, color: "#c2410c" });
+  }
+
+  // Compare session vs dynamic — build insight text
+  const sessionLt1 = analysis.thresholds?.find((t) => t.name === "LT1");
+  const sessionLt2 = analysis.thresholds?.find((t) => t.name === "LT2");
+  const insights: string[] = [];
+  if (dt?.practical_lt2 && sessionLt2) {
+    const dynVal = hasPace ? dt.practical_lt2.estimated_pace_seconds_per_km
+      : hasPower ? dt.practical_lt2.estimated_power_watts
+      : dt.practical_lt2.estimated_hr_at_target;
+    const sesVal = sessionLt2.pace_seconds_per_km ?? sessionLt2.power_watts ?? sessionLt2.heart_rate;
+    if (dynVal != null && sesVal != null) {
+      const diff = hasPace
+        ? ((dynVal - sesVal) / dynVal) * 100  // pace: lower is better
+        : ((sesVal - dynVal) / dynVal) * 100; // power/HR: higher is better
+      if (Math.abs(diff) < 2) {
+        insights.push("LT2 consistente con tu media dinámica.");
+      } else if (diff > 0) {
+        insights.push(`LT2 un ${Math.abs(diff).toFixed(0)}% mejor que tu media dinámica.`);
+      } else {
+        insights.push(`LT2 un ${Math.abs(diff).toFixed(0)}% por debajo de tu media dinámica.`);
+      }
+    }
+  }
 
   return (
     <div className="ath-tests-modal-overlay" onClick={onClose}>
       <div className="ath-tests-modal" onClick={(e) => e.stopPropagation()}>
         <div className="ath-tests-modal__head">
-          <h3>{analysis.session.discipline} — {formatDate(analysis.session.performed_at)}</h3>
+          <h3>{discipline} — {formatDate(analysis.session.performed_at)}</h3>
           <button className="ath-tests-modal__close" onClick={onClose}>&times;</button>
         </div>
 
         {/* Curve */}
         <div className="ath-tests-modal__curve">
           <span className="ath-tests-modal__curve-label">{curveLabel}</span>
-          <FullCurve points={curvePoints} thresholds={analysis.thresholds ?? []} />
+          <FullCurve points={curvePoints} thresholds={analysis.thresholds ?? []} dynRefs={dynRefs} />
         </div>
+
+        {/* Insight vs dynamic average */}
+        {insights.length > 0 && (
+          <div className="ath-tests-modal__insight">
+            {insights.map((t, i) => <span key={i}>{t}</span>)}
+          </div>
+        )}
 
         {/* Thresholds */}
         {analysis.thresholds?.length > 0 && (
@@ -244,6 +303,7 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
   const [rows, setRows] = useState<StepRow[]>([
     { ...EMPTY_ROW }, { ...EMPTY_ROW }, { ...EMPTY_ROW },
   ]);
+  const [durationUnit, setDurationUnit] = useState<DurationUnit>("min");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -264,7 +324,42 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
   }
 
   // Check if any row has non-lactate data filled → auto-expand advanced
-  const hasAdvancedData = rows.some((r) => r.pace || r.power || r.hr || r.hr_max || r.duration_min);
+  const hasAdvancedData = rows.some((r) => r.pace || r.power || r.hr || r.hr_max || r.duration_min || r.rest_min);
+
+  // Detect repeated-bout pattern → warn about accumulated fatigue
+  // Triggers based on zone tags (filled before lactate) or lactate values.
+  // Average rest between reps modulates: ≥3min rest = enough clearance, no warning.
+  const { repeatedBoutWarning, avgRestMin } = useMemo(() => {
+    const withZone = rows.filter((r) => r.zone_tag);
+    const withLactate = rows.filter((r) => parseFloat(r.lactate) > 0);
+    const relevant = withZone.length >= withLactate.length ? withZone : withLactate;
+    if (relevant.length < 5) return { repeatedBoutWarning: null, avgRestMin: 0 };
+    const zones = relevant.map((r) => r.zone_tag).filter(Boolean);
+    if (zones.length < 4) return { repeatedBoutWarning: null, avgRestMin: 0 };
+    const freq: Record<string, number> = {};
+    for (const z of zones) freq[z] = (freq[z] || 0) + 1;
+    const maxCount = Math.max(...Object.values(freq));
+    const dominantZone = Object.keys(freq).find((k) => freq[k] === maxCount)!;
+    const ratio = maxCount / zones.length;
+    if (ratio < 0.6) return { repeatedBoutWarning: null, avgRestMin: 0 };
+
+    // Calculate average rest between reps
+    const rests = rows.map((r) => parseFloat(r.rest_min)).filter((v) => !isNaN(v) && v > 0);
+    const avg = rests.length > 0 ? rests.reduce((a, b) => a + b, 0) / rests.length : 0;
+
+    // Freund 1981: passive recovery half-life ~20min.
+    // ≥3min rest = ~10% clearance per interval → accumulation is modest
+    // ≥5min rest = ~16% clearance → mostly cleared, no warning needed
+    if (avg >= 5) return { repeatedBoutWarning: null, avgRestMin: avg };
+    if (avg >= 3) return {
+      repeatedBoutWarning: `${relevant.length} series a ${dominantZone} con ~${avg.toFixed(0)}' descanso — acumulación moderada. Las primeras 3-4 series siguen siendo las más fiables.`,
+      avgRestMin: avg,
+    };
+    return {
+      repeatedBoutWarning: `${relevant.length} series a ${dominantZone}${avg > 0 ? ` con ~${avg.toFixed(0)}' descanso` : ""} — las muestras a partir de la serie 5 tendrán menor peso en tus umbrales por acumulación de lactato (Guimaraes 2024). Las primeras 3-4 son las más representativas.`,
+      avgRestMin: avg,
+    };
+  }, [rows]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -284,17 +379,30 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
       .map((r, i) => {
         const lac = parseFloat(r.lactate);
         if (isNaN(lac) || lac <= 0) return null;
-        const durMin = parseFloat(r.duration_min) || 5;
+        const rawDur = parseFloat(r.duration_min);
         const hr = parseInt(r.hr) || undefined;
         const hrMax = parseInt(r.hr_max) || undefined;
         const paceVal = usePace ? paceToSeconds(r.pace) : undefined;
         const powerVal = !usePace ? (parseFloat(r.power) || undefined) : undefined;
         const purpose = r.zone_tag ? r.zone_tag.toLowerCase().replace("vo2", "VO2max").replace("anc", "anaerobic") : "threshold_work";
 
+        // Convert duration based on unit
+        let durSeconds: number;
+        if (durationUnit === "km" && !isNaN(rawDur) && rawDur > 0) {
+          // km → derive seconds from pace if available, else assume ~5:00/km
+          const paceSec = paceVal ?? 300;
+          durSeconds = Math.round(rawDur * paceSec);
+        } else {
+          durSeconds = Math.round((rawDur || 5) * 60);
+        }
+
+        const restMin = parseFloat(r.rest_min);
+        const restSec = !isNaN(restMin) && restMin > 0 ? Math.round(restMin * 60) : 60;
+
         return {
           order_index: i + 1,
-          duration_seconds: Math.round(durMin * 60),
-          rest_seconds: 60,
+          duration_seconds: durSeconds,
+          rest_seconds: restSec,
           rest_type: "passive",
           heart_rate_avg: hr,
           heart_rate_max: hrMax,
@@ -352,12 +460,36 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
         </label>
       </div>
 
+      {repeatedBoutWarning && (
+        <div className="ath-tests-form__fatigue-warn">
+          {repeatedBoutWarning}
+        </div>
+      )}
+
       {/* Quick rows: zone tag + lactate + note */}
       <div className="ath-tests-form__quick">
-        {rows.map((row, i) => (
-          <div key={i} className="ath-tests-quick-row">
+        {rows.map((row, i) => {
+          // Show fatigue indicator on rows 5+ when repeated bouts detected
+          // If avg rest ≥5min → no fatigue markers at all
+          const showFatigue = !!repeatedBoutWarning && avgRestMin < 5 && i >= 4 && (row.zone_tag || parseFloat(row.lactate) > 0);
+          return (
+          <React.Fragment key={i}>
+            {/* Rest between intervals */}
+            {i > 0 && (
+              <div className="ath-tests-form__rest-row">
+                <span className="ath-tests-form__rest-label">Descanso</span>
+                <input
+                  type="text"
+                  placeholder="min"
+                  value={row.rest_min}
+                  onChange={(e) => updateRow(i, "rest_min", e.target.value)}
+                  className="ath-tests-form__rest-input"
+                />
+              </div>
+            )}
+          <div className={`ath-tests-quick-row ${showFatigue ? "ath-tests-quick-row--fatigued" : ""}`}>
             <div className="ath-tests-quick-row__main">
-              <span className="ath-tests-form__idx">{i + 1}</span>
+              <span className="ath-tests-form__idx">{i + 1}{showFatigue ? "*" : ""}</span>
               <select
                 value={row.zone_tag}
                 onChange={(e) => updateRow(i, "zone_tag", e.target.value)}
@@ -389,7 +521,14 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
             {/* Advanced fields (collapsible) */}
             {(showAdvanced || hasAdvancedData) && (
               <div className="ath-tests-quick-row__adv">
-                <input type="text" placeholder="Min" value={row.duration_min} onChange={(e) => updateRow(i, "duration_min", e.target.value)} className="ath-tests-form__input ath-tests-form__input--sm" />
+                <div className="ath-tests-form__dur-wrap">
+                  <input type="text" placeholder={durationUnit === "min" ? "Min" : "Km"} value={row.duration_min} onChange={(e) => updateRow(i, "duration_min", e.target.value)} className="ath-tests-form__input ath-tests-form__input--sm" />
+                  {i === 0 && (
+                    <button type="button" className="ath-tests-form__dur-toggle" onClick={() => setDurationUnit((u) => u === "min" ? "km" : "min")} title="Cambiar unidad">
+                      {durationUnit}
+                    </button>
+                  )}
+                </div>
                 {usePace ? (
                   <input type="text" placeholder="Ritmo" value={row.pace} onChange={(e) => updateRow(i, "pace", e.target.value)} className="ath-tests-form__input" />
                 ) : (
@@ -400,7 +539,9 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
               </div>
             )}
           </div>
-        ))}
+          </React.Fragment>
+          );
+        })}
       </div>
 
       <div className="ath-tests-form__actions">
@@ -624,6 +765,86 @@ function LactateOverlay({ sessionId, onCreated, onClose }: { sessionId: number; 
   );
 }
 
+/* ── Format dynamic reference value ── */
+function formatRef(ref: DynamicReference | null | undefined, discipline: string): string {
+  if (!ref) return "--";
+  if (discipline === "running" && ref.estimated_pace_seconds_per_km) return secondsToPace(ref.estimated_pace_seconds_per_km) + "/km";
+  if (ref.estimated_power_watts) return Math.round(ref.estimated_power_watts) + "W";
+  if (ref.estimated_hr_at_target) return Math.round(ref.estimated_hr_at_target) + " bpm";
+  if (discipline === "running" && ref.estimated_speed_kph) return secondsToPace(3600 / ref.estimated_speed_kph) + "/km";
+  return "--";
+}
+
+function confLabel(score: number): { text: string; cls: string } {
+  if (score >= 0.75) return { text: "Alta", cls: "high" };
+  if (score >= 0.55) return { text: "Media", cls: "medium" };
+  return { text: "Baja", cls: "low" };
+}
+
+/* ── Current dynamic thresholds summary ── */
+function CurrentThresholds({ disciplineViews }: { disciplineViews: Record<string, DisciplineView> }) {
+  const entries = Object.values(disciplineViews)
+    .filter((v) => v.dynamic_thresholds?.acute)
+    .map((v) => ({ discipline: v.discipline, dt: v.dynamic_thresholds! }));
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="ath-tests-current">
+      <h3 className="ath-tests-current__title">Tus umbrales actuales</h3>
+      <div className="ath-tests-current__grid">
+        {entries.map(({ discipline, dt }) => {
+          const acute = dt.acute;
+          const lt1 = acute.practical_lt1;
+          const lt2 = acute.practical_lt2;
+          const ref2 = acute.reference_2mmol;
+          const ref4 = acute.reference_4mmol;
+          // Use practical if available, fall back to 2/4mmol references
+          const showLt1 = lt1 ?? ref2;
+          const showLt2 = lt2 ?? ref4;
+          const lt1Label = lt1 ? "LT1" : "Ref 2mmol";
+          const lt2Label = lt2 ? "LT2" : "Ref 4mmol";
+          const nPoints = acute.points_used?.length ?? 0;
+          const nSessions = acute.sessions_considered ?? 0;
+          const conf = acute.confidence_score;
+          const cl = confLabel(conf);
+
+          return (
+            <div key={discipline + (dt.power_source ?? "")} className="ath-tests-current__card">
+              <div className="ath-tests-current__disc">
+                {discipline}
+                {dt.power_source && <span className="ath-tests-current__ps">{dt.power_source}</span>}
+              </div>
+              <div className="ath-tests-current__vals">
+                <span className="ath-tests-current__lt" style={{ color: "#22c55e" }}>
+                  {lt1Label}: {formatRef(showLt1, discipline)}
+                </span>
+                <span className="ath-tests-current__lt" style={{ color: "#f97316" }}>
+                  {lt2Label}: {formatRef(showLt2, discipline)}
+                </span>
+              </div>
+              <div className="ath-tests-current__meta">
+                <span className={`ath-tests-current__conf ath-tests-current__conf--${cl.cls}`}>
+                  {cl.text} ({(conf * 100).toFixed(0)}%)
+                </span>
+                <span className="ath-tests-current__info">
+                  {nPoints} puntos · {nSessions} sesiones · {acute.based_on_days}d
+                </span>
+              </div>
+              {showLt1?.estimated_hr_at_target && (formatRef(showLt1, discipline) !== Math.round(showLt1.estimated_hr_at_target) + " bpm") && (
+                <div className="ath-tests-current__hr-row">
+                  <span style={{ color: "#22c55e" }}>{lt1Label}: {Math.round(showLt1.estimated_hr_at_target)} bpm</span>
+                  {showLt2?.estimated_hr_at_target && <span style={{ color: "#f97316" }}>{lt2Label}: {Math.round(showLt2.estimated_hr_at_target)} bpm</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════════════════════════════
    MY TESTS PAGE
    ══════════════════════════════════════════════════════════════ */
@@ -689,6 +910,8 @@ export function MyTestsPage() {
         </button>
       </div>
 
+      <CurrentThresholds disciplineViews={analysis?.discipline_views ?? {}} />
+
       {showForm && <ManualTestForm onCreated={handleCreated} />}
 
       {loading && <p className="ath-tests-loading">Cargando tests...</p>}
@@ -704,7 +927,7 @@ export function MyTestsPage() {
         <div className="ath-tests__list">
           {sessions.map((s) => {
             const mini = miniAnalyses[s.id];
-            const curvePoints = mini?.curve_by_pace?.length ? mini.curve_by_pace : mini?.curve_by_power?.length ? mini.curve_by_power : [];
+            const curvePoints = mini?.curve_by_pace?.length ? mini.curve_by_pace : mini?.curve_by_power?.length ? mini.curve_by_power : mini?.curve_by_hr?.length ? mini.curve_by_hr : [];
             const lt1 = mini?.thresholds?.find((t) => t.name === "LT1");
             const lt2 = mini?.thresholds?.find((t) => t.name === "LT2");
             const conf = mini?.thresholds?.[0]?.confidence;
@@ -726,8 +949,8 @@ export function MyTestsPage() {
                     <span className="ath-tests__card-date">{formatDate(s.performed_at)}</span>
                   </div>
                   <div className="ath-tests__card-thresholds">
-                    {lt1 && <span className="ath-tests__card-lt" style={{ color: "#22c55e" }}>LT1: {lt1.pace_seconds_per_km ? secondsToPace(lt1.pace_seconds_per_km) + "/km" : lt1.power_watts ? Math.round(lt1.power_watts) + "W" : "--"}</span>}
-                    {lt2 && <span className="ath-tests__card-lt" style={{ color: "#f97316" }}>LT2: {lt2.pace_seconds_per_km ? secondsToPace(lt2.pace_seconds_per_km) + "/km" : lt2.power_watts ? Math.round(lt2.power_watts) + "W" : "--"}</span>}
+                    {lt1 && <span className="ath-tests__card-lt" style={{ color: "#22c55e" }}>LT1: {lt1.pace_seconds_per_km ? secondsToPace(lt1.pace_seconds_per_km) + "/km" : lt1.power_watts ? Math.round(lt1.power_watts) + "W" : lt1.heart_rate ? Math.round(lt1.heart_rate) + " bpm" : "--"}</span>}
+                    {lt2 && <span className="ath-tests__card-lt" style={{ color: "#f97316" }}>LT2: {lt2.pace_seconds_per_km ? secondsToPace(lt2.pace_seconds_per_km) + "/km" : lt2.power_watts ? Math.round(lt2.power_watts) + "W" : lt2.heart_rate ? Math.round(lt2.heart_rate) + " bpm" : "--"}</span>}
                     {conf != null && <span className="ath-tests__card-conf">Conf: {(conf * 100).toFixed(0)}%</span>}
                   </div>
                   <span className="ath-tests__card-points">{nPoints} puntos</span>

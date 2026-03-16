@@ -195,12 +195,119 @@ def _data_quality_score(baseline_source: str, sample_delay_seconds: int, context
     return round(max(0.3, min(1.0, delay_score * 0.45 + baseline_score * 0.25 + contextual * 0.3)), 2)
 
 
+def _is_repeated_bout_session(session: AthleteSession) -> bool:
+    """Detect whether a session is repeated bouts at constant intensity
+    (same pace/power across intervals) vs an incremental test (rising intensity).
+
+    Repeated bouts: load CV < 15% across intervals with lactate samples.
+    Incremental: monotonicity of load ≥ 0.70 (≥70% of consecutive pairs ascending).
+
+    Reference: Guimaraes et al. 2024 — lactate dynamics differ fundamentally
+    between these two protocol types. Faude et al. 2009 — all lactate threshold
+    concepts were validated on incremental protocols only.
+    """
+    loads: list[float] = []
+    for iv in session.intervals:
+        if iv.lactate_sample is None:
+            continue
+        load = None
+        if iv.power_watts:
+            load = float(iv.power_watts)
+        elif iv.running_power_watts:
+            load = float(iv.running_power_watts)
+        elif iv.pace_seconds_per_km:
+            load = 3600 / iv.pace_seconds_per_km
+        elif iv.heart_rate_avg:
+            load = float(iv.heart_rate_avg)
+        if load is not None:
+            loads.append(load)
+
+    if len(loads) < 3:
+        return False
+
+    # Check monotonicity — if intensity is clearly rising, it's incremental
+    ascending = sum(1 for i in range(1, len(loads)) if loads[i] >= loads[i - 1] - 0.01 * loads[i - 1])
+    monotonicity = ascending / (len(loads) - 1)
+    if monotonicity >= 0.70:
+        return False  # incremental test — do NOT apply fatigue penalty
+
+    # Check CV of loads — if similar intensity, it's repeated bouts
+    mean_load = sum(loads) / len(loads)
+    if mean_load <= 0:
+        return False
+    variance = sum((l - mean_load) ** 2 for l in loads) / len(loads)
+    cv = (variance ** 0.5) / mean_load
+    return cv < 0.15
+
+
+def _accumulated_fatigue_penalty(session: AthleteSession, interval: SessionInterval) -> float:
+    """Penalise lactate points from late repetitions in repeated-bout sessions
+    where incomplete recovery inflates measured lactate above true steady-state.
+
+    Scientific basis:
+    - Freund & Zouloumian 1981: biexponential clearance model. With passive
+      recovery half-life ~20 min, only ~7% of excess lactate clears per 2-min
+      rest. Residual accumulates across reps.
+    - Guimaraes et al. 2024: lactate plateau reached by bout 3-4 in trained
+      athletes (6-10 bouts, 60-180s recovery). Early bouts (1-4) are most
+      representative of true intensity-lactate relationship.
+    - Beneke 2003: MLSS criterion (≤1.0 mmol drift in 10 min) only valid
+      for continuous constant-load tests, not interval protocols.
+
+    Penalty applies ONLY to repeated-bout sessions (constant intensity).
+    Incremental tests are excluded — intensity rise explains lactate rise
+    (Faude et al. 2009, Serafim et al. 2020: no order effect in incremental).
+
+    Returns a value 0.0-1.0 where 1.0 = no penalty, lower = more penalty.
+    """
+    if not _is_repeated_bout_session(session):
+        return 1.0  # incremental or mixed — no penalty
+
+    # Count total intervals in the session (not just those with lactate)
+    total_intervals = len(session.intervals)
+    if total_intervals <= 4:
+        return 1.0  # too few reps for significant accumulation
+
+    order = interval.order_index  # 1-based
+    rest_s = interval.rest_seconds or 0
+
+    # Short rest amplifies accumulation (Freund 1981: clearance is time-dependent)
+    # ≤60s rest = almost no clearance; ≥180s = substantial clearance
+    if rest_s >= 180:
+        rest_factor = 0.3  # modest penalty even with longer rest
+    elif rest_s >= 120:
+        rest_factor = 0.5
+    elif rest_s >= 60:
+        rest_factor = 0.7
+    else:
+        rest_factor = 1.0  # very short rest = full penalty applies
+
+    # Reps 1-3: plateau zone (Guimaraes 2024) — no penalty
+    # Reps 4-6: mild penalty (plateau established but drift begins)
+    # Reps 7+: increasing penalty (accumulation dominates)
+    if order <= 3:
+        order_factor = 0.0
+    elif order <= 6:
+        order_factor = 0.10 + (order - 4) * 0.05  # 0.10, 0.15, 0.20
+    elif order <= 10:
+        order_factor = 0.25 + (order - 7) * 0.05  # 0.25, 0.30, 0.35, 0.40
+    else:
+        order_factor = min(0.55, 0.40 + (order - 10) * 0.03)  # caps at 0.55
+
+    penalty = order_factor * rest_factor
+    return round(max(0.45, 1.0 - penalty), 2)
+
+
 def _session_context_score(session: AthleteSession, interval: SessionInterval) -> float:
     density = _session_density(session)
     protocol_score = _interval_protocol_score(interval)
-    order_penalty = max(0.0, (interval.order_index - 1) * 0.04)
+    fatigue_penalty = _accumulated_fatigue_penalty(session, interval)
+    # Only apply generic order_penalty for incremental sessions;
+    # for repeated bouts, fatigue_penalty handles the order effect
+    order_penalty = 0.0 if fatigue_penalty < 1.0 else max(0.0, (interval.order_index - 1) * 0.04)
     purpose_bonus = 0.08 if (interval.purpose or "").lower() in {"lt1", "lt2"} else 0.0
     score = protocol_score * 0.62 + density * 0.18 + 0.16 + purpose_bonus - order_penalty
+    score *= fatigue_penalty
     return round(max(0.35, min(1.0, score)), 2)
 
 

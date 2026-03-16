@@ -21,6 +21,8 @@ class Session(Base):
     surface: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     temperature_c: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     comments: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sprint_protocol: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    """Protocol duration for VLamax sprint tests: '15s' or '30s'. When set, overrides auto-detection."""
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     athlete = relationship("Athlete", back_populates="sessions")

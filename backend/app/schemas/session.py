@@ -86,6 +86,7 @@ class SessionBase(BaseModel):
     surface: Optional[str] = None
     temperature_c: Optional[float] = None
     comments: Optional[str] = None
+    sprint_protocol: Optional[str] = None
 
 
 class SessionCreate(SessionBase):
@@ -102,6 +103,7 @@ class SessionUpdate(BaseModel):
     surface: Optional[str] = None
     temperature_c: Optional[float] = None
     comments: Optional[str] = None
+    sprint_protocol: Optional[str] = None
 
 
 class SessionRead(SessionBase):

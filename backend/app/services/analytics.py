@@ -12,7 +12,7 @@ from app.core.config import get_settings
 from app.models.athlete import Athlete, AthleteFocusBlock
 from app.models.metrics import DerivedMetric, PerformanceEstimate, PhysiologicalSnapshot
 from app.models.session import Session as AthleteSession, SessionInterval
-from app.services.dynamic_threshold_engine import build_dynamic_threshold_payload, config_from_settings
+from app.services.dynamic_threshold_engine import build_dynamic_threshold_payload, config_from_settings, _accumulated_fatigue_penalty
 from app.services.prediction_engine import build_performance_estimates
 
 
@@ -87,6 +87,10 @@ def _load_metric(interval: SessionInterval) -> Optional[float]:
         return float(interval.running_power_watts)
     if interval.pace_seconds_per_km:
         return 3600 / interval.pace_seconds_per_km
+    # HR as fallback: allows analysis when athlete only has lactate + HR
+    # (e.g. manual test entry without pace/power data)
+    if interval.heart_rate_avg:
+        return float(interval.heart_rate_avg)
     return None
 
 
@@ -97,6 +101,8 @@ def _primary_metric_value(interval: SessionInterval) -> tuple[Optional[float], s
         return float(interval.power_watts), "power_watts"
     if interval.running_power_watts:
         return float(interval.running_power_watts), "running_power_watts"
+    if interval.heart_rate_avg:
+        return float(interval.heart_rate_avg), "heart_rate_avg"
     return None, "unknown"
 
 
@@ -191,10 +197,17 @@ def _peak_lactate(session: AthleteSession) -> Optional[dict[str, Any]]:
 def _calculate_measured_vlamax(session: AthleteSession) -> Optional[dict[str, Any]]:
     """Calculate VLamax from a sprint all-out test using Mader's formula.
 
-    Requires session_type == "vlamax_test". The session should contain:
-    - A sprint interval (15-30s all-out) with duration_seconds
-    - Post-sprint lactate samples (typically at min 3, 5, 7)
-    - A baseline_lactate on at least one sample
+    Two modes:
+    1. Explicit: session_type == "vlamax_test" → confidence 0.90
+    2. Auto-detect: any session with a sprint interval ≤30s and peak lactate ≥6 mmol/L
+       → confidence 0.75 (retrocompat for athletes who recorded sprints before
+       the vlamax_test type existed)
+
+    Sprint protocol override:
+      If session.sprint_protocol is set ("15s" or "30s"), that duration is used
+      as the divisor in the Mader formula instead of auto-detecting from intervals.
+      This is critical because the protocol duration is a divisor — getting it wrong
+      doubles or halves the result.
 
     Simplified Mader formula:
       VLamax = (peak_lactate - baseline) / (2 × sprint_duration_s)
@@ -203,20 +216,31 @@ def _calculate_measured_vlamax(session: AthleteSession) -> Optional[dict[str, An
     prediction engine proxy (range 0.15–0.75).
     Literature ranges: sprinter 0.6–0.9, trained 0.3–0.5, endurance 0.15–0.30.
     """
-    if session.session_type != "vlamax_test":
-        return None
+    explicit = session.session_type == "vlamax_test"
+
+    # Resolve sprint protocol: explicit protocol field takes precedence
+    protocol = getattr(session, "sprint_protocol", None)
+    protocol_duration_s: Optional[int] = None
+    if protocol == "15s":
+        protocol_duration_s = 15
+    elif protocol == "30s":
+        protocol_duration_s = 30
 
     # Find sprint interval: shortest duration interval (the all-out effort)
     sprint_interval = None
+    max_duration = 120 if explicit else 30
     for interval in session.intervals:
-        if interval.duration_seconds and interval.duration_seconds <= 120:
+        if interval.duration_seconds and interval.duration_seconds <= max_duration:
             if sprint_interval is None or interval.duration_seconds < sprint_interval.duration_seconds:
                 sprint_interval = interval
 
     if sprint_interval is None or not sprint_interval.duration_seconds:
-        return None
+        # If we have a protocol but no matching interval, still need at least one interval
+        if protocol_duration_s is None:
+            return None
 
-    sprint_duration_s = sprint_interval.duration_seconds
+    # Sprint duration: protocol override > interval auto-detect
+    sprint_duration_s = protocol_duration_s if protocol_duration_s is not None else sprint_interval.duration_seconds
 
     # Find baseline lactate (pre-sprint resting value)
     baseline = None
@@ -248,6 +272,11 @@ def _calculate_measured_vlamax(session: AthleteSession) -> Optional[dict[str, An
     if peak is None or peak <= baseline:
         return None
 
+    # Auto-detect gate: require peak ≥ 6 mmol/L to avoid false positives
+    # from short warm-up intervals in incremental tests
+    if not explicit and peak < 6.0:
+        return None
+
     # Simplified Mader: VLamax (mmol/L/s) = Δlactate / (2 × t_sprint_s)
     # The factor of 2 accounts for the glycolytic stoichiometry (Mader 2003):
     # only ~50% of glycolytic flux appears as blood lactate.
@@ -256,13 +285,23 @@ def _calculate_measured_vlamax(session: AthleteSession) -> Optional[dict[str, An
     # Sanity clamp: physiological range 0.15–0.90 mmol/L/s
     vlamax = max(0.15, min(0.90, vlamax))
 
+    # Validation warnings
+    warnings: list[str] = []
+    if protocol == "15s" and peak < 6.0:
+        warnings.append("Pico lactato <6 mmol/L en protocolo 15\": el sprint puede no haber sido maximal.")
+    if protocol == "30s" and peak > 20.0:
+        warnings.append("Pico lactato >20 mmol/L en protocolo 30\": valor plausible pero extremo.")
+
     return {
         "vlamax_mmol_min": round(vlamax, 3),
         "peak_lactate": round(peak, 2),
         "baseline_lactate": round(baseline, 2),
         "sprint_duration_s": sprint_duration_s,
-        "source": "mader_sprint_test",
-        "confidence": 0.90,
+        "sprint_protocol": protocol,
+        "source": "mader_sprint_test" if explicit else "mader_sprint_autodetect",
+        "confidence": 0.90 if explicit else 0.75,
+        "warnings": warnings,
+        "calculation": f"VLamax = ({round(peak, 2)} - {round(baseline, 2)}) / (2 x {sprint_duration_s}) = {round(vlamax, 3)} mmol/L/s",
     }
 
 
@@ -306,13 +345,15 @@ def _build_candidates(session: AthleteSession, max_sample_delay_seconds: Optiona
         load = _load_metric(interval)
         if load is None:
             continue
+        fatigue = _accumulated_fatigue_penalty(session, interval)
         candidates.append(
             {
                 "load": load,
                 "interval": interval,
                 "lactate": sample.contextual_lactate or sample.lactate_mmol,
-                "protocol_score": _interval_protocol_score(interval),
+                "protocol_score": round(_interval_protocol_score(interval) * fatigue, 2),
                 "sample_delay_seconds": sample.sample_delay_seconds,
+                "accumulated_fatigue_penalty": fatigue,
             }
         )
     candidates.sort(key=lambda item: item["load"])

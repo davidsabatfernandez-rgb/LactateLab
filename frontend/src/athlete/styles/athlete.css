@@ -6666,6 +6666,84 @@
 
 .ath-tests__new-btn:hover { opacity: 0.9; }
 
+/* ── Current dynamic thresholds summary ── */
+.ath-tests-current {
+  margin-bottom: 24px;
+}
+.ath-tests-current__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ath-text-muted, #8899a4);
+  margin: 0 0 10px;
+}
+.ath-tests-current__grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ath-tests-current__card {
+  flex: 1 1 220px;
+  max-width: 340px;
+  background: var(--ath-bg-card, #fff);
+  border: 1px solid var(--ath-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ath-tests-current__disc {
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ath-tests-current__ps {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--ath-text-muted, #8899a4);
+  background: var(--ath-bg-elevated, #f8f9fa);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.ath-tests-current__vals {
+  display: flex;
+  gap: 16px;
+}
+.ath-tests-current__lt {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.ath-tests-current__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+  color: var(--ath-text-muted, #8899a4);
+}
+.ath-tests-current__conf {
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.ath-tests-current__conf--high { background: #dcfce7; color: #166534; }
+.ath-tests-current__conf--medium { background: #fef3c7; color: #92400e; }
+.ath-tests-current__conf--low { background: #fee2e2; color: #991b1b; }
+.ath-tests-current__info {
+  white-space: nowrap;
+}
+.ath-tests-current__hr-row {
+  display: flex;
+  gap: 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
 .ath-tests-loading,
 .ath-tests-empty-state {
   text-align: center;
@@ -6844,6 +6922,28 @@
 .ath-tests-form__input--sm {
   text-align: center;
 }
+.ath-tests-form__dur-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+}
+.ath-tests-form__dur-toggle {
+  background: var(--ath-bg-elevated, #f0f2f4);
+  border: 1px solid var(--ath-border, #e2e8f0);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ath-text-secondary, #5a6872);
+  cursor: pointer;
+  padding: 2px 5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.ath-tests-form__dur-toggle:hover {
+  background: var(--ath-border, #e2e8f0);
+}
 
 .ath-tests-form__remove {
   background: none;
@@ -6894,6 +6994,47 @@
   background: var(--ath-bg, #f7f8fa);
   border-radius: 8px;
   padding: 8px 10px;
+}
+.ath-tests-quick-row--fatigued {
+  border-left: 3px solid #f59e0b;
+  opacity: 0.8;
+}
+.ath-tests-form__rest-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.ath-tests-form__rest-label {
+  font-size: 0.7rem;
+  color: var(--ath-text-muted, #8899a4);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.ath-tests-form__rest-input {
+  width: 48px;
+  text-align: center;
+  padding: 2px 4px;
+  border: 1px solid var(--ath-border, #e2e8f0);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--ath-text, #1e293b);
+  background: transparent;
+}
+.ath-tests-form__rest-input::placeholder {
+  color: var(--ath-text-muted, #8899a4);
+  font-size: 0.7rem;
+}
+.ath-tests-form__fatigue-warn {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  color: #92400e;
+  line-height: 1.45;
+  margin-bottom: 10px;
 }
 
 .ath-tests-quick-row__main {
@@ -7088,6 +7229,18 @@
   height: auto;
 }
 
+.ath-tests-modal__insight {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  background: var(--ath-bg-elevated, #f8f9fa);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--ath-text-secondary, #5a6872);
+  font-weight: 500;
+}
 .ath-tests-modal__thresholds {
   display: flex;
   gap: 12px;

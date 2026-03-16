@@ -381,6 +381,7 @@ export type SessionSummary = {
   surface?: string | null;
   temperature_c?: number | null;
   comments?: string | null;
+  sprint_protocol?: string | null;
   intervals?: SessionInterval[];
 };
 
@@ -658,6 +659,17 @@ export type DisciplineView = {
     hr_max_used?: number | null;
     hr_rest_used?: number | null;
     lt2_hr_used?: number | null;
+  } | null;
+  measured_vlamax?: {
+    vlamax_mmol_min: number;
+    peak_lactate: number;
+    baseline_lactate: number;
+    sprint_duration_s: number;
+    sprint_protocol?: string | null;
+    source: string;
+    confidence: number;
+    warnings?: string[];
+    calculation?: string;
   } | null;
   target_curve?: {
     distance_category: string;
@@ -1304,6 +1316,17 @@ export type SessionAnalysis = {
     rules: Record<string, number>;
   }>;
   peak_lactate?: PeakLactate | null;
+  measured_vlamax?: {
+    vlamax_mmol_min: number;
+    peak_lactate: number;
+    baseline_lactate: number;
+    sprint_duration_s: number;
+    sprint_protocol?: string | null;
+    source: string;
+    confidence: number;
+    warnings?: string[];
+    calculation?: string;
+  } | null;
   historical_evolution: Record<string, HistoricalPoint[]>;
   real_thresholds?: RealThresholds | null;
   individual_thresholds?: IndividualThresholds | null;
