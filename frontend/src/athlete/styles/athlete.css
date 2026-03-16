@@ -6630,3 +6630,424 @@
   font-family: var(--ath-font);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   MY TESTS PAGE
+   ═══════════════════════════════════════════════════════════════ */
+
+.ath-tests {
+  padding: 24px;
+  max-width: 800px;
+}
+
+.ath-tests__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.ath-tests__head h2 {
+  font-family: var(--ath-font-display, var(--ath-font));
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.ath-tests__new-btn {
+  background: var(--ath-accent, #d26a36);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ath-tests__new-btn:hover { opacity: 0.9; }
+
+.ath-tests-loading,
+.ath-tests-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--ath-text-muted, #8899a4);
+}
+
+.ath-tests-empty-state p { margin: 4px 0; }
+
+/* ── Test card list ── */
+.ath-tests__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ath-tests__card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--ath-card-bg, #fff);
+  border: 1px solid var(--ath-border, #e5e7eb);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+
+.ath-tests__card:hover {
+  border-color: var(--ath-accent, #d26a36);
+}
+
+.ath-tests__card-left {
+  flex-shrink: 0;
+  width: 80px;
+  height: 50px;
+}
+
+.ath-tests-minicurve {
+  width: 80px;
+  height: 50px;
+}
+
+.ath-tests-nocurve {
+  display: block;
+  width: 80px;
+  text-align: center;
+  color: var(--ath-text-muted, #8899a4);
+  font-size: 0.9rem;
+}
+
+.ath-tests__card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ath-tests__card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ath-tests__card-disc {
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-transform: capitalize;
+}
+
+.ath-tests__card-date {
+  font-size: 0.78rem;
+  color: var(--ath-text-muted, #8899a4);
+}
+
+.ath-tests__card-thresholds {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.ath-tests__card-conf {
+  font-size: 0.78rem;
+  color: var(--ath-text-muted, #8899a4);
+  font-weight: 500;
+}
+
+.ath-tests__card-points {
+  font-size: 0.75rem;
+  color: var(--ath-text-muted, #8899a4);
+}
+
+/* ── Manual test form ── */
+.ath-tests-form {
+  background: var(--ath-card-bg, #fff);
+  border: 1px solid var(--ath-border, #e5e7eb);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.ath-tests-form h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+
+.ath-tests-form__top {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.ath-tests-form__top label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ath-tests-form__top label span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ath-text-muted, #8899a4);
+}
+
+.ath-tests-form__top select,
+.ath-tests-form__top input {
+  padding: 6px 10px;
+  border: 1px solid var(--ath-border, #e5e7eb);
+  border-radius: 6px;
+  font-size: 0.88rem;
+}
+
+.ath-tests-form__table {
+  margin-bottom: 12px;
+}
+
+.ath-tests-form__header {
+  display: grid;
+  grid-template-columns: 28px 50px 1fr 60px 60px 28px;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ath-text-muted, #8899a4);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ath-tests-form__row {
+  display: grid;
+  grid-template-columns: 28px 50px 1fr 60px 60px 28px;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.ath-tests-form__idx {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--ath-text-muted, #8899a4);
+}
+
+.ath-tests-form__input {
+  padding: 5px 8px;
+  border: 1px solid var(--ath-border, #e5e7eb);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 100%;
+}
+
+.ath-tests-form__input--sm {
+  text-align: center;
+}
+
+.ath-tests-form__remove {
+  background: none;
+  border: none;
+  color: var(--ath-text-muted, #8899a4);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ath-tests-form__remove:hover { color: #ef4444; }
+
+.ath-tests-form__add {
+  background: none;
+  border: 1px dashed var(--ath-border, #e5e7eb);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--ath-text-muted, #8899a4);
+  margin-bottom: 12px;
+}
+
+.ath-tests-form__add:hover { border-color: var(--ath-accent, #d26a36); color: var(--ath-accent, #d26a36); }
+
+.ath-tests-form__submit {
+  background: var(--ath-accent, #d26a36);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+
+.ath-tests-form__submit:disabled { opacity: 0.6; cursor: default; }
+
+.ath-tests-error {
+  color: #ef4444;
+  font-size: 0.85rem;
+  margin: 8px 0;
+}
+
+/* ── Test detail modal ── */
+.ath-tests-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.ath-tests-modal {
+  background: var(--ath-card-bg, #fff);
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.ath-tests-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.ath-tests-modal__head h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.ath-tests-modal__close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--ath-text-muted, #8899a4);
+  line-height: 1;
+}
+
+.ath-tests-modal__curve {
+  margin-bottom: 20px;
+}
+
+.ath-tests-modal__curve-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ath-text-muted, #8899a4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.ath-tests-fullcurve {
+  width: 100%;
+  height: auto;
+}
+
+.ath-tests-modal__thresholds {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.ath-tests-th {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border-left: 3px solid;
+  background: var(--ath-bg, #f7f8fa);
+}
+
+.ath-tests-th__name {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.ath-tests-th__main {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.ath-tests-th__detail {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--ath-text-muted, #8899a4);
+}
+
+.ath-tests-th__conf {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--ath-text-muted, #8899a4);
+  margin-top: 4px;
+}
+
+.ath-tests-modal__section {
+  margin-bottom: 16px;
+}
+
+.ath-tests-modal__section h4 {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ath-text-muted, #8899a4);
+  margin: 0 0 8px;
+}
+
+.ath-tests-conf-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+
+.ath-tests-conf-val {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.ath-tests-conf-val--high { color: #22c55e; }
+.ath-tests-conf-val--mid { color: #f97316; }
+.ath-tests-conf-val--low { color: #ef4444; }
+
+.ath-tests-comments {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 0.85rem;
+  color: var(--ath-text-secondary, #5e6e78);
+  line-height: 1.6;
+}
+
+.ath-tests-empty {
+  text-align: center;
+  color: var(--ath-text-muted, #8899a4);
+  padding: 20px;
+}
+
+@media (max-width: 600px) {
+  .ath-tests { padding: 16px; }
+  .ath-tests-form__header,
+  .ath-tests-form__row {
+    grid-template-columns: 24px 40px 1fr 50px 50px 24px;
+    gap: 4px;
+  }
+  .ath-tests-modal__thresholds { flex-direction: column; }
+}
+

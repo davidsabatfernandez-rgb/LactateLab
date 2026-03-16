@@ -613,6 +613,7 @@ export const api = {
     return request(`/garmin/athletes/${athleteId}/stored-activities${qs ? `?${qs}` : ""}`, { token });
   },
   sessions: (token: string) => request("/sessions", { token }),
+  athleteSessions: (token: string, athleteId: number) => request(`/sessions?athlete_id=${athleteId}`, { token }),
   createSession: (token: string, payload: unknown) =>
     request("/sessions", { token, method: "POST", body: JSON.stringify(payload) }),
   updateInterval: (token: string, intervalId: number, payload: unknown) =>
