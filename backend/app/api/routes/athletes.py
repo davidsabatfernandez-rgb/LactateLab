@@ -49,6 +49,41 @@ from app.services.target_taxonomy import distance_category_label, normalize_dist
 router = APIRouter(prefix="/athletes", tags=["athletes"])
 
 
+# ── Temporary admin endpoint: delete athlete + dependencies ──
+@router.delete("/admin-cleanup/{athlete_id}")
+def admin_cleanup_athlete(
+    athlete_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Temporary admin endpoint to delete an athlete and all dependencies. Coach-only."""
+    if user.role != "coach":
+        raise HTTPException(status_code=403, detail="Solo coaches pueden borrar atletas")
+    from sqlalchemy import text
+    tables = [
+        "planned_sessions", "garmin_activities", "snapshots", "sessions",
+        "focus_blocks", "athlete_estimates", "athlete_targets",
+        "training_zone_sets", "weights",
+    ]
+    deleted = {}
+    for table in tables:
+        try:
+            r = db.execute(text(f"DELETE FROM {table} WHERE athlete_id = :aid"), {"aid": athlete_id})
+            if r.rowcount:
+                deleted[table] = r.rowcount
+        except Exception:
+            pass
+    # Delete user linked to this athlete
+    linked_users = db.execute(text("DELETE FROM users WHERE athlete_id = :aid"), {"aid": athlete_id})
+    if linked_users.rowcount:
+        deleted["users"] = linked_users.rowcount
+    # Delete athlete
+    result = db.execute(text("DELETE FROM athletes WHERE id = :aid"), {"aid": athlete_id})
+    deleted["athlete"] = "borrado" if result.rowcount else "no existia"
+    db.commit()
+    return {"athlete_id": athlete_id, "deleted": deleted}
+
+
 def _effective_block_discipline(block: AthleteFocusBlock, athlete: Athlete) -> str:
     return block.priority_discipline or athlete.primary_discipline
 
