@@ -193,15 +193,35 @@ def _garmin_session(
                     raise
                 _logout_if_available(garth)
 
+        import logging
+        _log = logging.getLogger(__name__)
+        _log.info("Garmin login attempt for %s (mfa_code=%s)", email, "yes" if mfa_code else "no")
         try:
             login_result = garth.login(
                 email,
                 password,
                 prompt_mfa=_build_mfa_prompt(mfa_code),
             )
+            _log.info("Garmin login succeeded for %s", email)
+        except GarminRequestError:
+            raise  # re-raise our own MFA error
         except garth_error as exc:
+            _log.warning("Garmin login failed (GarthException) for %s: %s", email, exc)
+            msg = str(exc).lower()
+            if "mfa" in msg or "verification" in msg or "unauthorized" in msg:
+                raise GarminRequestError(
+                    "Garmin requiere verificación MFA. Introduce el código que has recibido por email.",
+                    status_code=401,
+                ) from exc
             raise GarminRequestError(f"Garmin login failed: {exc}", status_code=502) from exc
         except Exception as exc:  # pragma: no cover - defensive for library edge cases
+            _log.warning("Garmin login failed (generic) for %s: %s", email, exc)
+            msg = str(exc).lower()
+            if "mfa" in msg or "verification" in msg or "unauthorized" in msg:
+                raise GarminRequestError(
+                    "Garmin requiere verificación MFA. Introduce el código que has recibido por email.",
+                    status_code=401,
+                ) from exc
             raise GarminRequestError(f"Garmin login failed: {exc}", status_code=502) from exc
 
         yield garth

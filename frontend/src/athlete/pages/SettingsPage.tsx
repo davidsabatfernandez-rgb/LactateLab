@@ -59,6 +59,7 @@ export function SettingsPage() {
 
   async function handleGarminConnect() {
     if (!data.user?.athlete_id) return;
+    const wasMfa = garminStep === "mfa";
     setGarminStep("connecting");
     setGarminError(null);
     try {
@@ -72,9 +73,14 @@ export function SettingsPage() {
       }
     } catch (e: any) {
       const msg = e?.message ?? String(e);
-      if (msg.toLowerCase().includes("mfa") || msg.toLowerCase().includes("verification")) {
+      const lmsg = msg.toLowerCase();
+      if (lmsg.includes("mfa") || lmsg.includes("verification") || lmsg.includes("unauthorized")) {
         setGarminStep("mfa");
-        setGarminError("Garmin requiere verificación en dos pasos. Introduce el código.");
+        if (wasMfa && garminForm.mfa_code) {
+          setGarminError("El código no funcionó. Garmin envía un código nuevo cada intento — usa el último código recibido por email.");
+        } else {
+          setGarminError("Garmin requiere verificación. Revisa tu email para obtener el código.");
+        }
       } else {
         setGarminStep("error");
         setGarminError(msg);
@@ -140,14 +146,21 @@ export function SettingsPage() {
               />
 
               {garminStep === "mfa" && (
-                <input
-                  type="text"
-                  className="ath-settings-input"
-                  placeholder="Código MFA"
-                  value={garminForm.mfa_code}
-                  onChange={(e) => setGarminForm((f) => ({ ...f, mfa_code: e.target.value }))}
-                  autoFocus
-                />
+                <>
+                  <div className="ath-device-mfa-help">
+                    <p><strong>Garmin requiere verificación en dos pasos.</strong></p>
+                    <p>Revisa tu email ({garminForm.email}) o tu app de autenticación (Google Authenticator, Authy, etc.) para obtener el código.</p>
+                    <p style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>Si no tienes acceso al código, puedes desactivar la verificación en dos pasos desde la app de Garmin Connect en tu móvil (Ajustes &gt; Seguridad).</p>
+                  </div>
+                  <input
+                    type="text"
+                    className="ath-settings-input"
+                    placeholder="Código de verificación"
+                    value={garminForm.mfa_code}
+                    onChange={(e) => setGarminForm((f) => ({ ...f, mfa_code: e.target.value }))}
+                    autoFocus
+                  />
+                </>
               )}
 
               <button
