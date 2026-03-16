@@ -260,7 +260,7 @@ function LandingInner() {
               </div>
               <div className="lp-hero__proof-sep" />
               <div className="lp-hero__proof-item">
-                <span className="lp-hero__proof-val">6</span>
+                <span className="lp-hero__proof-val">3</span>
                 <span className="lp-hero__proof-label">{t("hero_proof_blocks")}</span>
               </div>
               <div className="lp-hero__proof-sep" />
@@ -278,79 +278,6 @@ function LandingInner() {
 
       {/* ══ INTERACTIVE DEMO ══ */}
       <LactateDemo />
-
-      {/* ══ 3 METHODS (dark) ══ */}
-      <AnimSection>
-        <section className="lp-section lp-section--dark" id="motor">
-          <div className="lp-w">
-            <p className="lp-ey lp-ey--light">{t("methods_ey")}</p>
-            <h2 className="lp-h2 lp-h2--light">{t("methods_h2")}</h2>
-            <p className="lp-sub lp-sub--light">{t("methods_sub")}</p>
-            <div className="lp-methods">
-              <div className="lp-method">
-                <span className="lp-method__tag">{t("m1_tag")}</span>
-                <p>{t("m1_text")}</p>
-              </div>
-              <div className="lp-method">
-                <span className="lp-method__tag">{t("m2_tag")}</span>
-                <p>{t("m2_text")}</p>
-              </div>
-              <div className="lp-method">
-                <span className="lp-method__tag">{t("m3_tag")}</span>
-                <p>{t("m3_text")}</p>
-              </div>
-            </div>
-            <div className="lp-methods__footer">
-              <div className="lp-methods__stat">
-                <span className="lp-methods__stat-val">{t("methods_agg_lac")}</span>
-                <span className="lp-methods__stat-desc">{t("methods_agg_lac_d")}</span>
-              </div>
-              <div className="lp-methods__stat">
-                <span className="lp-methods__stat-val">{t("methods_agg_pace")}</span>
-                <span className="lp-methods__stat-desc">{t("methods_agg_pace_d")}</span>
-              </div>
-              <div className="lp-methods__stat">
-                <span className="lp-methods__stat-val">{t("methods_agg_conf")}</span>
-                <span className="lp-methods__stat-desc">{t("methods_agg_conf_d")}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      </AnimSection>
-
-      {/* ══ DYNAMIC THRESHOLDS ══ */}
-      <AnimSection>
-        <section className="lp-section" id="dinamicos">
-          <div className="lp-w lp-split">
-            <div className="lp-split__text">
-              <p className="lp-ey">{t("dyn_ey")}</p>
-              <h2 className="lp-h2">{t("dyn_h2")}</h2>
-              <p className="lp-sub">{t("dyn_sub")}</p>
-              <ul className="lp-checks">
-                <li>{t("dyn_c1")}</li>
-                <li>{t("dyn_c2")}</li>
-                <li>{t("dyn_c3")}</li>
-                <li>{t("dyn_c4")}</li>
-              </ul>
-            </div>
-            <div className="lp-split__visual">
-              <div className="lp-evo">
-                {[
-                  { date: "12 Jan", w: "62%", val: "LT2: 4:38/km", current: false },
-                  { date: "8 Feb", w: "70%", val: "LT2: 4:31/km", current: false },
-                  { date: "5 Mar", w: "78%", val: "LT2: 4:24/km", current: true },
-                ].map((r) => (
-                  <div key={r.date} className="lp-evo__row">
-                    <span className="lp-evo__date">{r.date}</span>
-                    <div className={`lp-evo__bar ${r.current ? "lp-evo__bar--current" : ""}`} style={{ width: r.w }}><span>{r.val}</span></div>
-                  </div>
-                ))}
-                <p className="lp-evo__caption">{t("dyn_caption")}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </AnimSection>
 
       {/* ══ RACE PREDICTIONS (warm bg) ══ */}
       <AnimSection>
@@ -386,14 +313,11 @@ function LandingInner() {
               <p className="lp-ey">{t("rx_ey")}</p>
               <h2 className="lp-h2">{t("rx_h2")}</h2>
               <p className="lp-sub">{t("rx_sub")}</p>
-              <div className="lp-blocks-demo">
-                {(["b1","b2","b3","b4","b5","b6"] as const).map((k, i) => (
-                  <div key={k} className={`lp-bk ${i === 0 ? "lp-bk--active" : ""}`}>
-                    <span className="lp-bk__name">{t(`rx_${k}`)}</span>
-                    <span className="lp-bk__when">{t(`rx_${k}w`)}</span>
-                  </div>
-                ))}
-              </div>
+              <ul className="lp-checks">
+                <li>{t("rx_b1")} — {t("rx_b1w")}</li>
+                <li>{t("rx_b2")} — {t("rx_b2w")}</li>
+                <li>{t("rx_b3")} — {t("rx_b3w")}</li>
+              </ul>
             </div>
             <div className="lp-split__visual">
               <div className="lp-gap-demo">
@@ -530,15 +454,11 @@ function LandingInner() {
             <p className="lp-sub" style={{ textAlign: "center", margin: "0 auto 40px" }}>{t("sci_sub")}</p>
             <div className="lp-strip__grid">
               {[
-                { ref: "Faude 2009", key: "sci_faude" },
-                { ref: "Bishop 1998", key: "sci_bishop" },
-                { ref: "di Prampero", key: "sci_prampero" },
-                { ref: "Daniels & Gilbert", key: "sci_daniels" },
-                { ref: "Olbrecht", key: "sci_olbrecht" },
-                { ref: "Zanini 2025", key: "sci_zanini" },
+                { key: "sci_s1" },
+                { key: "sci_s2" },
+                { key: "sci_s3" },
               ].map((s) => (
-                <div key={s.ref} className="lp-strip__item">
-                  <span className="lp-strip__ref">{s.ref}</span>
+                <div key={s.key} className="lp-strip__item">
                   <span className="lp-strip__detail">{t(s.key)}</span>
                 </div>
               ))}
@@ -716,20 +636,20 @@ function CoachTabMockup({ tab }: { tab: string }) {
           </div>
         ))}
       </div>
-      <div className="lp-mock__block-tag lp-mock__block-tag--light">Threshold development - 3+1</div>
+      <div className="lp-mock__block-tag lp-mock__block-tag--light">TSS 480 · CTL 62 · ATL 78</div>
     </div>
   );
   if (tab === "library") return (
     <div className="lp-mock lp-mock--light">
       <div className="lp-mock__lib-list">
         {[
-          { name: "4x6' LT1", family: "lt1_extensive", step: "3/8" },
-          { name: "5x4' Cruise", family: "lt2_cruise", step: "2/6" },
-          { name: "3x20' Sub-T", family: "subthreshold", step: "4/6" },
+          { name: "4x6' LT1", zone: "Z2" },
+          { name: "5x4' Cruise intervals", zone: "Z4" },
+          { name: "3x20' Sub-threshold", zone: "Z3" },
         ].map(w => (
           <div key={w.name} className="lp-mock__lib-item">
             <span className="lp-mock__lib-name">{w.name}</span>
-            <span className="lp-mock__lib-step">Step {w.step}</span>
+            <span className="lp-mock__lib-step">{w.zone}</span>
           </div>
         ))}
       </div>
@@ -741,8 +661,8 @@ function CoachTabMockup({ tab }: { tab: string }) {
       <div className="lp-mock__chat">
         <div className="lp-mock__chat-q">Should I increase LT2 volume after 3 weeks of threshold work?</div>
         <div className="lp-mock__chat-a">
-          Based on Olbrecht's periodization model and the athlete's current LT1/LT2 ratio of 0.84...
-          <span className="lp-mock__chat-cite">[Faude 2009, Olbrecht SoW]</span>
+          Based on the athlete's current thresholds and training history, the data suggests maintaining the current load for one more week before progressing...
+          <span className="lp-mock__chat-cite">[scientific evidence]</span>
         </div>
       </div>
     </div>
