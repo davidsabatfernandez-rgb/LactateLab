@@ -1508,6 +1508,19 @@
   color: #a82f2f;
 }
 
+.wpm-target-mode-btn {
+  background: rgba(124, 58, 237, 0.08);
+  border-color: rgba(124, 58, 237, 0.2);
+  color: #5b21b6;
+  font-weight: 700;
+  min-width: 48px;
+  text-align: center;
+}
+
+.wpm-target-mode-btn:hover {
+  background: rgba(124, 58, 237, 0.14);
+}
+
 /* ── Metrics strip ── */
 
 .wpm-metrics-strip {

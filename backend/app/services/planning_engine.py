@@ -118,6 +118,9 @@ def _planned_sessions_all(athlete: Athlete) -> list[dict[str, Any]]:
                 "publish_status": session.publish_status,
                 "publish_provider": session.publish_provider,
                 "publish_error": session.publish_error,
+                "execution_status": getattr(session, "execution_status", "planned") or "planned",
+                "linked_activity_id": getattr(session, "linked_activity_id", None),
+                "actual_performance": getattr(session, "actual_performance", None),
                 "payload": session.payload or {},
             }
         )
@@ -149,6 +152,9 @@ def _planned_sessions_for_discipline(athlete: Athlete, discipline: str) -> list[
                 "coach_note": session.coach_note,
                 "confidence": session.confidence,
                 "status": session.status,
+                "execution_status": getattr(session, "execution_status", "planned") or "planned",
+                "linked_activity_id": getattr(session, "linked_activity_id", None),
+                "actual_performance": getattr(session, "actual_performance", None),
                 "payload": session.payload or {},
             }
         )

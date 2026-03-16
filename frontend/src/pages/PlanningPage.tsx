@@ -26,6 +26,7 @@ import type {
   WorkoutLibraryLayer,
 } from "../planning/types";
 import { CalendarOverlay } from "../planning/components/CalendarOverlay";
+import { CoachSessionReviewModal } from "../planning/components/CoachSessionReviewModal";
 import {
   addDays, addMonths, buildCalendarMonthRows, buildCalendarWeekSnapshot,
   compactPlanningSourceTitle, dateValue, describePlanningSource, diffCalendarMonths,
@@ -471,19 +472,26 @@ function PlanningPageInner() {
     [...primaryEntries, ...overlayEntries].forEach((session) => {
       const enriched = { ...session };
       if (!session.isOverlay) {
-        const key = `${session.date}|${session.discipline}`;
-        const candidates = garminByDateDiscipline.get(key);
-        if (candidates?.length) {
-          const act = candidates.find((a) => !matchedActivityIds.has(a.provider_activity_id)) ?? null;
-          if (act) {
-            matchedActivityIds.add(act.provider_activity_id);
-            enriched.garminActivity = act;
-            enriched.compliance = computeSessionCompliance(session, act, today);
+        // If backend already linked an activity (execution_status != planned),
+        // prefer backend compliance data
+        if (enriched.compliance && enriched.garminActivity) {
+          // Backend already provided compliance and activity data
+          matchedActivityIds.add(enriched.garminActivity.provider_activity_id);
+        } else {
+          const key = `${session.date}|${session.discipline}`;
+          const candidates = garminByDateDiscipline.get(key);
+          if (candidates?.length) {
+            const act = candidates.find((a) => !matchedActivityIds.has(a.provider_activity_id)) ?? null;
+            if (act) {
+              matchedActivityIds.add(act.provider_activity_id);
+              enriched.garminActivity = act;
+              enriched.compliance = computeSessionCompliance(session, act, today);
+            } else {
+              enriched.compliance = computeSessionCompliance(session, null, today);
+            }
           } else {
             enriched.compliance = computeSessionCompliance(session, null, today);
           }
-        } else {
-          enriched.compliance = computeSessionCompliance(session, null, today);
         }
       }
       const current = map.get(enriched.date) ?? [];
@@ -656,6 +664,32 @@ function PlanningPageInner() {
     dispatch({ type: "SET_OPEN_WORKOUT_PREVIEW", payload: buildSyntheticCalendarWorkoutPreview(session, selectedCalendarSource, planningLt1, planningLt2, planningThresholdBasis) });
   }, [openPlannedWorkoutPreview, planningLt1, planningLt2, planningThresholdBasis, selectedCalendarSource, dispatch]);
 
+  // ── Coach review modal ──
+  const [reviewSessionId, setReviewSessionId] = useState<number | null>(null);
+
+  const handleReviewSession = useCallback((session: CalendarEntry) => {
+    if (session.rawId != null) {
+      setReviewSessionId(session.rawId);
+    }
+  }, []);
+
+  const handleFeedbackSaved = useCallback((updated: PlanningPlannedSession) => {
+    // Refresh the overview to reflect changes in the calendar
+    if (overview) {
+      const idx = overview.planned_sessions.findIndex((s: PlanningPlannedSession) => s.id === updated.id);
+      if (idx >= 0) {
+        const updatedSessions = [...overview.planned_sessions];
+        updatedSessions[idx] = updated;
+        dispatch({ type: "SET_OVERVIEW", payload: { ...overview, planned_sessions: updatedSessions } });
+      }
+    }
+  }, [overview, dispatch]);
+
+  const reviewSession = useMemo(
+    () => reviewSessionId != null ? overview?.planned_sessions.find((s: PlanningPlannedSession) => s.id === reviewSessionId) ?? null : null,
+    [reviewSessionId, overview?.planned_sessions],
+  );
+
   const activePlannedPreviewSession = useMemo(
     () => openWorkoutPreview?.selection.plannedSessionId != null ? overview?.planned_sessions.find((s) => s.id === openWorkoutPreview.selection.plannedSessionId) ?? null : null,
     [openWorkoutPreview, overview?.planned_sessions],
@@ -822,6 +856,13 @@ function PlanningPageInner() {
     if (athleteId) await loadPlanningContext(String(athleteId), selectedDiscipline);
   }, [activePlannedPreviewSession, athleteId, loadPlanningContext, selectedDiscipline, token]);
 
+  const handleChangeTargetMode = useCallback(async (mode: "pace" | "hr" | "power") => {
+    if (!activePlannedPreviewSession) return;
+    const result = (await api.updateTargetMode(token, activePlannedPreviewSession.id, mode)) as PlanningPlannedSession;
+    dispatch({ type: "SET_PLANNED_SESSION_STRUCTURED_PREVIEW", payload: result.structured_workout_payload ?? null });
+    if (athleteId) await loadPlanningContext(String(athleteId), selectedDiscipline);
+  }, [activePlannedPreviewSession, athleteId, loadPlanningContext, selectedDiscipline, token, dispatch]);
+
   // ── Display labels ──
 
   const activeBlockLabel = overview?.current_block.energy_system_focus ? `${overview.current_block.energy_system_focus} · ${overview.current_block.block_objective}` : "Sin bloque activo";
@@ -964,7 +1005,45 @@ function PlanningPageInner() {
   if (loading) return <div className="loading">Preparando planificación...</div>;
   if (error) return <div className="error">No se pudo cargar la planificación: {error}</div>;
 
+  const thresholdWarnings = overview?.threshold_warnings ?? [];
+
+  const handleRefreshStaleTargets = async () => {
+    if (!athleteId) return;
+    try {
+      await api.refreshStaleTargets(token, Number(athleteId));
+      await loadPlanningContext(athleteId, selectedDiscipline);
+    } catch (err) {
+      console.error("Failed to refresh stale targets:", err);
+    }
+  };
+
   return (
+    <>
+    {thresholdWarnings.length > 0 && (
+      <div style={{ padding: "0 16px" }}>
+        {thresholdWarnings.map((w, i) => (
+          <div key={i} className={`threshold-warning-banner severity-${w.severity}`}>
+            <span className="warning-message">{w.message}</span>
+          </div>
+        ))}
+        <button
+          onClick={handleRefreshStaleTargets}
+          style={{
+            marginBottom: 12,
+            padding: "6px 14px",
+            fontSize: "0.78rem",
+            fontWeight: 600,
+            borderRadius: 6,
+            border: "1px solid #fbbf24",
+            background: "#fef3c7",
+            color: "#92400e",
+            cursor: "pointer",
+          }}
+        >
+          Actualizar targets desactualizados
+        </button>
+      </div>
+    )}
     <CalendarOverlay
       state={state}
       dispatch={dispatch}
@@ -1016,8 +1095,10 @@ function PlanningPageInner() {
       regeneratePlannedSessionStructure={regeneratePlannedSessionStructure}
       handleSaveWorkoutSteps={handleSaveWorkoutSteps}
       handlePushToGarmin={handlePushToGarmin}
+      handleChangeTargetMode={handleChangeTargetMode}
       loadPlanningContext={loadPlanningContext}
       onCopyWeek={copyCurrentWeek}
+      onReviewSession={handleReviewSession}
       showAllDisciplines={showAllDisciplines}
       onToggleAllDisciplines={handleToggleAllDisciplines}
       hasMultipleDisciplines={availableDisciplines.length > 1}
@@ -1036,5 +1117,14 @@ function PlanningPageInner() {
         planningLt2,
       }}
     />
+    {reviewSession && (
+      <CoachSessionReviewModal
+        session={reviewSession}
+        token={token}
+        onClose={() => setReviewSessionId(null)}
+        onFeedbackSaved={handleFeedbackSaved}
+      />
+    )}
+    </>
   );
 }

@@ -12,6 +12,7 @@ from app.db.session import get_db
 from app.models.athlete import Athlete
 from app.models.user import User
 from app.schemas.auth import (
+    AthleteRegisterRequest,
     ChangePasswordRequest,
     InviteAthleteRequest,
     InviteAthleteResponse,
@@ -70,6 +71,95 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db), _rate: Non
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    token = create_access_token(user.email)
+    return RegisterResponse(access_token=token, user_id=user.id, role=user.role)
+
+
+@router.post("/register-athlete", response_model=RegisterResponse)
+def register_athlete(
+    payload: AthleteRegisterRequest,
+    db: Session = Depends(get_db),
+    _rate: None = Depends(check_rate_limit),
+) -> RegisterResponse:
+    """Self-registration for athletes with questionnaire."""
+    import json
+    import logging
+    from datetime import date as date_type
+
+    logger = logging.getLogger(__name__)
+
+    # --- Validate email uniqueness ---
+    existing = db.scalar(select(User).where(User.email == payload.email))
+    if existing:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ya existe una cuenta con este email")
+
+    # --- Validate password ---
+    if len(payload.password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña debe tener al menos 8 caracteres")
+
+    # --- Find demo coach ---
+    demo_coach = db.scalar(select(User).where(User.email == "coach@lactatelab.dev"))
+    coach_id = demo_coach.id if demo_coach else 1
+
+    # --- Parse date_of_birth ---
+    dob = None
+    if payload.date_of_birth:
+        try:
+            dob = date_type.fromisoformat(payload.date_of_birth)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="date_of_birth debe ser una fecha ISO válida (YYYY-MM-DD)")
+
+    # --- Build training_goal JSON from goals ---
+    training_goal_json = None
+    if payload.goals:
+        training_goal_json = json.dumps([g.dict() for g in payload.goals], ensure_ascii=False)
+
+    goal_category = payload.goals[0].event_name if payload.goals else None
+
+    # --- Create Athlete record ---
+    athlete = Athlete(
+        name=payload.full_name,
+        sex=payload.sex,
+        weight=payload.weight_kg,
+        height=payload.height_cm,
+        date_of_birth=dob or date_type(2000, 1, 1),
+        primary_discipline=payload.primary_discipline,
+        athlete_level=payload.athlete_level or "trained",
+        coach_id=coach_id,
+        training_goal=training_goal_json,
+        goal_category=goal_category,
+        created_at=date_type.today(),
+    )
+    db.add(athlete)
+    db.flush()  # get athlete.id without committing
+
+    # --- Create User record ---
+    user = User(
+        email=payload.email,
+        hashed_password=get_password_hash(payload.password),
+        full_name=payload.full_name,
+        role="athlete",
+        athlete_id=athlete.id,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    db.refresh(athlete)
+
+    # --- Optional Garmin connection (best-effort, don't fail registration) ---
+    if payload.garmin_email and payload.garmin_password:
+        try:
+            from app.services.garmin import connect_garmin_account
+
+            connect_garmin_account(
+                db,
+                athlete_id=athlete.id,
+                email=payload.garmin_email,
+                password=payload.garmin_password,
+            )
+        except Exception:
+            logger.warning("Garmin connection failed during athlete self-registration for %s — skipping", payload.email)
 
     token = create_access_token(user.email)
     return RegisterResponse(access_token=token, user_id=user.id, role=user.role)

@@ -208,6 +208,21 @@ function SessionCardContent({
             ) : garmin ? (
               <span className={`planning-session-publish-badge ${garmin.tone}`}>{garmin.label}</span>
             ) : null}
+            {session.targetsStale ? (
+              <span className="planning-session-stale-badge" title="Los umbrales han cambiado. Targets desactualizados.">STALE</span>
+            ) : null}
+            {/* Coach review indicator */}
+            {session.compliance?.status === "completed" && session.executionRating ? (
+              <span
+                className={`session-card-review-dot rated-${session.executionRating}`}
+                title={`Valoracion: ${session.executionRating}`}
+              />
+            ) : session.compliance?.status === "completed" && !session.executionRating ? (
+              <span
+                className="session-card-review-dot needs-review"
+                title="Pendiente de revision"
+              />
+            ) : null}
           </span>
         </div>
 
@@ -724,6 +739,7 @@ type CalendarViewProps = {
   onCopyWeek?: () => void;
   onMoveSession?: (session: CalendarEntry, newDate: string) => void;
   onDeleteSession?: (session: CalendarEntry) => void;
+  onReviewSession?: (session: CalendarEntry) => void;
   // Refs
   calendarWeekScrollerRef: CalendarNavigationRefs["calendarWeekScrollerRef"];
   calendarWeekSectionRefs: CalendarNavigationRefs["calendarWeekSectionRefs"];
@@ -765,6 +781,7 @@ export function CalendarView({
   onCopyWeek,
   onMoveSession,
   onDeleteSession,
+  onReviewSession,
   calendarWeekScrollerRef,
   calendarWeekSectionRefs,
   calendarMonthScrollerRef,
@@ -925,6 +942,7 @@ export function CalendarView({
             onClose={() => onSetDayPanelOpen(false)}
             onSessionClick={openCalendarSessionDetail}
             onQuickAdd={openCalendarQuickAdd}
+            onReviewSession={onReviewSession}
           />
         ) : null}
       </div>
@@ -1504,6 +1522,29 @@ function WeekGrid({
                           />
                         </div>
                       </div>
+
+                      {/* Completion summary */}
+                      {(() => {
+                        const planned = weekEntries.filter((e) => !e.isOverlay && e.sessionType !== "extra");
+                        const completed = planned.filter((e) => e.compliance?.status === "completed");
+                        if (!planned.length) return null;
+                        const pct = Math.round((completed.length / planned.length) * 100);
+                        const tone = pct >= 80 ? "positive" : pct >= 50 ? "warning" : pct > 0 ? "neutral" : "neutral";
+                        return (
+                          <div className="training-calendar-week-metric-row">
+                            <div className="training-calendar-week-metric-head">
+                              <span>Completadas</span>
+                              <strong>{completed.length}/{planned.length}</strong>
+                            </div>
+                            <div className="training-calendar-week-metric-track">
+                              <span
+                                className={`training-calendar-week-metric-fill ${tone}`}
+                                style={{ width: `${Math.max(10, pct)}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {weekSnapshot.disciplineMetrics.length ? weekSnapshot.disciplineMetrics.map((metric) => (
                         <div key={`${weekStart}-${metric.discipline}`} className="training-calendar-week-metric-row">

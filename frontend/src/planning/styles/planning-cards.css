@@ -2118,6 +2118,55 @@
   color: #dc2626;
 }
 
+.planning-session-garmin-badge.garmin-warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.planning-session-stale-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  line-height: 1.4;
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.threshold-warning-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.threshold-warning-banner.severity-warning {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+}
+
+.threshold-warning-banner.severity-critical {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+}
+
+.threshold-warning-banner .warning-message {
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.threshold-warning-banner.severity-warning .warning-message {
+  color: #92400e;
+}
+
+.threshold-warning-banner.severity-critical .warning-message {
+  color: #991b1b;
+}
+
 .garmin-batch-push {
   display: flex;
   align-items: center;

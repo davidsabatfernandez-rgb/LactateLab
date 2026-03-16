@@ -27,6 +27,7 @@ type DayDetailPanelProps = {
   onDuplicateSession?: (session: CalendarEntry) => void;
   onToggleBla?: (session: CalendarEntry) => void;
   onPushGarmin?: (session: CalendarEntry) => void;
+  onReviewSession?: (session: CalendarEntry) => void;
 };
 
 function mesocyclePositionLabel(
@@ -54,6 +55,7 @@ export function DayDetailPanel({
   onDuplicateSession,
   onToggleBla,
   onPushGarmin,
+  onReviewSession,
 }: DayDetailPanelProps) {
   const primarySessions = sessions.filter((s) => !s.isOverlay);
   const positionLabel = mesocyclePositionLabel(date, selectedCalendarSource);
@@ -166,6 +168,27 @@ export function DayDetailPanel({
                     return null;
                   })()}
 
+                  {session.targetsStale ? (
+                    <span className="planning-session-stale-badge" style={{ marginTop: 4, display: "inline-block" }}>
+                      Targets desactualizados
+                    </span>
+                  ) : null}
+
+                  {/* Coach feedback preview */}
+                  {session.executionRating && (
+                    <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                      <span className={`session-card-review-dot rated-${session.executionRating}`} />
+                      <span style={{ fontSize: "0.74rem", color: "rgba(22,53,61,0.5)" }}>
+                        {session.executionRating === "excellent" ? "Excelente" : session.executionRating === "good" ? "Bien" : session.executionRating === "acceptable" ? "Aceptable" : "Mejorable"}
+                      </span>
+                      {session.coachFeedback ? (
+                        <span style={{ fontSize: "0.74rem", color: "rgba(22,53,61,0.4)", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          — {session.coachFeedback}
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+
                   <div className="day-detail-session-actions">
                     <button
                       type="button"
@@ -190,6 +213,15 @@ export function DayDetailPanel({
                         onClick={() => onPushGarmin(session)}
                       >
                         Push Garmin
+                      </button>
+                    ) : null}
+                    {onReviewSession && session.compliance?.status === "completed" && session.rawId != null ? (
+                      <button
+                        type="button"
+                        className={`day-detail-action ${session.executionRating ? "active" : ""}`}
+                        onClick={() => onReviewSession(session)}
+                      >
+                        {session.executionRating ? "Editar review" : "Revisar"}
                       </button>
                     ) : null}
                     {onToggleBla && session.rawId != null ? (

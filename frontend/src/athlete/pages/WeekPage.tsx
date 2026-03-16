@@ -292,8 +292,14 @@ export function WeekPage() {
       {/* Summary bar */}
       {totalSessions > 0 && (
         <div className="ath-week-summary">
-          <span>{totalSessions} sesión{totalSessions !== 1 ? "es" : ""}</span>
+          <span>{totalSessions} sesion{totalSessions !== 1 ? "es" : ""}</span>
           {totalMinutes > 0 && <span>{formatDurationMin(totalMinutes)}</span>}
+          {(() => {
+            const allSessions = data.calendarWeek.flatMap((d) => d.sessions);
+            const completedCount = allSessions.filter((s) => s.execution_status === "completed").length;
+            if (completedCount > 0) return <span className="ath-week-completed-count">{completedCount}/{allSessions.length} completadas</span>;
+            return null;
+          })()}
           {zoneDistribution && (
             <div className="ath-zone-bar">
               {zoneDistribution.z1 > 0 && <div className="ath-zone z1" style={{ flex: zoneDistribution.z1 }} title={`Z1: ${zoneDistribution.z1}%`} />}

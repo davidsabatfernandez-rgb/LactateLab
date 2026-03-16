@@ -2,6 +2,23 @@ import { useState } from "react";
 import { useAthleteData } from "../context/AthleteDataContext";
 import { api } from "../../lib/api";
 
+function formatLastSync(isoDate: string): string {
+  try {
+    const syncDate = new Date(isoDate);
+    const now = new Date();
+    const diffMs = now.getTime() - syncDate.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return "Ultima sincronizacion: ahora mismo";
+    if (diffMin < 60) return `Ultima sincronizacion: hace ${diffMin} min`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `Ultima sincronizacion: hace ${diffH}h`;
+    const diffD = Math.floor(diffH / 24);
+    return `Ultima sincronizacion: hace ${diffD}d`;
+  } catch {
+    return "";
+  }
+}
+
 /* ── Metric config types ──────────────────────────────────── */
 type MetricToggle = {
   key: string;
@@ -158,6 +175,29 @@ export function SettingsPage() {
             <div className="ath-device-connected-info">
               <div className="ath-device-syncs">
                 <span>Actividades, sueño, HRV, estrés, batería corporal</span>
+              </div>
+              <div className="ath-device-sync-actions" style={{ marginTop: 12 }}>
+                <button
+                  type="button"
+                  className="ath-settings-connect-btn"
+                  style={{ maxWidth: 240 }}
+                  disabled={data.garminSyncing}
+                  onClick={() => data.triggerGarminSync()}
+                >
+                  {data.garminSyncing ? (
+                    <><span className="ath-settings-spinner" /> Sincronizando...</>
+                  ) : (
+                    "Sincronizar ahora"
+                  )}
+                </button>
+                {data.garminSyncStatus?.last_sync_at && !data.garminSyncing && (
+                  <span className="ath-device-last-sync" style={{ marginLeft: 12, fontSize: 12, opacity: 0.7 }}>
+                    {formatLastSync(data.garminSyncStatus.last_sync_at)}
+                  </span>
+                )}
+                {data.garminSyncError && (
+                  <div className="ath-device-error" style={{ marginTop: 6, fontSize: 12 }}>{data.garminSyncError}</div>
+                )}
               </div>
             </div>
           )}

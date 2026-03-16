@@ -57,6 +57,10 @@ type WorkoutPreviewModalProps = {
     lt2Label: string | null;
     lt2Source: string | null;
   } | null;
+  /** Current target mode: "pace" | "hr" | "power" | null */
+  targetMode?: string | null;
+  /** Toggle target mode for session */
+  onChangeTargetMode?: (mode: "pace" | "hr" | "power") => Promise<void>;
   onClose: () => void;
 };
 
@@ -372,7 +376,7 @@ function previewSegmentHeight(tone: string) {
   return 0.6;
 }
 
-export function WorkoutPreviewModal({ template, selection, rawInformation, workoutDefinition, onSaveWorkout, onPushToGarmin, onSelectDoseStep, onRenameSession, onSaveCoachNote, coachNote, garminConnected, publishStatus, thresholdReference, onClose }: WorkoutPreviewModalProps) {
+export function WorkoutPreviewModal({ template, selection, rawInformation, workoutDefinition, onSaveWorkout, onPushToGarmin, onSelectDoseStep, onRenameSession, onSaveCoachNote, coachNote, garminConnected, publishStatus, thresholdReference, targetMode, onChangeTargetMode, onClose }: WorkoutPreviewModalProps) {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pushing, setPushing] = useState(false);
@@ -412,6 +416,20 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
       setPushing(false);
     }
   }, [onPushToGarmin]);
+
+  const [togglingMode, setTogglingMode] = useState(false);
+  const handleToggleTargetMode = useCallback(async () => {
+    if (!onChangeTargetMode) return;
+    // Cycle: pace -> hr -> power -> pace
+    const current = targetMode ?? "pace";
+    const nextMode = current === "pace" ? "hr" : current === "hr" ? "power" : "pace";
+    setTogglingMode(true);
+    try {
+      await onChangeTargetMode(nextMode as "pace" | "hr" | "power");
+    } finally {
+      setTogglingMode(false);
+    }
+  }, [onChangeTargetMode, targetMode]);
 
   useEffect(() => {
     if (!template || !selection) return undefined;
@@ -554,6 +572,17 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
             {canEdit && (
               <button type="button" className={`wpm-action-btn ${editMode ? "active" : ""}`} onClick={() => setEditMode((v) => !v)}>
                 {editMode ? "Vista previa" : "Editar"}
+              </button>
+            )}
+            {onChangeTargetMode && !editMode && (
+              <button
+                type="button"
+                className={`wpm-action-btn wpm-target-mode-btn`}
+                onClick={handleToggleTargetMode}
+                disabled={togglingMode}
+                title={`Objetivo actual: ${targetMode === "hr" ? "FC" : targetMode === "power" ? "Potencia" : "Ritmo"}. Click para cambiar.`}
+              >
+                {togglingMode ? "..." : targetMode === "hr" ? "FC" : targetMode === "power" ? "W" : "Ritmo"}
               </button>
             )}
             {garminConnected && onPushToGarmin && !editMode && (

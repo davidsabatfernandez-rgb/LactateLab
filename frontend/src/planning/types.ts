@@ -72,8 +72,13 @@ export type CalendarSession = {
   blaCheck?: boolean;
   publishStatus?: string;
   publishError?: string | null;
+  targetsStale?: boolean;
+  thresholdSnapshotDate?: string | null;
   garminActivity?: GarminCalendarActivity | null;
   compliance?: ComplianceStatus | null;
+  coachFeedback?: string | null;
+  coachFeedbackAt?: string | null;
+  executionRating?: string | null;
 };
 
 export type CalendarEntry = CalendarSession & {

@@ -266,6 +266,7 @@ type CalendarOverlayProps = {
   regeneratePlannedSessionStructure: (sessionId: number) => Promise<void>;
   handleSaveWorkoutSteps: (workout: WorkoutDefinition) => Promise<void>;
   handlePushToGarmin: () => Promise<void>;
+  handleChangeTargetMode?: (mode: "pace" | "hr" | "power") => Promise<void>;
   loadPlanningContext: (athleteId: string, discipline: string) => Promise<void>;
   onCopyWeek?: () => void;
   showAllDisciplines?: boolean;
@@ -279,6 +280,7 @@ type CalendarOverlayProps = {
   handleContinuousWeekScroll: () => void;
   handleContinuousMonthScroll: () => void;
   onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => Promise<void>;
+  onReviewSession?: (session: CalendarEntry) => void;
   // Compact header data (calendar-first redesign)
   compactHeader?: {
     athletes: Athlete[];
@@ -340,6 +342,7 @@ export function CalendarOverlay({
   regeneratePlannedSessionStructure,
   handleSaveWorkoutSteps,
   handlePushToGarmin,
+  handleChangeTargetMode,
   loadPlanningContext,
   onCopyWeek,
   showAllDisciplines,
@@ -352,6 +355,7 @@ export function CalendarOverlay({
   handleContinuousWeekScroll,
   handleContinuousMonthScroll,
   onAddSessionToDay,
+  onReviewSession,
   compactHeader,
 }: CalendarOverlayProps) {
   const {
@@ -653,6 +657,7 @@ export function CalendarOverlay({
         onCopyWeek={onCopyWeek}
         onMoveSession={handleMoveSession}
         onDeleteSession={handleDeleteSession}
+        onReviewSession={onReviewSession}
         showAllDisciplines={showAllDisciplines}
         onToggleAllDisciplines={onToggleAllDisciplines}
         hasMultipleDisciplines={hasMultipleDisciplines}
@@ -851,6 +856,8 @@ export function CalendarOverlay({
           onPushToGarmin={activePlannedPreviewSession ? handlePushToGarmin : undefined}
           garminConnected={selectedAthlete?.garmin_connected ?? false}
           publishStatus={activePlannedPreviewSession?.publish_status ?? null}
+          targetMode={activePlannedPreviewSession?.target_mode ?? null}
+          onChangeTargetMode={activePlannedPreviewSession && handleChangeTargetMode ? handleChangeTargetMode : undefined}
           thresholdReference={{
             lt1Label: planningLt1 ? `${formatThresholdPrimaryMetric(planningLt1, selectedDiscipline)}${planningLt1.heartRate ? ` · ${Math.round(planningLt1.heartRate)} bpm` : ""}` : null,
             lt1Source: planningLt1?.sourceLabel ?? null,

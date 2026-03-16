@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../../lib/api";
 import { resolveTrainingThreshold } from "../../lib/trainingThresholds";
-import type { AthleteAnalysis, AthleteHealthOverview, AuthUser, PlanningPlannedSession } from "../../types";
+import type { AthleteAnalysis, AthleteHealthOverview, AuthUser, GarminSyncStatus, PlanningPlannedSession } from "../../types";
 import type { DisciplineSnapshot, WellnessSeriesPoint, SleepStageSegment } from "../types";
 import { disciplineOrder } from "../utils/formatters";
 import { parseMetricNumber } from "../utils/formatters";
@@ -60,6 +60,12 @@ type AthleteDataContextType = {
   vo2maxValue: number | null;
   vo2maxLabel: string;
 
+  // Garmin sync
+  garminSyncStatus: GarminSyncStatus | null;
+  garminSyncing: boolean;
+  garminSyncError: string | null;
+  triggerGarminSync: () => Promise<void>;
+
   addAthleteSession: (session: Omit<PlanningPlannedSession, "id">) => void;
   moveSession: (sessionId: number, newDate: string) => void;
   removeSession: (sessionId: number) => void;
@@ -76,6 +82,11 @@ export function useAthleteData() {
   return ctx;
 }
 
+/** Safe version that returns null when outside the provider (e.g. SideNav in AthleteLayout) */
+export function useAthleteDataSafe() {
+  return useContext(AthleteDataContext);
+}
+
 export function AthleteDataProvider({ user, token, children }: { user: AuthUser; token: string; children: ReactNode }) {
   const [analysis, setAnalysis] = useState<AthleteAnalysis | null>(null);
   const [health, setHealth] = useState<AthleteHealthOverview | null>(null);
@@ -87,6 +98,59 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
   const [selectedDiscipline, setSelectedDiscipline] = useState("");
   const [calWeekOffset, setCalWeekOffset] = useState(0);
   const [weather, setWeather] = useState<{ temp: number; code: number } | null>(null);
+
+  // Garmin sync state
+  const [garminSyncStatus, setGarminSyncStatus] = useState<GarminSyncStatus | null>(null);
+  const [garminSyncing, setGarminSyncing] = useState(false);
+  const [garminSyncError, setGarminSyncError] = useState<string | null>(null);
+  const syncInProgressRef = useRef(false);
+
+  // Trigger Garmin sync (manual or auto) — with mutex to prevent concurrent syncs
+  const triggerGarminSync = useCallback(async () => {
+    if (!user?.athlete_id || syncInProgressRef.current) return;
+    syncInProgressRef.current = true;
+    setGarminSyncing(true);
+    setGarminSyncError(null);
+    try {
+      const result = await api.garminSync(token, user.athlete_id, 14);
+      setGarminSyncStatus((prev) => prev ? { ...prev, last_sync_at: result.last_sync_at, stale: false } : prev);
+      // Refresh health and planned sessions after sync completes (non-blocking)
+      api.athleteHealthOverview(token, user.athlete_id, 28, {
+        includeActivity: false, includeRawWellness: false, refreshLiveHealth: true,
+      }).then((result) => setHealth(result as AthleteHealthOverview)).catch(() => {});
+      api.athletePlannedSessions(token, user.athlete_id).then((sessions) => {
+        setPlannedSessions((sessions as PlanningPlannedSession[]) ?? []);
+      }).catch(() => {});
+    } catch (e) {
+      setGarminSyncError(e instanceof Error ? e.message : "Error sincronizando Garmin.");
+    } finally {
+      setGarminSyncing(false);
+      syncInProgressRef.current = false;
+    }
+  }, [token, user?.athlete_id]);
+
+  // Auto-sync: check status on mount and sync if stale
+  useEffect(() => {
+    if (!user?.athlete_id || loading) return;
+    const garminConnected = analysis?.athlete?.garmin_connected;
+    if (!garminConnected) return;
+
+    let cancelled = false;
+    async function checkAndSync() {
+      try {
+        const status = await api.garminSyncStatus(token, user!.athlete_id!);
+        if (cancelled) return;
+        setGarminSyncStatus(status);
+        if (status.connected && status.stale) {
+          triggerGarminSync();
+        }
+      } catch {
+        // If sync-status fails, don't block anything
+      }
+    }
+    checkAndSync();
+    return () => { cancelled = true; };
+  }, [analysis?.athlete?.garmin_connected, loading, token, user?.athlete_id, triggerGarminSync]);
 
   // Load weather
   useEffect(() => {
@@ -326,6 +390,7 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
     currentRestingHr, restingHrAverage, currentStress, stressAverage,
     bodyBatteryDelta, bodyBatteryAverage, recoveryScore, currentSleepHours, sleepHoursAverage,
     balancePos, balanceLbl, vo2maxValue, vo2maxLabel,
+    garminSyncStatus, garminSyncing, garminSyncError, triggerGarminSync,
     addAthleteSession, moveSession, removeSession, refreshHealth, user, token,
   };
 

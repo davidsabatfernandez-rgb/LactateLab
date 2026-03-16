@@ -218,6 +218,23 @@ export type GarminActivitiesPreviewResponse = {
   activities: GarminActivity[];
 };
 
+export type GarminSyncStatus = {
+  connected: boolean;
+  last_sync_at: string | null;
+  stale: boolean;
+  garmin_email: string | null;
+};
+
+export type GarminSyncResult = {
+  athlete_id: number;
+  synced: boolean;
+  new_activities: number;
+  total_activities: number;
+  sync_range_start: string;
+  sync_range_end: string;
+  last_sync_at: string | null;
+};
+
 export type AthleteHealthProviderStatus = {
   provider: string;
   label: string;
@@ -980,6 +997,15 @@ export type PlanningMesocycleDraft = {
   weeks: PlanningMesocycleDraftWeek[];
 };
 
+export type ActualPerformance = {
+  distance_m?: number | null;
+  duration_s?: number | null;
+  avg_pace_s_per_km?: number | null;
+  avg_hr?: number | null;
+  avg_power?: number | null;
+  started_at?: string | null;
+};
+
 export type PlanningPlannedSession = {
   id: number;
   focus_block_id: number;
@@ -1007,6 +1033,15 @@ export type PlanningPlannedSession = {
   publish_status?: string;
   publish_provider?: string | null;
   publish_error?: string | null;
+  threshold_snapshot_date?: string | null;
+  targets_stale?: boolean;
+  target_mode?: string | null;
+  execution_status?: string;
+  linked_activity_id?: number | null;
+  actual_performance?: ActualPerformance | null;
+  coach_feedback?: string | null;
+  coach_feedback_at?: string | null;
+  execution_rating?: string | null;
   payload?: Record<string, unknown>;
 };
 
@@ -1159,6 +1194,15 @@ export type PlanningOverview = {
   mesocycle_draft?: PlanningMesocycleDraft | null;
   warnings: string[];
   explanation: string[];
+  threshold_staleness?: Record<string, number | null> | null;
+  threshold_warnings?: ThresholdWarning[];
+};
+
+export type ThresholdWarning = {
+  discipline: string;
+  days: number;
+  severity: 'warning' | 'critical';
+  message: string;
 };
 
 export type DynamicReference = {

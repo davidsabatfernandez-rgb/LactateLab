@@ -10,7 +10,7 @@ from app.db.session import get_db
 from app.models.athlete import Athlete
 from app.models.user import User
 from app.models.planned_session import PlannedSession
-from app.schemas.garmin import GarminActivitiesPreviewResponse, GarminActivityRead, GarminActivityStoredRead, GarminConnectRequest, GarminConnectResponse, GarminPushWorkoutResponse, GarminSyncResponse
+from app.schemas.garmin import GarminActivitiesPreviewResponse, GarminActivityRead, GarminActivityStoredRead, GarminConnectRequest, GarminConnectResponse, GarminPushWorkoutResponse, GarminSyncResponse, GarminSyncStatusResponse
 from app.services.garmin import GarminRequestError, connect_garmin_account, get_garmin_activity_detail, get_stored_activities, list_garmin_activities, push_workout_to_garmin, sync_garmin_activities
 
 router = APIRouter(prefix="/garmin", tags=["garmin"])
@@ -162,6 +162,28 @@ def _resolve_target_athlete(db: Session, user: User, athlete_id: int) -> Athlete
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Garmin beta is not available for this role")
 
 
+@router.get("/athletes/{athlete_id}/sync-status", response_model=GarminSyncStatusResponse)
+def garmin_sync_status(
+    athlete_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Check Garmin connection and sync staleness for an athlete."""
+    from datetime import datetime, timedelta
+    athlete = _resolve_target_athlete(db, user, athlete_id)
+    connected = bool(athlete.garmin_connected)
+    last_sync = athlete.garmin_last_sync_at if connected else None
+    stale = True
+    if connected and last_sync:
+        stale = last_sync < datetime.utcnow() - timedelta(minutes=20)
+    return GarminSyncStatusResponse(
+        connected=connected,
+        last_sync_at=last_sync,
+        stale=stale,
+        garmin_email=athlete.garmin_email if connected else None,
+    )
+
+
 @router.post("/athletes/{athlete_id}/sync", response_model=GarminSyncResponse)
 def sync_athlete_garmin(
     athlete_id: int,
@@ -179,6 +201,9 @@ def sync_athlete_garmin(
     except GarminRequestError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
+    # Enrich with synced flag and last_sync_at
+    result["synced"] = True
+    result["last_sync_at"] = athlete.garmin_last_sync_at
     return result
 
 

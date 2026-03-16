@@ -878,12 +878,31 @@ def sync_garmin_activities(db: Session, athlete: Athlete, days_back: int = 56) -
 
     total = db.query(GarminActivity).filter(GarminActivity.athlete_id == athlete.id).count()
 
+    # Auto-link activities to planned sessions (run always, not just on new_count > 0,
+    # because planned sessions may have been created after the last sync)
+    matching_result = {}
+    try:
+        from app.services.activity_matching import match_activities_to_sessions
+        from datetime import date as date_cls
+        matching_result = match_activities_to_sessions(
+            db,
+            athlete.id,
+            start_date=date_cls.fromisoformat(start_date),
+            end_date=date_cls.fromisoformat(end_date),
+        )
+        db.commit()
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Activity matching failed: %s", exc)
+        matching_result = {"matching_error": str(exc)}
+
     return {
         "athlete_id": athlete.id,
         "new_activities": new_count,
         "total_activities": total,
         "sync_range_start": start_date,
         "sync_range_end": end_date,
+        "matching": matching_result,
     }
 
 

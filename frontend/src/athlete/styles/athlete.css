@@ -180,6 +180,57 @@
   color: var(--ath-red);
 }
 
+/* ── Garmin Sync Indicator ─────────────────────────────────── */
+.ath-garmin-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border: none;
+  background: var(--ath-bg-subtle);
+  color: var(--ath-text-muted);
+  cursor: default;
+  border-radius: var(--ath-radius-full);
+  font-family: var(--ath-font);
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+.ath-garmin-indicator.connected {
+  background: var(--ath-green-bg);
+  color: var(--ath-green);
+}
+.ath-garmin-indicator.connected.syncing {
+  background: var(--ath-blue-bg);
+  color: var(--ath-blue);
+}
+.ath-garmin-indicator.connected.error {
+  background: var(--ath-red-bg);
+  color: var(--ath-red);
+  cursor: pointer;
+}
+.ath-garmin-indicator.not-connected {
+  cursor: pointer;
+  color: var(--ath-text-muted);
+}
+.ath-garmin-indicator.not-connected:hover {
+  background: var(--ath-bg-hover);
+  color: var(--ath-text-secondary);
+}
+.ath-garmin-spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ath-garmin-spin 0.7s linear infinite;
+}
+@keyframes ath-garmin-spin {
+  to { transform: rotate(360deg); }
+}
+
 .ath-content {
   flex: 1;
   padding: 0 28px 40px;
@@ -403,6 +454,37 @@
 .ath-session-card.key     { border-left: 3px solid var(--ath-amber); }
 .ath-session-card.support { border-left: 3px solid var(--ath-blue); }
 .ath-session-card.long    { border-left: 3px solid var(--ath-green); }
+.ath-session-card.completed { opacity: 0.85; background: rgba(58, 154, 91, 0.04); }
+.ath-session-card.missed { opacity: 0.65; }
+
+.ath-execution-badge { display: inline-flex; align-items: center; font-size: 14px; line-height: 1; }
+.ath-session-missed-label {
+  font-size: 10px; font-weight: 600; color: #c44040; letter-spacing: 0.04em;
+  padding: 2px 6px; border-radius: 4px; background: rgba(196, 64, 64, 0.08);
+}
+.ath-session-actual {
+  margin: 4px 0 2px; padding: 4px 8px; border-radius: 6px;
+  background: rgba(58, 154, 91, 0.06); font-size: 12px; color: #3a9a5b;
+}
+.ath-session-actual-summary { font-weight: 600; }
+.ath-session-comparison {
+  margin-top: 8px; padding: 6px 8px; border-radius: 6px;
+  background: rgba(138, 152, 168, 0.06); font-size: 11px; color: var(--ath-text-secondary);
+}
+.ath-session-comparison small { font-weight: 600; display: block; margin-bottom: 4px; }
+.ath-session-comparison-row { margin-top: 2px; }
+
+.ath-week-completed-count {
+  font-size: 12px; font-weight: 600; color: #3a9a5b;
+  padding: 2px 8px; border-radius: 4px; background: rgba(58, 154, 91, 0.08);
+}
+
+.ath-iwp-completed { background: rgba(58, 154, 91, 0.03); }
+.ath-iwp-completed-badge { display: inline-flex; align-items: center; }
+.ath-iwp-actual-perf {
+  margin: 4px 0; padding: 4px 10px; border-radius: 6px;
+  background: rgba(58, 154, 91, 0.06); font-size: 12px; font-weight: 600; color: #3a9a5b;
+}
 
 .ath-session-card-header {
   display: flex;

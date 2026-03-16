@@ -1090,6 +1090,6 @@ def create_planned_sessions_for_block(
             )
             db.add(planned_session)
             db.flush()
-            prepare_planned_session_for_publish(planned_session)
+            prepare_planned_session_for_publish(planned_session, db=db)
             created.append(planned_session)
     return created

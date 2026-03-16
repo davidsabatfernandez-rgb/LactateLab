@@ -269,8 +269,12 @@ export function InlineWorkoutPreview({ session, lt1, lt2, onOpenDetail }: Props)
   const roleClass = session.session_role === "KEY" ? "key" : session.session_role === "LONG" ? "long" : "support";
   const hasStructure = visual.length > 0;
 
+  const execStatus = session.execution_status || "planned";
+  const isCompleted = execStatus === "completed";
+  const perf = session.actual_performance;
+
   return (
-    <div className="ath-iwp" onClick={onOpenDetail}>
+    <div className={`ath-iwp ${isCompleted ? "ath-iwp-completed" : ""}`} onClick={onOpenDetail}>
       {/* ── Header ── */}
       <div className="ath-iwp-header">
         <div className="ath-iwp-left">
@@ -278,11 +282,30 @@ export function InlineWorkoutPreview({ session, lt1, lt2, onOpenDetail }: Props)
           <span className="ath-iwp-disc">{disciplineLabel(session.discipline)}</span>
           {durationMin && <span className="ath-iwp-dur">{formatDurationMin(durationMin)}</span>}
           {session.bla_check && <span className="ath-iwp-bla">BLa</span>}
+          {isCompleted && (
+            <span className="ath-iwp-completed-badge" title="Completada">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="9" fill="#3a9a5b" opacity="0.15" />
+                <path d="M6 10.5l2.8 2.8L14 7" stroke="#3a9a5b" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          )}
         </div>
         <svg className="ath-iwp-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
 
       <h3 className="ath-iwp-title">{session.public_label}</h3>
+
+      {/* Actual performance summary when completed */}
+      {isCompleted && perf && (
+        <div className="ath-iwp-actual-perf">
+          {perf.distance_m ? `${(perf.distance_m / 1000).toFixed(1)}km` : null}
+          {perf.avg_pace_s_per_km && session.discipline === "running" ? ` @ ${Math.floor(perf.avg_pace_s_per_km / 60)}:${String(Math.round(perf.avg_pace_s_per_km % 60)).padStart(2, "0")}/km` : null}
+          {perf.duration_s ? ` \u00B7 ${Math.round(perf.duration_s / 60)} min` : null}
+          {perf.avg_hr ? ` \u00B7 ${Math.round(perf.avg_hr)} bpm` : null}
+          {perf.avg_power ? ` \u00B7 ${Math.round(perf.avg_power)}W` : null}
+        </div>
+      )}
 
       {session.dose_prescription && (
         <p className="ath-iwp-prescription">{session.dose_prescription}</p>

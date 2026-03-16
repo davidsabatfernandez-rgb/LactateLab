@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAthleteDataSafe } from "../context/AthleteDataContext";
 
 const tabs = [
   {
@@ -63,6 +64,75 @@ type Props = {
   onLogout: () => void;
 };
 
+function formatRelativeTime(isoDate: string): string {
+  try {
+    const d = new Date(isoDate);
+    const diffMs = Date.now() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return "ahora";
+    if (diffMin < 60) return `hace ${diffMin} min`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `hace ${diffH}h`;
+    return `hace ${Math.floor(diffH / 24)}d`;
+  } catch {
+    return "";
+  }
+}
+
+function GarminSyncIndicator() {
+  const data = useAthleteDataSafe();
+  const navigate = useNavigate();
+
+  if (!data) return null;
+  const { garminSyncStatus, garminSyncing, garminSyncError, triggerGarminSync } = data;
+
+  if (!garminSyncStatus) return null;
+
+  if (!garminSyncStatus.connected) {
+    return (
+      <button
+        type="button"
+        className="ath-garmin-indicator not-connected"
+        onClick={() => navigate("/athlete/settings")}
+        title="Conectar Garmin"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+          <line x1="9" y1="9" x2="15" y2="15" />
+        </svg>
+        <span>Garmin</span>
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={`ath-garmin-indicator connected ${garminSyncing ? "syncing" : ""} ${garminSyncError ? "error" : ""}`}
+      onClick={() => { if (garminSyncError || garminSyncStatus.stale) triggerGarminSync(); }}
+      title={garminSyncing ? "Sincronizando..." : garminSyncError ? `Error: ${garminSyncError}. Pulsa para reintentar.` : garminSyncStatus.last_sync_at ? `Garmin: ${formatRelativeTime(garminSyncStatus.last_sync_at)}` : "Garmin conectado"}
+    >
+      {garminSyncing ? (
+        <span className="ath-garmin-spinner" />
+      ) : garminSyncError ? (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+      ) : (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      )}
+      <span>
+        {garminSyncing ? "Sync..." : garminSyncError ? "Error" : garminSyncStatus.last_sync_at ? formatRelativeTime(garminSyncStatus.last_sync_at) : "Garmin"}
+      </span>
+    </button>
+  );
+}
+
 export function SideNav({ fullName, onLogout }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -72,6 +142,7 @@ export function SideNav({ fullName, onLogout }: Props) {
     <nav className="ath-side-nav">
       <div className="ath-side-nav-top">
         <span className="ath-side-nav-name">{fullName ?? "Atleta"}</span>
+        <GarminSyncIndicator />
       </div>
 
       <div className="ath-side-nav-links">

@@ -2682,8 +2682,22 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
     for metric in _longitudinal_metrics(athlete, snapshots):
         db.add(metric)
 
+    # ── Threshold cascade: refresh future planned sessions ──
+    try:
+        from app.services.threshold_cascade import cascade_threshold_update
+        disciplines_processed = {s.discipline for s in athlete.sessions}
+        cascade_summary = {}
+        for disc in disciplines_processed:
+            cascade_summary[disc] = cascade_threshold_update(db, athlete_id, disc)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Threshold cascade failed for athlete=%d", athlete_id, exc_info=True,
+        )
+        cascade_summary = {}
+
     db.commit()
-    return {"sessions_processed": len(athlete.sessions)}
+    return {"sessions_processed": len(athlete.sessions), "threshold_cascade": cascade_summary}
 
 
 def athlete_analysis_payload(db: Session, athlete_id: int) -> dict[str, Any]:

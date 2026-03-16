@@ -370,6 +370,23 @@ export function SessionDetailModal({ session, lt1, lt2, onClose, onDelete }: Ses
             </div>
           )}
 
+          {/* Coach feedback (post-workout review) */}
+          {session.execution_status === "completed" && session.coach_feedback && (
+            <div className="ath-coach-feedback-card" style={{ margin: "8px 0" }}>
+              <div className="ath-coach-feedback-header">
+                {session.execution_rating && (
+                  <span className={`ath-coach-feedback-badge ${session.execution_rating}`}>
+                    {session.execution_rating === "excellent" ? "Excelente" : session.execution_rating === "good" ? "Bien" : session.execution_rating === "acceptable" ? "Aceptable" : "Mejorable"}
+                  </span>
+                )}
+                <span className="ath-coach-feedback-timestamp">
+                  Feedback del coach{session.coach_feedback_at ? ` \u00B7 ${new Date(session.coach_feedback_at).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}` : ""}
+                </span>
+              </div>
+              <p className="ath-coach-feedback-text">{session.coach_feedback}</p>
+            </div>
+          )}
+
           {session.bla_check && (
             <div className="ath-sd-bla-banner">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 3-2 5-3 7h-8c-1-2-3-4-3-7a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="1" fill="currentColor"/></svg>

@@ -119,8 +119,35 @@ def update_athlete(athlete_id: int, payload: AthleteUpdate, db: Session = Depend
     athlete = db.scalar(select(Athlete).options(joinedload(Athlete.weights), joinedload(Athlete.focus_blocks), joinedload(Athlete.targets)).where(Athlete.id == athlete_id))
     if athlete is None:
         raise HTTPException(status_code=404, detail="Athlete not found")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    updated_fields = payload.model_dump(exclude_unset=True)
+    for field, value in updated_fields.items():
         setattr(athlete, field, value)
+
+    # Cascade threshold update if threshold-related fields changed
+    THRESHOLD_FIELDS = {"ftp_cycling_watts", "ftpa_running_pace", "css_swimming_pace", "training_hr_max", "hr_rest"}
+    changed_threshold_fields = THRESHOLD_FIELDS & set(updated_fields.keys())
+    if changed_threshold_fields:
+        from app.services.threshold_cascade import cascade_threshold_update
+        FIELD_DISCIPLINE_MAP = {
+            "ftp_cycling_watts": "ciclismo",
+            "ftpa_running_pace": "running",
+            "css_swimming_pace": "natación",
+            "training_hr_max": None,  # affects all disciplines
+            "hr_rest": None,
+        }
+        disciplines_to_cascade: set[str] = set()
+        for field in changed_threshold_fields:
+            disc = FIELD_DISCIPLINE_MAP.get(field)
+            if disc is None:
+                disciplines_to_cascade = {"running", "ciclismo", "natación"}
+                break
+            disciplines_to_cascade.add(disc)
+        for disc in disciplines_to_cascade:
+            try:
+                cascade_threshold_update(db, athlete_id, disc)
+            except Exception:
+                pass  # Don't block athlete update if cascade fails
+
     db.commit()
     db.refresh(athlete)
     return athlete
@@ -184,6 +211,10 @@ def add_focus_block(
     db.flush()
 
     if block.status == "active":
+        # Auto-generate zones if needed
+        from app.services.zone_generator import ensure_zones_for_athlete
+        _zone_set, _zone_warning = ensure_zones_for_athlete(db, athlete_id, target_discipline)
+
         create_planned_sessions_for_block(
             db,
             athlete,
@@ -685,7 +716,7 @@ def _regenerate_future_workouts(db: Session, athlete_id: int, discipline: str) -
             sp = existing.get("source_payload") or {}
             if sp.get("coach_edited"):
                 continue
-        prepare_planned_session_for_publish(session)
+        prepare_planned_session_for_publish(session, db=db)
         count += 1
 
     if count > 0:
@@ -929,6 +960,14 @@ def interpolate_cycling(athlete_id: int, db: Session = Depends(get_db), _: User 
 
     # Activar preferencia
     athlete.cycling_interpolated_from_running = True
+
+    # Cascade threshold update for cycling
+    try:
+        from app.services.threshold_cascade import cascade_threshold_update
+        cascade_threshold_update(db, athlete_id, "ciclismo")
+    except Exception:
+        pass
+
     db.commit()
 
     return {

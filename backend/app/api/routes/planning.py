@@ -13,6 +13,7 @@ from app.schemas.planning import (
     ApplyPlanRequest,
     AthleteSessionEditRequest,
     BlaCheckUpdateRequest,
+    CoachFeedbackRequest,
     CoachSessionEditRequest,
     CoachLibraryCreate,
     CoachLibraryRead,
@@ -28,6 +29,7 @@ from app.schemas.planning import (
     PlanningOverviewRead,
     PlanningPlannedSessionRead,
     PlanningWorkoutTemplateRead,
+    TargetModeUpdateRequest,
     TriathlonAnalysisRead,
     TriathlonMesocycleRequest,
     TriathlonMesocycleDraftRead,
@@ -72,13 +74,13 @@ def planning_overview(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
-    # Auto-sync recent Garmin activities if stale (>2h since last sync)
+    # Auto-sync recent Garmin activities if stale (>20 min since last sync)
     from sqlalchemy import select as sa_select
     from app.models.athlete import Athlete
     athlete = db.scalar(sa_select(Athlete).where(Athlete.id == athlete_id))
     if athlete and athlete.garmin_connected:
         from datetime import datetime, timedelta
-        stale_threshold = datetime.utcnow() - timedelta(hours=2)
+        stale_threshold = datetime.utcnow() - timedelta(minutes=20)
         if not athlete.garmin_last_sync_at or athlete.garmin_last_sync_at < stale_threshold:
             try:
                 from app.services.garmin import sync_garmin_activities
@@ -87,9 +89,20 @@ def planning_overview(
                 pass  # Don't block planning load if sync fails
 
     try:
-        return recommend_next_mesocycle(db, athlete_id, discipline=discipline)
+        overview = recommend_next_mesocycle(db, athlete_id, discipline=discipline)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    # Enrich with threshold staleness warnings
+    try:
+        from app.services.threshold_cascade import get_threshold_staleness_days, build_threshold_warnings
+        staleness = get_threshold_staleness_days(db, athlete_id)
+        overview["threshold_staleness"] = staleness
+        overview["threshold_warnings"] = build_threshold_warnings(staleness)
+    except Exception:
+        pass
+
+    return overview
 
 
 @router.get("/athletes/{athlete_id}/triathlon-analysis", response_model=TriathlonAnalysisRead)
@@ -288,7 +301,7 @@ def planning_prepare_planned_session_publish(
     session = db.get(PlannedSession, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Sesión no encontrada.")
-    prepare_planned_session_for_publish(session)
+    prepare_planned_session_for_publish(session, db=db)
     db.add(session)
     db.commit()
     db.refresh(session)
@@ -342,6 +355,98 @@ def toggle_bla_check(
 
 
 @router.patch(
+    "/planned-sessions/{session_id}/coach-feedback",
+    response_model=PlanningPlannedSessionRead,
+)
+def submit_coach_feedback(
+    session_id: int,
+    body: CoachFeedbackRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Submit post-workout feedback and rating from coach.
+
+    Sets coach_feedback, coach_feedback_at, and execution_rating on the planned session.
+    Only accessible by coach role.
+    """
+    if current_user.role != "coach":
+        raise HTTPException(status_code=403, detail="Solo el entrenador puede enviar feedback.")
+    session = db.get(PlannedSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Sesion no encontrada.")
+
+    VALID_RATINGS = {"excellent", "good", "acceptable", "poor"}
+    if body.rating is not None and body.rating not in VALID_RATINGS:
+        raise HTTPException(status_code=422, detail=f"Rating invalido. Opciones: {', '.join(sorted(VALID_RATINGS))}")
+
+    from datetime import datetime, timezone
+    if body.feedback is not None:
+        session.coach_feedback = body.feedback.strip() or None
+    if body.rating is not None:
+        session.execution_rating = body.rating
+    session.coach_feedback_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+@router.patch(
+    "/planned-sessions/{session_id}/target-mode",
+    response_model=PlanningPlannedSessionRead,
+)
+def update_target_mode(
+    session_id: int,
+    body: TargetModeUpdateRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Switch between pace/HR/power targets for a planned session.
+
+    Regenerates the structured_workout_payload with the new target type
+    resolved from the athlete's active training zones.
+    """
+    if body.target_mode not in ("pace", "hr", "power"):
+        raise HTTPException(status_code=422, detail="target_mode debe ser 'pace', 'hr' o 'power'.")
+
+    session = db.get(PlannedSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Sesión no encontrada.")
+
+    session.target_mode = body.target_mode
+    # Regenerate workout with new target mode (skip coach-edited)
+    prepare_planned_session_for_publish(session, db=db, target_mode=body.target_mode)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+@router.post(
+    "/athletes/{athlete_id}/auto-generate-zones",
+)
+def auto_generate_training_zones(
+    athlete_id: int,
+    discipline: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Auto-generate training zones for an athlete from their thresholds.
+
+    If zones already exist, returns them without changes.
+    If generated, returns the new zone set with a warning for the coach.
+    """
+    from app.services.zone_generator import ensure_zones_for_athlete
+
+    zone_set, warning = ensure_zones_for_athlete(db, athlete_id, discipline)
+    db.commit()
+
+    return {
+        "zone_set_id": zone_set.id if zone_set else None,
+        "auto_generated": warning is not None,
+        "warning": warning,
+    }
+
+
+@router.patch(
     "/planned-sessions/{session_id}/coach-edit",
     response_model=PlanningPlannedSessionRead,
 )
@@ -373,7 +478,7 @@ def coach_edit_planned_session(
         print(f"[coach-edit] scheduled_date updated to {session.scheduled_date}")
     if body.public_label is not None:
         session.public_label = body.public_label.strip()
-    prepare_planned_session_for_publish(session)
+    prepare_planned_session_for_publish(session, db=db)
     db.commit()
     db.refresh(session)
     print(f"[coach-edit] after refresh: scheduled_date={session.scheduled_date}")
@@ -452,7 +557,7 @@ def add_planned_session(
     db.add(session)
     db.flush()
     if body.template_id:
-        prepare_planned_session_for_publish(session)
+        prepare_planned_session_for_publish(session, db=db)
     db.commit()
     db.refresh(session)
     return session
@@ -509,6 +614,56 @@ def edit_workout_steps(
     session.publish_status = "ready"
     session.publish_error = None
     session.structured_workout_generated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+@router.post(
+    "/athletes/{athlete_id}/refresh-stale-targets",
+)
+def refresh_stale_targets(
+    athlete_id: int,
+    discipline: str = Query(None),
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Bulk refresh all stale-target planned sessions for an athlete.
+
+    Optionally filter by discipline. Returns summary with counts.
+    """
+    from app.services.threshold_cascade import cascade_threshold_update
+
+    disciplines = [discipline] if discipline else ["running", "ciclismo", "natación"]
+    total_summary: dict = {"refreshed": 0, "needs_republish": 0, "skipped_coach_edited": 0}
+
+    for disc in disciplines:
+        result = cascade_threshold_update(db, athlete_id, disc)
+        for key in total_summary:
+            total_summary[key] += result.get(key, 0)
+
+    db.commit()
+    return total_summary
+
+
+@router.post(
+    "/planned-sessions/{session_id}/republish",
+    response_model=PlanningPlannedSessionRead,
+)
+def republish_planned_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Re-publish a session that needs republishing after threshold changes.
+
+    Regenerates structured workout and resets publish_status to 'ready'.
+    """
+    session = db.get(PlannedSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Sesion no encontrada.")
+    prepare_planned_session_for_publish(session, db=db)
+    session.targets_stale = False
     db.commit()
     db.refresh(session)
     return session

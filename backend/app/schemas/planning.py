@@ -186,6 +186,15 @@ class PlanningMesocycleDraftRead(BaseModel):
     weeks: list[PlanningMesocycleDraftWeekRead]
 
 
+class ActualPerformanceRead(BaseModel):
+    distance_m: Optional[float] = None
+    duration_s: Optional[float] = None
+    avg_pace_s_per_km: Optional[float] = None
+    avg_hr: Optional[float] = None
+    avg_power: Optional[float] = None
+    started_at: Optional[str] = None
+
+
 class PlanningPlannedSessionRead(BaseModel):
     id: int
     focus_block_id: Optional[int] = None
@@ -215,6 +224,15 @@ class PlanningPlannedSessionRead(BaseModel):
     publish_status: str = "draft"
     publish_provider: Optional[str] = None
     publish_error: Optional[str] = None
+    threshold_snapshot_date: Optional[str] = None
+    targets_stale: bool = False
+    target_mode: Optional[str] = None
+    execution_status: str = "planned"
+    linked_activity_id: Optional[int] = None
+    actual_performance: Optional[dict] = None
+    coach_feedback: Optional[str] = None
+    coach_feedback_at: Optional[str] = None
+    execution_rating: Optional[str] = None
     payload: dict = {}
 
     model_config = {"from_attributes": True}
@@ -362,8 +380,19 @@ class WorkoutStepsEditRequest(BaseModel):
     workout: WorkoutDefinition
 
 
+class CoachFeedbackRequest(BaseModel):
+    """Post-workout feedback from coach."""
+    feedback: Optional[str] = None
+    rating: Optional[str] = None  # excellent | good | acceptable | poor
+
+
 class BlaCheckUpdateRequest(BaseModel):
     bla_check: bool
+
+
+class TargetModeUpdateRequest(BaseModel):
+    """Toggle between pace/HR/power targets for a session."""
+    target_mode: str  # "pace", "hr", "power"
 
 
 class BlockCandidateRead(BaseModel):
@@ -542,6 +571,15 @@ class PlanningOverviewRead(BaseModel):
     mesocycle_draft: Optional[PlanningMesocycleDraftRead] = None
     warnings: list[str]
     explanation: list[str]
+    threshold_staleness: Optional[dict] = None
+    threshold_warnings: list[dict] = []
+
+
+class ThresholdWarningRead(BaseModel):
+    discipline: str
+    days: int
+    severity: str
+    message: str
 
 
 # ── B4 — Triathlon analysis schemas ──────────────────────────────────────────

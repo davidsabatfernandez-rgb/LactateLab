@@ -99,6 +99,9 @@ export function planningPublishStatusMeta(value?: string | null) {
   if (value === "sent") {
     return { label: "Sent", tone: "positive" as const, description: "Workout ya publicado en un proveedor externo." };
   }
+  if (value === "needs_republish") {
+    return { label: "Republish", tone: "warning" as const, description: "Los umbrales han cambiado. Re-publica para actualizar targets en Garmin." };
+  }
   if (value === "failed") {
     return { label: "Failed", tone: "negative" as const, description: "Falló la preparación o publicación del workout." };
   }

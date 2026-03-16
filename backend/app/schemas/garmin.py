@@ -102,7 +102,17 @@ class GarminActivityStoredRead(BaseModel):
 
 class GarminSyncResponse(BaseModel):
     athlete_id: int
+    synced: bool = True
     new_activities: int
     total_activities: int
     sync_range_start: str
     sync_range_end: str
+    last_sync_at: Optional[datetime] = None
+    matching: Optional[dict] = None
+
+
+class GarminSyncStatusResponse(BaseModel):
+    connected: bool
+    last_sync_at: Optional[datetime] = None
+    stale: bool
+    garmin_email: Optional[str] = None

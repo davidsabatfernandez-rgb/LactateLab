@@ -46,6 +46,24 @@ class PlannedSession(Base):
     publish_provider: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     publish_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     structured_workout_generated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    threshold_snapshot_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    """Fecha en la que los targets de esta sesión se calcularon a partir de los umbrales del atleta."""
+    targets_stale: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")
+    """True si los umbrales del atleta han cambiado desde que se generaron los targets de esta sesión."""
+    target_mode: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    """Target mode: 'pace', 'hr', 'power', or None (auto). Coach toggles this."""
+    execution_status: Mapped[str] = mapped_column(String(30), index=True, default="planned")
+    """planned | completed | skipped | partial"""
+    linked_activity_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    """Garmin activity provider_activity_id linked by auto-matching."""
+    actual_performance: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    """{ distance_m, duration_s, avg_pace_s_per_km, avg_hr, avg_power, started_at }"""
+    coach_feedback: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    """Post-workout text feedback from coach."""
+    coach_feedback_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    """When coach feedback was written."""
+    execution_rating: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    """Coach's assessment: excellent | good | acceptable | poor."""
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
