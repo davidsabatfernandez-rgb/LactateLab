@@ -242,7 +242,21 @@ def change_password(
 
 
 @router.get("/me", response_model=UserRead)
-def me(user: User = Depends(get_current_user)):
+def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Auto-fix orphaned athlete link: user points to deleted athlete
+    if user.role == "athlete" and user.athlete_id:
+        athlete = db.scalar(select(Athlete).where(Athlete.id == user.athlete_id))
+        if athlete is None:
+            # Find the most recent athlete with matching name
+            from sqlalchemy import text
+            row = db.execute(text(
+                "SELECT id FROM athletes WHERE name = :name ORDER BY id DESC LIMIT 1"
+            ), {"name": user.full_name}).fetchone()
+            if row:
+                user.athlete_id = row[0]
+                db.add(user)
+                db.commit()
+                db.refresh(user)
     return user
 
 
