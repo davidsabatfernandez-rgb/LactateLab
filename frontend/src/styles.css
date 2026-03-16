@@ -3483,9 +3483,11 @@ textarea {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #f7f8fa;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(248,248,250,0.72) 40%, rgba(245,245,247,0.65) 100%),
+    url("/login-bg.jpg");
   background-size: cover;
-  background-position: center center;
+  background-position: center 40%;
   background-repeat: no-repeat;
 }
 
