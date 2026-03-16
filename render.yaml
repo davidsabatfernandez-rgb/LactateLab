@@ -28,7 +28,7 @@ services:
       - key: FRONTEND_BASE_URL
         value: https://lactate-lab-self.vercel.app
       - key: CORS_ORIGINS
-        value: https://lactate-lab-self.vercel.app
+        value: https://lactate-lab-self.vercel.app,https://peakaerobic.com,https://www.peakaerobic.com
       - key: OPENROUTER_API_KEY
         sync: false
       - key: STRAVA_CLIENT_ID
