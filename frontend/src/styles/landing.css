@@ -1008,8 +1008,8 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  opacity: 0;
-  transform: translateY(10px);
+  opacity: 1;
+  transform: translateY(0);
   transition: opacity 0.4s, transform 0.4s;
 }
 
@@ -1170,6 +1170,12 @@
   grid-template-columns: 1fr 1fr 1fr;
 }
 
+.ld-hr-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .ld-hr-field__label {
   display: block;
   font-size: 10px;
@@ -1178,10 +1184,13 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 4px;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .ld-hr-field .ld-input__field {
   font-size: 13px;
+  width: 100%;
 }
 
 /* ── Locked / blurred sections ── */
