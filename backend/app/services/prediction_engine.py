@@ -938,26 +938,23 @@ def _running_estimates(
     base_variables.append("vlamax_estimated")
 
     # ── Race predictions using di Prampero framework ────────────────────
+    # Always use evidence-only model (published Daniels + di Prampero formulas).
+    # Internal VLamax calibrations are not peer-reviewed and removed from defaults.
     for estimate_type in _RACE_DISTANCE_KM:
         pace: Optional[float] = None
         evidence_pace: Optional[float] = None
 
         if vo2max and vo2max > 20:
-            # Full model: di Prampero + internal VLamax calibrations
+            # Published model: pure Daniels & Gilbert 1979 + di Prampero 1986
             pace = _predict_race_pace(
-                vo2max=vo2max,
-                vlamax=vlamax,
-                lt2_speed_kph=lt2_speed,
-                estimate_type=estimate_type,
-            )
-            # Evidence-only model: pure Daniels + di Prampero (published formulas only)
-            evidence_pace = _predict_race_pace(
                 vo2max=vo2max,
                 vlamax=vlamax,
                 lt2_speed_kph=lt2_speed,
                 estimate_type=estimate_type,
                 evidence_only=True,
             )
+            # evidence_pace = same as pace (both use published formulas now)
+            evidence_pace = pace
 
         if pace is None:
             # Fallback: use reference speed with simple distance-based decay

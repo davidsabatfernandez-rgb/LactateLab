@@ -23,6 +23,8 @@ import { GeneratePhysiologyReportButton } from "../components/GeneratePhysiology
 import { PhysiologyReportPreview } from "../components/PhysiologyReportPreview";
 import { TrainingZonesEditor, TrainingZonesDisplay } from "../components/TrainingZonesEditor";
 import "../components/training-zones.css";
+import { BetaImplementations } from "../components/BetaImplementations";
+import "../components/beta-implementations.css";
 import { api } from "../lib/api";
 import { buildTargetObjective, targetCategoryLabel, targetCategoryOptions } from "../lib/targetCatalog";
 import { ResolvedTrainingThreshold, resolveTrainingThreshold } from "../lib/trainingThresholds";
@@ -2606,7 +2608,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const [cyclingPowerTarget, setCyclingPowerTarget] = useState("");
   const [cyclingPowerTolerance, setCyclingPowerTolerance] = useState("15");
   const [selectedEstimateType, setSelectedEstimateType] = useState<string | null>(null);
-  const [useEvidenceMode, setUseEvidenceMode] = useState(false);
+  const useEvidenceMode = true; // Always use published evidence (Daniels + di Prampero)
   const [thresholdReferenceVisibility, setThresholdReferenceVisibility] = useState({
     lt1: true,
     lt2: true,
@@ -3070,6 +3072,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     ...(dynamicThresholds ? [{ id: "dynamic-references", label: "Referencias dinámicas", shortLabel: "Dinámicas" }] : []),
     { id: "training-zones", label: "Zonas de entrenamiento", shortLabel: "Zonas" },
     { id: "estimates", label: "Referencias estimadas", shortLabel: "Estimadas" },
+    { id: "beta-implementations", label: "Implementaciones fase Beta", shortLabel: "Beta" },
     { id: "measurements", label: "Histórico de muestras", shortLabel: "Muestras" },
   ];
   const summaryCards = [
@@ -4298,6 +4301,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                 Tipo de sesión
                 <select value={sessionType} onChange={(event) => setSessionType(event.target.value)}>
                   <option value="test incremental">Test incremental</option>
+                  <option value="vlamax_test">Test VLamax (sprint 15-30″)</option>
                   <option value="sesión LT1">Sesión LT1</option>
                   <option value="sesión LT2">Sesión LT2</option>
                   <option value="VO2max">VO2max</option>
@@ -4992,26 +4996,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               <small className="ad-threshold-detail">{thresholdDetailLine(threshold, activeDiscipline, athleteWeight)}</small>
             </article>
           ))}
-          {relevantEstimates.some((e) => e.evidence_ritmo_objetivo != null) && (
-            <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end", marginBottom: -4 }}>
-              <button
-                type="button"
-                onClick={() => setUseEvidenceMode((v) => !v)}
-                style={{
-                  padding: "4px 10px",
-                  fontSize: 11,
-                  borderRadius: 6,
-                  border: useEvidenceMode ? "1px solid #3182ce" : "1px solid rgba(255,255,255,0.15)",
-                  background: useEvidenceMode ? "rgba(49,130,206,0.15)" : "rgba(255,255,255,0.04)",
-                  color: useEvidenceMode ? "#63b3ed" : "#a0aec0",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-              >
-                {useEvidenceMode ? "Evidencia contrastada" : "Usar evidencia contrastada"}
-              </button>
-            </div>
-          )}
+          {/* Evidence mode always on — predictions use only published formulas (Daniels + di Prampero) */}
           {relevantEstimates.map((estimate, index) => {
             const raceSummary = racePredictionSummary(estimate, useEvidenceMode);
             const visualRange = estimateVisualRange(estimate, athleteWeight, useEvidenceMode);
@@ -5022,7 +5007,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                 onClick={() => setSelectedEstimateType(estimate.estimate_type)}
               >
                 <div className="status-head">
-                  <span className="eyebrow">{estimate.estimate_type}{useEvidenceMode && estimate.evidence_ritmo_objetivo != null ? " (ev.)" : ""}</span>
+                  <span className="eyebrow">{estimate.estimate_type}</span>
                   <span className={`status-badge ${estimate.reliability_label}`}>{estimate.reliability_label}</span>
                 </div>
                 <strong>
@@ -5376,9 +5361,9 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                   {plotView.peakPoint ? (
                     <HoverMetaPill
                       className="threshold-meta-pill warning"
-                      tooltip={`Fecha ${formatDate(plotView.peakPoint.sessionDate)} · ${disciplineKey === "ciclismo" ? `Potencia ${Math.round(plotView.peakPoint.x)} W · ${formatWattsPerKg(plotView.peakPoint.x, athleteWeight)}` : `Ritmo ${formatPace(plotView.peakPoint.x)}`} · FC ${plotView.peakPoint.heartRate ?? "-"} bpm · Lactato ${plotView.peakPoint.lactate.toFixed(1)} mmol/L`}
+                      tooltip={`Sprint 15-30″ · Fecha ${formatDate(plotView.peakPoint.sessionDate)} · ${disciplineKey === "ciclismo" ? `Potencia ${Math.round(plotView.peakPoint.x)} W · ${formatWattsPerKg(plotView.peakPoint.x, athleteWeight)}` : `Ritmo ${formatPace(plotView.peakPoint.x)}`} · FC ${plotView.peakPoint.heartRate ?? "-"} bpm · Pico lactato ${plotView.peakPoint.lactate.toFixed(1)} mmol/L${plotView.vlamax ? ` · VLamax ${Math.round(plotView.vlamax.value * 100) / 100} mmol/L/s` : ""}`}
                     >
-                      VLAMAX proxy {plotView.peakPoint.lactate.toFixed(1)} mmol/L
+                      VLamax {plotView.vlamax ? `${Math.round(plotView.vlamax.value * 100) / 100} mmol/L/s` : `pico ${plotView.peakPoint.lactate.toFixed(1)} mmol/L`}
                     </HoverMetaPill>
                   ) : null}
                   {plotLt1X !== null ? (
@@ -5629,7 +5614,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                               stroke="#b84a14"
                               strokeWidth={1.5}
                               strokeDasharray="3 4"
-                              label={{ value: `Pico ${peakPoint.lactate} mmol`, position: "insideTopRight", fontSize: 11, fill: "#b84a14" }}
+                              label={{ value: `VLamax pico ${peakPoint.lactate} mmol`, position: "insideTopRight", fontSize: 11, fill: "#b84a14" }}
                             />
                             <ReferenceDot
                               x={peakPoint.x}
@@ -6077,6 +6062,14 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         )}
       </section>
 
+      <section id="beta-implementations" className="card section-card athlete-detail-anchor ad-section" style={{ borderRadius: 28, overflow: "hidden", padding: 18 }}>
+        <div className="section-heading compact">
+          <span className="eyebrow">Fase Beta</span>
+          <h2 className="section-title ad-section-title">Implementaciones fase Beta</h2>
+          <p className="ad-section-subtitle">9 gráficas metabólicas derivadas de los motores existentes — con evidencia científica y cautelas</p>
+        </div>
+        <BetaImplementations disciplineView={displayView} discipline={activeDiscipline} athleteWeight={analysis.athlete.weight} />
+      </section>
 
       <section id="measurements" className="card athlete-detail-anchor ad-section" style={{ borderRadius: 28, overflow: "hidden", boxShadow: "var(--shadow-soft)" }}>
         <details className="measurement-log-details" open={false}>

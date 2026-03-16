@@ -989,7 +989,7 @@ def apply_plan_to_athlete(
 # ── Lap matching for lactate overlay ──────────────────────────
 
 
-def _extract_work_steps(payload: dict | None) -> list[dict]:
+def _extract_work_steps(payload: Optional[dict]) -> list[dict]:
     """Extract flat list of work intervals from structured_workout_payload."""
     if not payload or "steps" not in payload:
         return []
@@ -1008,7 +1008,7 @@ def _extract_work_steps(payload: dict | None) -> list[dict]:
 
 def _match_laps_to_steps(
     work_steps: list[dict], laps: list[dict], tolerance_s: int = 10
-) -> list[dict | None]:
+) -> list[Optional[dict]]:
     """Try to find a contiguous subsequence of laps matching work_steps by duration ±tolerance.
 
     Returns a list parallel to work_steps: matched lap dict or None.
