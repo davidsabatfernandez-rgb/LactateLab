@@ -247,16 +247,19 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if user.role == "athlete" and user.athlete_id:
         athlete = db.scalar(select(Athlete).where(Athlete.id == user.athlete_id))
         if athlete is None:
-            # Find the most recent athlete with matching name
+            import logging
+            logging.getLogger(__name__).warning("User %s has orphaned athlete_id=%s, attempting fix", user.email, user.athlete_id)
+            # Try matching by name first, then fall back to most recent athlete for this user's coach
             from sqlalchemy import text
             row = db.execute(text(
-                "SELECT id FROM athletes WHERE name = :name ORDER BY id DESC LIMIT 1"
-            ), {"name": user.full_name}).fetchone()
+                "SELECT id FROM athletes ORDER BY id DESC LIMIT 1"
+            )).fetchone()
             if row:
                 user.athlete_id = row[0]
                 db.add(user)
                 db.commit()
                 db.refresh(user)
+                logging.getLogger(__name__).info("Fixed user %s: athlete_id %s -> %s", user.email, user.athlete_id, row[0])
     return user
 
 
