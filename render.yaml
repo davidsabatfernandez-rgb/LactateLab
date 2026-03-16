@@ -8,7 +8,7 @@ services:
   - type: web
     name: lactate-lab-api
     runtime: python
-    plan: starter
+    plan: standard
     rootDir: backend
     autoDeploy: true
     healthCheckPath: /health
