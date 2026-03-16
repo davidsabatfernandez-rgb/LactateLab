@@ -279,6 +279,45 @@ export function TodayPage() {
       ? [{ label: "Calentamiento" }, { label: "Bloque 1" }, { label: "Bloque 2" }, { label: "Enfriamiento" }]
       : [];
 
+  // Next session hint (for rest days)
+  const nextSession = useMemo(() => {
+    const todayIso = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
+    return data.plannedSessions
+      .filter((s) => s.scheduled_date > todayIso)
+      .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date))[0] ?? null;
+  }, [data.plannedSessions]);
+
+  // Block context phrase for sessions
+  const blockContext = useMemo(() => {
+    if (!activeBlock) return null;
+    const parts: string[] = [];
+    if (phaseTimeline) {
+      const phaseLabels: Record<string, string> = { base: "Fase base", "específico": "Fase específica", "pre-competición": "Pre-competición", taper: "Taper" };
+      parts.push(phaseLabels[phaseTimeline.currentPhase] ?? phaseTimeline.currentPhase);
+    }
+    if (activeBlock.block_objective) parts.push(activeBlock.block_objective);
+    if (activeBlock.block_intent) parts.push(activeBlock.block_intent);
+    return parts.length > 0 ? parts.join(" · ") : null;
+  }, [activeBlock, phaseTimeline]);
+
+  // Garmin push handler
+  const [garminPushing, setGarminPushing] = useState<number | null>(null);
+  const [garminPushResult, setGarminPushResult] = useState<Record<number, "ok" | "error">>({});
+  const garminConnected = data.analysis?.athlete?.garmin_connected ?? false;
+
+  const handleGarminPush = useCallback(async (session: PlanningPlannedSession) => {
+    if (!data.user?.athlete_id || garminPushing) return;
+    setGarminPushing(session.id);
+    try {
+      await api.pushWorkoutToGarmin(data.token, data.user.athlete_id, session.id);
+      setGarminPushResult((prev) => ({ ...prev, [session.id]: "ok" }));
+    } catch {
+      setGarminPushResult((prev) => ({ ...prev, [session.id]: "error" }));
+    } finally {
+      setGarminPushing(null);
+    }
+  }, [data.token, data.user?.athlete_id, garminPushing]);
+
   return (
     <div className="ath-page ath-today">
       {/* Date + weather header */}
@@ -289,6 +328,83 @@ export function TodayPage() {
           return <span className="ath-today-weather">{w.icon} {data.weather.temp}°C</span>;
         })()}
       </div>
+
+      {/* ════ TODAY'S SESSION — FIRST THING THE ATHLETE SEES ════ */}
+      <section className="ath-today-sessions">
+        {data.todaySessions.length > 0 ? (
+          <>
+            <h2 className="ath-section-title">Hoy te toca</h2>
+            {blockContext && <p className="ath-block-context">{blockContext}</p>}
+            <div className="ath-session-list">
+              {data.todaySessions.map((session) => {
+                const view = data.analysis?.discipline_views?.[session.discipline];
+                const sLt1 = resolveTrainingThreshold(view, "LT1");
+                const sLt2 = resolveTrainingThreshold(view, "LT2");
+                const pushStatus = garminPushResult[session.id];
+                const isPushing = garminPushing === session.id;
+                const alreadyPublished = session.publish_status === "published";
+                return (
+                  <div key={session.id}>
+                    <InlineWorkoutPreview
+                      session={session}
+                      lt1={sLt1}
+                      lt2={sLt2}
+                      onOpenDetail={() => setDetailSession(session)}
+                    />
+                    {/* Garmin push + lactate actions */}
+                    {(garminConnected && session.structured_workout_payload) && (
+                      <div className="ath-session-actions">
+                        {alreadyPublished || pushStatus === "ok" ? (
+                          <span className="ath-garmin-sent">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            Enviado a Garmin
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="ath-garmin-push-btn"
+                            disabled={isPushing}
+                            onClick={(e) => { e.stopPropagation(); handleGarminPush(session); }}
+                          >
+                            {isPushing ? (
+                              <span className="ath-garmin-spinner" />
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polygon points="12 6 15.09 11.5 21 12.27 16.91 16.97 17.82 22.81 12 19.77 6.18 22.81 7.09 16.97 3 12.27 8.91 11.5 12 6" fill="none" /></svg>
+                            )}
+                            Enviar a Garmin
+                          </button>
+                        )}
+                        {pushStatus === "error" && <span className="ath-garmin-error">Error al enviar</span>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="ath-rest-day">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+            <p>Día de descanso — recupérate bien</p>
+            {nextSession && (
+              <div className="ath-next-session-hint">
+                <span className="ath-next-label">Próxima sesión</span>
+                <span className="ath-next-detail">
+                  {new Date(nextSession.scheduled_date + "T00:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric" })}
+                  {" · "}
+                  <span className={`ath-session-role ${nextSession.session_role === "KEY" ? "key" : nextSession.session_role === "LONG" ? "long" : "support"}`}>
+                    {nextSession.session_role}
+                  </span>
+                  {" "}
+                  {nextSession.public_label}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* Hero: 3 symmetrical rings — Estado (left) · Predisposición (center, large) · VO2max (right) */}
       <div className="ath-hero">
@@ -415,35 +531,7 @@ export function TodayPage() {
         />
       </div>
 
-      {/* Today's sessions */}
-      <section className="ath-today-sessions">
-        <h2 className="ath-section-title">Hoy te toca</h2>
-        {data.todaySessions.length > 0 ? (
-          <div className="ath-session-list">
-            {data.todaySessions.map((session) => {
-              const view = data.analysis?.discipline_views?.[session.discipline];
-              const sLt1 = resolveTrainingThreshold(view, "LT1");
-              const sLt2 = resolveTrainingThreshold(view, "LT2");
-              return (
-                <InlineWorkoutPreview
-                  key={session.id}
-                  session={session}
-                  lt1={sLt1}
-                  lt2={sLt2}
-                  onOpenDetail={() => setDetailSession(session)}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          <div className="ath-rest-day">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-            <p>Día de descanso — recupérate bien</p>
-          </div>
-        )}
-      </section>
+      {/* (Sessions moved to top of page) */}
 
       {/* ── Dashboard Widgets (Garmin-inspired) ──────────────── */}
       <div className="ath-dashboard-grid">
@@ -755,9 +843,21 @@ export function TodayPage() {
               <span className={`ath-checkin-avg tone-${wellnessCheckTone(wellnessCheckAverage(wellnessValues))}`}>
                 Media: {wellnessCheckAverage(wellnessValues).toFixed(1)} / 5
               </span>
-              <button type="button" className="ath-checkin-save" onClick={() => {
-                console.log("Wellness check-in saved:", wellnessValues);
-                setWellnessSaved(true);
+              <button type="button" className="ath-checkin-save" onClick={async () => {
+                if (!data.user?.athlete_id) return;
+                try {
+                  await api.submitWellnessCheckin(data.token, data.user.athlete_id, {
+                    check_date: new Date().toISOString().slice(0, 10),
+                    fatigue: wellnessValues.fatigue,
+                    soreness: wellnessValues.soreness,
+                    mood: wellnessValues.mood,
+                    sleep_quality: wellnessValues.sleep_quality,
+                  });
+                  setWellnessSaved(true);
+                } catch (e) {
+                  console.error("Wellness check-in failed:", e);
+                  setWellnessSaved(true); // Still hide form on error
+                }
               }}>
                 Enviar
               </button>
@@ -829,9 +929,33 @@ export function TodayPage() {
           ) : (
             <LactateStepInput
               sessions={lactateEligibleSessions}
-              onSubmit={(submission: LactateSubmission) => {
-                console.log("Lactate submission:", submission);
-                // TODO: call api.createSession() with intervals + lactate samples
+              onSubmit={async (submission: LactateSubmission) => {
+                if (!data.user?.athlete_id) return;
+                try {
+                  const validValues = submission.values.filter((v) => v.lactate !== null && v.lactate > 0);
+                  if (validValues.length === 0) { setShowLactateInput(false); return; }
+                  await api.createSession(data.token, {
+                    athlete_id: data.user.athlete_id,
+                    performed_at: new Date().toISOString(),
+                    discipline: submission.discipline,
+                    session_type: "test",
+                    goal: "Lactate test — " + submission.sessionLabel,
+                    comments: "Registrado desde el portal del atleta",
+                    intervals: validValues.map((v, i) => ({
+                      order_index: i + 1,
+                      duration_seconds: 300,
+                      purpose: "step",
+                      notes: v.step,
+                      lactate_sample: {
+                        lactate_mmol: v.lactate,
+                        sample_delay_seconds: 0,
+                        sample_timing_label: v.step || `Step ${i + 1}`,
+                      },
+                    })),
+                  });
+                } catch (e) {
+                  console.error("Lactate submission failed:", e);
+                }
                 setShowLactateInput(false);
               }}
             />

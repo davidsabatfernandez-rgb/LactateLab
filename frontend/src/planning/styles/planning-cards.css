@@ -704,7 +704,7 @@
 .planning-kpi-card,
 .planning-threshold-card {
   padding: 14px 16px;
-  border-radius: 18px;
+  border-radius: 12px;
   background: rgba(250, 249, 246, 0.96);
   box-shadow: none;
 }
@@ -836,7 +836,7 @@
 .planning-draft-week {
   gap: 10px;
   padding: 14px;
-  border-radius: 18px;
+  border-radius: 12px;
   border: 1px solid rgba(16, 34, 42, 0.06);
   background: rgba(255, 255, 255, 0.96);
 }
@@ -3004,6 +3004,19 @@
   gap: 4px;
 }
 
+.plan-editor-add-form.plan-editor-add-form-blocks {
+  width: 380px;
+  padding: 0;
+  overflow: visible;
+  border-radius: 16px;
+}
+
+.plan-editor-add-form-blocks .wbb {
+  border: none;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
 .plan-editor-add-form .planning-manual-input {
   font-size: 0.72rem;
   padding: 4px 6px;
@@ -3022,5 +3035,346 @@
 .plan-editor-add-form-row > * {
   flex: 1;
   min-width: 0;
+}
+
+/* ── Mesocycle Detail Modal ── */
+
+.meso-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.5);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.meso-detail-modal {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 1100px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: grid;
+  gap: 0;
+}
+
+.meso-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 20px;
+  padding: 28px 32px 20px;
+  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+  position: sticky;
+  top: 0;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  z-index: 2;
+}
+
+.meso-detail-header h2 {
+  margin: 4px 0 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.35rem;
+}
+
+.meso-detail-summary {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+  color: rgba(16, 34, 42, 0.6);
+  max-width: 600px;
+}
+
+.meso-detail-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.meso-detail-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  min-height: 0;
+}
+
+.meso-detail-col {
+  padding: 24px 28px;
+  display: grid;
+  gap: 20px;
+  align-content: start;
+  overflow-y: auto;
+}
+
+.meso-detail-col:first-child {
+  border-right: 1px solid rgba(16, 34, 42, 0.06);
+}
+
+.meso-detail-section {
+  display: grid;
+  gap: 10px;
+}
+
+.meso-detail-section h3 {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent, #c0392b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.meso-detail-section p {
+  margin: 0;
+  font-size: 0.87rem;
+  line-height: 1.55;
+  color: rgba(16, 34, 42, 0.8);
+}
+
+.meso-detail-section-sub {
+  margin: 8px 0 2px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(16, 34, 42, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.meso-detail-reasons {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.meso-detail-reasons li {
+  font-size: 0.87rem;
+  line-height: 1.5;
+  color: rgba(16, 34, 42, 0.8);
+}
+
+.meso-detail-reasons.compact {
+  gap: 3px;
+}
+
+.meso-detail-reasons.compact li {
+  font-size: 0.82rem;
+}
+
+.meso-detail-contra {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.meso-detail-contra li {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #b45309;
+}
+
+.meso-detail-contra.compact li {
+  font-size: 0.8rem;
+}
+
+.meso-detail-warn-title {
+  margin: 10px 0 2px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #b45309;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.meso-detail-muted {
+  font-size: 0.85rem;
+  color: rgba(16, 34, 42, 0.45);
+  font-style: italic;
+}
+
+.meso-detail-muted.compact {
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.meso-detail-physio-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.meso-detail-physio-item {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  background: rgba(16, 34, 42, 0.03);
+  border-radius: 10px;
+}
+
+.meso-detail-physio-item small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(16, 34, 42, 0.45);
+}
+
+.meso-detail-physio-item strong {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Lactate card */
+
+.meso-detail-lactate-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.04), rgba(245, 158, 11, 0.04));
+  border: 1px solid rgba(220, 38, 38, 0.1);
+  border-radius: 14px;
+}
+
+.meso-detail-lactate-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 0.87rem;
+  line-height: 1.5;
+}
+
+.meso-detail-lactate-label {
+  font-weight: 700;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.82rem;
+  min-width: 30px;
+  color: #c0392b;
+}
+
+.meso-detail-lactate-curve,
+.meso-detail-lactate-mechanism {
+  border-top: 1px solid rgba(16, 34, 42, 0.06);
+  padding-top: 10px;
+}
+
+.meso-detail-lactate-curve h4,
+.meso-detail-lactate-mechanism h4 {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: rgba(16, 34, 42, 0.5);
+}
+
+.meso-detail-lactate-curve p,
+.meso-detail-lactate-mechanism p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.meso-detail-current-gaps {
+  margin-top: 4px;
+}
+
+.meso-detail-current-gaps h4 {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(16, 34, 42, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Others comparison */
+
+.meso-detail-others {
+  display: grid;
+  gap: 10px;
+}
+
+.meso-detail-other-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid rgba(16, 34, 42, 0.06);
+  border-radius: 12px;
+  background: rgba(16, 34, 42, 0.015);
+}
+
+.meso-detail-other-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.meso-detail-other-head strong {
+  font-size: 0.88rem;
+}
+
+.meso-detail-refs {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(16, 34, 42, 0.06);
+}
+
+.meso-detail-refs small {
+  font-size: 0.75rem;
+  color: rgba(16, 34, 42, 0.45);
+  font-style: italic;
+}
+
+/* Dark mode */
+
+:root[data-theme="dark"] .meso-detail-modal {
+  background: #0e1c26;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="dark"] .meso-detail-header {
+  background: #0e1c26;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .meso-detail-col:first-child {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .meso-detail-section p,
+:root[data-theme="dark"] .meso-detail-reasons li {
+  color: rgba(231, 239, 244, 0.75);
+}
+
+:root[data-theme="dark"] .meso-detail-physio-item {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+:root[data-theme="dark"] .meso-detail-lactate-card {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.08), rgba(245, 158, 11, 0.06));
+  border-color: rgba(220, 38, 38, 0.15);
+}
+
+:root[data-theme="dark"] .meso-detail-other-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 800px) {
+  .meso-detail-body {
+    grid-template-columns: 1fr;
+  }
+  .meso-detail-col:first-child {
+    border-right: none;
+    border-bottom: 1px solid rgba(16, 34, 42, 0.06);
+  }
 }
 

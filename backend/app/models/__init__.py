@@ -1,1 +1,1 @@
-from . import athlete, coach_template, metrics, planned_session, session, training_zone, user  # noqa: F401
+from . import athlete, coach_template, garmin_activity, metrics, planned_session, session, training_zone, user, wellness_checkin  # noqa: F401

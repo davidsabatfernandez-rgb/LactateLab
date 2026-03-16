@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lactate Lab — Architecture Tree</title>
+<style>
+:root {
+  --bg: #fafbfc;
+  --bg2: #ffffff;
+  --text: #1a2b33;
+  --muted: #5e6d72;
+  --border: #d8dee3;
+  --primary: #16353d;
+  --primary-light: #e8f0f3;
+  --accent: #d26a36;
+  --accent-light: #fdf0e8;
+  --green: #22c55e;
+  --green-light: #f0fdf4;
+  --amber: #f59e0b;
+  --amber-light: #fffbeb;
+  --sky: #0ea5e9;
+  --sky-light: #f0f9ff;
+  --red: #ef4444;
+  --red-light: #fef2f2;
+  --purple: #8b5cf6;
+  --purple-light: #f5f3ff;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+  --font: "Source Sans 3", "Inter", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", "Fira Code", "SF Mono", monospace;
+}
+
+[data-theme="dark"] {
+  --bg: #0f1a1e;
+  --bg2: #162228;
+  --text: #d8e4ea;
+  --muted: #8a9aa0;
+  --border: #2a3a42;
+  --primary: #5bbad5;
+  --primary-light: #162a32;
+  --accent: #e8854a;
+  --accent-light: #2a1e14;
+  --green-light: #0a1f0f;
+  --amber-light: #1f1a0a;
+  --sky-light: #0a1520;
+  --red-light: #1f0a0a;
+  --purple-light: #150f2a;
+  --shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Top Bar ── */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex; align-items: center; gap: 16px;
+  box-shadow: var(--shadow);
+}
+.topbar h1 { font-size: 18px; font-weight: 700; color: var(--primary); white-space: nowrap; }
+.topbar .subtitle { font-size: 13px; color: var(--muted); }
+
+/* Search */
+.search-box {
+  flex: 1; max-width: 400px;
+  position: relative;
+}
+.search-box input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.search-box input:focus { border-color: var(--primary); }
+.search-box svg {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  width: 16px; height: 16px; color: var(--muted);
+}
+
+/* Theme toggle */
+.theme-toggle {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+  font-family: var(--font);
+}
+
+/* Expand/Collapse all */
+.expand-btn {
+  background: var(--primary-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--primary);
+  font-family: var(--font);
+  font-weight: 600;
+}
+
+/* ── Breadcrumb ── */
+.breadcrumb {
+  padding: 8px 24px;
+  font-size: 12px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: wrap;
+  min-height: 32px;
+}
+.breadcrumb span { cursor: pointer; }
+.breadcrumb span:hover { color: var(--primary); text-decoration: underline; }
+.breadcrumb .sep { color: var(--border); cursor: default; }
+.breadcrumb .sep:hover { color: var(--border); text-decoration: none; }
+
+/* ── Layout ── */
+.main { display: flex; min-height: calc(100vh - 100px); }
+.sidebar {
+  width: 320px; min-width: 320px;
+  border-right: 1px solid var(--border);
+  background: var(--bg2);
+  overflow-y: auto;
+  padding: 12px 0;
+  height: calc(100vh - 100px);
+  position: sticky; top: 80px;
+}
+.detail {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+  max-width: 900px;
+}
+
+/* ── Tree Nodes ── */
+.tree-node {
+  user-select: none;
+}
+.tree-label {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px 5px calc(12px + var(--depth, 0) * 18px);
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 0;
+  transition: background 0.1s;
+  position: relative;
+}
+.tree-label:hover { background: var(--primary-light); }
+.tree-label.active { background: var(--primary-light); font-weight: 600; color: var(--primary); }
+
+.tree-chevron {
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+  color: var(--muted);
+}
+.tree-chevron.open { transform: rotate(90deg); }
+.tree-chevron.leaf { visibility: hidden; }
+
+.tree-icon {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  display: grid; place-items: center;
+  font-size: 10px; font-weight: 700;
+  color: #fff;
+}
+.tree-icon.engine { background: var(--primary); }
+.tree-icon.module { background: var(--green); }
+.tree-icon.api { background: var(--sky); }
+.tree-icon.model { background: var(--purple); }
+.tree-icon.frontend { background: var(--amber); }
+.tree-icon.function { background: var(--muted); font-size: 9px; }
+.tree-icon.config { background: var(--accent); }
+.tree-icon.science { background: var(--red); }
+
+.tree-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.tree-children { display: none; }
+.tree-children.open { display: block; }
+
+/* ── Detail Panel ── */
+.detail h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; color: var(--primary); }
+.detail .detail-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+.detail .detail-path { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 16px; background: var(--bg); padding: 6px 10px; border-radius: var(--radius-sm); display: inline-block; }
+
+.detail-section {
+  margin-bottom: 24px;
+}
+.detail-section h3 {
+  font-size: 14px; font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.detail-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.detail-card p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+.detail-card code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--bg);
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: var(--accent);
+}
+
+/* Tables */
+.detail table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.detail th, .detail td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.detail th {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--bg);
+}
+.detail td code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+
+/* Tags */
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+.tag-green { background: var(--green-light); color: var(--green); border: 1px solid var(--green); }
+.tag-amber { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber); }
+.tag-sky { background: var(--sky-light); color: var(--sky); border: 1px solid var(--sky); }
+.tag-red { background: var(--red-light); color: var(--red); border: 1px solid var(--red); }
+.tag-purple { background: var(--purple-light); color: var(--purple); border: 1px solid var(--purple); }
+
+/* FAQ */
+.faq-item {
+  margin-bottom: 8px;
+}
+.faq-q {
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.faq-q:hover { background: var(--primary-light); }
+.faq-a {
+  display: none;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.faq-a.open { display: block; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .sidebar { width: 260px; min-width: 260px; }
+  .detail { padding: 16px; }
+}
+@media (max-width: 700px) {
+  .main { flex-direction: column; }
+  .sidebar { width: 100%; min-width: 0; height: auto; position: static; max-height: 50vh; border-right: none; border-bottom: 1px solid var(--border); }
+  .detail { max-width: 100%; }
+}
+
+/* No results */
+.no-results { padding: 24px; text-align: center; color: var(--muted); font-size: 14px; }
+
+/* Highlight */
+mark { background: var(--accent-light); color: var(--accent); padding: 0 2px; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>Lactate Lab</h1>
+    <div class="subtitle">Architecture Tree &mdash; v2026.03.16</div>
+  </div>
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="search" placeholder="Buscar funciones, motores, constantes..." autocomplete="off" />
+  </div>
+  <button class="expand-btn" id="expandAll" title="Expandir todo">Expandir todo</button>
+  <button class="expand-btn" id="collapseAll" title="Colapsar todo">Colapsar todo</button>
+  <button class="theme-toggle" id="themeToggle" title="Cambiar tema">Tema oscuro</button>
+</div>
+
+<div class="breadcrumb" id="breadcrumb">
+  <span onclick="showDetail('root')">Lactate Lab</span>
+</div>
+
+<div class="main">
+  <nav class="sidebar" id="sidebar"></nav>
+  <section class="detail" id="detail"></section>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA — Complete architecture tree
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DATA = {
+  id: "root",
+  name: "Lactate Lab",
+  icon: "engine",
+  subtitle: "Full-stack app de analisis de lactato para entrenadores",
+  path: "/Users/davidsabatfernandez/Documents/New project",
+  description: "Sistema completo de analisis fisiologico basado en lactato, planificacion de mesociclos y prescripcion de entrenamiento. Backend FastAPI + SQLAlchemy (SQLite), Frontend React + TypeScript.",
+  tags: ["FastAPI", "React", "SQLAlchemy", "TypeScript"],
+  faq: [
+    { q: "Que stack tecnologico usa?", a: "Backend: FastAPI + SQLAlchemy + SQLite/PostgreSQL. Frontend: React 18 + TypeScript + Vite. Auth: JWT (HS256). LLM: OpenRouter (Gemma). APIs externas: PubMed, Semantic Scholar, Strava, Garmin." },
+    { q: "Cuantos endpoints tiene?", a: "84 endpoints en 11 routers: Athletes (24), Planning (28), Sessions (11), Auth (6), Analytics (5), Garmin (4), Reports (2), Strava (1), Health (1), Training Load (1), Science Advisor (1)." },
+    { q: "Cuantas lineas de codigo tiene el backend?", a: "~25,000 lineas en los motores principales: analytics.py (~3,000), planning_engine.py (~3,000), workout_library.py (~3,400), mesocycle_prescription.py (~1,200), dynamic_threshold_engine.py (~1,500), physiological_engine.py (~1,900), prediction_engine.py (~1,000), training_load_calculator.py (~600), triathlon_motor.py (~800), block_rationale.py (~400), athlete_health.py (~700)." },
+  ],
+  children: [
+    // ═══════════════ BACKEND ═══════════════
+    {
+      id: "backend",
+      name: "Backend",
+      icon: "engine",
+      subtitle: "FastAPI + SQLAlchemy",
+      path: "backend/app/",
+      description: "API REST con 84 endpoints, 18 modelos SQLAlchemy, 15+ schemas Pydantic. Capa de servicios con 11 motores de dominio.",
+      tags: ["FastAPI", "SQLAlchemy", "Pydantic"],
+      children: [
+        // ── Analytics Engine ──
+        {
+          id: "analytics",
+          name: "Motor de Analisis de Lactato",
+          icon: "engine",
+          subtitle: "analytics.py — ~3,000 lineas",
+          path: "backend/app/services/analytics.py",
+          description: "Motor central de analisis fisiologico. Detecta umbrales LT1/LT2 por sesion usando 3 metodos (baseline_rise, sustained_increase, ModDmax), los agrega por consenso multi-metodo, y aplica quality gates para umbrales REAL e Individuales.",
+          tags: ["Faude 2009", "Bishop 1998", "Billat 2003", "Mader 2003"],
+          faq: [
+            { q: "Como detecta LT1?", a: "Tres metodos: (1) baseline_rise: primer punto >= baseline + 0.5 mmol (Faude 2009), (2) sustained_increase: primer ascenso mantenido >= baseline + 0.3 mmol con siguiente punto tambien subiendo, (3) ModDmax no detecta LT1. Resultado final: media de lactatos, mediana de pace/power." },
+            { q: "Como detecta LT2?", a: "Tres metodos: (1) baseline_rise: punto >= 4.0 mmol O (>= 3.2 mmol + slope >= 0.45) con verificacion de no-pico-transitorio, (2) sustained_increase: rotura de pendiente (slope >= max(0.45, prior + 0.2)), (3) ModDmax (Bishop 1998): maximo desvio positivo de la recta referencia. Resultado: media de lactatos, mediana de pace/power." },
+            { q: "Que son los umbrales REAL?", a: "Umbrales de alta confianza de una sola sesion. Requieren >= 5 etapas, confianza >= 0.75, agreement >= 0.62, monotonicity >= 0.60, protocol_score >= 0.68, signal_score >= 0.70. Si todos los gates pasan, se publican LT1 REAL y LT2 REAL con sus practicos (-0.3 y -0.5 mmol respectivamente)." },
+            { q: "Que son los umbrales Individuales?", a: "Consenso longitudinal: >= 6 sesiones con umbrales REAL confirmados + alignment de progresion >= 0.75 + confianza >= 0.78. Usa mediana de todos los valores, no media. Representa la tendencia estable del atleta." },
+          ],
+          children: [
+            {
+              id: "analytics_detection",
+              name: "Metodos de Deteccion",
+              icon: "module",
+              subtitle: "3 algoritmos de deteccion LT1/LT2",
+              description: "Tres metodos independientes detectan LT1 y/o LT2. Sus resultados se agregan por consenso.",
+              children: [
+                { id: "method_baseline_rise", name: "_method_baseline_rise", icon: "function", badge: "L347-414", subtitle: "LT1 = baseline + 0.5 mmol, LT2 = 4.0 mmol o 3.2 + slope", description: "Detecta LT1 y LT2 por criterio de ascenso absoluto sobre baseline. LT1: primer punto >= min(first_4) + 0.5 mmol (Faude 2009), validando que el siguiente no cae > 0.25 mmol. LT2: punto >= 4.0 mmol O (>= 3.2 mmol AND slope >= 0.45 AND > 1 etapa desde inicio), con verificacion anti-pico-transitorio: si el siguiente punto cae > 0.5 mmol (Billat 2003), es transitorio y se sigue buscando. Confianza base: min(0.88, 0.56 + n_candidatos * 0.05).", tags: ["Faude 2009", "Billat 2003"] },
+                { id: "method_sustained", name: "_method_sustained_increase", icon: "function", badge: "L417-476", subtitle: "LT1 = ascenso mantenido, LT2 = rotura de pendiente", description: "Detecta LT1 como primer punto donde lactato >= baseline + 0.3 mmol, punto actual > anterior, y siguiente >= actual (ascenso sostenido). Puede retornar None si no hay ascenso sostenido. LT2: busca aceleracion de pendiente (local_slope >= max(0.45, prior_slope + 0.2)) y lactato >= max(3.2, baseline + 1.4). Confianza base ligeramente menor: min(0.84, 0.52 + n * 0.05)." },
+                { id: "method_moddmax", name: "_method_moddmax", icon: "function", badge: "L479-554", subtitle: "ModDmax (Bishop 1998) — solo LT2, robusto para atletas entrenados", description: "Variante robusta de Dmax que resuelve el fallo en curvas convexas de atletas entrenados. En vez de trazar la recta desde el primer punto, la traza desde el primer punto >= baseline_min + 0.5 mmol (Bishop 1998). LT2 = punto con maximo desvio positivo sobre esa recta. Si todos los desvios son <= 0, retorna vacio. Confianza base: min(0.82, 0.48 + n * 0.045). Solo estima LT2, nunca LT1." , tags: ["Bishop 1998"] },
+              ]
+            },
+            {
+              id: "analytics_aggregation",
+              name: "Agregacion y Consenso",
+              icon: "module",
+              subtitle: "Multi-metodo → resultado unico",
+              description: "Combina las estimaciones de los 3 metodos en un resultado final.",
+              children: [
+                { id: "aggregate_threshold", name: "_aggregate_threshold", icon: "function", badge: "L557-620", subtitle: "Media(lactato), Mediana(pace/power/HR)", description: "Selecciona el mejor metodo por confianza como primario. Lactato: MEDIA de todos los metodos (estable). Pace/Power/HR: MEDIANA (Billat 2003) — garantiza que el resultado apunta a una muestra real medida, evitando ritmos inexistentes. Agreement score: 1 - range/1.5 para lactato. Confianza final: best.confidence * 0.7 + agreement * 0.3." },
+              ]
+            },
+            {
+              id: "analytics_validation",
+              name: "Validacion de Sesion",
+              icon: "module",
+              subtitle: "Gates B1, B2, P6",
+              description: "Tres gates de validacion criticos antes de publicar resultados.",
+              children: [
+                { id: "gate_b1", name: "B1: Baseline Invalido", icon: "function", subtitle: "min(first_4) > 3.0 mmol → INVALIDO", description: "Si el minimo de las primeras 4 etapas supera 3.0 mmol, el atleta no partio de reposo metabolico. Todos los umbrales se marcan como INVALID." },
+                { id: "gate_p6", name: "P6: Cap por Puntos", icon: "function", subtitle: "3 pts → cap 0.45, 4 pts → cap 0.60", description: "Con solo 3 puntos, la resolucion es insuficiente para confianza alta (cap 0.45). Con 4 puntos, marginal (cap 0.60). >= 5 puntos sin cap." },
+                { id: "gate_b2", name: "B2: LT1 < LT2", icon: "function", subtitle: "LT1 debe ser menor que LT2 en toda metrica", description: "Si LT1 >= LT2 en lactato, o LT1 mas rapido que LT2 en pace, o LT1 > LT2 en potencia → resultado incoherente, se marcan INVALID." },
+              ]
+            },
+            {
+              id: "analytics_real",
+              name: "Umbrales REAL",
+              icon: "module",
+              subtitle: "Quality gates conservadores",
+              description: "Deteccion de alta calidad por sesion individual.",
+              children: [
+                { id: "detect_real", name: "_detect_real_thresholds", icon: "function", badge: "L1033-1199", subtitle: "5 gates: stages >= 5, conf >= 0.75, agreement >= 0.62, monotonicity >= 0.60, protocol >= 0.68", description: "Aplica 5 quality gates conservadores. Si todos pasan: publica LT1 REAL (+ practico a -0.3 mmol) y LT2 REAL (+ practico a -0.5 mmol). Gate adicional: signal_score >= 0.70. Si no pasan, retorna null — nunca se muestra un umbral REAL de baja calidad." },
+              ]
+            },
+            {
+              id: "analytics_individual",
+              name: "Umbrales Individuales",
+              icon: "module",
+              subtitle: "Consenso longitudinal (>= 6 sesiones)",
+              description: "Agregan umbrales REAL de multiples sesiones en un perfil estable del atleta.",
+              children: [
+                { id: "individual_thresholds", name: "_build_individual_thresholds", icon: "function", badge: "L1321-1405", subtitle: ">= 6 sesiones, alignment >= 0.75, confianza >= 0.78", description: "Requiere >= 6 sesiones con umbrales REAL confirmados. Verifica alignment de progresion (tendencia consistente >= 0.75). Agrega por mediana. Agreement: lactato +/- 1.2 mmol, power +/- 18%, pace +/- 10%." },
+              ]
+            },
+            {
+              id: "analytics_zones",
+              name: "Zonas de Entrenamiento",
+              icon: "module",
+              subtitle: "Modelo de 5 zonas (Seiler 2006)",
+              children: [
+                { id: "estimate_zones", name: "_estimate_zones", icon: "function", badge: "L1473-1537", subtitle: "Z1 Recovery, Z2 Aerobic, Z3 Tempo, Z4 Threshold, Z5 VO2+", description: "5 zonas basadas en LT1 y LT2: Z1 < 85% LT1, Z2 = LT1, Z3 = LT1-LT2, Z4 = LT2 a LT2*1.05, Z5 > LT2*1.05. Pace invertido (mayor valor = mas lento). Refs: Seiler 2006, Esteve-Lanao 2007, Coggan 2010." },
+              ]
+            },
+            { id: "analytics_vlamax", name: "VLamax Medido (Mader)", icon: "function", badge: "L191-266", subtitle: "VLamax = (peak - baseline) / (2 * sprint_duration)", description: "Formula de Mader para VLamax desde test de sprint. VLamax (mmol/L/s) = (peak_lactate - baseline) / (2 * sprint_duration_s). Clamped a rango fisiologico 0.15-0.90 mmol/L/s. Confianza 0.90." },
+            { id: "analytics_recalc", name: "Recalculacion Completa", icon: "function", badge: "L2466-2686", subtitle: "recalculate_athlete() — re-analisis de todas las sesiones", description: "Recalcula secuencialmente todas las sesiones del atleta: analisis, umbrales dinamicos, umbrales individuales, snapshots, estimaciones, metricas derivadas. Incluye VO2max Swain (si running+HR) y VLamax medido (si sprint test)." },
+          ]
+        },
+
+        // ── Dynamic Threshold Engine ──
+        {
+          id: "dynamic_engine",
+          name: "Motor de Umbrales Dinamicos",
+          icon: "engine",
+          subtitle: "dynamic_threshold_engine.py — ~1,500 lineas",
+          path: "backend/app/services/dynamic_threshold_engine.py",
+          description: "Modelo multi-sesion que estima umbrales practicos (LT1/LT2) a partir de todas las muestras de lactato del atleta en una ventana temporal. Usa interpolacion multi-bracket, deteccion de outliers LOO, ponderacion compuesta, y anclaje fisiologico.",
+          tags: ["Multi-bracket", "LOO", "PAVA"],
+          faq: [
+            { q: "Que es la interpolacion multi-bracket?", a: "En vez de usar el par mas cercano al target lactato, prueba todas las combinaciones de los 4 puntos inferiores y 4 superiores mas cercanos. Cada par se pondera por proximidad al target y peso compuesto de los puntos. Penaliza pares con upper bracket > 2 mmol sobre el target. El resultado es la media ponderada." },
+            { q: "Como funciona el LOO?", a: "Leave-One-Out: para cada punto, ajusta la regresion sin el y mide el residual (|actual - predicho|). Si > 1.0 mmol, el punto es outlier y su peso se multiplica por 0.25. Hay dos niveles: cross-session (entre sesiones) e intra-session (dentro de cada test)." },
+            { q: "Que es el anclaje fisiologico?", a: "El LT2 practico del modelo dinamico se 'ancla' parcialmente al LT2 fisiologico (inflexion de curva). Peso: 0.35*(1-conf)+0.10. Con confianza baja (0.2): ancla ~38%. Con confianza alta (0.9): ancla ~17%. Nunca domina (max 45%)." },
+          ],
+          children: [
+            {
+              id: "dyn_weighting",
+              name: "Sistema de Ponderacion",
+              icon: "module",
+              subtitle: "5 componentes × punto",
+              description: "Cada muestra de lactato recibe un peso compuesto de 5 factores.",
+              children: [
+                { id: "dyn_recency", name: "_recency_weight", icon: "function", subtitle: "exp(-days/18), clamped [0.2, 1.0]", description: "Decaimiento exponencial: half-life ~12.5 dias, decay_days=18. Dia 0: 1.0, Dia 18: ~0.37, Dia 42: ~0.09. Minimo 0.2 para no ignorar datos antiguos." },
+                { id: "dyn_quality", name: "_data_quality_score", icon: "function", subtitle: "45% delay + 25% baseline_source + 30% contextual_conf", description: "Delay score: <= 15s: 1.0, 16-30s: 0.94, 31-60s: 0.82, 61-90s: 0.66, > 90s: 0.5. Baseline source: measured 1.0, estimated_recent 0.88, historical 0.80, fallback 0.68." },
+                { id: "dyn_similarity", name: "_similarity_weight", icon: "function", subtitle: "Base 0.72 + bonus por keywords LT/test", description: "Bonus +0.18 si purpose contiene 'lt1/lt2/threshold/umbral', +0.08 si session_type contiene 'incremental/test', +0.05 si goal contiene keywords. Rango [0.72, 1.0]." },
+                { id: "dyn_context", name: "_session_context_score", icon: "function", subtitle: "62% protocol + 18% density + order_penalty", description: "Protocol score: duracion del intervalo (optimo 4-8 min = 0.92) y ratio trabajo/descanso. Penaliza intervalos tardios (-0.04/posicion). Bonus +0.08 si purpose es LT." },
+                { id: "dyn_duration", name: "_interval_duration_score", icon: "function", subtitle: "Optimo 240-480s = 0.92", description: "< 120s: 0.42, 120-180s: 0.58, 180-240s: 0.78, 240-480s: 0.92 (ideal), 480-720s: 0.85, 720-900s: 0.76, > 1200s: 0.50 (fatiga confunde)." },
+              ]
+            },
+            {
+              id: "dyn_filtering",
+              name: "Filtrado de Outliers",
+              icon: "module",
+              subtitle: "3 niveles de filtrado",
+              description: "Tres filtros aplicados secuencialmente, todos 'soft' (reducen peso, no eliminan).",
+              children: [
+                { id: "dyn_extreme", name: "Filtro de Extremos", icon: "function", subtitle: "max(7.0, p90 * 1.3) → peso * 0.04", description: "Si >= 5 puntos: calcula p90 de lactato. Cualquier punto > max(7.0, p90*1.3) → peso multiplicado por 0.04. Elimina sprints y esfuerzos maximos que no son submaximos." },
+                { id: "dyn_intra", name: "_intrasession_consistency_filter", icon: "function", badge: "L953-1026", subtitle: "LOO intra-sesion, safeguard > 40%", description: "LOO dentro de cada sesion individual (>= 3 puntos por sesion). Si residual > 1.0 mmol → peso * 0.15. SAFEGUARD: si > 40% de puntos de la sesion se marcarian, NO se aplica el filtro (sesion demasiado ruidosa). Preserva variabilidad entre sesiones." },
+                { id: "dyn_loo", name: "_detect_outliers_in_lactate_space", icon: "function", badge: "L529-592", subtitle: "LOO cross-session, residual > 1.0 mmol → peso * 0.25", description: "LOO entre todas las sesiones (>= 4 puntos). Para cada punto: regresion sin el, prediccion, residual. Si |actual - predicho| > 1.0 mmol → peso * 0.25. Mas suave que intra-sesion porque la variabilidad entre dias es esperada." },
+              ]
+            },
+            {
+              id: "dyn_interpolation",
+              name: "Interpolacion Multi-Bracket",
+              icon: "module",
+              subtitle: "_estimate_reference — core del motor",
+              description: "Estima velocidad/potencia/HR a un lactato objetivo.",
+              children: [
+                { id: "dyn_estimate_ref", name: "_estimate_reference", icon: "function", badge: "L595-771", subtitle: "Multi-bracket + scoring compuesto → referencia con confianza", description: "Particiona puntos en lower (<= target) y upper (>= target). Toma 4 mas cercanos de cada lado. Prueba todos los pares (low, high) validos (monotonicos). Interpolacion lineal ponderada: est = x_low + (target - y_low)/(y_high - y_low) * (x_high - x_low). Peso del par: sqrt(w_low * w_high) * proximidad_lactato. Penaliza span > 2 mmol. Reliability: 30% sample_size + 20% stability + 10% monotonicity + 12% signal + 8% influence + 12% protocol + 8% baseline. Confidence = 55% reliability + 45% validity." },
+                { id: "dyn_cluster", name: "_low_lactate_cluster_reference", icon: "function", badge: "L827-884", subtitle: "LT1 conservador desde bloque aerobico", description: "Extrae referencia conservadora de LT1 desde puntos con lactato <= upper_limit. Usa la mediana del cluster (no interpolacion). Evita que transiciones compactas arrastren LT1 practico demasiado bajo." },
+                { id: "dyn_blend", name: "_blend_with_physiological_anchor", icon: "function", badge: "L1029-1077", subtitle: "Blend = (1-w)*dinamico + w*fisiologico, w = 0.35*(1-conf)+0.10", description: "Convergencia parcial del LT2 dinamico hacia el LT2 fisiologico (inflexion de curva). Confianza baja (0.2) → ancla ~38%. Alta (0.9) → ancla ~17%. Siempre entre 10-45%. Estabiliza estimaciones en datos ruidosos." },
+              ]
+            },
+            { id: "dyn_regression", name: "Deteccion de Regresion", icon: "function", badge: "L1361-1405", subtitle: ">= 5% declive vs pico historico", description: "Si el LT2 practico cronico ha caido >= 5% respecto al pico historico → warning de desentrenamiento (Mujika & Padilla 2000). Requiere >= 3 puntos historicos." },
+            { id: "dyn_payload", name: "build_dynamic_threshold_payload", icon: "function", badge: "L1408-1511", subtitle: "Funcion publica: acute + chronic + comparison + history", description: "Construye el payload completo: modelos acute y chronic (42d cada uno), comparacion entre ambos, historial temporal, y warnings agregados. Detecta regresion y freshness." },
+          ]
+        },
+
+        // ── Physiological Engine ──
+        {
+          id: "physio_engine",
+          name: "Motor Fisiologico",
+          icon: "engine",
+          subtitle: "physiological_engine.py — ~1,900 lineas",
+          path: "backend/app/services/physiological_engine.py",
+          description: "Implementa el modelo dual de Olbrecht (VO2max/VLamax) para recomendar bloques de entrenamiento (AEC, THR, AEP, ANC, ANP, COMP) basandose en gaps fisiologicos y fase de temporada.",
+          tags: ["Olbrecht", "Faude 2009", "Swain+ACSM"],
+          faq: [
+            { q: "Que bloques de Olbrecht implementa?", a: "6 bloques: AEC (capacidad aerobica), THR (desarrollo de umbral), AEP (potencia aerobica), ANC (capacidad anaerobica), ANP (potencia anaerobica), COMP (competicion especifica). Cada uno tiene gates especificos de fase y evento." },
+            { q: "Como estima VO2max sin test directo?", a: "Usa el metodo Swain (1997): %HRR ≈ %VO2R. Calcula fraccion HRR al LT2, estima VO2 al LT2 con ecuacion ACSM, y resuelve: VO2max = (VO2_at_LT2 - 3.5) / HRR_fraction + 3.5. Rango valido: 25-90 ml/kg/min." },
+            { q: "Como funciona el proxy VLamax?", a: "Ratio LT1/LT2 (velocidad): > 0.87 = VLamax baja (diesel, bueno para resistencia), 0.79-0.87 = moderada, < 0.79 = alta (glucolitico). Correccion: si aerobico bajo + ratio alto → downgrade a moderado (no se puede diagnosticar sin motor aerobico)." },
+          ],
+          children: [
+            { id: "physio_profile", name: "CapacityProfile", icon: "module", subtitle: "Perfil VO2max/VLamax proxy", description: "Proxy completo del perfil fisiologico. aerobic_level: high/moderate/low por LT2 absoluto vs benchmarks. vlamax_level: high/moderate/low por ratio LT1/LT2 o VLamax medido. vo2max_estimated: Swain+ACSM o Garmin. fractional_utilization: LT2 como % del VO2max. Confianza por source: real(0.85) > basic(0.65) > interpolated(0.40)." },
+            { id: "physio_season", name: "Fases de Temporada", icon: "module", subtitle: "5 fases adaptativas por nivel", description: "Fases: base_early (> 28s trained), base_late (20-28s), specific (12-20s), pre_comp (3-12s), taper (< 3s). Boundaries adaptativas: recreational necesita base mas larga, competitive puede transicionar antes." },
+            { id: "physio_gap", name: "analyse_physiological_gap", icon: "function", badge: "L1308-1868", subtitle: "Motor principal de decision de bloque", description: "1. Data quality check (stale > 42d, confianza). 2. Calculo de gap: required_lt2 = target / LT2_RACE_FACTOR[event][level], gap = required - actual. 3. Gap thresholds: significant ≈ 4% LT2 (floor 0.3 km/h), moderate = 50% significant. 4. Arbol de decision con 15+ ramas por gap, fase, evento, y perfil. 5. Refinamiento por capacity_profile (conf >= 0.55). 6. Contraindications: D1 (too late), S1 (insufficient timeline)." },
+            { id: "physio_lt2_factor", name: "LT2_RACE_FACTOR", icon: "config", subtitle: "Factores de ritmo de carrera", description: "Dict {evento: {nivel: factor}}. Ejemplo: Marathon trained = 0.87 (ritmo carrera = 87% del LT2). 5k competitive = 1.01 (> LT2). Ironman recreational = 0.68. Calibrado con Faude 2009, Billat 2003, Coggan, Hausswirth 2013." },
+            { id: "physio_vo2max", name: "estimate_vo2max_swain", icon: "function", badge: "L644-703", subtitle: "Swain 1997: %HRR ≈ %VO2R + ACSM", description: "1. %HRR = (HR_LT2 - HR_rest) / (HR_max - HR_rest). 2. VO2 at LT2 = ACSM running (0.2*speed + 3.5) o cycling (power*10.8/kg + 7.0). 3. VO2max = (VO2_LT2 - 3.5) / HRR + 3.5. Validation: 25-90 ml/kg/min, frac 0.55-0.98." },
+            { id: "physio_capacity_apply", name: "_apply_capacity_profile", icon: "function", badge: "L1029-1227", subtitle: "Refinamiento de bloque por perfil VO2max/VLamax", description: "Alta confianza (>= 0.75) puede cambiar bloque: Diesel + short event → ANC. Diesel + specific → AEP. Thin ice (low aerobic + high VLamax) → siempre AEC. Fractional > 0.85 + long → AEC. Fractional < 0.75 + AEP recomendado → THR. Media confianza (0.55-0.74): solo contexto informativo." },
+            { id: "physio_level", name: "suggest_athlete_level", icon: "function", badge: "L881-1026", subtitle: "Auto-sugerencia: recreational/trained/competitive", description: "4 signals: LT2 por disciplina (peso 1.0), VO2max (0.6), fractional utilization (0.3), ratio LT1/LT2 (0.2). Gaussian scoring contra benchmarks. Confianza = 0.30 + margin * 1.3 entre top 2 scores." },
+          ]
+        },
+
+        // ── Planning Engine ──
+        {
+          id: "planning_engine",
+          name: "Motor de Planificacion",
+          icon: "engine",
+          subtitle: "planning_engine.py — ~3,000 lineas",
+          path: "backend/app/services/planning_engine.py",
+          description: "Motor de planificacion de mesociclos: analisis del estado del atleta, scoring de candidatos de bloque, evaluacion de bloques completados, y deteccion de estancamiento.",
+          tags: ["Olbrecht", "Bompa"],
+          faq: [
+            { q: "Como selecciona el bloque optimo?", a: "Score de 8 candidatos con reglas explicitas. Factores: dias a objetivo (+50 para COMP si <= 21d), bloque previo (progresion natural AEC→THR→AEP), signal de evaluacion (+40 para recovery si degrading), robustness, historial de respuesta." },
+            { q: "Que es el sistema de dose ladder?", a: "Cada familia de sesiones tiene una escalera de dosis discretas (3-8 peldanos). Ejemplo: LT1 extensive tiene 8 peldanos desde 3x8' hasta 3x20'. La seleccion del peldano depende de fase, robustness, signal, y tolerancia familiar. Build_peak sube +1, recovery baja -2." },
+          ],
+          children: [
+            { id: "plan_candidates", name: "Scoring de Candidatos", icon: "module", subtitle: "_score_block_candidates — 8 bloques auditables", description: "Evalua 8 bloques con puntuacion explicita. AEC: +15 si no hay previo, +15 si > 112d, -30 si <= 35d. THR: +25 si AEC→improving. AEP: +20 si THR/AEC→improving, -20 si > 112d. ANC: +10 si AEC→improving + short event. ANP: +30 si <= 35d. COMP: +50 si <= 21d. Recovery: +40 si degrading. Response history bonus: +15*conf si mejora >= 2%. Stagnation: -20 a repetidos + +8 a no probados." },
+            { id: "plan_state", name: "AthletePlanningState", icon: "module", subtitle: "Snapshot completo del estado del atleta", description: "Robustness: low (<= 4 sessions/42d), medium (5-8), high (>= 9). Goal horizon: open/base/build/specific/close. Macro phase: base/build/specific/taper. Family tolerance per-familia. Block validation signal: improving/stable/degrading/none. Last lactate test days ago." },
+            { id: "plan_stagnation", name: "_detect_stagnation", icon: "function", badge: "L1441", subtitle: ">= 3 tests, < 5% mejora en 180d → estancado", description: "Consulta snapshots en ultimos 180 dias. Si hay >= 3 y mejora LT2 < 5% → stagnation=True. Genera warnings con valores y porcentajes." },
+          ]
+        },
+
+        // ── Mesocycle Prescription ──
+        {
+          id: "mesocycle",
+          name: "Prescripcion de Mesociclos",
+          icon: "engine",
+          subtitle: "mesocycle_prescription.py — ~1,200 lineas",
+          path: "backend/app/services/mesocycle_prescription.py",
+          description: "Genera borradores completos de mesociclos con semanas, sesiones, dosis, y warnings de spacing. Implementa el Wave Principle de Olbrecht y la progresion por dose ladders.",
+          tags: ["Olbrecht Wave", "Bompa 2019"],
+          faq: [
+            { q: "Que es el Wave Principle?", a: "Estructura de carga: load → build → build_peak → recovery. Build_peak es la semana climax (misma frecuencia que build, pero +1 peldano en dose ladder). No sube +2 para respetar el limite de Bompa (10-20% incremento semanal)." },
+            { q: "Como funciona _smart_day_offsets?", a: "Clasifica slots en Long (Sabado), KEY (Martes/Jueves, separados >= 2 dias), Support/Recovery (dias restantes). KEY con requires_fresh van a Martes/Jueves. Fatigue cost alto se separa primero." },
+          ],
+          children: [
+            { id: "meso_phase", name: "_phase_sequence", icon: "function", badge: "L365", subtitle: "load → build → build_peak → recovery", description: "Genera secuencia de fases semanales. 4 semanas '3+1': [load, build, build_peak, recovery]. 5 semanas '4+1': [load, build, build, build_peak, recovery]. competition_specific_block: ultima fase working → 'specific'." },
+            { id: "meso_dose", name: "_select_dose_step", icon: "function", badge: "L506", subtitle: "Seleccion de peldano por fase, robustness, signal", description: "Hierarchy: degrading → bajar 1. Negative response → no progresar. Recovery → -2. Load → last-1. Build → last+1. Build_peak → last+1. Specific → last+(1 si improving, else 0). Robustness cap: low:3, medium:5, high:max. Readiness check si 'fresh' requerido." },
+            { id: "meso_days", name: "_smart_day_offsets", icon: "function", badge: "L720", subtitle: "Asignacion inteligente de dias", description: "Long → Sabado (dia 6). KEY → Martes/Jueves (dias 2,4), separados >= 2 dias, requires_fresh prioriza 2,4. Support/Recovery → dias restantes (1,3,5,7). Ordenados por fatigue_cost DESC." },
+            { id: "meso_blueprints", name: "WORKOUT_BLUEPRINTS", icon: "config", subtitle: "(discipline, block_type) → {phase → [DraftSlot]}", description: "Dict con blueprints para cada combinacion disciplina x bloque. 4 fases: load, build, build_peak, recovery. Cada fase tiene 3-4 slots con template_id primario y alternativas para rotacion semanal (patron Nacho). AEC build_peak incluye ANC spice (Olbrecht Tipo I)." },
+            { id: "meso_spacing", name: "validate_microcycle_spacing", icon: "function", subtitle: "Valida fatigue_cost, incompatibles, fresh", description: "3 checks: (1) High-fatigue spacing: si ambas sesiones fatigue >= 4 y gap < min_spacing_days_after → warning. (2) Familias incompatibles adyacentes → warning. (3) Fresh requirement: si dia anterior tiene fatigue >= 3 y siguiente requiere fresh → warning." },
+          ]
+        },
+
+        // ── Workout Library ──
+        {
+          id: "workout_lib",
+          name: "Libreria de Sesiones",
+          icon: "engine",
+          subtitle: "workout_library.py — ~3,400 lineas",
+          path: "backend/app/services/workout_library.py",
+          description: "Contiene todas las plantillas de sesiones (WorkoutTemplate), dose ladders, y la libreria de mesociclos. ~50 templates de running, ~30 de ciclismo, ~20 de natacion.",
+          tags: ["DoseStep", "WorkoutTemplate"],
+          faq: [
+            { q: "Cuantas familias de sesiones hay?", a: "~15 familias por disciplina: lt1_extensive, lt1_long_reps, lt2_cruise_intervals, threshold_continuous, vo2_hills, economy_strides, long_aerobic, progressive_aerobic, regenerative_long, anc_submax_spice, subthreshold_reps, etc." },
+            { q: "Que es un dose ladder?", a: "Escalera de 3-8 peldanos con progresion de volumen e intensidad. Ejemplo lt1_extensive running: Step 1 = 3x8' (24' util), Step 4 = 3x14' (42' util), Step 8 = 3x20' (60' util). Cada peldano tiene label, tiempo util, descanso, zona, readiness, y duracion total." },
+          ],
+          children: [
+            { id: "wl_templates", name: "WorkoutTemplate", icon: "module", subtitle: "~100 templates con dose_ladder, fatigue_cost, spacing", description: "Cada template tiene: template_id, discipline, session_family, session_role (key/support/recovery), csv_examples (fallback), dose_ladder (DoseStep[]), fatigue_cost (1-5), min_spacing_days_after, incompatible_adjacent_families, requires_fresh, calentamiento, enfriamiento, coach_tips." },
+            { id: "wl_dose", name: "DoseStep", icon: "module", subtitle: "Peldano discreto: step, label, time, rest, zone, readiness", description: "Ejemplo: DoseStep(step=4, label='3x14\\' LT1', total_useful_time_min=42, rest_min=2, intensity_zone='LT1', readiness_required='any', total_duration_min=70). Readiness: 'any' (cualquier estado), 'medium', 'fresh' (requiere descanso previo)." },
+            { id: "wl_families", name: "Familias por Disciplina", icon: "config", subtitle: "Running: 13, Ciclismo: 10, Natacion: 8", description: "Running: lt1_extensive, lt1_long_reps, escalated_lt1, lt2_cruise_intervals, threshold_continuous, vo2_hills, economy_strides, long_aerobic, progressive_aerobic, regenerative_long, anc_submax_spice, subthreshold_reps, uLT1_vo2_combo. Ciclismo: lt1_blocks, lt2_halfpace, over_under_threshold, sit_lt1_progressive, lt2_torque_reps, anc_submax_spice, fuerza_q2, subthreshold_blocks. Natacion: aerobic_continuity, css_threshold, lt1_broken_sets." },
+          ]
+        },
+
+        // ── Prediction Engine ──
+        {
+          id: "prediction",
+          name: "Motor de Predicciones",
+          icon: "engine",
+          subtitle: "prediction_engine.py — ~1,560 lineas",
+          path: "backend/app/services/prediction_engine.py",
+          description: "Predice tiempos de competicion usando el modelo di Prampero (coste energetico) + VLamax (Mader 2003) + durabilidad (Zanini 2025). Genera estimaciones para 5K, 10K, HM, Maraton (running) y 5/20/60 min (ciclismo) con bandas de incertidumbre asimetricas.",
+          tags: ["di Prampero", "Mader 2003", "Daniels 1979", "Zanini 2025"],
+          faq: [
+            { q: "Que modelo usa?", a: "Modelo di Prampero: v_race = F(T) * VO2max / C. F(T) de Daniels-Gilbert 1979 (fraccion sostenible del VO2max por duracion). VLamax de Mader modula la fraccion util: alta VLamax penaliza larga distancia. Durabilidad de Zanini 2025: decay = k * t^1.5 (k = 0.013 high, 0.025 medium, 0.035 low endurance)." },
+            { q: "Como calcula las bandas de incertidumbre?", a: "Base spread: 5K 2%, 10K 2.5%, HM 3.5%, Maraton 4.5%. Modulado por quality_score (agreement, stability, history_depth). Asimetria: 5K (45%/55%), Maraton (35%/65%) — mas probable ir mas lento que mas rapido en distancias largas." },
+            { q: "Como estima VLamax sin test de sprint?", a: "Mader 2003 framework: 45% ratio LT1/LT2 (curva mas plana = menos VLamax), 30% steepness de lactato entre umbrales, 25% headroom VO2max. VLamax neutral = 0.35 mmol/min. Sensibilidad por distancia: 5K 3%, Maraton 22%." },
+          ],
+          children: [
+            { id: "pred_daniels", name: "_daniels_sustainable_fraction", icon: "function", subtitle: "F(T) = fraccion sostenible del VO2max por duracion", description: "Daniels-Gilbert 1979: decaimiento exponencial de la fraccion sostenible. ~95% a 5min, ~85% a 30min, ~75% a 2h, ~70% a 4h. Base del modelo di Prampero." },
+            { id: "pred_vlamax", name: "_estimate_vlamax_from_thresholds", icon: "function", subtitle: "Mader 2003: VLamax desde ratio LT1/LT2 + steepness", description: "3 componentes: 45% ratio LT1/LT2 (> 0.87 = baja VLamax), 30% steepness lactato entre LT1 y LT2, 25% headroom VO2max (techo aerobico disponible). Retorna (vlamax, confidence, method)." },
+            { id: "pred_race", name: "_predict_race_pace", icon: "function", subtitle: "di Prampero: v = F(T) * VO2max / C + bonus anaerobico", description: "Velocidad de carrera = fraccion sostenible * VO2max / coste energetico. Bonus anaerobico: 5K 6%, 10K 3%, HM 1%, Maraton 0.5% (Gastin 2001). Ajuste VLamax: sensibilidad * (vlamax - 0.35) afecta fractional utilization." },
+            { id: "pred_durability", name: "_apply_durability", icon: "function", subtitle: "Zanini 2025: decay = k * t^1.5", description: "Modelo de decaimiento del LT2 efectivo con la duracion. k por nivel: high 0.013 (3.7% caida a 2h), medium 0.025 (7.1%), low 0.035 (9.9%). Aplica solo a distancias > 10K." },
+            { id: "pred_estimates", name: "build_performance_estimates", icon: "function", subtitle: "Funcion publica: running 5K/10K/HM/M + cycling 5/20/60min", description: "Agrega inputs (LT2 fisiologico + practico + Swain VO2max + VLamax medido), genera estimaciones por distancia con confidence, spread asimetrico, y cautions. Running: 4 distancias. Cycling: 3 duraciones basadas en FTP." },
+          ]
+        },
+
+        // ── Block Rationale ──
+        {
+          id: "block_rationale",
+          name: "Razonamiento de Bloques",
+          icon: "module",
+          subtitle: "block_rationale.py — ~1,300 lineas",
+          path: "backend/app/services/block_rationale.py",
+          description: "Referencia canonica de los 8 bloques Olbrecht con rationale cientifico, explicaciones contextuales, y sistema de reliability warnings. Cada bloque tiene: objetivo fisiologico, descripcion de entrenamiento, timeline esperado, contexto ideal, riesgos.",
+          tags: ["Olbrecht", "Faude 2009", "Billat 2003"],
+          children: [
+            { id: "br_rationale", name: "BlockRationale (8 bloques)", icon: "config", subtitle: "AEC 5-10s, THR 4-7s, AEP 3-5s, ANC 3-5s, ANP 2-4s, COMP 2-4s", description: "8 dataclasses con: display_name, olbrecht_class, summary_coach, physiological_goal, training_description, expected_timeline, ideal_context, risk_if_wrong, min/max_weeks, science_refs. AEC: mitocondrias + VO2max base (5-10s). THR: desplazar LT2 hacia objetivo (4-7s). AEP: maximizar utilizacion de VO2max (3-5s). ANC: boost VLamax para eventos cortos (3-5s). ANP: potencia sprint pre-competicion (2-4s). COMP: practica de ritmo de carrera (2-4s). Recovery: drenar fatiga (1-2s). Testing: datos stale (auto-trigger)." },
+            { id: "br_warnings", name: "Reliability Warnings (11 codigos)", icon: "function", subtitle: "info / warning / critical — con accion sugerida", description: "W_INTERPOLATED_THRESHOLDS: LT a 2.0/4.0 mmol (warning). W_LOW_CONFIDENCE: detector < 0.75 (warning). W_STALE_DATA_MILD: test 43-56d (info). W_STALE_DATA_CRITICAL: test > 56d en specific/pre_comp (critical). W_BORDERLINE_GAP: gap +/- 15% del threshold (info). W_INSUFFICIENT_WEEKS: weeks < min+2 (warning). W_NO_TARGET: sin pace objetivo (info). W_PROFILE_UNCERTAIN: CapacityProfile < 0.55 (warning). W_NO_LT1: LT1 no disponible (warning). W_IMPLAUSIBLE_RATIO: ratio < 0.55 o > 1.05 (critical). W_SINGLE_DISCIPLINE: triatleta analizado con 1 disciplina (info)." },
+            { id: "br_explanation", name: "generate_block_explanation", icon: "function", subtitle: "Explicacion contextual: headline, why_now, what_to_expect, what_to_watch, when_to_exit", description: "Genera BlockExplanation con datos del atleta: headline (1 frase: por que ESTE bloque AHORA), why_now (parrafo con ratio, gap, fase, deporte), what_to_expect (adaptaciones fisiologicas esperadas), what_to_watch (senales de monitorizacion), when_to_exit (criterios de salida + siguiente bloque), alternative_if_wrong (plan B si los datos cambian)." },
+          ]
+        },
+
+        // ── Training Load Calculator ──
+        {
+          id: "training_load",
+          name: "Calculadora de Carga",
+          icon: "engine",
+          subtitle: "training_load_calculator.py — ~715 lineas",
+          path: "backend/app/services/training_load_calculator.py",
+          description: "Calcula TSS por actividad (cadena: Power > Pace > Swim > HR > Garmin), CTL (fitness, 42d EWMA), ATL (fatigue, 7d EWMA), TSB (form = CTL-ATL), y ACWR (acute:chronic ratio). Soporta Lucia TRIMP con zonas individuales LT1/LT2.",
+          tags: ["Coggan 2003", "Lucia 2003", "Gabbett 2016"],
+          faq: [
+            { q: "Como calcula TSS?", a: "Cadena de prioridad: 1. Power TSS (Coggan: IF^2 * hours * 100, conf 1.0). 2. Pace rTSS (threshold/actual)^2 * hours * 100, conf 0.9). 3. Swim sTSS (IF^3 para resistencia del agua, conf 0.8). 4. HR Lucia TRIMP (min_Z1*1 + min_Z2*2 + min_Z3*3, normalizado a 60min@LT2=100 TSS, conf 0.75). 5. Garmin reported (conf 0.5)." },
+            { q: "Que es ACWR?", a: "Acute:Chronic Workload Ratio = ATL/CTL. > 1.5 = muy alto (warning). 1.3-1.5 = alto (monitor). < 0.8 = carga baja reciente. Nota: Impellizzeri 2020 — advisory only, no causal." },
+          ],
+          children: [
+            { id: "tl_tss", name: "compute_activity_tss", icon: "function", subtitle: "Cadena: Power > Pace > Swim > HR > Garmin", description: "Retorna TSSResult con tss, method, confidence, discipline, garmin_tss, warnings. Power (Coggan): IF = NP/FTP, TSS = IF^2 * hours * 100. Pace: rTSS = (threshold/actual)^2 * hours * 100. Swim: IF^3 (resistencia cuadratica del agua). HR: Lucia TRIMP preferido (Z1*1 + Z2*2 + Z3*3, zonas LT1/LT2 individuales), Banister fallback (exponencial, k=1.92 male / 1.67 female)." },
+            { id: "tl_series", name: "compute_training_load_series", icon: "function", subtitle: "EWMA: ATL alpha=0.25 (7d), CTL alpha=0.047 (42d), TSB = CTL-ATL", description: "Serie diaria: para cada dia calcula TSS total, actualiza ATL y CTL con EWMA exponencial. TSB = CTL - ATL (positivo = fresh, negativo = fatigado). ACWR = ATL/CTL con warnings Gabbett. Retorna timeseries + current values + breakdown por disciplina." },
+            { id: "tl_lucia", name: "Lucia TRIMP", icon: "function", subtitle: "Z1(<LT1)*1 + Z2(LT1-LT2)*2 + Z3(>=LT2)*3", description: "TRIMP con zonas individuales basadas en LT1/LT2 HR del atleta (no %HRmax generico). Normalizado: 60 min a intensidad LT2 = 180 TRIMP = 100 TSS equivalentes. Si no hay HR records detallados, estima distribucion de zonas con aproximacion Gaussiana." },
+          ]
+        },
+
+        // ── Triathlon Motor ──
+        {
+          id: "triathlon",
+          name: "Motor de Triatlon",
+          icon: "engine",
+          subtitle: "triathlon_motor.py — ~400 lineas",
+          path: "backend/app/services/triathlon_motor.py",
+          description: "Planificacion multi-disciplina para triatletas. Distribuye TSS entre disciplinas segun debilidad, calcula targets semanales con ramp Gabbett, asigna dias con spacing cross-disciplina (Olbrecht), y gestiona doubles (swim AM + land PM).",
+          tags: ["Olbrecht", "Gabbett 2016", "Millet 2002"],
+          faq: [
+            { q: "Como distribuye el volumen entre disciplinas?", a: "Por confianza de debilidad detectada: alta → primary 55%, secondary 30%, swim 15%. Moderada → 50/30/20. Baja → 40/35/25. Peso mecanico (Cejuela 2022): running 1.0, cycling 0.50, swimming 0.75." },
+            { q: "Como gestiona los doubles?", a: "Swim se programa AM (07:00) en dia con sesion PM existente. Solo si el dia ya tiene 1 sesion non-swim. Prioriza dias con sesiones de soporte (no KEY). Validacion: no 2 KEY de disciplinas diferentes en dias consecutivos." },
+          ],
+          children: [
+            { id: "tri_tss", name: "compute_weekly_tss_targets", icon: "function", subtitle: "Ramp Gabbett: CTL + daily_ramp * 7, phase modifiers", description: "Target TSS = (CTL + daily_ramp) * 7. daily_ramp = CTL * ramp_rate% * phase_modifier, clamped [0.43, 2.14] TSS/dia. Phase modifiers: load 1.0, build 1.1, build_peak 1.2, specific 1.15, recovery 0.6. Recovery: CTL * 7 * recovery_factor (0.55, clamped 0.41-0.60)." },
+            { id: "tri_days", name: "_cross_discipline_day_assignment", icon: "function", subtitle: "Olbrecht spacing: KEY → Tue/Thu, LONG → Sat, doubles AM/PM", description: "1. Primary KEY → dias 2,4 (Tue,Thu). 2. Primary LONG → dia 6 (Sat). 3. Secondary KEY → >= 2 dias de primary KEY. 4. Support → gaps. 5. Swim → AM double con PM existente o dia libre. Validacion: no brick run-antes-bike (Millet 2002), no mismo energy system 2 disciplinas mismo dia." },
+            { id: "tri_spacing", name: "validate_triathlon_spacing", icon: "function", subtitle: "4 reglas cross-disciplina", description: "1. No 2 KEY de disciplinas diferentes en dias consecutivos. 2. Brick order: bike before run (Millet 2002). 3. No mismo energy system en 2 disciplinas el mismo dia (Olbrecht). 4. Solo 1 LONG por fin de semana." },
+          ]
+        },
+
+        // ── Athlete Health ──
+        {
+          id: "athlete_health",
+          name: "Salud del Atleta",
+          icon: "engine",
+          subtitle: "athlete_health.py — ~900 lineas",
+          path: "backend/app/services/athlete_health.py",
+          description: "Integra datos de salud de Garmin Connect (via Garth): sueno (total, REM, deep, awake), HRV, stress, Body Battery, SpO2, resting HR. Genera overview diario con calendario de actividades, metricas de salud, y performance (VO2max Garmin, training effect). 27 tipos de deporte mapeados.",
+          tags: ["Garmin Connect", "Garth"],
+          faq: [
+            { q: "Que metricas extrae de Garmin?", a: "Actividad: distancia, duracion, HR avg, potencia avg, tipo de deporte. Salud: resting HR, HRV, stress level, body battery, respiracion, SpO2. Sueno: total, REM%, deep%, awake%, calidad, HR medio durante sueno. Performance: VO2max (estimacion Garmin), training effect, carga aerobica/anaerobica." },
+            { q: "Que ventana temporal usa?", a: "Default: 28 dias. Rango: 7-84 dias. Configurable por parametro. Genera calendario dia-a-dia con actividades + salud + sueno agrupados." },
+          ],
+          children: [
+            { id: "ah_overview", name: "build_athlete_health_overview", icon: "function", subtitle: "Funcion publica: providers + summary + calendar + health + sleep + performance", description: "Agrega: activities (Garmin normalizadas), summary (total sesiones, dias entrenamiento, duracion, distancia, deporte principal), calendar (dia a dia), health_metrics (resting HR, HRV, stress, body battery), sleep_breakdown (total, REM, deep, awake, calidad), performance (VO2max Garmin, training effect)." },
+            { id: "ah_garmin", name: "_load_garmin_health_snapshot", icon: "function", subtitle: "Garmin Connect API via Garth: daily health + sleep + performance", description: "Consulta Garmin Connect: daily health (steps, calories, stress, respiration, SpO2), sleep stages (timestamps, fases), body battery, HRV, training effect, VO2max estimate. 27 tipos de deporte mapeados con label y color (running #d26a36, cycling #157f66, swimming #2563eb, strength #7c3aed, etc.)." },
+          ]
+        },
+
+        // ── Science Advisor ──
+        {
+          id: "science_advisor",
+          name: "Science Advisor",
+          icon: "science",
+          subtitle: "7 modulos — busqueda cientifica + LLM",
+          path: "backend/app/services/science_advisor/",
+          description: "Sistema independiente de consulta cientifica. Permite al entrenador hacer preguntas en lenguaje natural, busca papers en PubMed/Semantic Scholar/Europe PMC, y sintetiza respuestas con datos del atleta. Usa LLM (OpenRouter/Gemma) con glosario de dominio anti-alucinaciones.",
+          tags: ["PubMed", "Semantic Scholar", "OpenRouter", "Gemma"],
+          faq: [
+            { q: "Como funciona el pipeline?", a: "1. classify(pregunta) → topic, intent, needs_athlete_data. 2. Si athlete_id: read_athlete_data() + detect_patterns(). 3. LLM genera queries cientificas en ingles. 4. Busca en PubMed (secuencial, 0.35s delay), Semantic Scholar + Europe PMC (paralelo). 5. LLM sintetiza respuesta en espanol integrando papers + datos del atleta. 6. Si LLM falla: fallback a response_builder rule-based." },
+            { q: "Como evita alucinaciones?", a: "DOMAIN_GLOSSARY de ~40 lineas con definiciones correctas (VLamax = tasa maxima de produccion de lactato, NO ventilacion). Se inyecta en cada prompt del LLM. Instruccion explicita: 'Si no conoces con certeza la definicion, di que no tienes suficiente informacion'." },
+          ],
+          children: [
+            { id: "sa_search", name: "search_engine.py", icon: "module", subtitle: "Multi-estrategia: exact, MeSH, broad, author, relaxed", description: "70+ traducciones espanol→cientifico (CONCEPT_TRANSLATIONS). Stemming espanol (_STEM_MAP). 5 estrategias de busqueda. PubMed: 3 queries max, 0.35s delay. Ranking: 40pts titulo, 25pts abstract, 15pts journal tier, 10pts citations, 10pts recency. Deduplicacion por titulo normalizado." },
+            { id: "sa_reader", name: "data_reader.py", icon: "module", subtitle: "Lectura independiente de DB — sin dependencia de motores", description: "Lee perfil, historial de lactato (ultimas 20 sesiones), snapshots, resumen semanal (8 semanas), bloque activo, metricas derivadas (VO2max, VLamax), targets. Retorna AthleteDataBundle." },
+            { id: "sa_patterns", name: "pattern_detector.py", icon: "module", subtitle: "Tendencias, forma de curva, ratio, freshness", description: "Detecta: threshold_trends (pace/power/hr × lt1/lt2 en 90d), curve_shapes (convex/linear/concave), lt1_lt2_ratio (VLamax proxy), data_freshness (<= 21d fresh, <= 56d acceptable, > 56d stale), training_pattern (consistencia, volumen, frecuencia lactato)." },
+            { id: "sa_classifier", name: "question_classifier.py", icon: "module", subtitle: "14 topics, 6 intents, rule-based", description: "Topics: thresholds, lactate, aerobic_capacity, glycolytic, training_method, periodization, adaptation, recovery, performance, testing, nutrition, environment, biomechanics, discipline_specific. Intents: explain, interpret, prescribe, compare, validate, troubleshoot. Detecta si necesita datos del atleta por keywords ('mi atleta', 'los datos')." },
+            { id: "sa_llm", name: "llm_client.py", icon: "module", subtitle: "OpenRouter + DOMAIN_GLOSSARY anti-alucinaciones", description: "generate_search_queries(): pregunta + glosario → 3-5 queries en ingles para PubMed. Temperature 0.3, max 500 tokens. synthesize_response(): papers + datos atleta + glosario → sintesis en espanol. Temperature 0.4, max 1200 tokens. Modelo: google/gemma-3-4b-it:free." },
+            { id: "sa_builder", name: "response_builder.py", icon: "module", subtitle: "Ensamblaje: summary + sections + citations", description: "Extrae key findings de abstracts (regex: CONCLUSION, 'results suggest', etc.). Top 3 papers en summary, papers 4+ en seccion 'Mas evidencia'. Seccion 'Datos del atleta' con tendencias y ratio. Citations con DOI y PMID." },
+            { id: "sa_engine", name: "advisor_engine.py", icon: "module", subtitle: "Orquestador: classify → search → synthesize → build", description: "ask(): classify → read_athlete_data → LLM queries → search (PubMed secuencial + Scholar/PMC paralelo) → LLM synthesis → build_response. Si LLM synthesis ok: usa como summary. Si falla: fallback a _generate_summary rule-based." },
+          ]
+        },
+
+        // ── API Layer ──
+        {
+          id: "api_layer",
+          name: "Capa API",
+          icon: "api",
+          subtitle: "11 routers, 84 endpoints",
+          path: "backend/app/api/routes/",
+          description: "API REST con FastAPI. Auth JWT, CORS, 11 routers. Dependency injection para DB y auth.",
+          children: [
+            { id: "api_auth", name: "Auth", icon: "api", badge: "6 eps", subtitle: "/api/auth — Login, JWT, Strava OAuth", description: "POST /login → JWT token. GET /me → usuario actual. GET /strava/start → inicia OAuth Strava. GET /strava/callback → procesa callback. POST /strava/test-connect → test conexion." },
+            { id: "api_athletes", name: "Athletes", icon: "api", badge: "24 eps", subtitle: "/api/athletes — CRUD + focus blocks + targets + zones", description: "CRUD atletas. Sub-resources: focus-blocks (CRUD), weights (CR), targets (CRUD), training-zones (CRUD + staleness check). AI interpretation. Analysis per discipline." },
+            { id: "api_sessions", name: "Sessions", icon: "api", badge: "11 eps", subtitle: "/api/sessions — CRUD + analysis + import", description: "CRUD sesiones. GET /{id}/analysis → analisis completo. PATCH /intervals/{id} → editar intervalo. DELETE /intervals/{id}/lactate-sample. POST /import/preview + /import/commit → importacion CSV." },
+            { id: "api_analytics", name: "Analytics", icon: "api", badge: "5 eps", subtitle: "/api/analytics — Dashboard + umbrales dinamicos", description: "GET /dashboard → resumen global. GET /compare → comparacion de sesiones. GET /athletes/{id}/dynamic-thresholds → modelo acute + chronic + history." },
+            { id: "api_planning", name: "Planning", icon: "api", badge: "28 eps", subtitle: "/api/planning — Mesociclos + sesiones planificadas + librerias", description: "Overview, recommendation, mesocycle-draft, workout-library. CRUD planned-sessions con coach-edit/athlete-edit. Coach libraries y plans con apply-to-athlete. BLa check toggle. Workout steps editor. Garmin push." },
+            { id: "api_garmin", name: "Garmin", icon: "api", badge: "4 eps", subtitle: "/api/garmin — Connect + preview + push workout", description: "POST /connect → autenticacion Garmin. GET /preview → preview actividades. GET /activities/{id} → detalle. POST /push-workout/{id} → publicar workout estructurado a Garmin Connect." },
+            { id: "api_health", name: "Athlete Health", icon: "api", badge: "1 ep", subtitle: "/api/athlete-health — Overview de salud", description: "GET /athletes/{id}/overview → sueno, HRV, stress, Body Battery, SpO2. Datos de Garmin wellness." },
+            { id: "api_science", name: "Science Advisor", icon: "api", badge: "1 ep", subtitle: "/api/science-advisor — Consulta cientifica", description: "POST /ask → pregunta en lenguaje natural → respuesta con papers y contexto del atleta." },
+          ]
+        },
+
+        // ── Data Layer ──
+        {
+          id: "data_layer",
+          name: "Capa de Datos",
+          icon: "model",
+          subtitle: "18 modelos SQLAlchemy",
+          path: "backend/app/models/",
+          description: "SQLAlchemy ORM con SQLite (dev) o PostgreSQL (prod). Cascade deletes. JSON payloads para analisis complejos. Indices en athlete_id, discipline, performed_at, status.",
+          children: [
+            { id: "model_athlete", name: "Athlete", icon: "model", subtitle: "Core: name, discipline, level, Strava/Garmin, thresholds", description: "Modelo principal. Campos: name, date_of_birth, sex, weight, primary_discipline, athlete_level (recreational/trained/competitive). Integraciones: strava_athlete_id + tokens, garmin_user_id + credentials. Benchmarks: training_hr_max, ftp, css. Training load seeds: initial_ctl, initial_atl." },
+            { id: "model_session", name: "Session + Interval + LactateSample", icon: "model", subtitle: "Sesion → Intervalos → Muestras de lactato", description: "Session: performed_at, discipline, power_source, session_type, goal. SessionInterval: order_index, duration, rest, HR, pace, power, RPE, purpose. LactateSample: lactate_mmol, baseline_lactate, sample_delay_seconds, contextual_lactate, contextual_confidence." },
+            { id: "model_snapshot", name: "PhysiologicalSnapshot", icon: "model", subtitle: "LT1/LT2 + payload JSON con analisis completo", description: "Foto del estado fisiologico: lt1/lt2 en lactato, pace, power, HR. Method, confidence, summary. payload (JSON): real_thresholds, dynamic_thresholds, individual_thresholds, zones, estimates, curve analysis." },
+            { id: "model_planned", name: "PlannedSession", icon: "model", subtitle: "Sesion planificada con dose, template, status, Garmin publish", description: "Sesion del mesociclo: scheduled_date, discipline, week_index, day_offset, session_role, workout_template_id, dose_prescription, dose_step_override, bla_check. Publication: structured_workout_payload (JSON), publish_status (draft/ready/published), publish_provider." },
+            { id: "model_zones", name: "TrainingZoneSet + TrainingZone", icon: "model", subtitle: "Zonas de entrenamiento por disciplina", description: "ZoneSet: discipline, name, is_active, threshold_source. Zone: zone_number (1-5), zone_label, pace/hr/power bounds, description." },
+            { id: "model_misc", name: "FocusBlock, Target, Metric, Estimate", icon: "model", subtitle: "Bloques, objetivos, metricas derivadas, estimaciones", description: "AthleteFocusBlock: bloque de entrenamiento con template, energy_system, phase, status. AthleteTarget: objetivo de competicion con fecha, distancia, pace/power. DerivedMetric: VO2max, VLamax, economia. PerformanceEstimate: predicciones de competicion." },
+          ]
+        },
+      ]
+    },
+
+    // ═══════════════ FRONTEND ═══════════════
+    {
+      id: "frontend",
+      name: "Frontend",
+      icon: "frontend",
+      subtitle: "React 18 + TypeScript + Vite",
+      path: "frontend/src/",
+      description: "SPA con React Router v6. Dos layouts: Coach (sidebar + main) y Athlete (bottom nav). 13 paginas coach + 5 paginas athlete. ~30 componentes de planning. CSS variables con dark mode.",
+      tags: ["React 18", "TypeScript", "Vite", "CSS Variables"],
+      faq: [
+        { q: "Como funciona el routing?", a: "React Router v6 con role-based access. Coach: / (dashboard), /athletes/:id (detalle), /planning (calendario + mesociclos), /library (sesiones). Athlete: /athlete/today, /week, /progress, /recovery, /settings." },
+        { q: "Cuantos metodos tiene la API client?", a: "~60 metodos en lib/api.ts: CRUD athletes/sessions, analysis, planning (overview/recommendation/draft/sessions), workout library, Strava/Garmin, health, science advisor, training zones, reports, import." },
+      ],
+      children: [
+        {
+          id: "fe_pages",
+          name: "Paginas",
+          icon: "frontend",
+          subtitle: "13 coach + 5 athlete",
+          description: "Paginas principales de la aplicacion.",
+          children: [
+            { id: "fe_dashboard", name: "CoachDashboardPage", icon: "frontend", subtitle: "Overview: tests recientes, alertas, atletas mejorando/empeorando", description: "Dashboard principal del entrenador. Muestra resumen global: numero de atletas, tests recientes, alertas de datos stale, atletas mejorando y empeorando." },
+            { id: "fe_athlete_detail", name: "AthleteDetailPage", icon: "frontend", subtitle: "Analisis: curvas, umbrales, tendencias, zonas", description: "Vista completa de un atleta: curvas de lactato, umbrales LT1/LT2 (fisiologicos + REAL + dinamicos), tendencias historicas, zonas de entrenamiento, estimaciones de rendimiento, evaluaciones de bloques." },
+            { id: "fe_planning", name: "PlanningPage", icon: "frontend", subtitle: "Calendario + borrador de mesociclo + libreria", description: "Pagina de planificacion: calendario semanal con sesiones planificadas, borrador de mesociclo con semanas/sesiones/dosis, candidatos evaluados, libreria de sesiones. Selector de atleta y disciplina." },
+            { id: "fe_session", name: "SessionDetailPage", icon: "frontend", subtitle: "Analisis de test: curva + umbrales + interpretacion", description: "Vista detallada de una sesion de lactato: curva por pace/power/HR, umbrales detectados con metodos comparados, comentarios contextuales, interpretacion." },
+          ]
+        },
+        {
+          id: "fe_components",
+          name: "Componentes",
+          icon: "frontend",
+          subtitle: "~50 componentes",
+          description: "Componentes reutilizables organizados por dominio.",
+          children: [
+            { id: "fe_curve", name: "CurveChart", icon: "frontend", subtitle: "Grafico de curva de lactato (X=pace/power, Y=mmol)", description: "Visualizacion principal de la curva de lactato. Ejes: pace o power vs lactato mmol. Muestra puntos medidos, curva interpolada, lineas de umbrales, zonas coloreadas." },
+            { id: "fe_sa_widget", name: "ScienceAdvisor", icon: "frontend", subtitle: "Widget flotante de chat cientifico", description: "Boton flotante (FAB) abajo-derecha en todas las paginas del coach. Abre panel de chat con sugerencias predefinidas, envio de preguntas, respuestas con markdown (bold, refs [n]), secciones colapsables, lista de citations con DOI/PubMed links." },
+            { id: "fe_planning_comps", name: "Planning Components", icon: "frontend", subtitle: "~20 componentes de planificacion", description: "CalendarView, DayDetailPanel, BlockRibbon, DraftPreview, MesocycleComposer, MesocycleTimeline, BlockBuilder, WorkoutLibraryBrowser, IntelligenceBanner, QuickAddIcon, etc." },
+          ]
+        },
+        { id: "fe_api", name: "API Client", icon: "frontend", subtitle: "lib/api.ts — ~60 metodos", description: "Fetch-based API client con ~60 metodos tipados. Agrupa por dominio: auth, athletes, sessions, analytics, planning, strava, garmin, health, science advisor, training zones, reports." },
+        { id: "fe_types", name: "Type Definitions", icon: "frontend", subtitle: "types.ts — tipos core del dominio", description: "~40 tipos TypeScript: Athlete, Session, Interval, LactateSample, Threshold, CurvePoint, DynamicThresholds, PlanningOverview, PlannedSession, WorkoutDefinition, TrainingZoneSet, AthleteHealthOverview, etc." },
+        { id: "fe_styles", name: "Estilos", icon: "frontend", subtitle: "CSS Variables + dark mode", description: "Design system: Source Sans 3 (body), Space Grotesk (headings). Primary #16353d, Accent #d26a36. Colores por disciplina: Running verde, Ciclismo amber, Natacion sky. Dark mode via [data-theme='dark']. Planning tiene 5 archivos CSS especificos." },
+      ]
+    },
+  ]
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+
+const sidebar = document.getElementById('sidebar');
+const detail = document.getElementById('detail');
+const breadcrumb = document.getElementById('breadcrumb');
+const searchInput = document.getElementById('search');
+let activeId = 'root';
+
+function renderTree(node, depth = 0, parent = null) {
+  const hasChildren = node.children && node.children.length > 0;
+  const div = document.createElement('div');
+  div.className = 'tree-node';
+  div.dataset.id = node.id;
+  div.dataset.name = (node.name + ' ' + (node.subtitle || '') + ' ' + (node.description || '')).toLowerCase();
+
+  const label = document.createElement('div');
+  label.className = 'tree-label';
+  label.style.setProperty('--depth', depth);
+  label.dataset.id = node.id;
+
+  // Chevron
+  const chevron = document.createElement('span');
+  chevron.className = 'tree-chevron' + (hasChildren ? '' : ' leaf');
+  chevron.innerHTML = '&#9654;'; // ▶
+  label.appendChild(chevron);
+
+  // Icon
+  const icon = document.createElement('span');
+  icon.className = 'tree-icon ' + (node.icon || 'module');
+  const iconLetters = { engine: 'E', module: 'M', api: 'A', model: 'D', frontend: 'F', function: 'f', config: 'C', science: 'S' };
+  icon.textContent = iconLetters[node.icon] || 'M';
+  label.appendChild(icon);
+
+  // Name
+  const name = document.createElement('span');
+  name.className = 'tree-name';
+  name.textContent = node.name;
+  label.appendChild(name);
+
+  // Badge
+  if (node.badge) {
+    const badge = document.createElement('span');
+    badge.className = 'tree-badge';
+    badge.textContent = node.badge;
+    label.appendChild(badge);
+  }
+
+  div.appendChild(label);
+
+  // Children container
+  if (hasChildren) {
+    const childrenDiv = document.createElement('div');
+    childrenDiv.className = 'tree-children';
+    node.children.forEach(child => renderTree(child, depth + 1, childrenDiv));
+    div.appendChild(childrenDiv);
+  }
+
+  // Events
+  label.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (hasChildren) {
+      const children = div.querySelector('.tree-children');
+      children.classList.toggle('open');
+      chevron.classList.toggle('open');
+    }
+    showDetail(node.id);
+  });
+
+  (parent || sidebar).appendChild(div);
+}
+
+function findNode(id, node = DATA) {
+  if (node.id === id) return node;
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findNode(id, child);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function findPath(id, node = DATA, path = []) {
+  if (node.id === id) return [...path, node];
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findPath(id, child, [...path, node]);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function showDetail(id) {
+  const node = findNode(id);
+  if (!node) return;
+  activeId = id;
+
+  // Update active state
+  document.querySelectorAll('.tree-label').forEach(el => el.classList.remove('active'));
+  const activeLabel = document.querySelector(`.tree-label[data-id="${id}"]`);
+  if (activeLabel) activeLabel.classList.add('active');
+
+  // Update breadcrumb
+  const path = findPath(id);
+  breadcrumb.innerHTML = '';
+  if (path) {
+    path.forEach((p, i) => {
+      if (i > 0) {
+        const sep = document.createElement('span');
+        sep.className = 'sep';
+        sep.textContent = '›';
+        breadcrumb.appendChild(sep);
+      }
+      const span = document.createElement('span');
+      span.textContent = p.name;
+      span.onclick = () => showDetail(p.id);
+      breadcrumb.appendChild(span);
+    });
+  }
+
+  // Build detail content
+  let html = '';
+  html += `<h2>${esc(node.name)}</h2>`;
+  if (node.subtitle) html += `<div class="detail-subtitle">${esc(node.subtitle)}</div>`;
+  if (node.path) html += `<div class="detail-path">${esc(node.path)}</div>`;
+
+  // Tags
+  if (node.tags && node.tags.length) {
+    html += '<div style="margin-bottom:16px">';
+    const tagColors = ['tag-green','tag-amber','tag-sky','tag-red','tag-purple'];
+    node.tags.forEach((t, i) => {
+      html += `<span class="tag ${tagColors[i % tagColors.length]}">${esc(t)}</span>`;
+    });
+    html += '</div>';
+  }
+
+  // Description
+  if (node.description) {
+    html += `<div class="detail-section"><h3>Descripcion</h3><div class="detail-card"><p>${esc(node.description)}</p></div></div>`;
+  }
+
+  // Children summary
+  if (node.children && node.children.length) {
+    html += `<div class="detail-section"><h3>Componentes (${node.children.length})</h3>`;
+    html += '<table><thead><tr><th>Nombre</th><th>Tipo</th><th>Descripcion</th></tr></thead><tbody>';
+    node.children.forEach(c => {
+      html += `<tr style="cursor:pointer" onclick="showDetail('${c.id}')">`;
+      html += `<td><strong>${esc(c.name)}</strong></td>`;
+      html += `<td><span class="tag tag-sky">${esc(c.icon || 'module')}</span></td>`;
+      html += `<td>${esc(c.subtitle || '')}</td>`;
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // FAQ
+  if (node.faq && node.faq.length) {
+    html += `<div class="detail-section"><h3>FAQ</h3>`;
+    node.faq.forEach((f, i) => {
+      html += `<div class="faq-item">`;
+      html += `<div class="faq-q" onclick="this.nextElementSibling.classList.toggle('open')">`;
+      html += `<span style="color:var(--primary);font-size:11px">&#9654;</span> ${esc(f.q)}</div>`;
+      html += `<div class="faq-a">${esc(f.a)}</div>`;
+      html += `</div>`;
+    });
+    html += '</div>';
+  }
+
+  detail.innerHTML = html;
+}
+
+function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Search ──
+searchInput.addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  document.querySelectorAll('.tree-node').forEach(el => {
+    if (!q) {
+      el.style.display = '';
+      return;
+    }
+    const match = el.dataset.name.includes(q);
+    el.style.display = match ? '' : 'none';
+    if (match) {
+      // Open parents
+      let parent = el.parentElement;
+      while (parent && parent !== sidebar) {
+        if (parent.classList.contains('tree-children')) {
+          parent.classList.add('open');
+          const chev = parent.previousElementSibling?.querySelector('.tree-chevron');
+          if (chev) chev.classList.add('open');
+        }
+        parent = parent.parentElement;
+      }
+    }
+  });
+});
+
+// ── Expand / Collapse All ──
+document.getElementById('expandAll').addEventListener('click', () => {
+  document.querySelectorAll('.tree-children').forEach(el => el.classList.add('open'));
+  document.querySelectorAll('.tree-chevron:not(.leaf)').forEach(el => el.classList.add('open'));
+});
+document.getElementById('collapseAll').addEventListener('click', () => {
+  document.querySelectorAll('.tree-children').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('.tree-chevron').forEach(el => el.classList.remove('open'));
+});
+
+// ── Theme Toggle ──
+const themeBtn = document.getElementById('themeToggle');
+let dark = false;
+themeBtn.addEventListener('click', () => {
+  dark = !dark;
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : '');
+  themeBtn.textContent = dark ? 'Tema claro' : 'Tema oscuro';
+});
+
+// ── Init ──
+renderTree(DATA);
+// Open first level
+document.querySelectorAll('.tree-node').forEach(el => {
+  if (el.parentElement === sidebar) {
+    const children = el.querySelector('.tree-children');
+    const chevron = el.querySelector('.tree-chevron');
+    if (children) { children.classList.add('open'); chevron?.classList.add('open'); }
+  }
+});
+showDetail('root');
+</script>
+</body>
+</html>

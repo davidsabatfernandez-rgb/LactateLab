@@ -329,7 +329,7 @@
 }
 
 .intelligence-banner {
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid rgba(16, 34, 42, 0.06);
   background: #fffbeb;
   flex-shrink: 0;
 }

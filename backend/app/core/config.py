@@ -42,6 +42,19 @@ class Settings(BaseSettings):
     strava_scopes: str = "read,activity:read_all"
     strava_token_encryption_key: str = ""
 
+    @field_validator("jwt_secret", mode="after")
+    @classmethod
+    def warn_default_secret(cls, v: str) -> str:
+        if v == "change-me":
+            import warnings
+
+            warnings.warn(
+                "JWT_SECRET is set to default 'change-me'. "
+                "Set a secure random value in .env for production!",
+                stacklevel=2,
+            )
+        return v
+
     @field_validator("database_url", mode="before")
     @classmethod
     def normalize_database_url(cls, value: object) -> object:

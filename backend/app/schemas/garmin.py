@@ -69,3 +69,40 @@ class GarminActivitiesPreviewResponse(BaseModel):
     end_date: date
     imported_count: int
     activities: list[GarminActivityRead]
+
+
+class GarminActivityStoredRead(BaseModel):
+    id: int
+    athlete_id: int
+    provider_activity_id: int
+    sport_type: str
+    discipline: str
+    name: Optional[str] = None
+    started_at: str
+    distance_m: Optional[float] = None
+    moving_time_seconds: Optional[int] = None
+    elapsed_time_seconds: Optional[int] = None
+    average_heartrate: Optional[float] = None
+    max_heartrate: Optional[float] = None
+    average_watts: Optional[float] = None
+    max_watts: Optional[float] = None
+    average_speed_m_s: Optional[float] = None
+    total_elevation_gain_m: Optional[float] = None
+    average_cadence: Optional[float] = None
+    calories: Optional[float] = None
+    device_name: Optional[str] = None
+    tss: Optional[float] = None
+    tss_method: Optional[str] = None
+    planned_session_id: Optional[int] = None
+    synced_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class GarminSyncResponse(BaseModel):
+    athlete_id: int
+    new_activities: int
+    total_activities: int
+    sync_range_start: str
+    sync_range_end: str

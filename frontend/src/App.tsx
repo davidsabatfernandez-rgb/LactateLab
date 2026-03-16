@@ -25,6 +25,7 @@ import { SessionDetailPage } from "./pages/SessionDetailPage";
 import { SessionsPage } from "./pages/SessionsPage";
 import { StravaInformationPage } from "./pages/StravaInformationPage";
 import { VirtualRidePage } from "./pages/VirtualRidePage";
+import { LandingPage } from "./pages/LandingPage";
 import { ScienceAdvisor } from "./components/ScienceAdvisor";
 import { Athlete, AthleteAnalysis, AuthUser, DashboardData, SessionAnalysis, SessionSummary } from "./types";
 
@@ -217,7 +218,10 @@ export default function App() {
     if (location.pathname === "/virtual-ride") {
       return <VirtualRidePage />;
     }
-    return <LoginForm onLogin={handleLogin} />;
+    if (location.pathname === "/login") {
+      return <LoginForm onLogin={handleLogin} />;
+    }
+    return <LandingPage />;
   }
 
   if (!authUser && authCheckInFlight) {

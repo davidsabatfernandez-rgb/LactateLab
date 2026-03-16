@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api } from "../../lib/api";
-import type { CoachLibrary, CoachWorkoutTemplate, PlanningOverview, PlanningWorkoutTemplate } from "../../types";
+import type { CoachLibrary, CoachWorkoutTemplate, PlanningOverview, PlanningWorkoutTemplate, TrainingZoneItem } from "../../types";
 import type { WorkoutLibraryLayer } from "../types";
 import type { PlanningAction } from "../context/PlanningContext";
 import { disciplineLabel } from "../utils";
@@ -11,6 +11,13 @@ import {
   workoutLayerLabel,
   workoutLayerTone,
 } from "../utils-workout";
+import {
+  type WBlock,
+  WorkoutBlockBuilder,
+  WorkoutBlocksSummary,
+  computeWorkoutStats,
+  serializeBlocks,
+} from "./WorkoutBlockBuilder";
 
 // ── Types ──
 
@@ -24,6 +31,7 @@ type WorkoutLibraryPanelProps = {
   onPreview: (template: PlanningWorkoutTemplate) => void;
   onAddSessionToDay?: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => Promise<void>;
   onOpenWeekEditor?: (lib?: CoachLibrary) => void;
+  athleteId?: string | null;
 };
 
 const ALL_LAYERS: WorkoutLibraryLayer[] = [
@@ -76,28 +84,48 @@ export function WorkoutLibraryPanel({
   onPreview,
   onAddSessionToDay,
   onOpenWeekEditor,
+  athleteId,
 }: WorkoutLibraryPanelProps) {
   const [searchText, setSearchText] = useState("");
   const [expandedFolderId, setExpandedFolderId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"name" | "count">("count");
   const [filterDiscipline, setFilterDiscipline] = useState<"all" | "running" | "ciclismo" | "natación">("all");
 
-  // New workout form
+  // Load athlete zones
+  const [coachZones, setCoachZones] = useState<TrainingZoneItem[] | null>(null);
+  useEffect(() => {
+    if (!athleteId) return;
+    const disc = selectedDiscipline || "running";
+    api.activeTrainingZoneSet(token, Number(athleteId), disc)
+      .then((zs: unknown) => {
+        const set = zs as { zones?: TrainingZoneItem[] };
+        if (set?.zones) setCoachZones(set.zones);
+      })
+      .catch(() => setCoachZones(null));
+  }, [athleteId, selectedDiscipline, token]);
+
+  // Block builder state for adding workouts
   const [addingToLibraryId, setAddingToLibraryId] = useState<number | null>(null);
-  const [newLabel, setNewLabel] = useState("");
-  const [newFamily, setNewFamily] = useState("lt1_extensive");
-  const [newZone, setNewZone] = useState("");
-  const [newDuration, setNewDuration] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-  const [newDiscipline, setNewDiscipline] = useState(selectedDiscipline || "running");
+  const [builderBlocks, setBuilderBlocks] = useState<WBlock[]>([]);
+  const [builderName, setBuilderName] = useState("");
+  const [builderDiscipline, setBuilderDiscipline] = useState(selectedDiscipline || "running");
+  const [builderFamily, setBuilderFamily] = useState("lt1_extensive");
   const [savingWorkout, setSavingWorkout] = useState(false);
 
   // New library form
   const [creatingLibrary, setCreatingLibrary] = useState(false);
   const [newLibName, setNewLibName] = useState("");
   const [newLibCreating, setNewLibCreating] = useState(false);
+  const [newLibError, setNewLibError] = useState<string | null>(null);
 
   const search = searchText.toLowerCase().trim();
+
+  const resetBuilder = useCallback(() => {
+    setBuilderBlocks([]);
+    setBuilderName("");
+    setBuilderFamily("lt1_extensive");
+    setAddingToLibraryId(null);
+  }, []);
 
   // Build system folders: group by discipline + layer
   const systemFolders = useMemo<SystemFolder[]>(() => {
@@ -146,21 +174,16 @@ export function WorkoutLibraryPanel({
   const allFolders = useMemo<LibraryFolder[]>(() => {
     let folders: LibraryFolder[] = [...coachFolders, ...systemFolders];
 
-    // Discipline filter
     if (filterDiscipline !== "all") {
       folders = folders.filter((f) => {
         if (f.kind === "system") return f.discipline === filterDiscipline;
-        // Coach folders: show if any workout matches or library has no discipline restriction
         return !f.library.discipline || f.library.discipline === filterDiscipline;
       });
     }
 
-    // Search filter
     if (search) {
       folders = folders.filter((f) => {
-        // Match folder name
         if (f.label.toLowerCase().includes(search)) return true;
-        // Match any workout inside
         if (f.kind === "system") {
           return f.templates.some((t) =>
             `${t.public_label} ${t.objective} ${t.session_family}`.toLowerCase().includes(search),
@@ -172,11 +195,9 @@ export function WorkoutLibraryPanel({
       });
     }
 
-    // Sort
     if (sortBy === "name") {
       folders.sort((a, b) => a.label.localeCompare(b.label));
     } else {
-      // By count descending, coach first
       folders.sort((a, b) => {
         if (a.kind !== b.kind) return a.kind === "coach" ? -1 : 1;
         const countA = a.kind === "system" ? a.templates.length : a.workouts.length;
@@ -190,7 +211,6 @@ export function WorkoutLibraryPanel({
 
   const folderCount = (f: LibraryFolder) => f.kind === "system" ? f.templates.length : f.workouts.length;
 
-  // Total counts
   const totalSystem = systemFolders.reduce((s, f) => s + f.templates.length, 0);
   const totalCoach = coachFolders.reduce((s, f) => s + f.workouts.length, 0);
 
@@ -200,23 +220,26 @@ export function WorkoutLibraryPanel({
   }, [token, dispatch]);
 
   const handleAddWorkout = useCallback(async (libraryId: number) => {
-    if (!newLabel.trim()) return;
+    if (!builderName.trim() || builderBlocks.length === 0) return;
     setSavingWorkout(true);
     try {
+      const stats = computeWorkoutStats(builderBlocks, builderDiscipline);
+      const description = serializeBlocks(builderBlocks, builderDiscipline);
+      const mainBlock = builderBlocks.find((b) => b.type === "steady" || b.type === "intervals") ?? builderBlocks[0];
       await api.addWorkoutToLibrary(token, libraryId, {
-        discipline: newDiscipline,
-        session_family: newFamily,
-        public_label: newLabel.trim(),
-        intensity_zone: newZone.trim() || null,
-        duration_min: newDuration ? Number(newDuration) : null,
-        description: newDesc.trim() || null,
+        discipline: builderDiscipline,
+        session_family: builderFamily,
+        public_label: builderName.trim(),
+        intensity_zone: mainBlock?.zone ?? null,
+        duration_min: stats.totalMin || null,
+        description,
       });
       await reloadLibraries();
-      setNewLabel(""); setNewZone(""); setNewDuration(""); setNewDesc(""); setAddingToLibraryId(null);
+      resetBuilder();
     } finally {
       setSavingWorkout(false);
     }
-  }, [token, newLabel, newDiscipline, newFamily, newZone, newDuration, newDesc, reloadLibraries]);
+  }, [token, builderName, builderBlocks, builderDiscipline, builderFamily, reloadLibraries, resetBuilder]);
 
   const handleDeleteWorkout = useCallback(async (libraryId: number, workoutId: number) => {
     await api.deleteWorkoutFromLibrary(token, libraryId, workoutId);
@@ -226,10 +249,16 @@ export function WorkoutLibraryPanel({
   const handleCreateLibrary = useCallback(async () => {
     if (!newLibName.trim()) return;
     setNewLibCreating(true);
+    setNewLibError(null);
     try {
-      await api.createCoachLibrary(token, { name: newLibName.trim() });
+      const created = (await api.createCoachLibrary(token, { name: newLibName.trim() })) as CoachLibrary;
       await reloadLibraries();
-      setNewLibName(""); setCreatingLibrary(false);
+      setNewLibName("");
+      setCreatingLibrary(false);
+      // Auto-expand the new folder
+      setExpandedFolderId(`coach-${created.id}`);
+    } catch (err) {
+      setNewLibError(err instanceof Error ? err.message : "Error al crear carpeta");
     } finally {
       setNewLibCreating(false);
     }
@@ -251,7 +280,7 @@ export function WorkoutLibraryPanel({
           <button
             type="button"
             className="planning-manual-save-btn"
-            onClick={() => setCreatingLibrary(!creatingLibrary)}
+            onClick={() => { setCreatingLibrary(!creatingLibrary); setNewLibError(null); }}
           >
             + Nueva carpeta
           </button>
@@ -309,6 +338,7 @@ export function WorkoutLibraryPanel({
             placeholder="Nombre de la carpeta (ej: Mi biblioteca)"
             value={newLibName}
             onChange={(e) => setNewLibName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleCreateLibrary(); }}
             autoFocus
           />
           <div className="wlp-create-library-actions">
@@ -320,10 +350,11 @@ export function WorkoutLibraryPanel({
             >
               {newLibCreating ? "Creando..." : "Crear"}
             </button>
-            <button type="button" className="ghost-button" onClick={() => setCreatingLibrary(false)}>
+            <button type="button" className="ghost-button" onClick={() => { setCreatingLibrary(false); setNewLibError(null); }}>
               Cancelar
             </button>
           </div>
+          {newLibError && <p style={{ color: "#c33", fontSize: "0.75rem", margin: "4px 0 0" }}>{newLibError}</p>}
         </div>
       )}
 
@@ -412,6 +443,7 @@ export function WorkoutLibraryPanel({
                           <div key={w.id} className="wlp-workout-item coach">
                             <div className="wlp-workout-info">
                               <strong>{w.public_label}</strong>
+                              <WorkoutBlocksSummary description={w.description} discipline={w.discipline} />
                               <small>
                                 <span className="wlp-workout-disc-dot" style={{ background: discColor(w.discipline) }} />
                                 {COACH_FAMILY_OPTIONS.find((o) => o.value === w.session_family)?.label ?? w.session_family}
@@ -430,49 +462,33 @@ export function WorkoutLibraryPanel({
                           </div>
                         ))}
 
-                      {/* Add workout form */}
+                      {/* Add workout: block builder */}
                       {addingToLibraryId === folder.library.id ? (
                         <div className="wlp-add-form">
-                          <input
-                            type="text"
-                            className="planning-manual-input"
-                            placeholder="Nombre del entreno"
-                            value={newLabel}
-                            onChange={(e) => setNewLabel(e.target.value)}
-                            autoFocus
+                          <WorkoutBlockBuilder
+                            blocks={builderBlocks}
+                            discipline={builderDiscipline}
+                            name={builderName}
+                            family={builderFamily}
+                            onChange={(u) => {
+                              if (u.blocks !== undefined) setBuilderBlocks(u.blocks);
+                              if (u.discipline !== undefined) setBuilderDiscipline(u.discipline);
+                              if (u.name !== undefined) setBuilderName(u.name);
+                              if (u.family !== undefined) setBuilderFamily(u.family);
+                            }}
+                            onSave={() => handleAddWorkout(folder.library.id)}
+                            onCancel={resetBuilder}
+                            saving={savingWorkout}
+                            saveLabel="Añadir entreno"
+                            compact
+                            coachZones={coachZones}
                           />
-                          <div className="wlp-add-form-row">
-                            <select className="planning-manual-input" value={newDiscipline} onChange={(e) => setNewDiscipline(e.target.value)}>
-                              <option value="running">Running</option>
-                              <option value="ciclismo">Ciclismo</option>
-                              <option value="natación">Natación</option>
-                            </select>
-                            <select className="planning-manual-input" value={newFamily} onChange={(e) => setNewFamily(e.target.value)}>
-                              {COACH_FAMILY_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                            </select>
-                          </div>
-                          <div className="wlp-add-form-row">
-                            <input type="text" className="planning-manual-input" placeholder="Zona (ej: LT2)" value={newZone} onChange={(e) => setNewZone(e.target.value)} />
-                            <input type="number" className="planning-manual-input" placeholder="Min" value={newDuration} onChange={(e) => setNewDuration(e.target.value)} style={{ width: 70 }} />
-                          </div>
-                          <textarea className="planning-manual-textarea" placeholder="Descripción (opcional)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} rows={2} />
-                          <div className="wlp-add-form-row">
-                            <button
-                              type="button"
-                              className="planning-manual-save-btn"
-                              disabled={!newLabel.trim() || savingWorkout}
-                              onClick={() => handleAddWorkout(folder.library.id)}
-                            >
-                              {savingWorkout ? "Guardando..." : "Añadir"}
-                            </button>
-                            <button type="button" className="ghost-button" onClick={() => setAddingToLibraryId(null)}>Cancelar</button>
-                          </div>
                         </div>
                       ) : (
                         <button
                           type="button"
                           className="wlp-add-workout-btn"
-                          onClick={() => setAddingToLibraryId(folder.library.id)}
+                          onClick={() => { resetBuilder(); setAddingToLibraryId(folder.library.id); }}
                         >
                           + Nuevo entreno
                         </button>

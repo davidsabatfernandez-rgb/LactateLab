@@ -2572,30 +2572,31 @@ textarea {
 }
 
 .status-badge {
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
 
 .status-badge.high,
 .status-badge.positive {
-  background: rgba(43, 122, 67, 0.14);
-  color: #1f6a3a;
+  background: #dcfce7;
+  color: #166534;
 }
 
 .status-badge.medium,
 .status-badge.neutral {
-  background: rgba(210, 106, 54, 0.14);
-  color: #a2502a;
+  background: rgba(16, 34, 42, 0.06);
+  color: rgba(16, 34, 42, 0.6);
 }
 
 .status-badge.low,
-.status-badge.negative {
-  background: rgba(141, 46, 15, 0.14);
-  color: #8d2e0f;
+.status-badge.negative,
+.status-badge.warning {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .insight-strip {

@@ -539,6 +539,7 @@ export function CalendarOverlay({
           onPreview={openLibraryWorkoutPreview}
           onAddSessionToDay={onAddSessionToDay}
           onOpenWeekEditor={(lib) => { setLibraryWeekEditorTarget(lib ?? null); setLibraryWeekEditorOpen(true); }}
+          athleteId={athleteId}
         />
       );
     }

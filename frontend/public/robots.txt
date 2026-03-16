@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /coach
+Disallow: /lab
+Disallow: /planning
+Disallow: /athletes
+Disallow: /sessions
+Disallow: /library
+Disallow: /athlete
+
+Sitemap: https://peakAerobic.com/sitemap.xml

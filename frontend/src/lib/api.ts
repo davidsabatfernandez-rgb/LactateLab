@@ -140,6 +140,9 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
     try {
       const response = await fetchWithTimeout(requestUrl, { ...options, headers });
       if (!response.ok) {
+        if (response.status === 401) {
+          window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+        }
         const detail = await parseErrorPayload(response);
         const httpError = buildHttpError(requestUrl, path, options, response, detail);
         logApiFailure(requestUrl, path, options, httpError);
@@ -239,6 +242,34 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
   me: (token: string) => request<{ id: number; email: string; role: string; full_name: string; athlete_id?: number | null }>("/auth/me", { token }),
+  register: (payload: { email: string; password: string; full_name: string }) =>
+    request<{ access_token: string; token_type: string }>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  inviteAthlete: (token: string, payload: { athlete_id: number; email: string; password: string }) =>
+    request("/auth/invite-athlete", {
+      token,
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  refreshToken: (token: string) =>
+    request<{ access_token: string; token_type: string }>("/auth/refresh", {
+      token,
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  resetPassword: (payload: { email: string; new_password: string }) =>
+    request("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  changePassword: (token: string, payload: { current_password: string; new_password: string }) =>
+    request("/auth/change-password", {
+      token,
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   stravaConnectStart: (token: string, options?: { athleteId?: number; returnPath?: string }) => {
     const params = new URLSearchParams();
     if (options?.athleteId) params.set("athlete_id", String(options.athleteId));
@@ -500,6 +531,19 @@ export const api = {
       token,
       method: "POST",
     }),
+  garminSync: (token: string, athleteId: number, daysBack = 56) =>
+    request(`/garmin/athletes/${athleteId}/sync?days_back=${daysBack}`, {
+      token,
+      method: "POST",
+    }),
+  garminStoredActivities: (token: string, athleteId: number, startDate?: string, endDate?: string, discipline?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.set("start_date", startDate);
+    if (endDate) params.set("end_date", endDate);
+    if (discipline) params.set("discipline", discipline);
+    const qs = params.toString();
+    return request(`/garmin/athletes/${athleteId}/stored-activities${qs ? `?${qs}` : ""}`, { token });
+  },
   sessions: (token: string) => request("/sessions", { token }),
   createSession: (token: string, payload: unknown) =>
     request("/sessions", { token, method: "POST", body: JSON.stringify(payload) }),
@@ -560,6 +604,14 @@ export const api = {
   // ── Training Load ──
   trainingLoad: (token: string, athleteId: number, startDate: string, endDate: string) =>
     request(`/athletes/${athleteId}/training-load?start_date=${startDate}&end_date=${endDate}`, { token }),
+
+  // ── Wellness Check-ins ──
+  submitWellnessCheckin: (token: string, athleteId: number, payload: { check_date: string; fatigue: number; soreness: number; mood: number; sleep_quality: number; notes?: string }) =>
+    request(`/athlete-health/athletes/${athleteId}/wellness-checkins`, { token, method: "POST", body: JSON.stringify(payload) }),
+  wellnessCheckins: (token: string, athleteId: number, days = 28) =>
+    request<Array<{ id: number; athlete_id: number; check_date: string; fatigue: number; soreness: number; mood: number; sleep_quality: number; notes: string | null; average: number; created_at: string }>>(
+      `/athlete-health/athletes/${athleteId}/wellness-checkins?days=${days}`, { token },
+    ),
 
   // ── Science Advisor ──
   scienceAdvisorAsk: (token: string, body: { question: string; athlete_id?: number; discipline?: string }) =>

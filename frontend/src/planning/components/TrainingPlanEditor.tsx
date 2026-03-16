@@ -1,28 +1,23 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api } from "../../lib/api";
-import type { Athlete, CoachPlan } from "../../types";
+import type { Athlete, CoachPlan, TrainingZoneItem } from "../../types";
 import type { PlanningAction } from "../context/PlanningContext";
+import {
+  type WBlock,
+  WorkoutBuilderModal,
+  WorkoutBlocksSummary,
+  computeWorkoutStats,
+  parseBlocksFromDescription,
+  serializeBlocks,
+} from "./WorkoutBlockBuilder";
 
 const DAY_LABELS = ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"];
 
-const FAMILY_OPTIONS = [
-  { value: "recovery_regeneration", label: "Recuperación" },
-  { value: "long_aerobic_durability", label: "Base / Aeróbico" },
-  { value: "lt1_extensive", label: "LT1" },
-  { value: "subthreshold_reps", label: "Subumbral" },
-  { value: "lt2_cruise_intervals", label: "LT2 / Umbral" },
-  { value: "vo2_hills", label: "VO2max" },
-  { value: "economy_strides", label: "Técnica" },
-  { value: "strength", label: "Fuerza" },
-  { value: "specific", label: "Específico / Competición" },
-  { value: "other", label: "Otro" },
-];
-
 const DISCIPLINE_OPTIONS = [
-  { value: "running", label: "Running" },
-  { value: "ciclismo", label: "Ciclismo" },
-  { value: "natación", label: "Natación" },
+  { value: "running", label: "Running", color: "#22c55e" },
+  { value: "ciclismo", label: "Ciclismo", color: "#f59e0b" },
+  { value: "natación", label: "Natación", color: "#0ea5e9" },
 ];
 
 type LocalDay = {
@@ -90,33 +85,54 @@ export function TrainingPlanEditor({
   const [savedPlanId, setSavedPlanId] = useState<number | null>(editPlan?.id ?? null);
   const [message, setMessage] = useState<string | null>(null);
 
-  // New workout form
-  const [newLabel, setNewLabel] = useState("");
-  const [newDiscipline, setNewDiscipline] = useState(selectedDiscipline || "running");
-  const [newFamily, setNewFamily] = useState("lt1_extensive");
-  const [newZone, setNewZone] = useState("");
-  const [newDuration, setNewDuration] = useState("");
-  const [newDesc, setNewDesc] = useState("");
+  // Load athlete zones
+  const [coachZones, setCoachZones] = useState<TrainingZoneItem[] | null>(null);
+  useEffect(() => {
+    if (!athleteId) return;
+    const disc = selectedDiscipline || "running";
+    api.activeTrainingZoneSet(token, Number(athleteId), disc)
+      .then((zs: unknown) => {
+        const set = zs as { zones?: TrainingZoneItem[] };
+        if (set?.zones) setCoachZones(set.zones);
+      })
+      .catch(() => setCoachZones(null));
+  }, [athleteId, selectedDiscipline, token]);
+
+  // Block builder state for adding workouts
+  const [builderBlocks, setBuilderBlocks] = useState<WBlock[]>([]);
+  const [builderName, setBuilderName] = useState("");
+  const [builderDiscipline, setBuilderDiscipline] = useState(selectedDiscipline || "running");
+  const [builderFamily, setBuilderFamily] = useState("lt1_extensive");
+
+  const resetBuilder = useCallback(() => {
+    setBuilderBlocks([]);
+    setBuilderName("");
+    setBuilderFamily("lt1_extensive");
+    setAddingToDay(null);
+  }, []);
 
   const addDay = useCallback(() => {
-    if (addingToDay == null || !newLabel.trim()) return;
+    if (addingToDay == null || !builderName.trim() || builderBlocks.length === 0) return;
+    const stats = computeWorkoutStats(builderBlocks, builderDiscipline);
+    const description = serializeBlocks(builderBlocks, builderDiscipline);
+    // Determine main zone from blocks
+    const mainBlock = builderBlocks.find((b) => b.type === "steady" || b.type === "intervals") ?? builderBlocks[0];
     setDays((prev) => [
       ...prev,
       {
         id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         day_number: addingToDay,
-        discipline: newDiscipline,
-        session_family: newFamily,
-        public_label: newLabel.trim(),
+        discipline: builderDiscipline,
+        session_family: builderFamily,
+        public_label: builderName.trim(),
         objective: "",
-        intensity_zone: newZone.trim(),
-        duration_min: newDuration,
-        description: newDesc.trim(),
+        intensity_zone: mainBlock?.zone ?? "",
+        duration_min: String(stats.totalMin),
+        description,
       },
     ]);
-    setNewLabel(""); setNewZone(""); setNewDuration(""); setNewDesc("");
-    setAddingToDay(null);
-  }, [addingToDay, newLabel, newDiscipline, newFamily, newZone, newDuration, newDesc]);
+    resetBuilder();
+  }, [addingToDay, builderName, builderBlocks, builderDiscipline, builderFamily, resetBuilder]);
 
   const removeDay = useCallback((id: string) => {
     setDays((prev) => prev.filter((d) => d.id !== id));
@@ -134,7 +150,6 @@ export function TrainingPlanEditor({
           description: planDesc.trim() || null,
           duration_weeks: durationWeeks,
         });
-        // Delete old days, add new
         for (const d of editPlan.days) {
           try { await api.deleteDayFromPlan(token, editPlan.id, d.id); } catch { /* ignore */ }
         }
@@ -163,7 +178,6 @@ export function TrainingPlanEditor({
         });
       }
       setSavedPlanId(planId);
-      // Reload plans
       const updated = (await api.listCoachPlans(token)) as CoachPlan[];
       dispatch({ type: "SET_COACH_PLANS", payload: updated });
       setMessage("Plan guardado");
@@ -194,9 +208,39 @@ export function TrainingPlanEditor({
     }
   }, [savedPlanId, applyAthleteId, applyStartDate, token, loadPlanningContext, athleteId, selectedDiscipline]);
 
-  const discColor = (disc: string) => disc === "running" ? "#22c55e" : disc === "ciclismo" ? "#f59e0b" : "#0ea5e9";
+  const discColor = (disc: string) => DISCIPLINE_OPTIONS.find((o) => o.value === disc)?.color ?? "#888";
 
-  // Build week grid
+  // ── Accumulated stats ──
+
+  const planStats = useMemo(() => {
+    const acc: Record<string, { km: number; tss: number; hours: number; sessions: number }> = {};
+    for (const disc of ["running", "ciclismo", "natación"]) {
+      acc[disc] = { km: 0, tss: 0, hours: 0, sessions: 0 };
+    }
+    for (const d of days) {
+      const disc = d.discipline;
+      if (!acc[disc]) acc[disc] = { km: 0, tss: 0, hours: 0, sessions: 0 };
+      acc[disc].sessions++;
+      // Try parsing blocks from description
+      const blocks = parseBlocksFromDescription(d.description);
+      if (blocks && blocks.length > 0) {
+        const stats = computeWorkoutStats(blocks, disc);
+        acc[disc].km += stats.totalKm;
+        acc[disc].tss += stats.totalTSS;
+        acc[disc].hours += stats.totalMin / 60;
+      } else if (d.duration_min) {
+        // Fallback: use duration_min with a rough IF estimate
+        const dur = Number(d.duration_min);
+        acc[disc].hours += dur / 60;
+        acc[disc].tss += 0.7 * 0.7 * (dur / 60) * 100; // ~IF 0.7 as estimate
+      }
+    }
+    return acc;
+  }, [days]);
+
+  const totalHours = Object.values(planStats).reduce((s, v) => s + v.hours, 0);
+  const totalTSS = Object.values(planStats).reduce((s, v) => s + v.tss, 0);
+
   const weeks = Array.from({ length: durationWeeks }, (_, w) => w);
 
   return (
@@ -233,6 +277,36 @@ export function TrainingPlanEditor({
           </div>
         </div>
 
+        {/* Accumulated stats bar */}
+        <div className="plan-editor-stats-bar">
+          {DISCIPLINE_OPTIONS.map((disc) => {
+            const s = planStats[disc.value];
+            if (!s || s.sessions === 0) return null;
+            return (
+              <div key={disc.value} className="plan-editor-disc-stat">
+                <div className="plan-editor-disc-dot" style={{ background: disc.color }} />
+                <div className="plan-editor-disc-stat-values">
+                  <strong>{disc.label}</strong>
+                  <span>{s.sessions} ses</span>
+                  <span>{s.km.toFixed(1)} km</span>
+                  <span>{Math.round(s.tss)} TSS</span>
+                  <span>{s.hours.toFixed(1)} h</span>
+                </div>
+              </div>
+            );
+          })}
+          {days.length > 0 && (
+            <div className="plan-editor-disc-stat" style={{ marginLeft: "auto" }}>
+              <div className="plan-editor-disc-stat-values">
+                <strong>Total</strong>
+                <span>{days.length} ses</span>
+                <span>{Math.round(totalTSS)} TSS</span>
+                <span>{totalHours.toFixed(1)} h</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Multi-week grid */}
         <div className="plan-editor-body">
           {/* Day headers */}
@@ -257,53 +331,48 @@ export function TrainingPlanEditor({
                   const isAdding = addingToDay === dayNum;
                   return (
                     <div key={d} className="plan-editor-cell" style={{ position: "relative" }}>
-                      {dayWorkouts.map((w) => (
-                        <div key={w.id} className="plan-editor-cell-workout" style={{ borderLeftColor: discColor(w.discipline) }}>
-                          <div className="plan-editor-cell-workout-info">
-                            <strong>{w.public_label}</strong>
-                            <small>
-                              {DISCIPLINE_OPTIONS.find((o) => o.value === w.discipline)?.label}
-                              {w.intensity_zone ? ` · ${w.intensity_zone}` : ""}
-                            </small>
+                      {dayWorkouts.map((w) => {
+                        const blocks = parseBlocksFromDescription(w.description);
+                        return (
+                          <div key={w.id} className="plan-editor-cell-workout" style={{ borderLeftColor: discColor(w.discipline) }}>
+                            <div className="plan-editor-cell-workout-info">
+                              <strong>{w.public_label}</strong>
+                              {blocks && blocks.length > 0 ? (
+                                <div className="plan-editor-cell-workout-blocks">
+                                  <WorkoutBlocksSummary description={w.description} discipline={w.discipline} />
+                                </div>
+                              ) : (
+                                <small>
+                                  {DISCIPLINE_OPTIONS.find((o) => o.value === w.discipline)?.label}
+                                  {w.intensity_zone ? ` · ${w.intensity_zone}` : ""}
+                                  {w.duration_min ? ` · ${w.duration_min}'` : ""}
+                                </small>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className="planning-accordion-item-delete"
+                              onClick={() => removeDay(w.id)}
+                              style={{ fontSize: "0.6rem", padding: "1px 3px" }}
+                            >
+                              x
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            className="planning-accordion-item-delete"
-                            onClick={() => removeDay(w.id)}
-                            style={{ fontSize: "0.6rem", padding: "1px 3px" }}
-                          >
-                            x
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                       <button
                         type="button"
                         className="plan-editor-cell-add"
-                        onClick={() => setAddingToDay(isAdding ? null : dayNum)}
+                        onClick={() => {
+                          if (isAdding) {
+                            resetBuilder();
+                          } else {
+                            setAddingToDay(dayNum);
+                          }
+                        }}
                       >
                         +
                       </button>
-                      {isAdding && (
-                        <div className="plan-editor-add-form" onClick={(e) => e.stopPropagation()}>
-                          <input type="text" className="planning-manual-input" placeholder="Nombre" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} autoFocus />
-                          <div className="plan-editor-add-form-row">
-                            <select className="planning-manual-input" value={newDiscipline} onChange={(e) => setNewDiscipline(e.target.value)}>
-                              {DISCIPLINE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                            </select>
-                            <select className="planning-manual-input" value={newFamily} onChange={(e) => setNewFamily(e.target.value)}>
-                              {FAMILY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                            </select>
-                          </div>
-                          <div className="plan-editor-add-form-row">
-                            <input type="text" className="planning-manual-input" placeholder="Zona" value={newZone} onChange={(e) => setNewZone(e.target.value)} />
-                            <input type="number" className="planning-manual-input" placeholder="Min" value={newDuration} onChange={(e) => setNewDuration(e.target.value)} style={{ width: 55 }} />
-                          </div>
-                          <div className="plan-editor-add-form-row">
-                            <button type="button" className="planning-manual-save-btn" disabled={!newLabel.trim()} onClick={addDay}>OK</button>
-                            <button type="button" className="ghost-button" onClick={() => setAddingToDay(null)}>x</button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -342,6 +411,27 @@ export function TrainingPlanEditor({
           )}
         </div>
       </div>
+
+      {/* Workout builder modal */}
+      {addingToDay != null && (
+        <WorkoutBuilderModal
+          blocks={builderBlocks}
+          discipline={builderDiscipline}
+          name={builderName}
+          family={builderFamily}
+          onChange={(u) => {
+            if (u.blocks !== undefined) setBuilderBlocks(u.blocks);
+            if (u.discipline !== undefined) setBuilderDiscipline(u.discipline);
+            if (u.name !== undefined) setBuilderName(u.name);
+            if (u.family !== undefined) setBuilderFamily(u.family);
+          }}
+          onSave={addDay}
+          onCancel={resetBuilder}
+          saveLabel="Añadir al día"
+          title={`Nuevo entreno — ${DAY_LABELS[addingToDay % 7]} (Semana ${Math.floor(addingToDay / 7) + 1})`}
+          coachZones={coachZones}
+        />
+      )}
     </div>
   );
 }

@@ -83,3 +83,21 @@ class AthleteHealthOverviewRead(BaseModel):
     activity_calendar: list[AthleteHealthCalendarDayRead] = Field(default_factory=list)
     raw_wellness: dict[str, Any] = Field(default_factory=dict)
     notes: list[str] = Field(default_factory=list)
+
+
+class WellnessCheckInCreate(BaseModel):
+    check_date: date
+    fatigue: int = Field(ge=1, le=5)
+    soreness: int = Field(ge=1, le=5)
+    mood: int = Field(ge=1, le=5)
+    sleep_quality: int = Field(ge=1, le=5)
+    notes: Optional[str] = None
+
+
+class WellnessCheckInRead(WellnessCheckInCreate):
+    id: int
+    athlete_id: int
+    created_at: datetime
+    average: float  # computed
+
+    model_config = {"from_attributes": True}

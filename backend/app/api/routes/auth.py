@@ -6,12 +6,20 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.api.middleware.rate_limit import check_rate_limit
 from app.core.security import create_access_token, get_password_hash, password_needs_rehash, verify_password
 from app.db.session import get_db
 from app.models.athlete import Athlete
 from app.models.user import User
 from app.schemas.auth import (
+    ChangePasswordRequest,
+    InviteAthleteRequest,
+    InviteAthleteResponse,
     LoginRequest,
+    MessageResponse,
+    RegisterRequest,
+    RegisterResponse,
+    ResetPasswordRequest,
     StravaConnectStartResponse,
     StravaTestConnectRequest,
     StravaTestConnectResponse,
@@ -30,7 +38,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
+def login(payload: LoginRequest, db: Session = Depends(get_db), _rate: None = Depends(check_rate_limit)) -> TokenResponse:
     user = db.scalar(select(User).where(User.email == payload.email))
     if user is None or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
@@ -41,6 +49,106 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
         db.commit()
 
     return TokenResponse(access_token=create_access_token(user.email))
+
+
+@router.post("/register", response_model=RegisterResponse)
+def register(payload: RegisterRequest, db: Session = Depends(get_db), _rate: None = Depends(check_rate_limit)) -> RegisterResponse:
+    """Register a new coach account."""
+    existing = db.scalar(select(User).where(User.email == payload.email))
+    if existing:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ya existe una cuenta con este email")
+
+    if len(payload.password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña debe tener al menos 8 caracteres")
+
+    user = User(
+        email=payload.email,
+        hashed_password=get_password_hash(payload.password),
+        full_name=payload.full_name,
+        role="coach",
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    token = create_access_token(user.email)
+    return RegisterResponse(access_token=token, user_id=user.id, role=user.role)
+
+
+@router.post("/invite-athlete", response_model=InviteAthleteResponse)
+def invite_athlete(
+    payload: InviteAthleteRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> InviteAthleteResponse:
+    """Coach creates a user account for an athlete."""
+    if user.role != "coach":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo los coaches pueden invitar atletas")
+
+    athlete = db.scalar(select(Athlete).where(Athlete.id == payload.athlete_id))
+    if not athlete:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atleta no encontrado")
+
+    existing = db.scalar(select(User).where(User.email == payload.email))
+    if existing:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ya existe una cuenta con este email")
+
+    if len(payload.password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña debe tener al menos 8 caracteres")
+
+    athlete_user = User(
+        email=payload.email,
+        hashed_password=get_password_hash(payload.password),
+        full_name=athlete.name,
+        role="athlete",
+        athlete_id=athlete.id,
+    )
+    db.add(athlete_user)
+    db.commit()
+
+    return InviteAthleteResponse(message="Cuenta de atleta creada", email=payload.email, athlete_id=athlete.id)
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_token(user: User = Depends(get_current_user)) -> TokenResponse:
+    """Refresh access token (call before expiry)."""
+    token = create_access_token(user.email)
+    return TokenResponse(access_token=token)
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db), _rate: None = Depends(check_rate_limit)) -> MessageResponse:
+    """Reset password (MVP: no email verification, direct reset)."""
+    user = db.scalar(select(User).where(User.email == payload.email))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No existe cuenta con este email")
+
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña debe tener al menos 8 caracteres")
+
+    user.hashed_password = get_password_hash(payload.new_password)
+    db.commit()
+
+    return MessageResponse(message="Contraseña actualizada")
+
+
+@router.post("/change-password", response_model=MessageResponse)
+def change_password(
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> MessageResponse:
+    """Change password for logged-in user."""
+    if not verify_password(payload.current_password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Contraseña actual incorrecta")
+
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña debe tener al menos 8 caracteres")
+
+    user.hashed_password = get_password_hash(payload.new_password)
+    db.commit()
+
+    return MessageResponse(message="Contraseña actualizada")
 
 
 @router.get("/me", response_model=UserRead)

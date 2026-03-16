@@ -68,7 +68,7 @@ export function CalendarAthletesTab({
       <div className="planning-calendar-app-content">
         <section className="planning-calendar-app-main planning-workspace-main">
           <div className="planning-workspace-grid planning-athlete-selection-grid">
-            {athletes.map((athlete) => {
+            {[...athletes].sort((a, b) => a.name.localeCompare(b.name)).map((athlete) => {
               const athleteDiscipline = athlete.primary_discipline === "triatlón" ? "running" : athlete.primary_discipline ?? "running";
               const isSelected = String(athlete.id) === String(selectedAthlete?.id);
               const activeBlock = athlete.focus_blocks?.find((block) => block.status === "active");

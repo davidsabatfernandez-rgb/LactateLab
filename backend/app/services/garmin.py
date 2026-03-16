@@ -790,3 +790,164 @@ def push_workout_to_garmin(
         db.commit()
 
     return result if isinstance(result, dict) else {"status": "sent"}
+
+
+# ---------------------------------------------------------------------------
+# Garmin Activity Storage — sync activities into local DB
+# ---------------------------------------------------------------------------
+
+SPORT_DISCIPLINE_MAP = {
+    "running": "running", "trail_running": "running", "treadmill_running": "running",
+    "track_running": "running", "ultra_run": "running",
+    "cycling": "ciclismo", "mountain_biking": "ciclismo", "indoor_cycling": "ciclismo",
+    "virtual_ride": "ciclismo", "gravel_cycling": "ciclismo", "road_biking": "ciclismo",
+    "lap_swimming": "natación", "open_water_swimming": "natación", "pool_swimming": "natación",
+    "swimming": "natación",
+}
+
+
+def _normalize_discipline(sport_type: str) -> str:
+    return SPORT_DISCIPLINE_MAP.get(sport_type.lower().replace(" ", "_"), "other")
+
+
+def sync_garmin_activities(db: Session, athlete: Athlete, days_back: int = 56) -> dict:
+    """Sync Garmin activities into DB. Default 56 days (8 weeks) for CTL/ATL convergence."""
+    from datetime import timedelta
+    from app.models.garmin_activity import GarminActivity
+
+    end_date = datetime.utcnow().strftime("%Y-%m-%d")
+    start_date = (datetime.utcnow() - timedelta(days=days_back)).strftime("%Y-%m-%d")
+
+    # Fetch from Garmin API (lightweight, no full detail needed for storage)
+    activities = list_garmin_activities(db, athlete, start_date, end_date, include_full_detail=False)
+
+    # Get existing activity IDs to avoid duplicates
+    existing_ids = set(
+        row[0] for row in db.query(GarminActivity.provider_activity_id)
+        .filter(GarminActivity.athlete_id == athlete.id)
+        .all()
+    )
+
+    new_count = 0
+    now = datetime.utcnow()
+
+    for act in activities:
+        act_id = act.get("provider_activity_id") or act.get("activityId")
+        if not act_id or act_id in existing_ids:
+            continue
+
+        sport = act.get("sport_type") or act.get("activityType", {}).get("typeKey", "other")
+        discipline = _normalize_discipline(sport)
+
+        # Calculate TSS if possible
+        tss_val, tss_method = _estimate_tss_for_activity(act, athlete)
+
+        ga = GarminActivity(
+            athlete_id=athlete.id,
+            provider_activity_id=act_id,
+            sport_type=sport,
+            discipline=discipline,
+            name=act.get("name") or act.get("activityName"),
+            started_at=_parse_activity_datetime(act),
+            distance_m=act.get("distance_m") or act.get("distance"),
+            moving_time_seconds=act.get("moving_time_seconds") or act.get("movingDuration"),
+            elapsed_time_seconds=act.get("elapsed_time_seconds") or act.get("duration"),
+            average_heartrate=act.get("average_heartrate") or act.get("averageHR"),
+            max_heartrate=act.get("max_heartrate") or act.get("maxHR"),
+            average_watts=act.get("average_watts") or act.get("avgPower"),
+            max_watts=act.get("max_watts") or act.get("maxPower"),
+            average_speed_m_s=act.get("average_speed_m_s") or act.get("averageSpeed"),
+            max_speed_m_s=act.get("max_speed_m_s") or act.get("maxSpeed"),
+            total_elevation_gain_m=act.get("total_elevation_gain_m") or act.get("elevationGain"),
+            average_cadence=act.get("average_cadence") or act.get("averageRunningCadenceInStepsPerMinute"),
+            calories=act.get("calories"),
+            device_name=act.get("device_name") or act.get("deviceId"),
+            tss=tss_val,
+            tss_method=tss_method,
+            raw_summary=act,
+            synced_at=now,
+        )
+        db.add(ga)
+        new_count += 1
+
+    db.commit()
+
+    # Update last sync
+    athlete.garmin_last_sync_at = now
+    db.commit()
+
+    total = db.query(GarminActivity).filter(GarminActivity.athlete_id == athlete.id).count()
+
+    return {
+        "athlete_id": athlete.id,
+        "new_activities": new_count,
+        "total_activities": total,
+        "sync_range_start": start_date,
+        "sync_range_end": end_date,
+    }
+
+
+def _parse_activity_datetime(act: dict):
+    for key in ("started_at", "startTimeLocal", "startTimeGMT"):
+        val = act.get(key)
+        if val:
+            if isinstance(val, datetime):
+                return val
+            try:
+                return datetime.fromisoformat(str(val).replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                pass
+    return datetime.utcnow()
+
+
+def _estimate_tss_for_activity(act: dict, athlete: Athlete) -> tuple:
+    """Simple TSS estimation from activity data. Returns (tss, method)."""
+    duration_s = act.get("moving_time_seconds") or act.get("movingDuration") or act.get("duration")
+    if not duration_s or duration_s < 60:
+        return (None, None)
+
+    duration_h = duration_s / 3600.0
+
+    # Power-based TSS (most accurate)
+    avg_power = act.get("average_watts") or act.get("avgPower")
+    if avg_power and avg_power > 0:
+        # Estimate FTP as 75% of max power if we don't have it
+        ftp = getattr(athlete, "ftp_cycling_watts", None) or (avg_power * 1.2)
+        if ftp > 0:
+            intensity = avg_power / ftp
+            tss = (duration_s * avg_power * intensity) / (ftp * 3600) * 100
+            return (round(tss, 1), "power")
+
+    # HR-based TSS (trimp-like)
+    avg_hr = act.get("average_heartrate") or act.get("averageHR")
+    max_hr = act.get("max_heartrate") or act.get("maxHR")
+    if avg_hr and avg_hr > 0:
+        lthr = getattr(athlete, "training_hr_max", None)
+        if lthr:
+            lthr = lthr * 0.85
+        else:
+            lthr = max_hr * 0.85 if max_hr else 160
+        if lthr > 0:
+            intensity = avg_hr / lthr
+            tss = duration_h * intensity * intensity * 100
+            return (round(min(tss, 500), 1), "hr")
+
+    # Duration-based estimate (lowest accuracy)
+    tss = duration_h * 50  # ~50 TSS/hour for easy work
+    return (round(min(tss, 400), 1), "estimate")
+
+
+def get_stored_activities(db: Session, athlete_id: int, start_date: str = None, end_date: str = None, discipline: str = None):
+    """Get stored Garmin activities from DB."""
+    from app.models.garmin_activity import GarminActivity
+
+    query = db.query(GarminActivity).filter(GarminActivity.athlete_id == athlete_id)
+
+    if start_date:
+        query = query.filter(GarminActivity.started_at >= datetime.fromisoformat(start_date))
+    if end_date:
+        query = query.filter(GarminActivity.started_at <= datetime.fromisoformat(end_date + "T23:59:59"))
+    if discipline:
+        query = query.filter(GarminActivity.discipline == discipline)
+
+    return query.order_by(GarminActivity.started_at.desc()).all()

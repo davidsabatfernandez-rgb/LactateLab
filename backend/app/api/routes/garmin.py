@@ -10,8 +10,8 @@ from app.db.session import get_db
 from app.models.athlete import Athlete
 from app.models.user import User
 from app.models.planned_session import PlannedSession
-from app.schemas.garmin import GarminActivitiesPreviewResponse, GarminActivityRead, GarminConnectRequest, GarminConnectResponse, GarminPushWorkoutResponse
-from app.services.garmin import GarminRequestError, connect_garmin_account, get_garmin_activity_detail, list_garmin_activities, push_workout_to_garmin
+from app.schemas.garmin import GarminActivitiesPreviewResponse, GarminActivityRead, GarminActivityStoredRead, GarminConnectRequest, GarminConnectResponse, GarminPushWorkoutResponse, GarminSyncResponse
+from app.services.garmin import GarminRequestError, connect_garmin_account, get_garmin_activity_detail, get_stored_activities, list_garmin_activities, push_workout_to_garmin, sync_garmin_activities
 
 router = APIRouter(prefix="/garmin", tags=["garmin"])
 
@@ -160,3 +160,37 @@ def _resolve_target_athlete(db: Session, user: User, athlete_id: int) -> Athlete
         return athlete
 
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Garmin beta is not available for this role")
+
+
+@router.post("/athletes/{athlete_id}/sync", response_model=GarminSyncResponse)
+def sync_athlete_garmin(
+    athlete_id: int,
+    days_back: int = Query(56, ge=7, le=365),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Manual sync: import Garmin activities into DB. Default 56 days (8 weeks)."""
+    athlete = _resolve_target_athlete(db, user, athlete_id)
+    if not athlete.garmin_connected:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Atleta no tiene Garmin conectado")
+
+    try:
+        result = sync_garmin_activities(db, athlete, days_back=days_back)
+    except GarminRequestError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+    return result
+
+
+@router.get("/athletes/{athlete_id}/stored-activities", response_model=list[GarminActivityStoredRead])
+def list_stored_activities(
+    athlete_id: int,
+    start_date: str = Query(None),
+    end_date: str = Query(None),
+    discipline: str = Query(None),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Get stored Garmin activities from local DB (no Garmin API call)."""
+    _resolve_target_athlete(db, user, athlete_id)
+    return get_stored_activities(db, athlete_id, start_date, end_date, discipline)

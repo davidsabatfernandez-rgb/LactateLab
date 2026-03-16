@@ -539,15 +539,103 @@
 /* ── Rest Day ──────────────────────────────────────────────── */
 .ath-rest-day {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   padding: 28px 20px;
   color: var(--ath-text-secondary);
   background: var(--ath-bg-elevated);
   border-radius: var(--ath-radius-md);
   border: 1px solid var(--ath-border-subtle);
+  text-align: center;
 }
 .ath-rest-day p { margin: 0; font-size: 14px; font-weight: 500; }
+
+/* ── Next session hint (rest day) ──────────────────────────── */
+.ath-next-session-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 16px;
+  background: var(--ath-bg-card);
+  border-radius: var(--ath-radius-sm);
+  border: 1px solid var(--ath-border-subtle);
+  width: 100%;
+  text-align: left;
+}
+.ath-next-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ath-text-muted);
+}
+.ath-next-detail {
+  font-size: 13px;
+  color: var(--ath-text-primary);
+}
+
+/* ── Block context phrase ──────────────────────────────────── */
+.ath-block-context {
+  margin: -4px 0 8px;
+  font-size: 12.5px;
+  color: var(--ath-text-muted);
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* ── Session action row (Garmin push etc) ──────────────────── */
+.ath-session-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 10px;
+  margin-top: -4px;
+}
+.ath-garmin-push-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--ath-border);
+  border-radius: var(--ath-radius-sm);
+  background: var(--ath-bg-card);
+  color: var(--ath-text-primary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  font-family: inherit;
+}
+.ath-garmin-push-btn:hover {
+  background: var(--ath-bg-hover);
+  border-color: var(--ath-accent);
+}
+.ath-garmin-push-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ath-garmin-sent {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ath-green);
+  font-weight: 500;
+}
+.ath-garmin-error {
+  font-size: 12px;
+  color: var(--ath-red);
+}
+.ath-garmin-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--ath-border);
+  border-top-color: var(--ath-accent);
+  border-radius: 50%;
+  animation: ath-spin 0.6s linear infinite;
+}
+@keyframes ath-spin { to { transform: rotate(360deg); } }
 
 /* ── Vital Chips Row ───────────────────────────────────────── */
 .ath-vitals-row {

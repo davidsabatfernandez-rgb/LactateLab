@@ -72,6 +72,20 @@ def planning_overview(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
+    # Auto-sync recent Garmin activities if stale (>2h since last sync)
+    from sqlalchemy import select as sa_select
+    from app.models.athlete import Athlete
+    athlete = db.scalar(sa_select(Athlete).where(Athlete.id == athlete_id))
+    if athlete and athlete.garmin_connected:
+        from datetime import datetime, timedelta
+        stale_threshold = datetime.utcnow() - timedelta(hours=2)
+        if not athlete.garmin_last_sync_at or athlete.garmin_last_sync_at < stale_threshold:
+            try:
+                from app.services.garmin import sync_garmin_activities
+                sync_garmin_activities(db, athlete, days_back=7)
+            except Exception:
+                pass  # Don't block planning load if sync fails
+
     try:
         return recommend_next_mesocycle(db, athlete_id, discipline=discipline)
     except ValueError as exc:

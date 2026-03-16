@@ -14,6 +14,7 @@ import {
   workoutLayerForTemplate,
 } from "../utils-workout";
 import { WorkoutLibraryBrowser } from "./WorkoutLibraryBrowser";
+import { MesocycleDetailModal } from "./MesocycleDetailModal";
 
 type CalendarLibraryTabProps = {
   overview: PlanningOverview | null;
@@ -51,6 +52,17 @@ export function CalendarLibraryTab({
   onAddToDay,
 }: CalendarLibraryTabProps) {
   const [librarySubTab, setLibrarySubTab] = useState<"mesocycles" | "workouts">("mesocycles");
+  const [detailTemplate, setDetailTemplate] = useState<PlanningMesocycleTemplate | null>(null);
+
+  const sortedTemplateLibrary = useMemo(() => {
+    const recId = overview?.next_recommendation.template_id;
+    return [...templateLibrary].sort((a, b) => {
+      const aRec = a.template_id === recId ? 0 : 1;
+      const bRec = b.template_id === recId ? 0 : 1;
+      if (aRec !== bRec) return aRec - bRec;
+      return a.public_label.localeCompare(b.public_label);
+    });
+  }, [templateLibrary, overview?.next_recommendation.template_id]);
   const selectedTemplate = useMemo(
     () => templateLibrary.find((t) => t.template_id === selectedTemplateId) ?? templateLibrary[0] ?? null,
     [selectedTemplateId, templateLibrary],
@@ -172,7 +184,7 @@ export function CalendarLibraryTab({
               <strong>{templateLibrary.length} mesociclos utilizables</strong>
             </div>
             <div className="planning-workspace-grid planning-library-grid">
-              {templateLibrary.map((template) => {
+              {sortedTemplateLibrary.map((template) => {
                 const isSelected = template.template_id === selectedTemplate?.template_id;
                 const isRecommended = template.template_id === overview?.next_recommendation.template_id;
                 return (
@@ -183,6 +195,7 @@ export function CalendarLibraryTab({
                     onClick={() => {
                       onSelectTemplateId(template.template_id);
                       onSelectLibrarySourceId("");
+                      if (overview) setDetailTemplate(template);
                     }}
                   >
                     <div className="planning-athlete-selection-head">
@@ -411,6 +424,15 @@ export function CalendarLibraryTab({
       </>
         )}
       </div>
+
+      {detailTemplate && overview && (
+        <MesocycleDetailModal
+          template={detailTemplate}
+          overview={overview}
+          allTemplates={templateLibrary}
+          onClose={() => setDetailTemplate(null)}
+        />
+      )}
     </>
   );
 }
