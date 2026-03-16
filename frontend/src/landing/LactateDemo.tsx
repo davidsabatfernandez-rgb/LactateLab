@@ -131,11 +131,13 @@ function analyze(rows: Row[], mode: InputMode, hrMax: number, hrRest: number, pe
     vo2maxEst = Math.round(vo2AtLT2 / fractionAtLT2 * 10) / 10;
   }
 
-  // VLamax from peak lactate in 15" all-out sprint test (mmol/L)
-  // Higher peak lactate → higher VLamax (glycolytic capacity)
+  // VLamax: accepts either direct VLamax (0.1-0.99) or peak lactate from 15-30" all-out (≥4 mmol/L)
   let vlaxProxy = 0.35; // neutral default
-  if (peakLactateSprint > 0) {
-    // Map peak lactate to VLamax proxy: ~8 mmol → 0.25 (low), ~14 mmol → 0.35 (mid), ~20+ mmol → 0.50 (high)
+  if (peakLactateSprint > 0 && peakLactateSprint < 1.0) {
+    // Direct VLamax input (mmol/L/s)
+    vlaxProxy = Math.max(0.10, Math.min(0.80, peakLactateSprint));
+  } else if (peakLactateSprint >= 4.0) {
+    // Peak lactate from sprint test → map to VLamax proxy
     vlaxProxy = Math.max(0.20, Math.min(0.55, 0.10 + peakLactateSprint * 0.02));
   } else if (lt1Idx >= 0 && lt2Idx > lt1Idx) {
     // Fallback: ratio-based estimate when no sprint data
@@ -373,6 +375,16 @@ export function LactateDemo() {
     [rows, mode, hrMax, hrRest, peakLac, showResult],
   );
 
+  // VLamax / peak lactate field validation
+  const peakLacWarning = useMemo(() => {
+    const v = parseFloat(peakLac);
+    if (!peakLac || isNaN(v)) return null;
+    if (v >= 1.0 && v < 4.0) return t("demo_vlamax_warn_range");
+    if (v > 0 && v < 0.10) return t("demo_vlamax_warn_low");
+    if (v > 25) return t("demo_vlamax_warn_high");
+    return null;
+  }, [peakLac, t]);
+
   // Monotonicity validation: detect if faster intensity has lower lactate
   const dataWarning = useMemo(() => {
     const parsed = rows
@@ -494,18 +506,20 @@ export function LactateDemo() {
               <div className="ld-hr-field">
                 <label className="ld-hr-field__label">{t("demo_vlamax")}</label>
                 <input
-                  className="ld-input__field"
+                  className={`ld-input__field${peakLacWarning ? " ld-input__field--warn" : ""}`}
                   value={peakLac}
                   onChange={(e) => { setPeakLac(e.target.value); setShowResult(false); }}
-                  placeholder="15.0"
+                  placeholder="0.35 / 15.0"
                   type="number"
-                  min="4"
+                  min="0.1"
                   max="30"
-                  step="0.1"
+                  step="0.01"
                 />
+                {peakLacWarning && <span className="ld-hr-field__warn">{peakLacWarning}</span>}
               </div>
             </div>
             <p className="ld-hr-helper">{t("demo_hr_helper")}</p>
+            <p className="ld-hr-helper ld-hr-helper--sub">{t("demo_vlamax_explain")}</p>
 
             {/* Header */}
             <div className="ld-row ld-row--head">

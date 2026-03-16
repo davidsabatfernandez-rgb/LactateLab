@@ -1335,6 +1335,27 @@
   margin: 0;
 }
 
+/* ── Field-level warning ── */
+.ld-input__field--warn {
+  border-color: #d26a36 !important;
+  background: rgba(210, 106, 54, 0.04) !important;
+}
+
+.ld-hr-field__warn {
+  display: block;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #b85a2a;
+  margin-top: 4px;
+}
+
+.ld-hr-helper--sub {
+  font-size: 12px;
+  color: var(--c-faint);
+  margin: 2px 0 0;
+  opacity: 0.8;
+}
+
 /* ── Data warning ── */
 .ld-warning {
   display: flex;
