@@ -529,9 +529,9 @@ function disciplineLabel(discipline: string) {
 }
 
 function disciplineAccent(discipline: string) {
-  if (discipline === "natación") return "#2563eb";
-  if (discipline === "ciclismo") return "#157f66";
-  if (discipline === "running") return "#d26a36";
+  if (discipline === "natación") return "#0ea5e9";
+  if (discipline === "ciclismo") return "#f59e0b";
+  if (discipline === "running") return "#22c55e";
   return "#16353d";
 }
 
@@ -933,9 +933,11 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
   const [editForm, setEditForm] = useState({ label: "", note: "", date: "", time: "" });
   const [editSaving, setEditSaving] = useState(false);
   const [editDeleting, setEditDeleting] = useState(false);
+  const [garminPushing, setGarminPushing] = useState(false);
+  const [garminPushResult, setGarminPushResult] = useState<"ok" | "error" | null>(null);
   const [dragSessionId, setDragSessionId] = useState<number | null>(null);
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"home" | "training" | "fitness" | "nutrition" | "lactate">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "training" | "fitness" | "lactate">("home");
   const [trainingLoad, setTrainingLoad] = useState<TrainingLoadResponse | null>(null);
   const [trainingLoadLoading, setTrainingLoadLoading] = useState(false);
 
@@ -2672,7 +2674,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
           { id: "home", label: "Inicio", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
           { id: "training", label: "Entreno", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
           { id: "fitness", label: "Fitness", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> },
-          { id: "nutrition", label: "Nutrición", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> },
+
           { id: "lactate", label: "Lactato", icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2l-5 5.5L14 12l-8.5 10"/><circle cx="10" cy="19" r="2"/></svg> },
         ] as const).map((tab) => (
           <button
@@ -2888,6 +2890,7 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
                           onClick={() => {
                             if (dragSessionId != null) return;
                             setEditingSession(session);
+                            setGarminPushResult(null);
                             setEditForm({
                               label: session.public_label,
                               note: session.athlete_note ?? "",
@@ -3002,6 +3005,28 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
               </div>
 
               <div className="ap-session-edit-actions">
+                {analysis?.athlete.garmin_connected && editingSession.structured_workout_payload && (
+                  <button
+                    type="button"
+                    className={`ap-session-edit-garmin ${garminPushResult === "ok" ? "success" : garminPushResult === "error" ? "error" : ""}`}
+                    disabled={garminPushing}
+                    onClick={async () => {
+                      if (!editingSession || !user?.athlete_id) return;
+                      setGarminPushing(true);
+                      setGarminPushResult(null);
+                      try {
+                        await api.pushWorkoutToGarmin(token, user.athlete_id, editingSession.id);
+                        setGarminPushResult("ok");
+                      } catch {
+                        setGarminPushResult("error");
+                      } finally {
+                        setGarminPushing(false);
+                      }
+                    }}
+                  >
+                    {garminPushing ? "Enviando..." : garminPushResult === "ok" ? "Enviado a Garmin" : garminPushResult === "error" ? "Error al enviar" : "Enviar a Garmin"}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="ap-session-edit-delete"
@@ -3349,29 +3374,29 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
           ═══════════════════════════════════════════════════════════════════ */}
       {activeTab === "fitness" && (<>
 
-      {/* ATL / CTL / TSB / ACWR */}
+      {/* ATL / CTL / TSB / ACWR — descriptive load metrics (Imbach 2025: FFM is descriptive, not predictive) */}
       {fitnessData.length > 7 && (() => {
         const last = fitnessData[fitnessData.length - 1];
         const acwr = last?.acwr;
-        const acwrColor = typeof acwr === "number" ? (acwr >= 0.8 && acwr <= 1.3 ? "#4fb46b" : acwr <= 1.5 ? "#e6a23c" : "#e6707a") : "var(--dk-muted)";
+        const acwrColor = typeof acwr === "number" ? (acwr >= 0.8 && acwr <= 1.3 ? "var(--dk-muted)" : "#e6a23c") : "var(--dk-muted)";
         return (
         <section className="ap-block ap-fitness">
-          <span className="ap-eyebrow">Fitness / Fatiga / Forma{trainingLoad ? " (TSS real)" : " (proxy duración)"}{trainingLoad ? ` · Confianza ${Math.round(trainingLoad.avg_confidence * 100)}%` : ""}</span>
+          <span className="ap-eyebrow">Carga de entrenamiento{trainingLoad ? " (TSS real)" : " (proxy duración)"}{trainingLoad ? ` · Confianza ${Math.round(trainingLoad.avg_confidence * 100)}%` : ""}</span>
           <div className="ap-fitness-kpis">
-            <span className="ap-fitness-kpi ctl">
-              <small>Fitness (CTL)</small>
+            <span className="ap-fitness-kpi ctl" title="Carga crónica (media móvil 42 días). Indicador descriptivo del volumen acumulado.">
+              <small>Carga crónica (CTL)</small>
               <strong>{last?.ctl.toFixed(0)}</strong>
             </span>
-            <span className="ap-fitness-kpi atl">
-              <small>Fatiga (ATL)</small>
+            <span className="ap-fitness-kpi atl" title="Carga aguda (media móvil 7 días). Indica la carga reciente, no predice fatiga futura.">
+              <small>Carga aguda (ATL)</small>
               <strong>{last?.atl.toFixed(0)}</strong>
             </span>
-            <span className={`ap-fitness-kpi tsb ${(last?.tsb ?? 0) >= 0 ? "positive" : "negative"}`}>
-              <small>Forma (TSB)</small>
+            <span className={`ap-fitness-kpi tsb ${(last?.tsb ?? 0) >= 0 ? "positive" : "negative"}`} title="Balance de carga (CTL − ATL). Valores negativos indican carga reciente alta respecto a la habitual.">
+              <small>Balance (TSB)</small>
               <strong>{last?.tsb.toFixed(0)}</strong>
             </span>
-            <span className="ap-fitness-kpi" style={{ borderColor: acwrColor }}>
-              <small>ACWR</small>
+            <span className="ap-fitness-kpi" style={{ borderColor: acwrColor }} title="Ratio carga aguda / crónica. Métrica descriptiva — no debe usarse como predictor de lesiones (Imbach 2025).">
+              <small>Ratio A:C</small>
               <strong style={{ color: acwrColor }}>{typeof acwr === "number" ? acwr.toFixed(2) : "n/d"}</strong>
             </span>
           </div>
@@ -3385,9 +3410,9 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
                 labelStyle={{ color: "#ccc" }}
               />
               <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
-              <Line type="monotone" dataKey="ctl" stroke="#4fb46b" strokeWidth={2} dot={false} name="Fitness (CTL)" />
-              <Line type="monotone" dataKey="atl" stroke="#e6707a" strokeWidth={2} dot={false} name="Fatiga (ATL)" />
-              <Line type="monotone" dataKey="tsb" stroke="#5b9bd5" strokeWidth={1.5} strokeDasharray="4 4" dot={false} name="Forma (TSB)" />
+              <Line type="monotone" dataKey="ctl" stroke="#4fb46b" strokeWidth={2} dot={false} name="Carga crónica (CTL)" />
+              <Line type="monotone" dataKey="atl" stroke="#e6707a" strokeWidth={2} dot={false} name="Carga aguda (ATL)" />
+              <Line type="monotone" dataKey="tsb" stroke="#5b9bd5" strokeWidth={1.5} strokeDasharray="4 4" dot={false} name="Balance (TSB)" />
             </ComposedChart>
           </ResponsiveContainer>
         </section>
@@ -3701,45 +3726,6 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
 
       </>)}
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          TAB: NUTRITION
-          ═══════════════════════════════════════════════════════════════════ */}
-      {activeTab === "nutrition" && (<>
-
-      {/* Weight card */}
-      <button type="button" className="ap-block ap-weight-card" onClick={() => { setWeightModalOpen(true); setWeightInput(currentWeight !== null ? currentWeight.toFixed(1) : ""); }}>
-        <div className="ap-weight-head">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 18L18 18"/><path d="M12 6v12"/><circle cx="12" cy="6" r="3"/></svg>
-          <span className="ap-weight-label">Peso</span>
-        </div>
-        <div className="ap-weight-value">
-          <strong>{currentWeight !== null ? `${currentWeight.toFixed(1)} kg` : "n/d"}</strong>
-          {weightDelta !== null && (
-            <span className={`ap-weight-delta ${weightDelta > 0 ? "up" : weightDelta < 0 ? "down" : ""}`}>
-              {weightDelta > 0 ? "+" : ""}{weightDelta.toFixed(1)} kg
-            </span>
-          )}
-        </div>
-        {weightHistory.length > 1 && (
-          <div className="ap-weight-preview-chart">
-            <ResponsiveContainer width="100%" height={64}>
-              <LineChart data={weightHistory.slice(-30)} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
-                <YAxis hide domain={["dataMin - 0.5", "dataMax + 0.5"]} />
-                <Line type="monotone" dataKey="weight" stroke="#a78bfa" strokeWidth={2} dot={false} connectNulls />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </button>
-
-      {/* Nutrition placeholder */}
-      <div className="ap-block ap-nutrition-placeholder">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-        <strong>Coach de nutrición</strong>
-        <p>Próximamente</p>
-      </div>
-
-      </>)}
 
       {/* ═══════════════════════════════════════════════════════════════════
           TAB: LACTATE

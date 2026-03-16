@@ -17,7 +17,7 @@ class DynamicThresholdConfig:
     practical_lt1_target_mmol: float = 1.6
     practical_lt2_target_mmol: float = 3.1
     practical_translation_mode: str = "relative"
-    acute_window_days: int = 10
+    acute_window_days: int = 42  # unified with chronic — single model, decay handles recency
     chronic_window_days: int = 42
     recency_decay_days: int = 18
     quality_weight: float = 1.0
@@ -1204,8 +1204,10 @@ def _build_model(
 
     if physiological_lt2_lactate_mmol is not None and 1.5 < physiological_lt2_lactate_mmol <= 6.0:
         practical_lt2_target = round(physiological_lt2_lactate_mmol - 0.5, 2)
+        _lt2_target_source = "individual"
     else:
         practical_lt2_target = _level_default
+        _lt2_target_source = "fallback"
 
     practical_speed_lt1 = _estimate_reference(points, practical_lt1_target, "speed_kph", "km/h", "LT1 práctico", baseline_lactate, baseline_source, config, robust=True) if discipline == "running" else None
     practical_power_lt1 = _estimate_reference(points, practical_lt1_target, "power_watts", "W", "LT1 práctico", baseline_lactate, baseline_source, config, robust=True)
@@ -1234,6 +1236,7 @@ def _build_model(
         practical_lt1["explanation"] = lt1_target_notes + practical_lt1["explanation"]
     if practical_lt2:
         practical_lt2["target_lactate"] = practical_lt2_target
+        practical_lt2["target_source"] = _lt2_target_source  # "individual" (LT2 REAL − 0.5) or "fallback" (level default)
         practical_lt2["relative_target_from_baseline"] = None
         if physiological_lt2_speed_kph is not None or physiological_lt2_power_watts is not None:
             practical_lt2 = _blend_with_physiological_anchor(
@@ -1255,6 +1258,8 @@ def _build_model(
         warnings.append("Muy pocos datos para estimación robusta.")
     if baseline_state_score < 0.85:
         warnings.append("El basal del día está desviado respecto a la línea individual; úsalo para contextualizar la carga externa de hoy.")
+    if _lt2_target_source == "fallback":
+        warnings.append(f"LT2 práctico usa valor por defecto ({practical_lt2_target} mmol) — no se detectó LT2 individual en la curva. El MLSS varía entre 2.0-8.0 mmol entre individuos.")
 
     return {
         "model_type": model_type,
@@ -1353,6 +1358,53 @@ def _history_from_snapshots(snapshots: list[Any], discipline: str, power_source:
     return history
 
 
+def _detect_regression(
+    chronic_model: dict[str, Any],
+    history: dict[str, list[dict[str, Any]]],
+) -> Optional[str]:
+    """Detect sustained regression in practical LT2 vs historical peak.
+
+    Compares current chronic practical_lt2 against the best value in
+    chronic_practical_lt2 history. Needs ≥3 historical points to avoid
+    false positives from early noisy estimates.
+
+    Threshold: ≥5% decline (pace slower or power/speed lower).
+    Mujika & Padilla 2000: detraining LT regression detectable at ~4% in 2 weeks.
+    """
+    current_lt2 = chronic_model.get("practical_lt2")
+    if not current_lt2:
+        return None
+
+    hist_points = history.get("chronic_practical_lt2", [])
+    if len(hist_points) < 3:
+        return None
+
+    # Use the primary metric available (power > speed/pace > HR)
+    current_power = current_lt2.get("estimated_power_watts")
+    current_pace = current_lt2.get("estimated_pace_seconds_per_km")
+
+    if current_power is not None:
+        hist_values = [p["value"] for p in hist_points if p.get("unit") == "W" and p["value"] is not None]
+        if len(hist_values) >= 3:
+            peak = max(hist_values)
+            if peak > 0 and (peak - current_power) / peak >= 0.05:
+                pct = round((peak - current_power) / peak * 100, 1)
+                return f"Regresión detectada: LT2 potencia actual {current_power:.0f}W vs pico histórico {peak:.0f}W (−{pct}%). Revisar carga de entrenamiento."
+
+    if current_pace is not None:
+        hist_values = [p["value"] for p in hist_points if p.get("unit") == "s/km" and p["value"] is not None]
+        if len(hist_values) >= 3:
+            # For pace: lower is better, so regression = current > best (slower)
+            best = min(hist_values)
+            if best > 0 and (current_pace - best) / best >= 0.05:
+                pct = round((current_pace - best) / best * 100, 1)
+                best_m, best_s = divmod(int(best), 60)
+                curr_m, curr_s = divmod(int(current_pace), 60)
+                return f"Regresión detectada: LT2 pace actual {curr_m}:{curr_s:02d}/km vs mejor histórico {best_m}:{best_s:02d}/km (+{pct}% más lento). Revisar carga de entrenamiento."
+
+    return None
+
+
 def build_dynamic_threshold_payload(
     athlete: Athlete,
     sessions: list[AthleteSession],
@@ -1393,21 +1445,35 @@ def build_dynamic_threshold_payload(
     }
 
     warnings = sorted(set(acute["warnings"] + chronic["warnings"]))
-    comparison_summary = "Modelo agudo y crónico alineados sin diferencias llamativas."
-    for value in comparison_metrics.values():
-        if not value:
-            continue
-        if value["direction"] == "acute_above_chronic":
-            comparison_summary = "La referencia aguda está por encima de la crónica; posible mejora aguda o pico de forma."
-            break
-        if value["direction"] == "acute_below_chronic":
-            comparison_summary = "La referencia aguda está por debajo de la crónica; posible fatiga o momento discreto."
-            break
+    # With unified windows (acute=chronic=42d), both models use the same data.
+    # Comparison is kept for API compatibility but will report "stable".
+    comparison_summary = "Modelo unificado — el decay exponencial pondera datos recientes automáticamente."
 
-    if any(value and value["direction"] != "stable" and abs(value["delta"]) > (15 if "power" in key else 20 if "pace" in key else 8) for key, value in comparison_metrics.items()):
-        warnings.append("Cambio agudo excesivo respecto a la referencia crónica.")
     if acute["reliability_score"] >= 0.7 and acute["validity_score"] <= 0.45:
         warnings.append("Estimación matemáticamente estable pero fisiológicamente dudosa.")
+
+    # ── Freshness warnings ─────────────────────────────────────────────────
+    # Based on age of most recent lactate data point in the chronic model.
+    chronic_points = chronic.get("points_used", [])
+    if chronic_points:
+        newest_date_str = max(p["session_date"] for p in chronic_points)
+        newest_date = date.fromisoformat(newest_date_str)
+        days_since_last = (as_of - newest_date).days
+        if days_since_last > 90:
+            warnings.append(f"Sin datos de lactato desde hace {days_since_last} días — umbrales poco fiables, se recomienda validar.")
+        elif days_since_last > 42:
+            warnings.append(f"Umbrales basados en datos de hace >{days_since_last} días — fiabilidad reducida.")
+        elif days_since_last > 21:
+            warnings.append(f"Datos de lactato envejeciendo ({days_since_last}d) — considerar validación próximamente.")
+
+    # ── Regression detection ──────────────────────────────────────────────
+    # Compare current practical LT2 vs historical peak.
+    # Mujika & Padilla 2000: detraining causes measurable LT regression.
+    # We flag ≥5% sustained decline as a warning for the coach.
+    history = _history_from_snapshots(snapshots, discipline, power_source=power_source)
+    regression_warning = _detect_regression(chronic, history)
+    if regression_warning:
+        warnings.append(regression_warning)
 
     return {
         "discipline": discipline,
@@ -1440,7 +1506,7 @@ def build_dynamic_threshold_payload(
             "warnings": sorted(set(warnings)),
             "metrics": comparison_metrics,
         },
-        "history": _history_from_snapshots(snapshots, discipline, power_source=power_source),
+        "history": history,
         "warnings": sorted(set(warnings)),
         "explanation": (acute["explanation"] + chronic["explanation"])[:16],
     }

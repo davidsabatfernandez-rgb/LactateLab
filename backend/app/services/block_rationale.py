@@ -4,6 +4,20 @@
 REFERENCIA CANÓNICA PARA CODEX / PLANNING ENGINE
 ═══════════════════════════════════════════════════════════════════════════════
 
+NOTA METODOLÓGICA (Auditoría 1.2):
+  La taxonomía de bloques (AEC/AEP/ANC/ANP) se basa en el framework de
+  Jan Olbrecht ("The Science of Winning", 2000), ampliamente respetado en
+  coaching de resistencia pero publicado principalmente en formato libro,
+  no en journals peer-reviewed con RCTs.
+
+  Meta-análisis disponibles (Molmen 2019, n=20 estudios; Frontiers Physiology
+  2022) muestran efectos favorables pequeños de la periodización por bloques
+  vs tradicional (SMD 0.40 VO2max), con calidad metodológica baja (PEDro 3.7/10).
+
+  Por tanto, la selección de bloques es un MODELO EXPERTO FISIOLÓGICAMENTE
+  FUNDAMENTADO, no una prescripción evidence-based de nivel RCT.
+  El coach siempre tiene la última palabra y puede elegir otro bloque.
+
 Este módulo es el punto central de definición de:
 
   1. BLOCK_RATIONALE       — Descripción científica de cada bloque (por qué,

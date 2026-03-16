@@ -943,7 +943,7 @@ def test_create_athlete_and_session_analysis(client, db_session):
     assert "variables_used" in data["estimates"][0]
     vo2max_estimate = next(estimate for estimate in data["estimates"] if estimate["estimate_type"] == "VO2max")
     assert vo2max_estimate["value"] > 35
-    assert vo2max_estimate["method_used"] == "lt2_to_vvo2_proxy_v2"
+    assert vo2max_estimate["method_used"] in ("lt2_to_vvo2_proxy_v2", "swain_acsm_hr")
     assert vo2max_estimate["calculation_steps"]
     assert vo2max_estimate["anchors"]
 

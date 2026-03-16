@@ -295,7 +295,7 @@ export function BlockBuilder({
             <div className="planning-template-detail">
               <div className="planning-template-detail-head">
                 <div>
-                  <span className="planning-kicker">Bloque provisional elegido</span>
+                  <span className="planning-kicker">Bloque seleccionado por el entrenador</span>
                   <strong>{selectedTemplate.public_label}</strong>
                   <p>{selectedTemplate.summary}</p>
                 </div>

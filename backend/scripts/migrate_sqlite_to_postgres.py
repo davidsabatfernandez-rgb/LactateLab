@@ -19,6 +19,8 @@ TABLE_COPY_ORDER = [
     "physiological_snapshots",
     "derived_metrics",
     "performance_estimates",
+    "training_zone_sets",
+    "training_zones",
 ]
 
 

@@ -63,7 +63,8 @@ export function PlanningSourceModal({
           </article>
           {(nextRecommendation?.candidates_scored?.length ?? 0) > 0 ? (
             <article className="planning-source-modal-card">
-              <span className="planning-kicker">Posiciones por scoring entre mesociclos</span>
+              <span className="planning-kicker">Sugerencia del motor (modelo experto Olbrecht)</span>
+              <p className="muted" style={{ fontSize: 11, marginBottom: 6 }}>Basado en lógica fisiológica, no en RCTs. El entrenador decide.</p>
               <div className="planning-modal-score-list">
                 {nextRecommendation!.candidates_scored!.map((candidate, index) => (
                   <article key={candidate.block_type} className={`planning-modal-score-item ${index === 0 ? "winner" : ""}`}>

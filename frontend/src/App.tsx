@@ -19,12 +19,13 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { GarminConnectPage } from "./pages/GarminConnectPage";
 import { LibraryGeneratorPage } from "./pages/LibraryGeneratorPage";
 import { LibraryPage } from "./pages/LibraryPage";
-import { NutritionPage } from "./pages/NutritionPage";
+
 import { PlanningPage } from "./pages/PlanningPage";
 import { SessionDetailPage } from "./pages/SessionDetailPage";
 import { SessionsPage } from "./pages/SessionsPage";
 import { StravaInformationPage } from "./pages/StravaInformationPage";
 import { VirtualRidePage } from "./pages/VirtualRidePage";
+import { ScienceAdvisor } from "./components/ScienceAdvisor";
 import { Athlete, AthleteAnalysis, AuthUser, DashboardData, SessionAnalysis, SessionSummary } from "./types";
 
 type ThemeMode = "light" | "dark";
@@ -282,29 +283,32 @@ export default function App() {
   }
 
   return (
-    <Layout
-      onLogout={handleLogout}
-      themeMode={themeMode}
-      onToggleTheme={() => setThemeMode((currentTheme) => (currentTheme === "dark" ? "light" : "dark"))}
-    >
-      {dataLoadError ? <div className="error">{dataLoadError}</div> : null}
-      <Routes>
-        <Route path="/" element={<CoachDashboardPage athletes={athletes} token={token} />} />
-        <Route path="/coach" element={<CoachDashboardPage athletes={athletes} token={token} />} />
-        <Route path="/lab" element={<DashboardPage athletes={athletes} token={token} viewerId={authUser.id} />} />
-        <Route path="/planning" element={<PlanningPage token={token} />} />
-        <Route path="/nutrition" element={<NutritionPage />} />
-        <Route path="/library" element={<LibraryPage token={token} />} />
-        <Route path="/library-generator" element={<LibraryGeneratorPage />} />
-        <Route path="/strava-information" element={<StravaInformationPage token={token} athletes={athletes} />} />
-        <Route path="/garmin-connect" element={<GarminConnectPage token={token} athletes={athletes} onDataChanged={() => refreshData(token)} />} />
-        <Route path="/virtual-ride" element={<VirtualRidePage />} />
-        <Route path="/athletes" element={<AthletesPage athletes={athletes} token={token} onRefresh={() => refreshData(token)} />} />
-        <Route path="/athletes/:athleteId" element={<AthleteDetailRoute token={token} onDataChanged={() => refreshData(token)} />} />
-        <Route path="/athletes/:athleteId/targets" element={<AthleteTargetsRoute token={token} onDataChanged={() => refreshData(token)} />} />
-        <Route path="/sessions" element={<SessionsPage sessions={sessions} token={token} onRefresh={() => refreshData(token)} />} />
-        <Route path="/sessions/:sessionId" element={<SessionDetailRoute token={token} />} />
-      </Routes>
-    </Layout>
+    <>
+      <Layout
+        onLogout={handleLogout}
+        themeMode={themeMode}
+        onToggleTheme={() => setThemeMode((currentTheme) => (currentTheme === "dark" ? "light" : "dark"))}
+      >
+        {dataLoadError ? <div className="error">{dataLoadError}</div> : null}
+        <Routes>
+          <Route path="/" element={<CoachDashboardPage athletes={athletes} token={token} />} />
+          <Route path="/coach" element={<CoachDashboardPage athletes={athletes} token={token} />} />
+          <Route path="/lab" element={<DashboardPage athletes={athletes} token={token} viewerId={authUser.id} />} />
+          <Route path="/planning" element={<PlanningPage token={token} />} />
+
+          <Route path="/library" element={<LibraryPage token={token} />} />
+          <Route path="/library-generator" element={<LibraryGeneratorPage />} />
+          <Route path="/strava-information" element={<StravaInformationPage token={token} athletes={athletes} />} />
+          <Route path="/garmin-connect" element={<GarminConnectPage token={token} athletes={athletes} onDataChanged={() => refreshData(token)} />} />
+          <Route path="/virtual-ride" element={<VirtualRidePage />} />
+          <Route path="/athletes" element={<AthletesPage athletes={athletes} token={token} onRefresh={() => refreshData(token)} />} />
+          <Route path="/athletes/:athleteId" element={<AthleteDetailRoute token={token} onDataChanged={() => refreshData(token)} />} />
+          <Route path="/athletes/:athleteId/targets" element={<AthleteTargetsRoute token={token} onDataChanged={() => refreshData(token)} />} />
+          <Route path="/sessions" element={<SessionsPage sessions={sessions} token={token} onRefresh={() => refreshData(token)} />} />
+          <Route path="/sessions/:sessionId" element={<SessionDetailRoute token={token} />} />
+        </Routes>
+      </Layout>
+      <ScienceAdvisor token={token} />
+    </>
   );
 }

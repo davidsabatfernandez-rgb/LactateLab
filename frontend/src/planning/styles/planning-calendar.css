@@ -164,17 +164,17 @@
 
 .planning-calendar-session-list {
   display: grid;
-  gap: 7px;
+  gap: 3px;
   align-content: start;
 }
 
 .planning-calendar-chip {
   display: block;
-  padding: 6px 8px;
-  border-radius: 12px;
+  padding: 3px 6px;
+  border-radius: 6px;
   border: 1px solid transparent;
-  background: rgba(16, 34, 42, 0.06);
-  font-size: 0.72rem;
+  background: rgba(16, 34, 42, 0.05);
+  font-size: 0.66rem;
   line-height: 1.25;
   color: var(--primary);
   font-weight: 600;
@@ -246,9 +246,9 @@
 
 .training-calendar-view-switch {
   display: inline-flex;
-  gap: 8px;
-  padding: 6px;
-  border-radius: 16px;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 12px;
   background: rgba(16, 34, 42, 0.05);
   border: 1px solid rgba(16, 34, 42, 0.06);
 }
@@ -349,7 +349,7 @@
 .training-calendar-week-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 12px;
+  gap: 6px;
 }
 
 .training-calendar-week-layout {
@@ -424,12 +424,13 @@
 
 .training-calendar-week-summary {
   display: grid;
-  gap: 14px;
-  padding: 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(16, 34, 42, 0.08);
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(16, 34, 42, 0.06);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 247, 251, 0.94));
+  font-size: 0.72rem;
 }
 
 .training-calendar-week-summary-positive {
@@ -449,18 +450,18 @@
 .training-calendar-week-summary-top {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 6px;
 }
 
 .training-calendar-week-summary-kpi {
   display: grid;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
 .training-calendar-week-metric-head span,
 .training-calendar-week-summary-foot span {
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -469,7 +470,7 @@
 
 .training-calendar-week-summary-kpi strong {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 0.96rem;
+  font-size: 0.82rem;
   line-height: 1.05;
 }
 
@@ -485,12 +486,12 @@
 
 .training-calendar-week-summary-bars {
   display: grid;
-  gap: 10px;
+  gap: 6px;
 }
 
 .training-calendar-week-metric-row {
   display: grid;
-  gap: 6px;
+  gap: 3px;
 }
 
 .training-calendar-week-metric-head {
@@ -503,12 +504,12 @@
 .training-calendar-week-metric-head strong,
 .training-calendar-week-summary-foot strong {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 0.98rem;
+  font-size: 0.82rem;
   color: var(--primary);
 }
 
 .training-calendar-week-metric-track {
-  height: 10px;
+  height: 7px;
   border-radius: 999px;
   background: rgba(155, 168, 184, 0.28);
   overflow: hidden;
@@ -536,8 +537,8 @@
 .training-calendar-week-summary-foot {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  padding-top: 2px;
+  gap: 6px;
+  padding-top: 1px;
 }
 
 .training-calendar-week-summary-empty {
@@ -548,71 +549,63 @@
 
 .training-calendar-session-card {
   display: grid;
-  gap: 4px;
-  padding: 12px;
-  border-radius: 16px;
+  padding: 0;
+  border-radius: 6px;
   border: 1px solid rgba(16, 34, 42, 0.08);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 242, 236, 0.92));
+  background: #fff;
   text-align: left;
   color: var(--primary);
+  overflow: hidden;
+  font-size: 0.72rem;
+  transition: box-shadow 0.15s, border-color 0.15s;
 }
 
-.training-calendar-session-card span {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.training-calendar-session-card strong {
-  font-size: 0.98rem;
-  line-height: 1.1;
-}
-
-.training-calendar-session-card p,
-.training-calendar-session-card small {
-  margin: 0;
-  color: var(--muted);
+.training-calendar-session-card:hover {
+  box-shadow: 0 2px 8px rgba(16, 34, 42, 0.10);
+  border-color: rgba(16, 34, 42, 0.18);
 }
 
 .training-calendar-session-card.running {
-  background: linear-gradient(180deg, rgba(235, 244, 255, 0.96), rgba(223, 236, 252, 0.92));
+  background: linear-gradient(180deg, #fff 0%, rgba(239, 234, 255, 0.45) 100%);
+  border-left: 2px solid rgba(124, 92, 210, 0.5);
 }
 
 .training-calendar-session-card.cycling {
-  background: linear-gradient(180deg, rgba(234, 247, 238, 0.96), rgba(223, 241, 229, 0.92));
+  background: linear-gradient(180deg, #fff 0%, rgba(255, 240, 225, 0.45) 100%);
+  border-left: 2px solid rgba(210, 140, 60, 0.5);
 }
 
 .training-calendar-session-card.swimming {
-  background: linear-gradient(180deg, rgba(236, 246, 252, 0.96), rgba(223, 238, 247, 0.92));
+  background: linear-gradient(180deg, #fff 0%, rgba(225, 245, 245, 0.45) 100%);
+  border-left: 2px solid rgba(50, 180, 170, 0.5);
 }
 
 .training-calendar-session-card.key {
-  border-color: rgba(210, 106, 54, 0.22);
-  box-shadow: inset 0 0 0 1px rgba(210, 106, 54, 0.12);
+  border-color: rgba(210, 106, 54, 0.25);
 }
 
 .training-calendar-session-card.overlay {
-  background: rgba(16, 34, 42, 0.06);
+  background: rgba(16, 34, 42, 0.04);
+  border-style: dashed;
 }
 
 .training-calendar-empty-slot {
   display: grid;
   place-items: center;
-  min-height: 96px;
-  border-radius: 14px;
-  border: 1px dashed rgba(16, 34, 42, 0.12);
+  min-height: 48px;
+  border-radius: 8px;
+  border: 1px dashed rgba(16, 34, 42, 0.08);
   color: var(--muted);
   font-weight: 600;
+  font-size: 0.7rem;
 }
 
 .training-calendar-sidebar {
-  gap: 14px;
+  gap: 8px;
 }
 
 .training-calendar-summary-card {
-  gap: 14px;
+  gap: 8px;
 }
 
 .training-calendar-summary-grid {
@@ -896,51 +889,52 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 18px;
-  padding: 14px 22px;
+  gap: 8px;
+  padding: 3px 12px;
   background: #ffffff;
-  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+  border-bottom: 1px solid rgba(16, 34, 42, 0.06);
 }
 
 .planning-calendar-toolbar-center,
 .planning-calendar-toolbar-right {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 6px;
 }
 
 .planning-calendar-toolbar-heading {
   display: grid;
-  gap: 4px;
+  gap: 1px;
 }
 
 .planning-calendar-toolbar-heading strong {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 1.65rem;
-  line-height: 0.95;
+  font-size: 0.84rem;
+  line-height: 1;
 }
 
 .planning-calendar-toolbar-heading p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.62rem;
 }
 
 .planning-calendar-toolbar-nav {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
 }
 
 .planning-calendar-athlete-chip,
 .planning-calendar-source-chip {
   appearance: none;
   border: 1px solid rgba(16, 34, 42, 0.08);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #ffffff;
   color: var(--primary);
-  padding: 10px 14px;
+  padding: 3px 8px;
   font: inherit;
+  font-size: 0.72rem;
   font-weight: 700;
 }
 
@@ -951,14 +945,14 @@
 
 .planning-calendar-month-stream {
   display: grid;
-  gap: 24px;
+  gap: 12px;
   height: 100%;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 18px 18px 42px;
+  padding: 10px 14px 28px;
   scroll-behavior: smooth;
-  background: #f2f5f8;
+  background: #f3f2f7;
 }
 
 .planning-calendar-month-fixed {
@@ -968,7 +962,7 @@
 
 .planning-calendar-month-section {
   display: grid;
-  gap: 10px;
+  gap: 4px;
 }
 
 .planning-calendar-month-section.active .planning-calendar-month-section-head strong {
@@ -976,22 +970,22 @@
 }
 
 .planning-calendar-month-section-head {
-  position: sticky;
-  top: 0;
-  z-index: 3;
+  position: static;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 2px 8px;
-  background: linear-gradient(180deg, rgba(242, 245, 248, 0.98), rgba(242, 245, 248, 0.84));
-  backdrop-filter: blur(10px);
+  gap: 8px;
+  padding: 4px 4px 2px;
+  background: transparent;
 }
 
 .planning-calendar-month-section-head strong {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 1.52rem;
-  color: #223745;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8a99a5;
 }
 
 .planning-calendar-month-section-head small {
@@ -1001,16 +995,16 @@
 .planning-calendar-month-board {
   display: grid;
   gap: 0;
-  border-radius: 26px;
+  border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(16, 34, 42, 0.08);
   background: #ffffff;
-  box-shadow: 0 14px 28px rgba(16, 34, 42, 0.06);
+  box-shadow: 0 6px 16px rgba(16, 34, 42, 0.04);
 }
 
 .planning-calendar-month-header {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr)) 260px;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) 220px;
   background: #ffffff;
   border-bottom: 1px solid rgba(16, 34, 42, 0.08);
 }
@@ -1031,9 +1025,9 @@
 
 .planning-calendar-month-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
-  min-height: 208px;
-  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
+  grid-template-columns: minmax(0, 1fr) 220px;
+  min-height: 130px;
+  border-bottom: 1px solid rgba(16, 34, 42, 0.06);
 }
 
 .planning-calendar-month-row.selected {
@@ -1048,16 +1042,17 @@
 
 .planning-calendar-month-row-grid > .planning-calendar-app-day,
 .planning-calendar-month-row-grid > .planning-calendar-app-spacer {
-  min-height: 208px;
+  min-height: 130px;
 }
 
 .planning-calendar-month-row-summary {
   display: grid;
   align-content: start;
-  gap: 12px;
-  padding: 12px 14px;
-  border-left: 1px solid rgba(16, 34, 42, 0.08);
+  gap: 8px;
+  padding: 8px 10px;
+  border-left: 1px solid rgba(16, 34, 42, 0.06);
   background: rgba(255, 255, 255, 0.96);
+  font-size: 0.76rem;
 }
 
 .planning-calendar-month-row-summary.positive {
@@ -1146,117 +1141,316 @@
 
 /* ── Week-end training load summary (ATL / CTL / TSB) ── */
 
-.planning-calendar-week-load-summary {
+/* ── TrainingPeaks-style load widget ── */
+
+.week-load-display {
   display: grid;
-  gap: 4px;
-  padding: 10px 0 0;
+  gap: 10px;
+  padding: 12px 0 0;
   border-top: 1px solid rgba(16, 34, 42, 0.08);
   margin-top: 2px;
 }
 
-.planning-calendar-week-load-row {
+.week-load-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.week-load-kpis:has(.load-kpi-card:nth-child(4)) {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.load-kpi-card {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  text-align: center;
+  padding: 8px 4px;
+  border-radius: 8px;
+  background: rgba(16, 34, 42, 0.025);
+  cursor: help;
+  transition: background 0.15s;
+}
+
+.load-kpi-card:hover {
+  background: rgba(16, 34, 42, 0.06);
+}
+
+.load-kpi-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted, #7b8a96);
+  line-height: 1.2;
+}
+
+.load-kpi-value-row {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
+  gap: 3px;
 }
 
-.planning-calendar-week-load-label {
-  font-size: 0.68rem;
+.load-kpi-value {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.32rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.load-kpi-acronym {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted, #7b8a96);
+  opacity: 0.7;
 }
 
-.planning-calendar-week-load-value {
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 0.88rem;
-  line-height: 1;
-  color: #223745;
+/* Compact variant (month sidebar) */
+
+.load-kpi-card.compact {
+  padding: 5px 3px;
+  border-radius: 6px;
 }
 
-.planning-calendar-week-load-disc {
+.load-kpi-card.compact .load-kpi-label {
+  font-size: 0.56rem;
+}
+
+.load-kpi-card.compact .load-kpi-value {
+  font-size: 1.05rem;
+}
+
+.load-kpi-card.compact .load-kpi-acronym {
+  font-size: 0.52rem;
+}
+
+.week-load-display.compact .week-load-kpis {
+  gap: 4px;
+}
+
+/* Estimated badge */
+
+.week-load-estimated-badge {
+  display: block;
+  text-align: center;
+  font-size: 0.58rem;
+  color: var(--muted, #7b8a96);
+  font-style: italic;
+  opacity: 0.7;
+  padding: 0 2px;
+}
+
+/* Per-discipline breakdown */
+
+.week-load-disc-breakdown {
   display: grid;
   gap: 3px;
-  margin-top: 4px;
   padding-top: 6px;
   border-top: 1px dashed rgba(16, 34, 42, 0.06);
 }
 
-.planning-calendar-week-load-disc-row {
+.week-load-disc-row {
   display: flex;
   align-items: center;
   gap: 5px;
   font-size: 0.72rem;
 }
 
-.planning-calendar-week-load-disc-dot {
+.week-load-disc-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.planning-calendar-week-load-disc-label {
+.week-load-disc-name {
   color: var(--muted, #7b8a96);
   min-width: 48px;
 }
 
-.planning-calendar-week-load-disc-val {
+.week-load-disc-ctl {
   font-weight: 700;
   color: #223745;
   margin-left: auto;
 }
 
-.planning-calendar-week-load-disc-tsb {
+.week-load-disc-tsb {
   font-weight: 600;
   font-size: 0.68rem;
   min-width: 28px;
   text-align: right;
 }
 
-/* ── Week view load block (inside week summary sidebar) ── */
+/* ── Tooltip ── */
 
-.training-calendar-week-load-block {
-  display: grid;
-  gap: 10px;
-  padding: 12px 0;
-  border-top: 1px solid rgba(16, 34, 42, 0.08);
+.load-tooltip-wrapper {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  pointer-events: auto;
+  animation: loadTooltipFadeIn 0.15s ease-out;
 }
 
-.training-calendar-week-load-grid {
+/* If tooltip would overflow left side, anchor to left */
+.load-kpi-card:first-child .load-tooltip-wrapper {
+  left: 0;
+  transform: none;
+}
+
+/* If tooltip would overflow right side, anchor to right */
+.load-kpi-card:last-child .load-tooltip-wrapper {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+@keyframes loadTooltipFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.load-kpi-card:first-child .load-tooltip-wrapper {
+  animation-name: loadTooltipFadeInLeft;
+}
+@keyframes loadTooltipFadeInLeft {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.load-kpi-card:last-child .load-tooltip-wrapper {
+  animation-name: loadTooltipFadeInRight;
+}
+@keyframes loadTooltipFadeInRight {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.load-tooltip-content {
+  width: 320px;
+  background: #1a2b36;
+  color: #e4eaf0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.load-tooltip-header {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 1px;
+  margin-bottom: 8px;
+}
+
+.load-tooltip-header strong {
+  font-size: 0.88rem;
+  color: #fff;
+}
+
+.load-tooltip-header span {
+  font-size: 0.66rem;
+  color: #8da3b0;
+  font-style: italic;
+}
+
+.load-tooltip-desc {
+  color: #c4d1da;
+  margin: 0 0 10px;
+}
+
+.load-tooltip-calc {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+.load-tooltip-calc > span {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8da3b0;
+}
+
+.load-tooltip-calc code {
+  font-family: "Space Grotesk", "SF Mono", monospace;
+  font-size: 0.72rem;
+  color: #6ec7ff;
+  word-break: break-all;
+}
+
+.load-tooltip-ranges {
+  margin-bottom: 10px;
+}
+
+.load-tooltip-ranges > span {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8da3b0;
+  margin-bottom: 4px;
+}
+
+.load-tooltip-range-list {
+  display: grid;
+  gap: 2px;
+}
+
+.load-tooltip-range-row {
+  display: flex;
+  align-items: baseline;
   gap: 8px;
 }
 
-.training-calendar-week-load-kpi {
-  display: grid;
-  gap: 2px;
-  text-align: center;
-}
-
-.training-calendar-week-load-kpi span {
+.load-tooltip-range-row code {
+  font-family: "Space Grotesk", "SF Mono", monospace;
   font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted, #7b8a96);
+  color: #6ec7ff;
+  min-width: 72px;
+  flex-shrink: 0;
 }
 
-.training-calendar-week-load-kpi strong {
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 1.1rem;
-  line-height: 1;
-  color: #223745;
+.load-tooltip-range-row span {
+  color: #c4d1da;
 }
 
-.training-calendar-week-load-disc-grid {
-  display: grid;
-  gap: 4px;
-  padding-top: 6px;
-  border-top: 1px dashed rgba(16, 34, 42, 0.06);
+.load-tooltip-current-zone {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 6px;
+}
+
+.load-tooltip-current-zone > span {
+  font-size: 0.66rem;
+  color: #8da3b0;
+}
+
+.load-tooltip-current-zone > strong {
+  font-size: 0.76rem;
+}
+
+.load-tooltip-warning {
+  margin: 0;
+  padding: 8px 10px;
+  background: rgba(210, 160, 60, 0.1);
+  border-left: 3px solid rgba(210, 160, 60, 0.5);
+  border-radius: 0 6px 6px 0;
+  font-size: 0.68rem;
+  color: #c4b07a;
+  line-height: 1.4;
 }
 
 .planning-calendar-month-row-metric-fill.warning {
@@ -1326,25 +1520,25 @@
 .planning-calendar-app-day {
   display: grid;
   align-content: start;
-  gap: 6px;
+  gap: 3px;
   min-height: 0;
-  padding: 6px;
-  border-right: 1px solid rgba(16, 34, 42, 0.08);
-  border-bottom: 1px solid rgba(16, 34, 42, 0.08);
-  background: #f6f7fa;
+  padding: 4px 5px;
+  border-right: 1px solid rgba(16, 34, 42, 0.06);
+  border-bottom: 1px solid rgba(16, 34, 42, 0.06);
+  background: #f8f9fb;
   overflow: hidden;
   cursor: pointer;
   transition: background 140ms ease, box-shadow 140ms ease;
 }
 
 .planning-calendar-app-day:hover {
-  background: linear-gradient(180deg, #e9f1fb 0%, #e2edf9 100%);
-  box-shadow: inset 0 0 0 2px rgba(39, 72, 216, 0.1);
+  background: linear-gradient(180deg, #f0ecf6 0%, #ece8f4 100%);
+  box-shadow: inset 0 0 0 1px rgba(124, 92, 210, 0.12);
 }
 
 .planning-calendar-app-day.selected {
-  background: linear-gradient(180deg, #e3edf9 0%, #dbe9fb 100%);
-  box-shadow: inset 0 0 0 2px rgba(39, 72, 216, 0.16);
+  background: linear-gradient(180deg, #ece7f5 0%, #e6e0f2 100%);
+  box-shadow: inset 0 0 0 2px rgba(124, 92, 210, 0.18);
 }
 
 .planning-calendar-app-day.in-block {
@@ -1359,8 +1553,8 @@
   text-align: left;
   font: inherit;
   font-weight: 600;
-  font-size: 0.82rem;
-  color: #33424f;
+  font-size: 0.72rem;
+  color: #5a6a78;
   transition: color 140ms ease;
 }
 
@@ -1392,51 +1586,33 @@
 
 .planning-calendar-app-session {
   display: grid;
-  gap: 2px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(16, 34, 42, 0.08);
-  background: #ffffff;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 34, 42, 0.10);
+  background: #fff;
   text-align: left;
-  box-shadow: 0 2px 8px rgba(16, 34, 42, 0.06);
   overflow: hidden;
+  transition: box-shadow 0.12s;
 }
 
-.planning-calendar-app-session span {
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.planning-calendar-app-session strong {
-  font-size: 0.88rem;
-  line-height: 1.02;
-}
-
-.planning-calendar-app-session p,
-.planning-calendar-app-session small {
-  margin: 0;
-  color: #3d4b57;
-  font-size: 0.72rem;
-  line-height: 1.15;
+.planning-calendar-app-session:hover {
+  box-shadow: 0 1px 6px rgba(16, 34, 42, 0.10);
 }
 
 .planning-calendar-app-session.running {
-  border-top: 4px solid #63b05a;
+  border-left-color: #63b05a;
 }
 
 .planning-calendar-app-session.cycling {
-  border-top: 4px solid #8e55d6;
+  border-left-color: #8e55d6;
 }
 
 .planning-calendar-app-session.swimming {
-  border-top: 4px solid #27a7d9;
+  border-left-color: #27a7d9;
 }
 
 .planning-calendar-app-session.key {
-  background: #f8f2df;
+  background: linear-gradient(135deg, #fff 60%, rgba(248, 242, 223, 0.6));
 }
 
 .planning-calendar-app-empty {
@@ -1738,24 +1914,31 @@
 /* ── Calendar ghost add button ── */
 
 .calendar-ghost-add {
-  width: 40px;
-  height: 40px;
-  margin: auto;
+  width: 22px;
+  height: 22px;
+  margin: 4px auto;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  border: 1px dashed rgba(16, 34, 42, 0.18);
-  background: rgba(255, 255, 255, 0.48);
-  color: #6a7884;
-  font-size: 1.4rem;
+  border: 1px dashed rgba(16, 34, 42, 0.12);
+  background: rgba(255, 255, 255, 0.4);
+  color: #9aa5ae;
+  font-size: 0.82rem;
+  line-height: 1;
   cursor: pointer;
-  transition: background 140ms ease, border-color 140ms ease;
+  opacity: 0;
+  transition: opacity 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.planning-calendar-app-day:hover .calendar-ghost-add,
+.training-calendar-empty-slot.calendar-ghost-add {
+  opacity: 1;
 }
 
 .calendar-ghost-add:hover {
-  background: rgba(39, 72, 216, 0.06);
-  border-color: rgba(39, 72, 216, 0.3);
-  color: #2748d8;
+  background: rgba(124, 92, 210, 0.08);
+  border-color: rgba(124, 92, 210, 0.3);
+  color: #7c5cd2;
 }
 
 /* ── Day Detail Panel ── */
@@ -2139,6 +2322,8 @@
 
 /* ── Session card redesign (TrainingPeaks-style) ── */
 
+/* ── Session card (TrainingPeaks-inspired) ── */
+
 .session-card-inner {
   display: flex;
   flex-direction: column;
@@ -2147,43 +2332,27 @@
 }
 
 .session-card-inner.unplanned {
-  opacity: 0.85;
-}
-
-.session-card-top-bar {
-  height: 4px;
-  border-radius: 4px 4px 0 0;
-  flex-shrink: 0;
+  opacity: 0.82;
 }
 
 .session-card-body {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 4px 6px 5px;
+  padding: 3px 5px 4px;
 }
 
-.session-card-header-row {
+/* Header: icon + badge + status */
+
+.session-card-header {
   display: flex;
   align-items: center;
-  gap: 4px;
-  min-width: 0;
+  gap: 5px;
 }
 
 .session-card-sport-icon {
-  width: 20px;
-  height: 20px;
   flex-shrink: 0;
-}
-
-.session-card-header-row .session-card-title-truncated {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.76rem;
-  line-height: 1.2;
+  color: var(--muted, #7b8a96);
 }
 
 .session-card-header-badges {
@@ -2191,6 +2360,7 @@
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .session-card-compliance-icon {
@@ -2201,20 +2371,14 @@
   vertical-align: middle;
 }
 
-/* ── Role badges (TrainingPeaks style) ── */
-
-.session-card-badge-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
+/* Role badges */
 
 .session-card-role-badge {
-  font-size: 0.58rem;
+  font-size: 0.56rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 1px 6px;
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
   border-radius: 3px;
   line-height: 1.5;
   white-space: nowrap;
@@ -2250,27 +2414,69 @@
   color: #505a68;
 }
 
-.session-card-actual-row {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #1a2a3a;
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  line-height: 1.3;
-}
+/* Title */
 
-.session-card-planned-row {
+.session-card-title {
   font-size: 0.68rem;
-  color: #6b7a8a;
+  font-weight: 700;
   line-height: 1.2;
+  color: #1a2b36;
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.session-card-dose-row {
+/* Metrics (actual / planned) */
+
+.session-card-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 3px 0 2px;
+}
+
+.session-card-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: 0.66rem;
+  line-height: 1.2;
+}
+
+.session-card-metric strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  color: #1a2b36;
+}
+
+.session-card-metric span {
+  color: #4a5a6a;
+  font-weight: 500;
+}
+
+.session-card-metric.muted span {
+  color: #7a8a9a;
   font-size: 0.70rem;
-  font-weight: 600;
-  color: #2a3a4a;
+}
+
+.session-card-metric-sub {
+  font-size: 0.64rem !important;
+  color: #9aaab8 !important;
+}
+
+.session-card-metrics.planned .session-card-metric span {
+  color: #7a8a9a;
+  font-size: 0.70rem;
+  font-style: italic;
+}
+
+/* Compact info (month view) */
+
+.session-card-compact-info {
+  font-size: 0.66rem;
+  color: #6b7a8a;
   line-height: 1.2;
   margin: 0;
   white-space: nowrap;
@@ -2278,7 +2484,23 @@
   text-overflow: ellipsis;
 }
 
-.session-card-objective-row {
+/* Dose */
+
+.session-card-dose {
+  font-size: 0.70rem;
+  font-weight: 600;
+  color: #2a3a4a;
+  line-height: 1.3;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Objective */
+
+.session-card-objective {
   font-size: 0.64rem;
   color: #7a8a9a;
   line-height: 1.25;
@@ -2290,16 +2512,69 @@
   font-style: italic;
 }
 
-.session-card-compliance-warning {
-  font-size: 0.65rem;
+/* Planned vs Actual comparison */
+
+.session-card-planned-vs-actual {
+  display: flex;
+  gap: 10px;
+  padding: 3px 0 0;
+  border-top: 1px dashed rgba(16, 34, 42, 0.08);
+  margin-top: 2px;
+}
+
+.session-card-planned-vs-actual span {
+  font-size: 0.64rem;
+  color: #8a9aaa;
+  font-style: italic;
+}
+
+/* Compliance warning */
+
+.session-card-warning {
+  font-size: 0.64rem;
   color: #c27a2e;
   line-height: 1.2;
-  margin: 0;
+  margin: 2px 0 0;
+  padding: 2px 4px;
+  background: rgba(210, 130, 50, 0.07);
+  border-radius: 3px;
 }
 
 /* Unplanned (extra) session cards */
 .training-calendar-session-card.unplanned,
 .planning-calendar-app-session.unplanned {
   border-style: dashed;
-  opacity: 0.85;
+  opacity: 0.82;
+}
+
+/* ── Trash drop zone (drag-to-delete) ── */
+.planning-calendar-trash-zone {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  background: rgba(220, 60, 60, 0.08);
+  border: 2px dashed rgba(220, 60, 60, 0.35);
+  color: rgba(220, 60, 60, 0.7);
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: all;
+  transition: all 0.2s ease;
+  animation: trashSlideIn 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.planning-calendar-trash-zone.active {
+  background: rgba(220, 60, 60, 0.18);
+  border-color: rgba(220, 60, 60, 0.7);
+  color: #dc3c3c;
+  transform: scale(1.06);
+  box-shadow: 0 4px 20px rgba(220, 60, 60, 0.2);
+}
+@keyframes trashSlideIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

@@ -339,12 +339,12 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 8px 16px;
+  padding: 3px 14px;
   border: none;
   background: none;
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   color: #92400e;
   transition: background 0.15s;
 }
@@ -363,11 +363,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 11px;
-  font-size: 0.75rem;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #fff;
 }

@@ -3,8 +3,17 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { useAthleteData } from "../context/AthleteDataContext";
 import { SimpleLactateCurve } from "../components/SimpleLactateCurve";
 import { MicroContent } from "../components/MicroContent";
-import { disciplineLabel, formatTrendValue, formatPace, formatEstimateValue } from "../utils/formatters";
+import { disciplineLabel, formatTrendValue, formatPace, formatEstimateValue, formatSecondsToClock } from "../utils/formatters";
 import { buildWeeklyVolumeByDiscipline, allSessionsDeduped } from "../utils/training";
+import type { Estimate } from "../../types";
+
+/* ── Race prediction helpers ───────────────────────────── */
+const RACE_DISTANCES: Record<string, number> = { "5K": 5, "10K": 10, HM: 21.0975, "Maratón": 42.195 };
+
+function raceTime(paceSkm: number | null | undefined, distKm: number) {
+  if (typeof paceSkm !== "number" || !Number.isFinite(paceSkm)) return null;
+  return formatSecondsToClock(paceSkm * distKm);
+}
 
 /* ── Engagement helpers ─────────────────────────────────── */
 function computeStreak(calendarWeeks: Array<{ sessions: any[] }[]>): number {
@@ -37,8 +46,6 @@ function volumeChange(weeklyVolume: Array<Record<string, any>>, discipline: stri
 
 export function ProgressPage() {
   const data = useAthleteData();
-  const [volumeDiscipline, setVolumeDiscipline] = useState<"running" | "cycling" | "swimming">("running");
-
   const activeBlock = data.analysis?.active_focus_block;
   const snapshots = data.disciplineSnapshots;
   const selectedSnapshot = data.selectedSnapshot;
@@ -46,6 +53,11 @@ export function ProgressPage() {
 
   const allSessions = useMemo(() => allSessionsDeduped(data.analysis), [data.analysis]);
   const weeklyVolume12 = useMemo(() => buildWeeklyVolumeByDiscipline(allSessions, 12), [allSessions]);
+  // Map selectedDiscipline to volume key
+  const volumeDiscipline: "running" | "cycling" | "swimming" =
+    data.selectedDiscipline === "ciclismo" ? "cycling"
+    : data.selectedDiscipline === "natación" ? "swimming"
+    : "running";
   const volumeUnit = volumeDiscipline === "swimming" ? "m" : "km";
 
   const trendData = selectedSnapshot?.trend ?? [];
@@ -234,17 +246,41 @@ export function ProgressPage() {
       {/* ── Predictions ────────────────────────────────── */}
       {selectedPredictions.length > 0 && (
         <section className="ath-predictions">
-          <h3 className="ath-section-title">Estimaciones</h3>
+          <h3 className="ath-section-title">Referencias estimadas</h3>
           <div className="ath-predictions-grid">
-            {selectedPredictions.map((estimate) => (
-              <div key={estimate.estimate_type} className="ath-prediction-card">
-                <span className="ath-prediction-type">{estimate.estimate_type}</span>
-                <strong className="ath-prediction-value">{formatEstimateValue(estimate)}</strong>
-                {estimate.reliability_label && (
-                  <span className="ath-prediction-reliability">{estimate.reliability_label}</span>
-                )}
-              </div>
-            ))}
+            {selectedPredictions.map((estimate: Estimate) => {
+              const distKm = RACE_DISTANCES[estimate.estimate_type];
+              const hasPaces = distKm && estimate.unit === "s/km" && estimate.ritmo_objetivo;
+              return (
+                <div key={estimate.estimate_type} className="ath-prediction-card">
+                  <span className="ath-prediction-type">{estimate.estimate_type}</span>
+                  <strong className="ath-prediction-value">
+                    {hasPaces
+                      ? raceTime(estimate.ritmo_objetivo, distKm) ?? formatEstimateValue(estimate)
+                      : formatEstimateValue(estimate)}
+                  </strong>
+                  {hasPaces ? (
+                    <div className="ath-prediction-paces">
+                      <span className="ath-prediction-pace-row">
+                        <span className="ath-prediction-pace-label">Techo</span>
+                        <span>{raceTime(estimate.ritmo_techo, distKm) ?? "-"}</span>
+                      </span>
+                      <span className="ath-prediction-pace-row objetivo">
+                        <span className="ath-prediction-pace-label">Objetivo</span>
+                        <span>{raceTime(estimate.ritmo_objetivo, distKm)}</span>
+                      </span>
+                      <span className="ath-prediction-pace-row">
+                        <span className="ath-prediction-pace-label">Seguro</span>
+                        <span>{raceTime(estimate.ritmo_seguro, distKm) ?? "-"}</span>
+                      </span>
+                    </div>
+                  ) : null}
+                  {estimate.reliability_label && (
+                    <span className="ath-prediction-reliability">{estimate.reliability_label}</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
@@ -253,18 +289,6 @@ export function ProgressPage() {
       <section className="ath-volume-section">
         <div className="ath-volume-header">
           <h3 className="ath-section-title">Volumen 12 semanas</h3>
-          <div className="ath-volume-pills">
-            {(["running", "cycling", "swimming"] as const).map((d) => (
-              <button
-                key={d}
-                type="button"
-                className={`ath-pill small ${volumeDiscipline === d ? "active" : ""}`}
-                onClick={() => setVolumeDiscipline(d)}
-              >
-                {d === "running" ? "Carrera" : d === "cycling" ? "Bici" : "Natación"}
-              </button>
-            ))}
-          </div>
         </div>
         <ResponsiveContainer width="100%" height={140}>
           <LineChart data={weeklyVolume12} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
@@ -277,9 +301,9 @@ export function ProgressPage() {
             <Line
               type="monotone"
               dataKey={volumeDiscipline}
-              stroke={volumeDiscipline === "running" ? "#10B981" : volumeDiscipline === "cycling" ? "#F59E0B" : "#3B82F6"}
+              stroke={volumeDiscipline === "running" ? "var(--ath-disc-running)" : volumeDiscipline === "cycling" ? "var(--ath-disc-cycling)" : "var(--ath-disc-swimming)"}
               strokeWidth={2}
-              dot={{ r: 2.5, fill: volumeDiscipline === "running" ? "#10B981" : volumeDiscipline === "cycling" ? "#F59E0B" : "#3B82F6", strokeWidth: 0 }}
+              dot={{ r: 2.5, fill: volumeDiscipline === "running" ? "#22c55e" : volumeDiscipline === "cycling" ? "#f59e0b" : "#0ea5e9", strokeWidth: 0 }}
             />
           </LineChart>
         </ResponsiveContainer>

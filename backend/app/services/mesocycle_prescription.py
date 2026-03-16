@@ -547,8 +547,10 @@ def _select_dose_step(
     elif phase == "build":
         target = effective_last + 1
     elif phase == "build_peak":
-        # Clímax del working phase: peldaño máximo del ciclo
-        target = max_step
+        # Clímax del working phase: +1 peldaño sobre build (no +2).
+        # Bompa & Buzzichelli 2019: incremento semanal ≤10-20% en volumen.
+        # +2 podía saltar >50% en familias con 8 peldaños (ej: 24' → 48').
+        target = min(max_step, (effective_last or 1) + 1)
     elif phase == "specific":
         # Fase específica: mantener o subir uno si hay buena señal
         target = effective_last + (1 if state.block_validation_signal == "improving" else 0)
@@ -842,9 +844,11 @@ def build_prewritten_mesocycle_draft(
         for i, rs in enumerate(list(raw_slots)):
             raw_slot_map[i] = rs
 
+        dropped_sessions: list[str] = []
         for slot_pos, slot in enumerate(slots):
             if slot.template_id not in library:
                 # X1: fallback blueprint puede referenciar template_ids inexistentes
+                dropped_sessions.append(f"Sesión '{slot.template_id}' ({slot.session_role}) no colocada — template no encontrado en la biblioteca")
                 continue
             template = library[slot.template_id]
             # Check if rotation was applied (template differs from blueprint primary)
@@ -908,6 +912,7 @@ def build_prewritten_mesocycle_draft(
         # no el estado diario. Los warnings son orientativos para el entrenador.
         spacing_slots = [(slot.day_offset, library[slot.template_id]) for slot in slots if slot.template_id in library]
         spacing_warnings = validate_microcycle_spacing(spacing_slots)
+        spacing_warnings.extend(dropped_sessions)
 
         draft_weeks.append(
             {

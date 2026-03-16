@@ -771,7 +771,12 @@
   height: 100vh;
   z-index: 1200;
   overflow: hidden;
-  background: #eef2f6;
+  background: #f3f2f7;
+}
+
+.planning-calendar-overlay-page.planning-redesign {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
 }
 
 .planning-calendar-overlay-close {
@@ -799,11 +804,16 @@
 
 .planning-calendar-app {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  height: 100vh;
-  background: #eef2f6;
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  background: #f3f2f7;
   color: #23313c;
   overflow: hidden;
+}
+
+.planning-redesign .planning-calendar-app {
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .planning-calendar-app-topnav {
@@ -880,7 +890,7 @@
 .planning-calendar-app-main {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  background: #f2f5f8;
+  background: #f3f2f7;
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -902,8 +912,8 @@
 }
 
 .planning-workspace-main {
-  padding: 18px;
-  background: #f2f5f8;
+  padding: 14px;
+  background: #f3f2f7;
   overflow: auto;
 }
 
@@ -1327,6 +1337,279 @@
   .intelligence-banner-item {
     flex-direction: column;
     gap: 4px;
+  }
+}
+
+/* ── Planning Redesign v2 — Compact Header ── */
+
+.planning-compact-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 18px;
+  background: linear-gradient(180deg, #1a1a2e, #16213e);
+  color: #eaedf2;
+  min-height: 48px;
+  flex-shrink: 0;
+}
+
+.planning-compact-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.planning-compact-athlete-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.planning-compact-athlete-select {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f0f6fb;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.planning-compact-athlete-select option {
+  color: #23313c;
+  background: #fff;
+}
+
+.planning-compact-athlete-name {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.planning-compact-link {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 3px 8px;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+
+.planning-compact-link:hover {
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.planning-compact-discipline-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.planning-compact-disc-tab {
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(240, 246, 251, 0.55);
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.planning-compact-disc-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(240, 246, 251, 0.85);
+}
+
+.planning-compact-disc-tab.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.planning-compact-center {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.planning-compact-thresholds {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.planning-compact-threshold {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.planning-compact-th-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.planning-compact-th-value {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.planning-compact-th-hr {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.planning-compact-th-hr::after {
+  content: " bpm";
+  font-size: 0.62rem;
+}
+
+.planning-compact-block-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.16);
+  color: #6ee7b7;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  white-space: nowrap;
+}
+
+.planning-compact-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.planning-compact-target {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.18);
+}
+
+.planning-compact-target-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.planning-compact-target-value {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fde68a;
+}
+
+.planning-compact-target-countdown {
+  font-size: 0.68rem;
+  color: rgba(251, 191, 36, 0.6);
+}
+
+/* ── Planning Redesign v2 — Nav Strip ── */
+
+.planning-calendar-app-nav-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 18px;
+  background: rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(100, 80, 140, 0.06);
+  flex-shrink: 0;
+}
+
+.planning-nav-tab {
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted, #5e6d72);
+  padding: 7px 16px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.planning-nav-tab:hover {
+  background: rgba(16, 34, 42, 0.05);
+  color: var(--primary, #16353d);
+}
+
+.planning-nav-tab.active {
+  background: rgba(16, 34, 42, 0.08);
+  color: var(--primary, #16353d);
+  font-weight: 700;
+}
+
+/* ── Intelligence banner placement in redesign ── */
+
+.planning-redesign .intelligence-banner {
+  flex-shrink: 0;
+}
+
+/* ── Dark mode tweaks ── */
+
+:root[data-theme="dark"] .planning-compact-header {
+  background: linear-gradient(180deg, #0d0d1a, #111128);
+}
+
+:root[data-theme="dark"] .planning-calendar-app-nav-strip {
+  background: rgba(14, 28, 38, 0.8);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .planning-nav-tab {
+  color: rgba(231, 239, 244, 0.55);
+}
+
+:root[data-theme="dark"] .planning-nav-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(231, 239, 244, 0.85);
+}
+
+:root[data-theme="dark"] .planning-nav-tab.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e7eff4;
+}
+
+/* ── Responsive compact header ── */
+
+@media (max-width: 900px) {
+  .planning-compact-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 14px;
+  }
+
+  .planning-compact-center {
+    order: 3;
+    flex: 1 0 100%;
+    justify-content: center;
+  }
+
+  .planning-compact-block-badge {
+    display: none;
   }
 }
 

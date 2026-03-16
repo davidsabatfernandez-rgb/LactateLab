@@ -360,6 +360,8 @@ export const api = {
   deleteAthlete: (token: string, athleteId: number) =>
     request(`/athletes/${athleteId}`, { token, method: "DELETE" }),
   athleteAnalysis: (token: string, athleteId: string | number) => request(`/athletes/${athleteId}/analysis`, { token }),
+  athletePlannedSessions: (token: string, athleteId: string | number) =>
+    request(`/planning/athletes/${athleteId}/sessions`, { token }),
   planningOverview: (token: string, athleteId: string | number, discipline?: string) =>
     request(`/planning/athletes/${athleteId}/overview${discipline ? `?discipline=${encodeURIComponent(discipline)}` : ""}`, { token }),
   planningMesocycles: (token: string, athleteId: string | number, discipline?: string) =>
@@ -388,6 +390,65 @@ export const api = {
     if (options.label) params.set("label", options.label);
     return request(`/planning/workout-library/${options.templateId}/structured-preview?${params.toString()}`, { token });
   },
+  addPlannedSession: (token: string, payload: {
+    athlete_id: number;
+    scheduled_date: string;
+    discipline: string;
+    template_id?: string | null;
+    public_label: string;
+    objective?: string;
+    session_family?: string;
+    session_role?: string;
+    dose_step?: number | null;
+    coach_note?: string | null;
+    bla_check?: boolean;
+  }) =>
+    request("/planning/planned-sessions", {
+      token,
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  // Coach custom libraries
+  listCoachLibraries: (token: string) =>
+    request("/planning/coach-libraries", { token }),
+  createCoachLibrary: (token: string, payload: { name: string; description?: string | null; discipline?: string | null }) =>
+    request("/planning/coach-libraries", { token, method: "POST", body: JSON.stringify(payload) }),
+  deleteCoachLibrary: (token: string, libraryId: number) =>
+    request(`/planning/coach-libraries/${libraryId}`, { token, method: "DELETE" }),
+  addWorkoutToLibrary: (token: string, libraryId: number, payload: {
+    day_offset?: number;
+    discipline: string;
+    session_family: string;
+    public_label: string;
+    objective?: string;
+    intensity_zone?: string | null;
+    duration_min?: number | null;
+    description?: string | null;
+  }) =>
+    request(`/planning/coach-libraries/${libraryId}/workouts`, { token, method: "POST", body: JSON.stringify(payload) }),
+  deleteWorkoutFromLibrary: (token: string, libraryId: number, workoutId: number) =>
+    request(`/planning/coach-libraries/${libraryId}/workouts/${workoutId}`, { token, method: "DELETE" }),
+  applyLibraryToAthlete: (token: string, libraryId: number, payload: { athlete_id: number; start_date: string }) =>
+    request(`/planning/coach-libraries/${libraryId}/apply`, { token, method: "POST", body: JSON.stringify(payload) }),
+  // Coach training plans
+  listCoachPlans: (token: string) =>
+    request("/planning/coach-plans", { token }),
+  createCoachPlan: (token: string, payload: { name: string; description?: string | null; duration_weeks?: number }) =>
+    request("/planning/coach-plans", { token, method: "POST", body: JSON.stringify(payload) }),
+  updateCoachPlan: (token: string, planId: number, payload: { name: string; description?: string | null; duration_weeks: number }) =>
+    request(`/planning/coach-plans/${planId}`, { token, method: "PATCH", body: JSON.stringify(payload) }),
+  deleteCoachPlan: (token: string, planId: number) =>
+    request(`/planning/coach-plans/${planId}`, { token, method: "DELETE" }),
+  addDayToPlan: (token: string, planId: number, payload: {
+    day_number: number; discipline: string; session_family: string; public_label: string;
+    objective?: string; intensity_zone?: string | null; duration_min?: number | null; description?: string | null;
+  }) =>
+    request(`/planning/coach-plans/${planId}/days`, { token, method: "POST", body: JSON.stringify(payload) }),
+  deleteDayFromPlan: (token: string, planId: number, dayId: number) =>
+    request(`/planning/coach-plans/${planId}/days/${dayId}`, { token, method: "DELETE" }),
+  applyPlanToAthlete: (token: string, planId: number, payload: { athlete_id: number; start_date: string }) =>
+    request(`/planning/coach-plans/${planId}/apply`, { token, method: "POST", body: JSON.stringify(payload) }),
+
   plannedSessionWorkoutDefinitionPreview: (token: string, sessionId: number) =>
     request(`/planning/planned-sessions/${sessionId}/workout-definition-preview`, { token }),
   preparePlannedSessionPublish: (token: string, sessionId: number) =>
@@ -474,6 +535,14 @@ export const api = {
     request(`/athletes/${athleteId}/training-zones/active?discipline=${encodeURIComponent(discipline)}`, { token }),
   thresholdProfileForZones: (token: string, athleteId: number, discipline: string) =>
     request(`/athletes/${athleteId}/training-zones/threshold-profile?discipline=${encodeURIComponent(discipline)}`, { token }),
+  zoneStalenessCheck: (token: string, athleteId: number, discipline: string) =>
+    request<{
+      is_stale: boolean; reason: string | null;
+      zones_created_at: string | null; zones_threshold_source: string | null;
+      current_snapshot_date: string | null;
+      lt2_pace_delta_seconds: number | null; lt2_hr_delta: number | null; lt2_power_delta: number | null;
+      lt1_pace_delta_seconds: number | null; lt1_hr_delta: number | null; lt1_power_delta: number | null;
+    }>(`/athletes/${athleteId}/training-zones/staleness-check?discipline=${encodeURIComponent(discipline)}`, { token }),
   createTrainingZoneSet: (token: string, athleteId: number, payload: unknown) =>
     request(`/athletes/${athleteId}/training-zones`, { token, method: "POST", body: JSON.stringify(payload) }),
   updateTrainingZoneSet: (token: string, athleteId: number, zoneSetId: number, payload: unknown) =>
@@ -491,4 +560,8 @@ export const api = {
   // ── Training Load ──
   trainingLoad: (token: string, athleteId: number, startDate: string, endDate: string) =>
     request(`/athletes/${athleteId}/training-load?start_date=${startDate}&end_date=${endDate}`, { token }),
+
+  // ── Science Advisor ──
+  scienceAdvisorAsk: (token: string, body: { question: string; athlete_id?: number; discipline?: string }) =>
+    request("/science-advisor/ask", { token, method: "POST", body: JSON.stringify(body) }),
 };

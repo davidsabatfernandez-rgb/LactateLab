@@ -252,9 +252,9 @@
   background: rgba(16, 34, 42, 0.06);
   color: var(--text);
   border-radius: 999px;
-  padding: 8px 12px;
+  padding: 4px 9px;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 0.74rem;
   cursor: pointer;
 }
 
@@ -1538,6 +1538,11 @@
   color: #2599cf;
 }
 
+.planning-quick-add-icon.kind-strength {
+  background: linear-gradient(180deg, rgba(248, 235, 246, 0.98), rgba(252, 247, 251, 0.94));
+  color: #9b3daa;
+}
+
 .planning-quick-add-icon.kind-event {
   background: linear-gradient(180deg, rgba(243, 239, 255, 0.98), rgba(249, 247, 255, 0.94));
   color: #7354cf;
@@ -1572,6 +1577,45 @@
   line-height: 1.45;
 }
 
+.planning-calendar-quick-add-card-clickable {
+  all: unset;
+  display: grid;
+  gap: 10px;
+  padding: 18px 18px 10px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--primary);
+}
+
+.planning-calendar-quick-add-card-clickable:hover {
+  background: rgba(23, 101, 193, 0.03);
+}
+
+.planning-calendar-quick-add-card-action {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  margin: 0 14px 14px;
+  border-radius: 12px;
+  background: rgba(23, 101, 193, 0.08);
+  color: #1765c1;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.planning-calendar-quick-add-card-action:hover {
+  background: rgba(23, 101, 193, 0.16);
+}
+
+.planning-calendar-quick-add-card-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .planning-calendar-quick-add-badge {
   padding: 6px 10px;
   border-radius: 999px;
@@ -1583,9 +1627,397 @@
   letter-spacing: 0.08em;
 }
 
+/* ── BLa check toggle ── */
+
+.planning-bla-check-toggle {
+  display: flex;
+  cursor: pointer;
+  user-select: none;
+}
+
+.planning-bla-check-toggle input {
+  display: none;
+}
+
+.planning-bla-check-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(16, 34, 42, 0.06);
+  color: #51606d;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.planning-bla-check-pill.active {
+  background: rgba(200, 40, 40, 0.12);
+  color: #b91c1c;
+}
+
+.planning-bla-check-icon {
+  font-size: 0.9rem;
+}
+
+/* ── Accordion ── */
+
+.planning-calendar-quick-add-accordion {
+  display: grid;
+  gap: 2px;
+}
+
+.planning-accordion-section {
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(16, 34, 42, 0.06);
+  transition: box-shadow 140ms ease;
+}
+
+.planning-accordion-section.expanded {
+  box-shadow: 0 8px 20px rgba(16, 34, 42, 0.06);
+  border-color: rgba(16, 34, 42, 0.12);
+}
+
+.planning-accordion-header {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background 100ms ease;
+}
+
+.planning-accordion-header:hover {
+  background: rgba(16, 34, 42, 0.03);
+}
+
+.planning-accordion-header-copy {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+
+.planning-accordion-header-copy strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.15;
+}
+
+.planning-accordion-header-copy small {
+  color: #51606d;
+  font-size: 0.76rem;
+  line-height: 1.3;
+}
+
+.planning-accordion-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #8896a4;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.planning-accordion-chevron {
+  transition: transform 180ms ease;
+  font-size: 0.9rem;
+}
+
+.planning-accordion-chevron.open {
+  transform: rotate(180deg);
+}
+
+.planning-accordion-body {
+  display: grid;
+  gap: 1px;
+  padding: 0 8px 8px;
+}
+
+.planning-accordion-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  background: rgba(16, 34, 42, 0.025);
+  transition: background 100ms ease;
+}
+
+.planning-accordion-item:hover {
+  background: rgba(16, 34, 42, 0.05);
+}
+
+.planning-accordion-item.recommended {
+  background: rgba(93, 176, 90, 0.06);
+  border-left: 3px solid rgba(93, 176, 90, 0.4);
+}
+
+.planning-accordion-item-info {
+  all: unset;
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.planning-accordion-item-info strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.planning-accordion-item-info small {
+  color: #51606d;
+  font-size: 0.74rem;
+  line-height: 1.3;
+}
+
+.planning-accordion-item-add {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(23, 101, 193, 0.1);
+  color: #1765c1;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 8px;
+  transition: background 100ms ease;
+}
+
+.planning-accordion-item-add:hover {
+  background: rgba(23, 101, 193, 0.2);
+}
+
+.planning-accordion-item-add:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.planning-accordion-manual-form {
+  display: grid;
+  gap: 10px;
+  padding: 4px 8px 8px;
+}
+
+.planning-accordion-item-delete {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 4px;
+  transition: color 100ms ease, background 100ms ease;
+}
+
+.planning-accordion-item-delete:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.planning-accordion-empty {
+  padding: 12px 14px;
+  color: #8896a4;
+  text-align: center;
+}
+
+.planning-coach-form-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.planning-coach-form-row .planning-manual-save-btn {
+  flex: 1;
+}
+
+.planning-coach-add-template-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  margin: 4px 0;
+  border-radius: 10px;
+  border: 1px dashed rgba(16, 34, 42, 0.15);
+  color: #1765c1;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 100ms ease, border-color 100ms ease;
+}
+
+.planning-coach-add-template-btn:hover {
+  background: rgba(23, 101, 193, 0.04);
+  border-color: rgba(23, 101, 193, 0.3);
+}
+
+.planning-accordion-section.coach {
+  border-color: rgba(210, 106, 54, 0.15);
+}
+
+.planning-accordion-section.coach.expanded {
+  border-color: rgba(210, 106, 54, 0.25);
+  box-shadow: 0 8px 20px rgba(210, 106, 54, 0.06);
+}
+
+.coach-create-form select.planning-manual-input {
+  appearance: auto;
+}
+
+/* ── Coach Library ── */
+
+.planning-coach-library {
+  border-radius: 10px;
+  border: 1px solid rgba(16, 34, 42, 0.06);
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.planning-coach-library.expanded {
+  border-color: rgba(210, 106, 54, 0.18);
+}
+
+.planning-coach-library-header {
+  display: flex;
+  align-items: center;
+}
+
+.planning-coach-library-toggle {
+  all: unset;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.planning-coach-library-toggle:hover {
+  background: rgba(16, 34, 42, 0.02);
+}
+
+.planning-coach-library-name {
+  display: grid;
+  gap: 1px;
+}
+
+.planning-coach-library-name strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.88rem;
+}
+
+.planning-coach-library-name small {
+  color: #8896a4;
+  font-size: 0.74rem;
+}
+
+.planning-coach-library-body {
+  padding: 0 8px 8px;
+  display: grid;
+  gap: 2px;
+}
+
+.planning-coach-new-library {
+  display: grid;
+  gap: 8px;
+  padding: 8px 4px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(16, 34, 42, 0.06);
+}
+
 .planning-calendar-quick-add-manual {
   display: grid;
   gap: 16px;
+}
+
+.planning-calendar-quick-add-manual-form {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(16, 34, 42, 0.08);
+}
+
+.planning-manual-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 34, 42, 0.12);
+  background: rgba(255, 255, 255, 0.95);
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--primary);
+  outline: none;
+  transition: border-color 120ms ease;
+}
+
+.planning-manual-input:focus {
+  border-color: rgba(23, 101, 193, 0.4);
+}
+
+.planning-manual-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 34, 42, 0.12);
+  background: rgba(255, 255, 255, 0.95);
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--primary);
+  outline: none;
+  resize: vertical;
+  transition: border-color 120ms ease;
+}
+
+.planning-manual-textarea:focus {
+  border-color: rgba(23, 101, 193, 0.4);
+}
+
+.planning-manual-save-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.planning-manual-save-btn:hover {
+  opacity: 0.88;
+}
+
+.planning-manual-save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .planning-modal-reading-grid,
@@ -1689,17 +2121,17 @@
 .garmin-batch-push {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
 }
 
 .garmin-batch-push-progress {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   color: #1d4ed8;
   font-weight: 500;
 }
 
 .garmin-batch-push-result {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   color: #15803d;
   font-weight: 500;
 }
@@ -1710,5 +2142,885 @@
 
 .garmin-batch-btn {
   white-space: nowrap;
+}
+
+/* ── Library Week Editor ────────────────────────────────────────────── */
+
+.library-week-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.library-week-editor-modal {
+  background: var(--bg, #f8f9fa);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 1100px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.library-week-editor-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.library-week-editor-header h3 {
+  margin: 0 0 8px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.1rem;
+}
+
+.library-week-editor-header-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.library-week-editor-name-row {
+  display: flex;
+  gap: 8px;
+}
+
+.library-week-editor-name-row .planning-manual-input {
+  min-width: 180px;
+}
+
+.library-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding: 12px 16px;
+  min-height: 300px;
+}
+
+.library-week-day {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.library-week-day-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8px 10px 6px;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.library-week-day-header strong {
+  font-size: 0.82rem;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.library-week-day-header small {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.library-week-day-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 6px 8px;
+  flex: 1;
+}
+
+.library-week-workout-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-left: 3px solid #999;
+}
+
+.library-week-workout-info {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.library-week-workout-info strong {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-week-workout-info small {
+  font-size: 0.65rem;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.library-week-add-btn {
+  all: unset;
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--muted);
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px dashed rgba(0, 0, 0, 0.12);
+  margin-top: auto;
+  transition: background 0.15s;
+}
+
+.library-week-add-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--foreground);
+}
+
+.library-week-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+}
+
+.library-week-add-form .planning-manual-input {
+  font-size: 0.72rem;
+  padding: 4px 6px;
+}
+
+.library-week-add-form .planning-manual-textarea {
+  font-size: 0.72rem;
+  padding: 4px 6px;
+}
+
+.library-week-add-form .planning-manual-save-btn {
+  font-size: 0.72rem;
+  padding: 4px 8px;
+}
+
+.library-week-form-row {
+  display: flex;
+  gap: 4px;
+}
+
+.library-week-form-row select,
+.library-week-form-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.library-week-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 24px 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  flex-wrap: wrap;
+}
+
+.library-week-editor-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.library-week-apply-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.library-week-apply-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.library-week-apply-section .planning-manual-input {
+  width: auto;
+  min-width: 120px;
+}
+
+.library-week-message {
+  font-size: 0.78rem;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+/* ── Workout Library Panel (TP-style) ───────────────────────────── */
+
+.wlp-root {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.wlp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 10px;
+}
+
+.wlp-header h3 {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.05rem;
+}
+
+.wlp-header-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.wlp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 10px;
+  flex-wrap: wrap;
+}
+
+.wlp-search {
+  flex: 1;
+  min-width: 160px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: white;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+.wlp-search:focus {
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+.wlp-filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.wlp-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wlp-filter-group label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.wlp-select {
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: white;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.wlp-create-library-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.wlp-create-library-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.wlp-folder-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0 12px 20px;
+}
+
+.wlp-folder {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.wlp-folder-coach {
+  background: rgba(59, 130, 246, 0.02);
+}
+
+.wlp-folder-header {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 0.85rem;
+  transition: background 0.1s;
+}
+
+.wlp-folder-header:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.wlp-folder-chevron {
+  font-size: 0.6rem;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.wlp-folder-chevron.open {
+  transform: rotate(90deg);
+}
+
+.wlp-folder-icon {
+  font-size: 0.9rem;
+}
+
+.wlp-folder-name {
+  flex: 1;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wlp-folder-count {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+.wlp-folder-actions {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+.wlp-folder-action {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--muted);
+}
+
+.wlp-folder-action:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.wlp-folder-action.danger:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.wlp-folder-body {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 8px 24px;
+}
+
+.wlp-workout-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.wlp-workout-item:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.wlp-workout-item.recommended {
+  background: rgba(34, 197, 94, 0.04);
+}
+
+.wlp-workout-info {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.wlp-workout-info strong {
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.wlp-workout-info small {
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+.wlp-workout-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.wlp-workout-disc-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.wlp-badge-rec {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.wlp-add-workout-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  border-radius: 6px;
+}
+
+.wlp-add-workout-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--foreground);
+}
+
+.wlp-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  margin: 4px 0;
+}
+
+.wlp-add-form-row {
+  display: flex;
+  gap: 4px;
+}
+
+.wlp-add-form-row select,
+.wlp-add-form-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.wlp-empty {
+  padding: 30px 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.wlp-empty strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* ── Training Plans Panel ───────────────────────────────────────── */
+
+.tpp-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.tpp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 10px;
+}
+
+.tpp-header h3 {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.05rem;
+}
+
+.tpp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 10px;
+}
+
+.tpp-plan-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0 12px 20px;
+}
+
+.tpp-plan-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.tpp-plan-item:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.tpp-plan-info {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.tpp-plan-info strong {
+  font-size: 0.88rem;
+}
+
+.tpp-plan-info small {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.tpp-plan-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.tpp-plan-action {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.tpp-plan-action:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.tpp-plan-action.danger:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.tpp-plan-action.primary {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+.tpp-plan-action.primary:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.tpp-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.tpp-empty strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.tpp-create-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.tpp-create-form .planning-manual-input {
+  flex: 1;
+}
+
+/* ── Plan Editor (multi-week calendar) ──────────────────────────── */
+
+.plan-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 16px;
+}
+
+.plan-editor-modal {
+  background: var(--bg, #f8f9fa);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.plan-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+.plan-editor-header h3 {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+}
+
+.plan-editor-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.plan-editor-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-editor-weeks-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+}
+
+.plan-editor-weeks-btn {
+  all: unset;
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  text-align: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.plan-editor-weeks-btn:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.plan-editor-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+
+.plan-editor-week {
+  display: grid;
+  grid-template-columns: 70px repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.plan-editor-week-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.plan-editor-week-label strong {
+  font-size: 0.78rem;
+  color: var(--foreground);
+}
+
+.plan-editor-day-header {
+  text-align: center;
+  padding: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 6px 6px 0 0;
+}
+
+.plan-editor-cell {
+  min-height: 70px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.plan-editor-cell-workout {
+  display: flex;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-left: 3px solid #999;
+}
+
+.plan-editor-cell-workout-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-editor-cell-workout-info strong {
+  font-size: 0.68rem;
+  display: block;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-editor-cell-workout-info small {
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+
+.plan-editor-cell-add {
+  all: unset;
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--muted);
+  padding: 3px;
+  border-radius: 4px;
+  margin-top: auto;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.plan-editor-cell:hover .plan-editor-cell-add {
+  opacity: 1;
+}
+
+.plan-editor-cell-add:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.plan-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.plan-editor-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.plan-editor-apply-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.plan-editor-apply-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.plan-editor-message {
+  font-size: 0.78rem;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+/* Day add form inline popover */
+.plan-editor-add-form {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  width: 220px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plan-editor-add-form .planning-manual-input {
+  font-size: 0.72rem;
+  padding: 4px 6px;
+}
+
+.plan-editor-add-form select {
+  font-size: 0.72rem;
+  padding: 4px 6px;
+}
+
+.plan-editor-add-form-row {
+  display: flex;
+  gap: 4px;
+}
+
+.plan-editor-add-form-row > * {
+  flex: 1;
+  min-width: 0;
 }
 

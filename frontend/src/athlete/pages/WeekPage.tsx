@@ -1,13 +1,82 @@
 import { useMemo, useState } from "react";
 import { useAthleteData } from "../context/AthleteDataContext";
 import { SessionCard } from "../components/SessionCard";
+import { SessionDetailModal } from "../components/SessionDetailModal";
+import { PostWorkoutAnalysis } from "../components/PostWorkoutAnalysis";
 import { formatDurationMin, disciplineLabel } from "../utils/formatters";
 import { buildWeeklyVolumeByDiscipline, allSessionsDeduped } from "../utils/training";
 import { detectLoadSpikes, type LoadSpikeWarning } from "../utils/readiness";
-import type { PlanningPlannedSession } from "../../types";
+import { resolveTrainingThreshold, type ResolvedTrainingThreshold } from "../../lib/trainingThresholds";
+import type { AthleteHealthActivity, GarminActivity, PlanningPlannedSession, WorkoutDefinition, WorkoutStep } from "../../types";
+import { WorkoutStepEditor } from "../../components/WorkoutStepEditor";
+import { buildDemoActivity } from "../utils/demoActivity";
 
 type TimeAssignment = Record<number, string>;
 type CalendarMode = "week" | "month";
+
+/** Local YYYY-MM-DD (avoids UTC shift from toISOString) */
+function localIso(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function fmtDurShort(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (h > 0) return `${h}h${m > 0 ? String(m).padStart(2, "0") : ""}`;
+  return `${m}′`;
+}
+
+/** Short discipline prefix: running→RUN, ciclismo→BIKE, natación→SWIM */
+function discShort(d: string): string {
+  if (d === "running" || d === "carrera") return "RUN";
+  if (d === "ciclismo" || d === "cycling") return "BIKE";
+  if (d === "natación" || d === "swimming") return "SWIM";
+  return d.slice(0, 4).toUpperCase();
+}
+
+/** Extract a compact dose label from a planned session, e.g. "LT1 6×6'" or "Tempo 40'" */
+function sessionMiniLabel(s: PlanningPlannedSession): string {
+  // Try to extract from dose_prescription first (usually most concise)
+  const dose = s.dose_prescription ?? "";
+  // Look for patterns like "6×6' LT1" or "4x3km"
+  const rxReps = /(\d+)\s*[×x]\s*(\d+['′"]?\s*(?:km|m|min)?)/i;
+  const matchReps = dose.match(rxReps);
+
+  // Determine zone/type label
+  const family = s.session_family ?? "";
+  const label = s.public_label ?? "";
+  const combined = `${family} ${label} ${dose}`.toLowerCase();
+  let zone = "";
+  if (combined.includes("vo2")) zone = "VO2";
+  else if (combined.includes("lt2") || combined.includes("umbral") || combined.includes("threshold") || combined.includes("cruise")) zone = "LT2";
+  else if (combined.includes("sub-t") || combined.includes("sub_t") || combined.includes("subthreshold")) zone = "Sub-T";
+  else if (combined.includes("lt1") || combined.includes("aerob") || combined.includes("aerób")) zone = "LT1";
+  else if (combined.includes("anc") || combined.includes("sprint") || combined.includes("fuerza")) zone = "ANC";
+  else if (combined.includes("tempo") || combined.includes("progresiv")) zone = "Tempo";
+  else if (combined.includes("long") || s.session_role === "LONG") zone = "Long";
+  else if (s.session_role === "KEY") zone = "KEY";
+  else zone = "Suave";
+
+  if (matchReps) {
+    return `${zone} ${matchReps[1]}×${matchReps[2]}`;
+  }
+
+  // Fallback: show zone + duration
+  const durMin = typeof s.payload?.total_duration_min === "number" ? s.payload.total_duration_min as number : null;
+  if (durMin) return `${zone} ${durMin}′`;
+  return zone;
+}
+
+/** Short label for a completed activity, e.g. "5.2km 25′" */
+function activityMiniLabel(a: AthleteHealthActivity): string {
+  const parts: string[] = [];
+  if (a.distance_m > 0) {
+    parts.push(a.distance_m >= 1000 ? `${(a.distance_m / 1000).toFixed(1)}km` : `${Math.round(a.distance_m)}m`);
+  }
+  const m = Math.floor(a.moving_time_seconds / 60);
+  parts.push(`${m}′`);
+  return parts.join(" ");
+}
 
 const MOCK_PERSONAL_EVENTS: Array<{ dayOffset: number; time: string; label: string; source: "google" | "apple" }> = [
   { dayOffset: 1, time: "09:00", label: "Reunión trabajo", source: "google" },
@@ -28,6 +97,12 @@ export function WeekPage() {
 
   // Session detail modal
   const [detailSession, setDetailSession] = useState<PlanningPlannedSession | null>(null);
+  // Post-workout analysis modal
+  const [analysisActivity, setAnalysisActivity] = useState<AthleteHealthActivity | null>(null);
+  const [demoDetail, setDemoDetail] = useState<GarminActivity | null>(null);
+  const [demoPlanned, setDemoPlanned] = useState<PlanningPlannedSession | null>(null);
+  // Month day detail popover
+  const [monthDetailIso, setMonthDetailIso] = useState<string | null>(null);
 
   // Drag state
   const [dragSessionId, setDragSessionId] = useState<number | null>(null);
@@ -56,17 +131,17 @@ export function WeekPage() {
     const days: Array<{ date: Date; dayNum: number; isCurrentMonth: boolean; iso: string; isToday: boolean }> = [];
     for (let i = startDow - 1; i >= 0; i--) {
       const d = new Date(year, month, -i);
-      days.push({ date: d, dayNum: d.getDate(), isCurrentMonth: false, iso: d.toISOString().slice(0, 10), isToday: false });
+      days.push({ date: d, dayNum: d.getDate(), isCurrentMonth: false, iso: localIso(d), isToday: false });
     }
-    const todayIso = new Date().toISOString().slice(0, 10);
+    const todayIso = localIso(new Date());
     for (let d = 1; d <= lastDay.getDate(); d++) {
       const dt = new Date(year, month, d);
-      const iso = dt.toISOString().slice(0, 10);
+      const iso = localIso(dt);
       days.push({ date: dt, dayNum: d, isCurrentMonth: true, iso, isToday: iso === todayIso });
     }
     while (days.length % 7 !== 0) {
       const dt = new Date(year, month + 1, days.length - lastDay.getDate() - startDow + 1);
-      days.push({ date: dt, dayNum: dt.getDate(), isCurrentMonth: false, iso: dt.toISOString().slice(0, 10), isToday: false });
+      days.push({ date: dt, dayNum: dt.getDate(), isCurrentMonth: false, iso: localIso(dt), isToday: false });
     }
     const weeks: typeof days[] = [];
     for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
@@ -75,9 +150,29 @@ export function WeekPage() {
 
   const sessionsByDate = useMemo(() => {
     const map: Record<string, PlanningPlannedSession[]> = {};
+    // Include calendarWeek sessions
     for (const day of data.calendarWeek) map[day.iso] = day.sessions;
+    // Also index all planned sessions for month view
+    for (const s of data.plannedSessions) {
+      if (!map[s.scheduled_date]) map[s.scheduled_date] = [];
+      if (!map[s.scheduled_date].some((x) => x.id === s.id)) {
+        map[s.scheduled_date].push(s);
+      }
+    }
     return map;
-  }, [data.calendarWeek]);
+  }, [data.calendarWeek, data.plannedSessions]);
+
+  // Completed activities indexed by date
+  const activitiesByDate = useMemo(() => {
+    const map: Record<string, AthleteHealthActivity[]> = {};
+    for (const a of data.health?.recent_activities ?? []) {
+      const d = new Date(a.started_at);
+      const iso = localIso(d);
+      if (!map[iso]) map[iso] = [];
+      map[iso].push(a);
+    }
+    return map;
+  }, [data.health?.recent_activities]);
 
   const totalSessions = data.calendarWeek.reduce((sum, d) => sum + d.sessions.length, 0);
   const totalMinutes = data.calendarWeek.reduce((sum, d) =>
@@ -176,6 +271,18 @@ export function WeekPage() {
           <button type="button" className="ath-week-btn" onClick={() => setShowCalendarImport(true)} title="Importar calendario">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </button>
+          <button
+            type="button"
+            className="ath-week-btn"
+            title="Ver demo de análisis post-entreno"
+            onClick={() => {
+              const demo = buildDemoActivity();
+              setDemoDetail(demo.detail);
+              setDemoPlanned(demo.plannedSession);
+              setAnalysisActivity(demo.activity);
+            }}
+            style={{ fontSize: 11, opacity: 0.7 }}
+          >Demo</button>
           <button type="button" className="ath-week-btn" onClick={() => data.setCalWeekOffset(0)}>Hoy</button>
           <button type="button" className="ath-week-btn" onClick={() => data.setCalWeekOffset((o) => o - (calMode === "month" ? 4 : 1))}>‹</button>
           <button type="button" className="ath-week-btn" onClick={() => data.setCalWeekOffset((o) => o + (calMode === "month" ? 4 : 1))}>›</button>
@@ -297,7 +404,27 @@ export function WeekPage() {
                       </div>
                     </div>
                   ))}
-                  {day.sessions.length === 0 && (
+                  {/* Completed activities */}
+                  {(activitiesByDate[day.iso] ?? []).map((act) => (
+                    <div
+                      key={`act-${act.provider_activity_id}`}
+                      className="ath-week-activity-card"
+                      onClick={() => setAnalysisActivity(act)}
+                      style={{ borderLeftColor: act.sport_color }}
+                    >
+                      <div className="ath-week-act-top">
+                        <span className="ath-week-act-sport" style={{ color: act.sport_color }}>{act.sport_label}</span>
+                        <span className="ath-week-act-check">&#10003;</span>
+                      </div>
+                      <span className="ath-week-act-name">{act.name}</span>
+                      <div className="ath-week-act-stats">
+                        <span>{fmtDurShort(act.moving_time_seconds)}</span>
+                        {act.distance_m > 0 && <span>{(act.distance_m / 1000).toFixed(1)}km</span>}
+                        {act.average_heartrate && <span>{Math.round(act.average_heartrate)} bpm</span>}
+                      </div>
+                    </div>
+                  ))}
+                  {day.sessions.length === 0 && !(activitiesByDate[day.iso]?.length) && (
                     <span className="ath-week-day-empty">—</span>
                   )}
                 </div>
@@ -319,21 +446,34 @@ export function WeekPage() {
             <div key={wi} className="ath-month-week-row">
               {week.map((day) => {
                 const sessions = sessionsByDate[day.iso] ?? [];
+                const acts = activitiesByDate[day.iso] ?? [];
+                const hasContent = sessions.length > 0 || acts.length > 0;
                 return (
                   <div
                     key={day.iso}
-                    className={`ath-month-cell ${day.isCurrentMonth ? "" : "muted"} ${day.isToday ? "today" : ""}`}
+                    className={`ath-month-cell ${day.isCurrentMonth ? "" : "muted"} ${day.isToday ? "today" : ""} ${hasContent ? "clickable" : ""}`}
                     onDragOver={(e) => handleDragOver(e, day.iso)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, day.iso)}
+                    onClick={() => hasContent && setMonthDetailIso(day.iso)}
                   >
                     <span className="ath-month-cell-num">{day.dayNum}</span>
-                    {sessions.length > 0 && (
-                      <div className="ath-month-cell-dots">
+                    {(sessions.length > 0 || acts.length > 0) && (
+                      <div className="ath-month-cell-items">
                         {sessions.slice(0, 3).map((s, i) => (
-                          <span key={i} className={`ath-month-dot role-${(s.session_role ?? "support").toLowerCase()}`} title={s.public_label ?? s.session_role ?? ""} />
+                          <div key={`s${i}`} className={`ath-month-mini role-${(s.session_role ?? "support").toLowerCase()}`} title={s.public_label ?? ""}>
+                            <span className="ath-month-mini-disc">{discShort(s.discipline)}</span>
+                            <span className="ath-month-mini-dose">{sessionMiniLabel(s)}</span>
+                          </div>
                         ))}
-                        {sessions.length > 3 && <span className="ath-month-dot-more">+{sessions.length - 3}</span>}
+                        {acts.slice(0, 2).map((a, i) => (
+                          <div key={`a${i}`} className="ath-month-mini completed" title={a.name}>
+                            <span className="ath-month-mini-disc" style={{ color: a.sport_color }}>{a.sport_label.slice(0, 3).toUpperCase()}</span>
+                            <span className="ath-month-mini-dose">{activityMiniLabel(a)}</span>
+                            <span className="ath-month-mini-check">&#10003;</span>
+                          </div>
+                        ))}
+                        {(sessions.length + acts.length) > 5 && <span className="ath-month-mini-more">+{sessions.length + acts.length - 5}</span>}
                       </div>
                     )}
                   </div>
@@ -344,90 +484,108 @@ export function WeekPage() {
         </div>
       )}
 
-      {/* ── Session Detail Modal ── */}
-      {detailSession && (
-        <div className="ath-modal-backdrop" onClick={() => setDetailSession(null)}>
-          <div className="ath-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="ath-modal-header">
-              <h3>{detailSession.public_label}</h3>
-              <button type="button" className="ath-modal-close" onClick={() => setDetailSession(null)}>✕</button>
-            </div>
-            <div className="ath-modal-body">
-              <div className="ath-detail-meta">
-                <span className={`ath-session-role ${detailSession.session_role === "KEY" ? "key" : detailSession.session_role === "LONG" ? "long" : "support"}`}>
-                  {detailSession.session_role}
-                </span>
-                <span className="ath-detail-disc">{disciplineLabel(detailSession.discipline)}</span>
-                <span className="ath-detail-date">{detailSession.scheduled_date}</span>
-                {typeof detailSession.payload?.total_duration_min === "number" && (
-                  <span className="ath-detail-dur">{formatDurationMin(detailSession.payload.total_duration_min as number)}</span>
-                )}
+      {/* ── Month Day Detail Popover ── */}
+      {monthDetailIso && (() => {
+        const sessions = sessionsByDate[monthDetailIso] ?? [];
+        const acts = activitiesByDate[monthDetailIso] ?? [];
+        const dateLabel = new Date(monthDetailIso + "T00:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+        return (
+          <div className="ath-modal-backdrop" onClick={() => setMonthDetailIso(null)}>
+            <div className="ath-modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="ath-modal-header">
+                <h3 style={{ textTransform: "capitalize" }}>{dateLabel}</h3>
+                <button type="button" className="ath-modal-close" onClick={() => setMonthDetailIso(null)}>✕</button>
               </div>
-
-              {detailSession.dose_prescription && (
-                <div className="ath-detail-section">
-                  <small>Prescripción</small>
-                  <p>{detailSession.dose_prescription}</p>
-                </div>
-              )}
-
-              {detailSession.objective && (
-                <div className="ath-detail-section">
-                  <small>Objetivo</small>
-                  <p>{detailSession.objective}</p>
-                </div>
-              )}
-
-              {detailSession.dose_guidance && (
-                <div className="ath-detail-section">
-                  <small>Guía</small>
-                  <p>{detailSession.dose_guidance}</p>
-                </div>
-              )}
-
-              {detailSession.coach_note && (
-                <div className="ath-detail-section">
-                  <small>Nota del coach</small>
-                  <p>{detailSession.coach_note}</p>
-                </div>
-              )}
-
-              {detailSession.expected_signal && (
-                <div className="ath-detail-section">
-                  <small>Señal esperada</small>
-                  <p>{detailSession.expected_signal}</p>
-                </div>
-              )}
-
-              {/* Blocks if athlete-created */}
-              {Array.isArray(detailSession.payload?.blocks) && (
-                <div className="ath-detail-section">
-                  <small>Bloques</small>
-                  <div className="ath-detail-blocks">
-                    {(detailSession.payload!.blocks as Array<{ type: string; durationMin: number; zone: number; reps: number; restMin: number }>).map((b, i) => (
-                      <div key={i} className="ath-detail-block-row">
-                        <span className="ath-detail-block-type">{b.type}</span>
-                        <span>{b.type === "intervals" ? `${b.reps}×${b.durationMin}' Z${b.zone} +${b.restMin}' desc` : `${b.durationMin}' Z${b.zone}`}</span>
+              <div className="ath-modal-body">
+                {sessions.length > 0 && (
+                  <>
+                    <h4 className="ath-pwd-section-title" style={{ marginBottom: 8 }}>Planificado</h4>
+                    {sessions.map((s) => (
+                      <div
+                        key={s.id}
+                        className="ath-month-detail-item planned"
+                        onClick={() => { setMonthDetailIso(null); setDetailSession(s); }}
+                      >
+                        <span className={`ath-session-role ${s.session_role === "KEY" ? "key" : s.session_role === "LONG" ? "long" : "support"}`}>{s.session_role}</span>
+                        <span className="ath-month-detail-name">{s.public_label}</span>
+                        <span className="ath-month-detail-disc">{disciplineLabel(s.discipline)}</span>
                       </div>
                     ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="ath-detail-actions">
-                <button
-                  type="button"
-                  className="ath-detail-delete-btn"
-                  onClick={() => handleDeleteSession(detailSession.id)}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                  Eliminar entreno
-                </button>
+                  </>
+                )}
+                {acts.length > 0 && (
+                  <>
+                    <h4 className="ath-pwd-section-title" style={{ marginTop: sessions.length > 0 ? 16 : 0, marginBottom: 8 }}>Completado</h4>
+                    {acts.map((a) => (
+                      <div
+                        key={a.provider_activity_id}
+                        className="ath-month-detail-item completed"
+                        onClick={() => { setMonthDetailIso(null); setAnalysisActivity(a); }}
+                        style={{ borderLeftColor: a.sport_color }}
+                      >
+                        <span className="ath-month-detail-sport" style={{ color: a.sport_color }}>{a.sport_label}</span>
+                        <span className="ath-month-detail-name">{a.name}</span>
+                        <div className="ath-month-detail-stats">
+                          <span>{fmtDurShort(a.moving_time_seconds)}</span>
+                          {a.distance_m > 0 && <span>{(a.distance_m / 1000).toFixed(1)} km</span>}
+                          {a.average_heartrate && <span>{Math.round(a.average_heartrate)} bpm</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {sessions.length === 0 && acts.length === 0 && (
+                  <p style={{ color: "var(--ath-text-muted)", fontSize: 13 }}>Sin actividad este día.</p>
+                )}
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+
+      {/* ── Session Detail Modal ── */}
+      {detailSession && (() => {
+        const view = data.analysis?.discipline_views?.[detailSession.discipline];
+        const lt1 = resolveTrainingThreshold(view, "LT1");
+        const lt2 = resolveTrainingThreshold(view, "LT2");
+        return (
+          <SessionDetailModal
+            session={detailSession}
+            lt1={lt1}
+            lt2={lt2}
+            onClose={() => setDetailSession(null)}
+            onDelete={handleDeleteSession}
+          />
+        );
+      })()}
+
+      {/* ── Post-Workout Analysis Modal ── */}
+      {analysisActivity && (() => {
+        const disc = analysisActivity.sport_type === "cycling" ? "ciclismo"
+          : analysisActivity.sport_type === "swimming" ? "natación"
+          : "running";
+        const view = data.analysis?.discipline_views?.[disc];
+        const lt1 = resolveTrainingThreshold(view, "LT1");
+        const lt2 = resolveTrainingThreshold(view, "LT2");
+        // Try to match with a planned session on the same date
+        const actDate = localIso(new Date(analysisActivity.started_at));
+        const matched = data.plannedSessions.find((s) => s.scheduled_date === actDate && s.discipline === disc);
+        const isDemo = analysisActivity.source === "demo";
+        const demoLt1: ResolvedTrainingThreshold = { label: "LT1", source: "individual", sourceLabel: "Demo", lactate: 2.0, heartRate: 148, paceSecondsPerKm: 300, powerWatts: null };
+        const demoLt2: ResolvedTrainingThreshold = { label: "LT2", source: "individual", sourceLabel: "Demo", lactate: 4.0, heartRate: 165, paceSecondsPerKm: 265, powerWatts: null };
+        return (
+          <PostWorkoutAnalysis
+            activity={analysisActivity}
+            plannedSession={isDemo ? demoPlanned : matched}
+            lt1={isDemo ? demoLt1 : lt1}
+            lt2={isDemo ? demoLt2 : lt2}
+            token={data.token}
+            athleteId={data.user.athlete_id!}
+            onClose={() => { setAnalysisActivity(null); setDemoDetail(null); setDemoPlanned(null); }}
+            initialDetail={isDemo ? demoDetail : undefined}
+          />
+        );
+      })()}
 
       {/* Calendar Import Modal */}
       {showCalendarImport && (
@@ -491,6 +649,9 @@ type WorkoutBlock = {
   zone: number;
   reps: number;
   restMin: number;
+  pace?: string;       // "4:30" min:sec/km or min:sec/100m
+  distanceM?: number;  // meters
+  powerW?: number;     // watts
 };
 
 const BLOCK_LABELS: Record<string, string> = {
@@ -519,13 +680,14 @@ type BuilderProps = {
 };
 
 function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: BuilderProps) {
-  const [step, setStep] = useState<"discipline" | "blocks" | "done">("discipline");
+  const [step, setStep] = useState<"discipline" | "blocks" | "editor" | "done">("discipline");
   const [discipline, setDiscipline] = useState<string | null>(null);
   const [title, setTitle] = useState("");
-  const [scheduledDate, setScheduledDate] = useState(presetDate ?? new Date().toISOString().slice(0, 10));
+  const [scheduledDate, setScheduledDate] = useState(presetDate ?? localIso(new Date()));
   const [blocks, setBlocks] = useState<WorkoutBlock[]>([]);
   const [nextId, setNextId] = useState(1);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [editorWorkout, setEditorWorkout] = useState<WorkoutDefinition | null>(null);
 
   const totalMin = blocks.reduce((sum, b) => {
     if (b.type === "intervals") return sum + b.reps * (b.durationMin + b.restMin);
@@ -563,19 +725,66 @@ function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: Bui
     setBlocks((p) => p.map((b) => b.id === id ? { ...b, [field]: value } : b));
   }
 
-  function handleSave() {
+  const ZONE_TO_LABEL: Record<number, string> = { 1: "Suave / Easy", 2: "LT1 / Aeróbico", 3: "SUB-T / Zona media", 4: "LT2 / Umbral", 5: "VO2 / Potencia" };
+  const ZONE_TO_INTENSITY: Record<number, string> = { 1: "easy", 2: "LT1", 3: "SUB-T", 4: "LT2", 5: "VO2" };
+
+  function blocksToWorkoutSteps(bks: WorkoutBlock[]): WorkoutStep[] {
+    const steps: WorkoutStep[] = [];
+    let order = 1;
+    for (const b of bks) {
+      const zoneLabel = ZONE_TO_LABEL[b.zone] ?? "Libre";
+      const intensity = ZONE_TO_INTENSITY[b.zone] ?? "free";
+      const target = { target_type: b.zone === 1 ? "easy" : "other" as string, label: zoneLabel, value_from: null as number | null, value_to: null as number | null, unit: null as string | null };
+
+      if (b.type === "intervals" && b.reps > 1) {
+        const children: WorkoutStep[] = [
+          { order: 1, step_type: "interval", length_type: "time", length_value: b.durationMin * 60, target, intensity_label: intensity, instructions: null, repeat_count: null, children: [] },
+          { order: 2, step_type: "recovery", length_type: "time", length_value: b.restMin * 60, target: { target_type: "easy", label: "Suave / Easy", value_from: null, value_to: null, unit: null }, intensity_label: "easy", instructions: null, repeat_count: null, children: [] },
+        ];
+        steps.push({ order: order++, step_type: "repeat", length_type: "time", length_value: null, target: null, intensity_label: null, instructions: null, repeat_count: b.reps, children });
+      } else {
+        const stepType = b.type === "warmup" ? "warmup" : b.type === "cooldown" ? "cooldown" : b.type === "recovery" ? "recovery" : "steady";
+        steps.push({ order: order++, step_type: stepType, length_type: "time", length_value: b.durationMin * 60, target, intensity_label: intensity, instructions: null, repeat_count: null, children: [] });
+      }
+    }
+    return steps;
+  }
+
+  function handleGoToEditor() {
     if (!discipline || blocks.length === 0) return;
     const discMap: Record<string, string> = { carrera: "running", ciclismo: "ciclismo", natación: "natación" };
     const discLabel = DISCIPLINE_OPTIONS.find((d) => d.key === discipline);
     const label = title || `${discLabel?.label ?? discipline} — ${totalMin} min`;
-    const blockDesc = blocks.map((b) => b.type === "intervals" ? `${b.reps}×${b.durationMin}' Z${b.zone}` : `${BLOCK_LABELS[b.type]} ${b.durationMin}' Z${b.zone}`).join(" + ");
+    const workoutSteps = blocksToWorkoutSteps(blocks);
+    setEditorWorkout({
+      sport: discMap[discipline] ?? discipline,
+      title: label,
+      steps: workoutSteps,
+      notes: [],
+      source_payload: {},
+    });
+    setStep("editor");
+  }
+
+  function handleEditorSave(workout: WorkoutDefinition) {
+    if (!discipline) return;
+    const discMap: Record<string, string> = { carrera: "running", ciclismo: "ciclismo", natación: "natación" };
+    const blockDesc = blocks.map((b) => {
+      const base = b.type === "intervals" ? `${b.reps}×${b.durationMin}' Z${b.zone}` : `${BLOCK_LABELS[b.type]} ${b.durationMin}' Z${b.zone}`;
+      const extras: string[] = [];
+      if (b.pace) extras.push(`@${b.pace}`);
+      if (b.powerW != null) extras.push(`${b.powerW}W`);
+      if (b.distanceM != null) extras.push(b.distanceM >= 1000 ? `${(b.distanceM / 1000).toFixed(1)}km` : `${b.distanceM}m`);
+      return extras.length > 0 ? `${base} (${extras.join(", ")})` : base;
+    }).join(" + ");
     onSave({
       focus_block_id: 0, scheduled_date: scheduledDate,
       discipline: discMap[discipline] ?? discipline, week_index: 0, day_offset: 0,
       session_role: "SUPPORT", session_family: "athlete_created",
-      public_label: label, objective: `Entreno creado por atleta: ${blockDesc}`,
+      public_label: workout.title, objective: `Entreno creado por atleta: ${blockDesc}`,
       dose_prescription: blockDesc, confidence: 1, status: "athlete_created", bla_check: false,
-      payload: { total_duration_min: totalMin, blocks: blocks.map((b) => ({ type: b.type, durationMin: b.durationMin, zone: b.zone, reps: b.reps, restMin: b.restMin })), source: "athlete_builder" },
+      structured_workout_payload: workout,
+      payload: { total_duration_min: totalMin, blocks: blocks.map((b) => ({ type: b.type, durationMin: b.durationMin, zone: b.zone, reps: b.reps, restMin: b.restMin, ...(b.pace ? { pace: b.pace } : {}), ...(b.distanceM != null ? { distanceM: b.distanceM } : {}), ...(b.powerW != null ? { powerW: b.powerW } : {}) })), source: "athlete_builder" },
     });
     setStep("done");
   }
@@ -592,6 +801,20 @@ function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: Bui
             </button>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (step === "editor" && editorWorkout) {
+    const discMap: Record<string, string> = { carrera: "running", ciclismo: "ciclismo", natación: "natación" };
+    return (
+      <div className="ath-builder-editor-step">
+        <WorkoutStepEditor
+          workout={editorWorkout}
+          onSave={handleEditorSave}
+          onCancel={() => setStep("blocks")}
+          discipline={discMap[discipline ?? ""] ?? discipline ?? undefined}
+        />
       </div>
     );
   }
@@ -664,6 +887,28 @@ function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: Bui
                   ))}
                 </div>
               </div>
+
+              {/* Discipline-specific fields */}
+              {(discipline === "carrera" || discipline === "natación") && (
+                <div className="ath-builder-extra-row">
+                  <label className="ath-builder-field">
+                    <span>{discipline === "natación" ? "Ritmo (/100m)" : "Ritmo (/km)"}</span>
+                    <input type="text" placeholder={discipline === "natación" ? "1:45" : "4:30"} value={block.pace ?? ""} onChange={(e) => setBlocks((p) => p.map((b) => b.id === block.id ? { ...b, pace: e.target.value || undefined } : b))} />
+                  </label>
+                  <label className="ath-builder-field">
+                    <span>{discipline === "natación" ? "Distancia (m)" : "Distancia (km)"}</span>
+                    <input type="number" min={0} step={discipline === "natación" ? 25 : 0.5} placeholder={discipline === "natación" ? "400" : "5"} value={block.distanceM != null ? (discipline === "natación" ? block.distanceM : block.distanceM / 1000) : ""} onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) setBlocks((p) => p.map((b) => b.id === block.id ? { ...b, distanceM: discipline === "natación" ? v : v * 1000 } : b)); else setBlocks((p) => p.map((b) => b.id === block.id ? { ...b, distanceM: undefined } : b)); }} />
+                  </label>
+                </div>
+              )}
+              {discipline === "ciclismo" && (
+                <div className="ath-builder-extra-row">
+                  <label className="ath-builder-field">
+                    <span>Potencia (W)</span>
+                    <input type="number" min={0} max={2000} placeholder="220" value={block.powerW ?? ""} onChange={(e) => { const v = parseInt(e.target.value); setBlocks((p) => p.map((b) => b.id === block.id ? { ...b, powerW: isNaN(v) ? undefined : v } : b)); }} />
+                  </label>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -682,7 +927,7 @@ function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: Bui
         )}
       </div>
 
-      <button type="button" className="ath-builder-save" disabled={blocks.length === 0} onClick={handleSave}>Guardar entreno</button>
+      <button type="button" className="ath-builder-save" disabled={blocks.length === 0} onClick={handleGoToEditor}>Siguiente: editar estructura</button>
     </div>
   );
 }

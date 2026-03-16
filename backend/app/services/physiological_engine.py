@@ -621,6 +621,12 @@ _FRACTIONAL_CEILING = 0.98  # LT2 > 98% VO2max is implausible
 def _estimate_vo2_at_intensity_running(speed_kmh: float) -> float:
     """VO2 at a given running speed (ACSM metabolic equation, flat ground).
 
+    NOTE: We intentionally use ACSM here (not Daniels quadratic used in
+    prediction_engine.py) because Swain's %HRR≈%VO2R was validated with
+    ACSM equations. The ~5-8% difference at typical LT2 speeds is absorbed
+    by the fractional utilization calculation (VO2@LT2 / VO2max), which
+    uses the same equation in both numerator and denominator.
+
     Returns ml/kg/min.
     """
     speed_m_per_min = speed_kmh * 1000.0 / 60.0
@@ -713,6 +719,7 @@ def build_capacity_profile(
     hr_rest: Optional[int] = None,
     weight_kg: Optional[float] = None,
     garmin_vo2max: Optional[float] = None,
+    measured_vlamax: Optional[dict] = None,
 ) -> CapacityProfile:
     """Construye el perfil de capacidades aeróbica/glucolítica.
 
@@ -760,37 +767,40 @@ def build_capacity_profile(
         else:
             aerobic_level = "moderate"
 
-    # ── Proxy VLamax: ratio LT1/LT2 cruzado con nivel aeróbico absoluto ──
-    # El ratio solo indica la FORMA del motor (umbrales juntos vs separados).
-    # Sin cruzar con el nivel absoluto, confunde:
-    #   - Recreativo comprimido (ratio alto, LT2 bajo) → falso diesel
-    #   - Recreativo sin base (ratio bajo, LT2 bajo) → falso glucolítico potente
-    # Cruzando ambas señales:
-    #   ratio alto + aeróbico alto/moderate → diesel real
-    #   ratio alto + aeróbico low → motor comprimido, no diesel → moderate
-    #   ratio bajo + aeróbico high/moderate → glucolítico real
-    #   ratio bajo + aeróbico low → sin base, no glucolítico potente → moderate
+    # ── VLamax: prefer measured (Mader sprint) over ratio proxy ────────
     ratio = lt1_value / lt2_value
-    if ratio < _VLAMAX_HIGH_RATIO:
-        raw_vlamax = "high"
-    elif ratio < _VLAMAX_MODERATE_RATIO:
-        raw_vlamax = "moderate"
-    else:
-        raw_vlamax = "low"
 
-    # Corrección por nivel absoluto: sin motor aeróbico real, el ratio
-    # no puede diagnosticar el perfil glucolítico con fiabilidad.
-    if aerobic_level == "low":
-        if raw_vlamax == "low":
-            # Ratio alto + aeróbico bajo → comprimido, no diesel
-            vlamax_level = "moderate"
-        elif raw_vlamax == "high":
-            # Ratio bajo + aeróbico bajo → sin base, no glucolítico potente
+    if measured_vlamax and measured_vlamax.get("vlamax_mmol_min"):
+        # Direct measurement from sprint test — highest confidence
+        mv = measured_vlamax["vlamax_mmol_min"]
+        if mv > 0.50:
+            vlamax_level = "high"
+        elif mv >= 0.30:
             vlamax_level = "moderate"
         else:
-            vlamax_level = raw_vlamax
+            vlamax_level = "low"
+        # Boost confidence when we have a measured value
+        base_conf = min(base_conf + 0.10, 0.95)
     else:
-        vlamax_level = raw_vlamax
+        # Proxy VLamax from ratio LT1/LT2 crossed with aerobic level
+        if ratio < _VLAMAX_HIGH_RATIO:
+            raw_vlamax = "high"
+        elif ratio < _VLAMAX_MODERATE_RATIO:
+            raw_vlamax = "moderate"
+        else:
+            raw_vlamax = "low"
+
+        # Corrección por nivel absoluto: sin motor aeróbico real, el ratio
+        # no puede diagnosticar el perfil glucolítico con fiabilidad.
+        if aerobic_level == "low":
+            if raw_vlamax == "low":
+                vlamax_level = "moderate"
+            elif raw_vlamax == "high":
+                vlamax_level = "moderate"
+            else:
+                vlamax_level = raw_vlamax
+        else:
+            vlamax_level = raw_vlamax
 
     # ── VO2max estimation (Swain+ACSM) ──────────────────────────────────
     # Hierarchy: (1) Swain HR-based, (2) Garmin VO2max, (3) None
@@ -839,6 +849,180 @@ def build_capacity_profile(
         vo2max_source=vo2max_src,
         vo2max_confidence=vo2max_conf,
         fractional_utilization=frac_util,
+    )
+
+
+@dataclass
+class LevelSuggestion:
+    """Sugerencia automática de nivel del atleta basada en datos fisiológicos."""
+    suggested_level: str              # "recreational" | "trained" | "competitive"
+    confidence: float                 # 0.0–1.0
+    current_level: str                # nivel actual asignado
+    matches_current: bool             # ¿coincide con el actual?
+    evidence: list[str]               # razones que soportan la sugerencia
+    scores: dict[str, float]          # puntuación por nivel {"recreational": 0.2, ...}
+
+
+# ── VO2max benchmarks por nivel (Joyner 2008, Jones 2021) ───────────────
+_VO2MAX_LEVEL_BENCHMARKS: dict[str, dict[str, tuple[float, float]]] = {
+    "male": {
+        "recreational": (35.0, 50.0),
+        "trained":      (48.0, 62.0),
+        "competitive":  (60.0, 82.0),
+    },
+    "female": {
+        "recreational": (28.0, 42.0),
+        "trained":      (40.0, 54.0),
+        "competitive":  (52.0, 72.0),
+    },
+}
+
+
+def suggest_athlete_level(
+    lt2_values: dict[str, Optional[float]],
+    vo2max: Optional[float] = None,
+    lt1_lt2_ratio: Optional[float] = None,
+    fractional_utilization: Optional[float] = None,
+    sex: str = "male",
+) -> LevelSuggestion:
+    """Sugiere el nivel del atleta comparando LT2 contra benchmarks de TODOS los niveles.
+
+    Parámetros:
+        lt2_values: {"running": km/h, "ciclismo": W, "natacion": km/h} — None si no hay dato
+        vo2max: ml/kg/min estimado (Swain, Garmin, o manual)
+        lt1_lt2_ratio: ratio LT1/LT2 (proxy VLamax)
+        fractional_utilization: %VO2max al LT2
+        sex: "male" | "female" — para benchmarks VO2max
+
+    Lógica:
+        Para cada disciplina con dato, calcula dónde cae el LT2 respecto a los rangos
+        de cada nivel. Usa media geométrica ponderada para combinar disciplinas.
+        VO2max, ratio y fractional utilization son señales complementarias.
+
+    Referencias:
+        - Billat 2003: LT2 benchmarks running
+        - Coggan 2019: FTP benchmarks ciclismo
+        - Joyner 2008, Jones 2021: VO2max por nivel
+        - Faude 2009: umbral como predictor de rendimiento
+    """
+    levels = ["recreational", "trained", "competitive"]
+    scores: dict[str, float] = {l: 0.0 for l in levels}
+    total_weight = 0.0
+    evidence: list[str] = []
+
+    # ── Señal 1: LT2 por disciplina (peso principal) ────────────────────
+    for disc, lt2_val in lt2_values.items():
+        if lt2_val is None or disc not in LT2_AEROBIC_BENCHMARKS:
+            continue
+        disc_benchmarks = LT2_AEROBIC_BENCHMARKS[disc]
+        disc_scores: dict[str, float] = {}
+        for level in levels:
+            low, high = disc_benchmarks[level]
+            mid = (low + high) / 2.0
+            span = (high - low) / 2.0
+            # Gaussian-like scoring: how close to the center of each level's range
+            dist = abs(lt2_val - mid) / max(span, 0.01)
+            disc_scores[level] = max(0.0, 1.0 - 0.5 * dist * dist)
+
+        # Normalizar para que sumen 1.0
+        s_total = sum(disc_scores.values())
+        if s_total > 0:
+            for level in levels:
+                disc_scores[level] /= s_total
+
+        w = 1.0  # peso por disciplina
+        for level in levels:
+            scores[level] += disc_scores[level] * w
+        total_weight += w
+
+        best_disc = max(disc_scores, key=disc_scores.get)  # type: ignore[arg-type]
+        evidence.append(f"LT2 {disc} ({lt2_val:.1f}) → {best_disc} ({disc_scores[best_disc]:.0%})")
+
+    # ── Señal 2: VO2max (peso 0.6) ──────────────────────────────────────
+    if vo2max is not None:
+        sex_key = sex if sex in _VO2MAX_LEVEL_BENCHMARKS else "male"
+        vo2_benchmarks = _VO2MAX_LEVEL_BENCHMARKS[sex_key]
+        vo2_scores: dict[str, float] = {}
+        for level in levels:
+            low, high = vo2_benchmarks[level]
+            mid = (low + high) / 2.0
+            span = (high - low) / 2.0
+            dist = abs(vo2max - mid) / max(span, 0.01)
+            vo2_scores[level] = max(0.0, 1.0 - 0.5 * dist * dist)
+        s_total = sum(vo2_scores.values())
+        if s_total > 0:
+            for level in levels:
+                vo2_scores[level] /= s_total
+        w = 0.6
+        for level in levels:
+            scores[level] += vo2_scores[level] * w
+        total_weight += w
+        best_vo2 = max(vo2_scores, key=vo2_scores.get)  # type: ignore[arg-type]
+        evidence.append(f"VO2max ({vo2max:.1f}) → {best_vo2} ({vo2_scores[best_vo2]:.0%})")
+
+    # ── Señal 3: Fractional utilization (peso 0.3) ───────────────────────
+    # Alta utilización fraccionaria (>80%) sugiere entrenamiento sostenido → trained/competitive
+    # Baja (<70%) sugiere potencial sin desarrollar → recreational o competitive-genética
+    if fractional_utilization is not None and 0.5 <= fractional_utilization <= 1.0:
+        w = 0.3
+        if fractional_utilization >= 0.82:
+            # Alto %VO2max al LT2 → entrenado o competitivo
+            frac_scores = {"recreational": 0.05, "trained": 0.45, "competitive": 0.50}
+        elif fractional_utilization >= 0.72:
+            frac_scores = {"recreational": 0.20, "trained": 0.60, "competitive": 0.20}
+        else:
+            frac_scores = {"recreational": 0.55, "trained": 0.35, "competitive": 0.10}
+        for level in levels:
+            scores[level] += frac_scores[level] * w
+        total_weight += w
+        evidence.append(f"Frac. util. ({fractional_utilization:.0%}) → {max(frac_scores, key=frac_scores.get)}")  # type: ignore[arg-type]
+
+    # ── Señal 4: Ratio LT1/LT2 como proxy de madurez (peso 0.2) ────────
+    # Ratio alto (>0.87) = motor maduro, bien entrenado
+    # Ratio bajo (<0.75) = separación grande, menos entrenamiento aeróbico
+    if lt1_lt2_ratio is not None and 0.50 <= lt1_lt2_ratio <= 1.0:
+        w = 0.2
+        if lt1_lt2_ratio >= 0.87:
+            ratio_scores = {"recreational": 0.05, "trained": 0.35, "competitive": 0.60}
+        elif lt1_lt2_ratio >= 0.79:
+            ratio_scores = {"recreational": 0.15, "trained": 0.60, "competitive": 0.25}
+        else:
+            ratio_scores = {"recreational": 0.50, "trained": 0.35, "competitive": 0.15}
+        for level in levels:
+            scores[level] += ratio_scores[level] * w
+        total_weight += w
+        evidence.append(f"LT1/LT2 ratio ({lt1_lt2_ratio:.3f}) → {max(ratio_scores, key=ratio_scores.get)}")  # type: ignore[arg-type]
+
+    # ── Normalizar y decidir ─────────────────────────────────────────────
+    if total_weight == 0:
+        return LevelSuggestion(
+            suggested_level="trained",
+            confidence=0.0,
+            current_level="trained",
+            matches_current=True,
+            evidence=["Sin datos suficientes para sugerir nivel"],
+            scores=scores,
+        )
+
+    for level in levels:
+        scores[level] /= total_weight
+    scores = {l: round(s, 3) for l, s in scores.items()}
+
+    suggested = max(scores, key=scores.get)  # type: ignore[arg-type]
+    # Confianza = margen sobre el segundo
+    sorted_scores = sorted(scores.values(), reverse=True)
+    margin = sorted_scores[0] - sorted_scores[1] if len(sorted_scores) > 1 else 1.0
+    # Escalar: margen 0.0→conf 0.3, margen 0.5+→conf 0.95
+    confidence = min(0.95, 0.30 + margin * 1.3)
+    confidence = round(confidence, 2)
+
+    return LevelSuggestion(
+        suggested_level=suggested,
+        confidence=confidence,
+        current_level="trained",  # se sobreescribe en el caller
+        matches_current=True,     # se sobreescribe en el caller
+        evidence=evidence,
+        scores=scores,
     )
 
 
@@ -979,14 +1163,34 @@ def _apply_capacity_profile(
             vo2_str = f"{profile.vo2max_estimated:.0f}" if profile.vo2max_estimated else "?"
 
             if frac > 0.85 and season not in {"base_early", "taper"}:
-                # Athlete "exprimido": LT2 close to ceiling — raise ceiling first
+                # Athlete "exprimido": LT2 close to ceiling — raise ceiling first.
+                # EXCEPCIÓN: en eventos de larga duración (ironman, marathon, granfondo...)
+                # la alta utilización fraccionaria con VO2max bajo refleja base aeróbica
+                # insuficiente, no un techo que subir con AEP. AEC es la vía correcta:
+                # más volumen subumbral sube VO2max Y LT1 simultáneamente.
+                # Seiler 2010, Esteve-Lanao 2005: alto volumen Z1-Z2 es el predictor
+                # principal de VO2max en endurance athletes, no la intensidad.
+                _long_events = {
+                    "marathon", "70.3", "half_tri", "half_run", "half_bike",
+                    "ironman", "ironman_run", "ironman_bike", "open_water_long",
+                    "granfondo", "road_tt_long",
+                }
                 if recommended in ("threshold_development_block", "aerobic_capacity_block"):
-                    reasons.append(
-                        f"Fractional utilization alta ({frac_pct}, VO2max≈{vo2_str} ml/kg/min vía {profile.vo2max_source}): "
-                        "LT2 está cerca del techo aeróbico — prioridad subir VO2max con "
-                        "potencia aeróbica (AEP) antes de empujar umbral."
-                    )
-                    return "aerobic_power_block"
+                    if (distance_category or "") in _long_events:
+                        reasons.append(
+                            f"Fractional utilization alta ({frac_pct}, VO2max≈{vo2_str} ml/kg/min vía {profile.vo2max_source}): "
+                            "en prueba larga, un techo bajo con alta utilización indica base aeróbica "
+                            "insuficiente — AEC sube VO2max Y LT1 simultáneamente "
+                            "(Seiler 2010, Esteve-Lanao 2005)."
+                        )
+                        # Do NOT override to AEP — keep AEC
+                    else:
+                        reasons.append(
+                            f"Fractional utilization alta ({frac_pct}, VO2max≈{vo2_str} ml/kg/min vía {profile.vo2max_source}): "
+                            "LT2 está cerca del techo aeróbico — prioridad subir VO2max con "
+                            "potencia aeróbica (AEP) antes de empujar umbral."
+                        )
+                        return "aerobic_power_block"
 
             elif frac < 0.75 and season not in {"base_early", "taper"}:
                 # Athlete with headroom: can push thresholds directly
@@ -1040,6 +1244,7 @@ def build_physiological_context(
     hr_rest: Optional[int] = None,
     weight_kg: Optional[float] = None,
     garmin_vo2max: Optional[float] = None,
+    measured_vlamax: Optional[dict] = None,
 ) -> PhysiologicalContext:
     """Construye el contexto fisiológico para la selección de mesociclo.
 
@@ -1077,6 +1282,7 @@ def build_physiological_context(
         hr_rest=hr_rest,
         weight_kg=weight_kg,
         garmin_vo2max=garmin_vo2max,
+        measured_vlamax=measured_vlamax,
     )
 
     return PhysiologicalContext(
@@ -1415,6 +1621,30 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
         recommended = "threshold_development_block"
         reasons.append(
             "El perfil parece demasiado plano por arriba, pero todavía falta desplazar LT2 antes de abrir un bloque más agudo."
+        )
+    # ── AEC como vía indirecta para cerrar LT2 gap en eventos largos ────────
+    # Olbrecht (SoW cap 4): en pruebas >2-3h, AEC desplaza la curva de lactato
+    # completa hacia la derecha. Subir LT1 comprime el rango LT1→LT2, y el
+    # siguiente bloque de THR/AEP tiene más retorno porque parte de una base
+    # más alta. Coyle 1988, Laursen 2002 (ironman), Seiler 2010 (polarized
+    # training para endurance): alto volumen LT1 es la vía más eficiente cuando
+    # el gap LT2 todavía es grande Y la prueba se corre cerca de LT1.
+    # Gate: lt1_gap > 0 (hay margen real de mejora en LT1) AND base/specific
+    # AND not flat profile (si LT1 ya acompaña y es flat → THR tiene sentido).
+    elif (
+        lt1_priority
+        and dist in long_duration_events
+        and lt2_gap is not None and lt2_gap > significant_gap
+        and lt1_gap is not None and lt1_gap > 0
+        and season in {*_BASE_PHASES, "specific"}
+        and not lt1_led_flat_profile
+    ):
+        recommended = "aerobic_capacity_block"
+        reasons.append(
+            f"Para {dist}, el LT2 gap ({lt2_gap:+.2f} {metric_label}) es grande, pero hay margen "
+            f"de mejora en LT1 ({lt1_gap:+.2f} {metric_label}). Subir LT1 desplaza la curva entera "
+            "hacia la derecha — el siguiente bloque de THR/AEP tendrá más retorno partiendo de una base "
+            "más alta (Olbrecht SoW; Coyle 1988; Seiler 2010: polarized training para endurance)."
         )
     elif lt2_priority and lt2_gap is not None and lt2_gap > significant_gap and season not in {"base_early"} and (
         # En base_late, solo disparar si LT1 acompaña (lt1_gap pequeño o sin LT1).

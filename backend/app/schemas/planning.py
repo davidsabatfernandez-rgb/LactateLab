@@ -188,7 +188,7 @@ class PlanningMesocycleDraftRead(BaseModel):
 
 class PlanningPlannedSessionRead(BaseModel):
     id: int
-    focus_block_id: int
+    focus_block_id: Optional[int] = None
     scheduled_date: date
     discipline: str
     week_index: int
@@ -235,6 +235,121 @@ class CoachSessionEditRequest(BaseModel):
     swapped_template_id: Optional[str] = None  # template_id si el entrenador swapea
     scheduled_date: Optional[str] = None        # ISO date (YYYY-MM-DD) para mover la sesión de día
     public_label: Optional[str] = None          # Título visible de la sesión
+
+
+class AddPlannedSessionRequest(BaseModel):
+    """Añadir una sesión planificada desde la biblioteca o manualmente."""
+    athlete_id: int
+    scheduled_date: str                         # ISO YYYY-MM-DD
+    discipline: str                             # running / ciclismo / natación
+    template_id: Optional[str] = None           # from workout library (None = manual)
+    public_label: str
+    objective: Optional[str] = ""
+    session_family: Optional[str] = "manual"
+    session_role: Optional[str] = "support"
+    dose_step: Optional[int] = None             # dose ladder step (1-based)
+    coach_note: Optional[str] = None
+    bla_check: bool = False
+
+
+class CoachLibraryCreate(BaseModel):
+    """Crear una biblioteca de entrenos."""
+    name: str
+    description: Optional[str] = None
+    discipline: Optional[str] = None
+
+
+class CoachWorkoutTemplateCreate(BaseModel):
+    """Añadir un entreno a una biblioteca."""
+    day_offset: int = 0                         # 0=Lun, 1=Mar, ..., 6=Dom
+    discipline: str
+    session_family: str
+    public_label: str
+    objective: str = ""
+    intensity_zone: Optional[str] = None
+    duration_min: Optional[float] = None
+    description: Optional[str] = None
+
+
+class CoachWorkoutTemplateRead(BaseModel):
+    id: int
+    library_id: int
+    day_offset: int = 0
+    discipline: str
+    session_family: str
+    public_label: str
+    objective: str
+    intensity_zone: Optional[str] = None
+    duration_min: Optional[float] = None
+    description: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class ApplyLibraryRequest(BaseModel):
+    """Aplicar una biblioteca semanal a un atleta desde una fecha."""
+    athlete_id: int
+    start_date: str                             # ISO YYYY-MM-DD (lunes de la semana)
+
+
+class CoachPlanCreate(BaseModel):
+    """Crear un plan de entrenamiento."""
+    name: str
+    description: Optional[str] = None
+    duration_weeks: int = 4
+
+
+class CoachPlanDayCreate(BaseModel):
+    """Añadir una sesión a un día del plan."""
+    day_number: int = 0
+    discipline: str
+    session_family: str
+    public_label: str
+    objective: str = ""
+    intensity_zone: Optional[str] = None
+    duration_min: Optional[float] = None
+    description: Optional[str] = None
+
+
+class CoachPlanDayRead(BaseModel):
+    id: int
+    plan_id: int
+    day_number: int
+    discipline: str
+    session_family: str
+    public_label: str
+    objective: str
+    intensity_zone: Optional[str] = None
+    duration_min: Optional[float] = None
+    description: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class CoachPlanRead(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    duration_weeks: int
+    days: list[CoachPlanDayRead] = []
+
+    model_config = {"from_attributes": True}
+
+
+class ApplyPlanRequest(BaseModel):
+    """Aplicar un plan a un atleta desde una fecha."""
+    athlete_id: int
+    start_date: str  # ISO YYYY-MM-DD
+
+
+class CoachLibraryRead(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    discipline: Optional[str] = None
+    workouts: list[CoachWorkoutTemplateRead] = []
+
+    model_config = {"from_attributes": True}
 
 
 class WorkoutStepsEditRequest(BaseModel):
@@ -527,7 +642,7 @@ class TriathlonMesocycleRequest(BaseModel):
     duration_weeks: int = 4
     start_date: date
     swim_mode: str = "auto"  # "auto"|"aerobic"|"threshold"|"technical"
-    ramp_rate_tss_per_week: float = 5.0
+    ramp_rate_pct: float = 5.0  # % of CTL/day (Gabbett 2016: keep ≤10%)
     custom_tss_split: Optional[dict[str, float]] = None
 
 

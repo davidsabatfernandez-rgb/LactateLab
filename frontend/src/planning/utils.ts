@@ -106,9 +106,9 @@ export function planningPublishStatusMeta(value?: string | null) {
 }
 
 export function planningDisciplineAccent(value?: string | null) {
-  if (value === "running") return "#285fe7";
-  if (value === "ciclismo") return "#257a4d";
-  if (value === "natación") return "#1f7c8b";
+  if (value === "running") return "#22c55e";
+  if (value === "ciclismo") return "#f59e0b";
+  if (value === "natación") return "#0ea5e9";
   return "#8a98a8";
 }
 
@@ -189,7 +189,8 @@ export function formatShortDate(value?: string | null) {
 }
 
 export function parseCalendarWorkspaceTab(value: string | null): CalendarWorkspaceTab {
-  if (value === "athletes" || value === "library" || value === "summary") return value;
+  const valid: CalendarWorkspaceTab[] = ["athletes", "library", "summary", "zones", "workouts", "plans"];
+  if (valid.includes(value as CalendarWorkspaceTab)) return value as CalendarWorkspaceTab;
   return "calendar";
 }
 

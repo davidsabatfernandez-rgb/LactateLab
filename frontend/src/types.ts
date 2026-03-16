@@ -469,13 +469,17 @@ export type Estimate = {
   glycogen_risk?: { level: string; label: string } | null;
   durability_info?: {
     duration_hours: number;
-    decay_rate_pct_per_hour: number;
+    decay_rate_k: number;
     total_decay_pct: number;
     effective_lt2_speed_kph: number;
     decay_factor: number;
     endurance_tier: string;
   } | null;
   quality_score?: number | null;
+  // Evidence-only predictions (pure Daniels + di Prampero)
+  evidence_ritmo_techo?: number | null;
+  evidence_ritmo_objetivo?: number | null;
+  evidence_ritmo_seguro?: number | null;
 };
 
 export type Zone = {
@@ -1308,6 +1312,8 @@ export type ThresholdItemForZones = {
 export type ThresholdProfileForZones = {
   lt1?: ThresholdItemForZones | null;
   lt2?: ThresholdItemForZones | null;
+  practical_lt1?: ThresholdItemForZones | null;
+  practical_lt2?: ThresholdItemForZones | null;
   source: string;
   source_label: string;
   confidence?: number | null;
@@ -1401,4 +1407,50 @@ export type TriathlonMesocycleDraft = {
   weeks: TriathlonWeekDraft[];
   spacing_warnings?: string[];
   load_projection?: WeekLoadProjection[];
+};
+
+// ── Coach custom libraries ──
+
+export type CoachWorkoutTemplate = {
+  id: number;
+  library_id: number;
+  day_offset: number;
+  discipline: string;
+  session_family: string;
+  public_label: string;
+  objective: string;
+  intensity_zone: string | null;
+  duration_min: number | null;
+  description: string | null;
+};
+
+export type CoachLibrary = {
+  id: number;
+  name: string;
+  description: string | null;
+  discipline: string | null;
+  workouts: CoachWorkoutTemplate[];
+};
+
+// ── Coach training plans ──
+
+export type CoachPlanDay = {
+  id: number;
+  plan_id: number;
+  day_number: number;
+  discipline: string;
+  session_family: string;
+  public_label: string;
+  objective: string;
+  intensity_zone: string | null;
+  duration_min: number | null;
+  description: string | null;
+};
+
+export type CoachPlan = {
+  id: number;
+  name: string;
+  description: string | null;
+  duration_weeks: number;
+  days: CoachPlanDay[];
 };

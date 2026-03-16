@@ -497,6 +497,38 @@ function describeDynamicWarning(warning: string) {
       body: "Hay coherencia interna del modelo, pero la relación entre lactato, FC y carga externa no es todo lo convincente que debería.",
     };
   }
+  if (warning.includes("umbrales poco fiables")) {
+    return {
+      tone: "negative",
+      eyebrow: "Datos obsoletos",
+      title: "Sin datos de lactato recientes — umbrales poco fiables",
+      body: "Han pasado más de 90 días sin muestras de lactato. Las estimaciones actuales se basan en datos antiguos y pueden no reflejar el estado real del atleta. Se recomienda validar con una medición.",
+    };
+  }
+  if (warning.includes("fiabilidad reducida")) {
+    return {
+      tone: "warning",
+      eyebrow: "Datos envejeciendo",
+      title: "Los umbrales se basan en datos de hace más de 6 semanas",
+      body: "La fiabilidad de las estimaciones disminuye con el tiempo. Considera programar una sesión con medición de lactato para actualizar los umbrales.",
+    };
+  }
+  if (warning.includes("considerar validación")) {
+    return {
+      tone: "info",
+      eyebrow: "Recordatorio",
+      title: "Datos de lactato envejeciendo — validación recomendada",
+      body: "Han pasado más de 3 semanas sin medición. Los umbrales siguen siendo razonables pero irán perdiendo precisión. Una muestra en la próxima sesión de calidad ayudaría.",
+    };
+  }
+  if (warning.includes("Regresión detectada")) {
+    return {
+      tone: "negative",
+      eyebrow: "Regresión",
+      title: "El rendimiento en LT2 ha bajado respecto al pico histórico",
+      body: warning.replace("Regresión detectada: ", ""),
+    };
+  }
   return {
     tone: "neutral",
     eyebrow: "Atención",
@@ -583,15 +615,23 @@ function raceDistanceKm(estimateType: string) {
   return null;
 }
 
-function racePredictionSummary(estimate: Estimate) {
+function racePredictionSummary(estimate: Estimate, evidenceMode = false) {
   const distanceKm = raceDistanceKm(estimate.estimate_type);
   if (estimate.unit !== "s/km" || !distanceKm) {
     return null;
   }
-  // v2: use three-pace fields if available
-  const techo = estimate.ritmo_techo ?? estimate.lower_bound;
-  const objetivo = estimate.ritmo_objetivo ?? estimate.value;
-  const seguro = estimate.ritmo_seguro ?? estimate.upper_bound;
+  // When evidence mode is on and evidence values exist, use them
+  const hasEvidence = estimate.evidence_ritmo_objetivo != null;
+  const useEvidence = evidenceMode && hasEvidence;
+  const techo = useEvidence
+    ? (estimate.evidence_ritmo_techo ?? estimate.ritmo_techo ?? estimate.lower_bound)
+    : (estimate.ritmo_techo ?? estimate.lower_bound);
+  const objetivo = useEvidence
+    ? (estimate.evidence_ritmo_objetivo ?? estimate.ritmo_objetivo ?? estimate.value)
+    : (estimate.ritmo_objetivo ?? estimate.value);
+  const seguro = useEvidence
+    ? (estimate.evidence_ritmo_seguro ?? estimate.ritmo_seguro ?? estimate.upper_bound)
+    : (estimate.ritmo_seguro ?? estimate.upper_bound);
   return {
     pace: formatPace(objetivo),
     totalTime: formatDuration(objetivo * distanceKm),
@@ -619,13 +659,21 @@ function estimateTypesForDiscipline(discipline: string) {
   return ["Maratón", "HM", "10K", "5K", "VO2max"];
 }
 
-function estimateVisualRange(estimate: Estimate, athleteWeight?: number | null) {
-  const raceSummary = racePredictionSummary(estimate);
+function estimateVisualRange(estimate: Estimate, athleteWeight?: number | null, evidenceMode = false) {
+  const raceSummary = racePredictionSummary(estimate, evidenceMode);
   const distanceKm = raceDistanceKm(estimate.estimate_type);
   if (raceSummary && distanceKm) {
-    const techo = estimate.ritmo_techo ?? estimate.lower_bound ?? estimate.value;
-    const seguro = estimate.ritmo_seguro ?? estimate.upper_bound ?? estimate.value;
-    const objetivo = estimate.ritmo_objetivo ?? estimate.value;
+    const hasEvidence = estimate.evidence_ritmo_objetivo != null;
+    const useEvidence = evidenceMode && hasEvidence;
+    const techo = useEvidence
+      ? (estimate.evidence_ritmo_techo ?? estimate.ritmo_techo ?? estimate.lower_bound ?? estimate.value)
+      : (estimate.ritmo_techo ?? estimate.lower_bound ?? estimate.value);
+    const seguro = useEvidence
+      ? (estimate.evidence_ritmo_seguro ?? estimate.ritmo_seguro ?? estimate.upper_bound ?? estimate.value)
+      : (estimate.ritmo_seguro ?? estimate.upper_bound ?? estimate.value);
+    const objetivo = useEvidence
+      ? (estimate.evidence_ritmo_objetivo ?? estimate.ritmo_objetivo ?? estimate.value)
+      : (estimate.ritmo_objetivo ?? estimate.value);
     const bestSeconds = techo * distanceKm;
     const conservativeSeconds = seguro * distanceKm;
     const currentSeconds = objetivo * distanceKm;
@@ -2234,14 +2282,80 @@ function parseMinPerKm(value: string) {
 
 // ── Training Zones section (inline component) ──────────────────────────────
 
+type StalenessData = {
+  is_stale: boolean; reason: string | null;
+  zones_created_at: string | null; zones_threshold_source: string | null;
+  current_snapshot_date: string | null;
+  lt2_pace_delta_seconds: number | null; lt2_hr_delta: number | null; lt2_power_delta: number | null;
+  lt1_pace_delta_seconds: number | null; lt1_hr_delta: number | null; lt1_power_delta: number | null;
+};
+
+function formatPaceDelta(delta: number): string {
+  const abs = Math.abs(delta);
+  const sign = delta < 0 ? "-" : "+";
+  return `${sign}${Math.floor(abs / 60)}:${String(Math.round(abs % 60)).padStart(2, "0")}/km`;
+}
+
+function StalenessReviewBanner({ staleness, onReview, onDismiss }: {
+  staleness: StalenessData; onReview: () => void; onDismiss: () => void;
+}) {
+  const deltas: string[] = [];
+  if (staleness.lt2_pace_delta_seconds != null && staleness.lt2_pace_delta_seconds !== 0)
+    deltas.push(`LT2 pace ${formatPaceDelta(staleness.lt2_pace_delta_seconds)}`);
+  if (staleness.lt2_hr_delta != null && staleness.lt2_hr_delta !== 0)
+    deltas.push(`LT2 FC ${staleness.lt2_hr_delta > 0 ? "+" : ""}${staleness.lt2_hr_delta} bpm`);
+  if (staleness.lt2_power_delta != null && staleness.lt2_power_delta !== 0)
+    deltas.push(`LT2 potencia ${staleness.lt2_power_delta > 0 ? "+" : ""}${Math.round(staleness.lt2_power_delta)}W`);
+  if (staleness.lt1_pace_delta_seconds != null && staleness.lt1_pace_delta_seconds !== 0)
+    deltas.push(`LT1 pace ${formatPaceDelta(staleness.lt1_pace_delta_seconds)}`);
+  if (staleness.lt1_hr_delta != null && staleness.lt1_hr_delta !== 0)
+    deltas.push(`LT1 FC ${staleness.lt1_hr_delta > 0 ? "+" : ""}${staleness.lt1_hr_delta} bpm`);
+
+  return (
+    <div style={{
+      background: "rgba(210, 160, 50, 0.12)", border: "1px solid rgba(210, 160, 50, 0.35)",
+      borderRadius: 8, padding: "10px 14px", fontSize: "0.82rem", display: "grid", gap: 6,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: "1.1rem" }}>&#9888;</span>
+        <strong style={{ color: "#d2a032" }}>Zonas posiblemente desactualizadas</strong>
+      </div>
+      {deltas.length > 0 && (
+        <div style={{ color: "var(--muted)", lineHeight: 1.5 }}>
+          Cambios desde la creación: {deltas.join(" · ")}
+        </div>
+      )}
+      {staleness.reason && (
+        <div style={{ color: "var(--muted)", fontSize: "0.78rem", fontStyle: "italic" }}>
+          {staleness.reason}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+        <button type="button" className="tz-suggest-btn" onClick={onReview}
+          style={{ fontSize: "0.8rem", padding: "5px 14px" }}>
+          Revisar y actualizar
+        </button>
+        <button type="button" className="tz-edit-btn" onClick={onDismiss}
+          style={{ fontSize: "0.78rem", padding: "4px 10px", opacity: 0.7 }}>
+          Ignorar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: number; discipline: string; token: string }) {
   const [zoneSets, setZoneSets] = useState<TrainingZoneSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editingSet, setEditingSet] = useState<TrainingZoneSet | null>(null);
+  const [staleness, setStaleness] = useState<StalenessData | null>(null);
+  const [stalenessDismissed, setStalenessDismissed] = useState(false);
+  const [sessionsUpdatedMsg, setSessionsUpdatedMsg] = useState<string | null>(null);
 
   const loadZones = useCallback(() => {
     setLoading(true);
+    setStalenessDismissed(false);
     api.trainingZoneSets(token, athleteId, discipline)
       .then((data) => setZoneSets(data as TrainingZoneSet[]))
       .catch(() => setZoneSets([]))
@@ -2249,6 +2363,15 @@ function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: num
   }, [token, athleteId, discipline]);
 
   useEffect(() => { loadZones(); }, [loadZones]);
+
+  // Check staleness when zones load
+  useEffect(() => {
+    const activeExists = zoneSets.some((zs) => zs.is_active);
+    if (!activeExists) { setStaleness(null); return; }
+    api.zoneStalenessCheck(token, athleteId, discipline)
+      .then((data) => setStaleness(data))
+      .catch(() => setStaleness(null));
+  }, [zoneSets, token, athleteId, discipline]);
 
   const activeSet = zoneSets.find((zs) => zs.is_active) ?? null;
 
@@ -2259,7 +2382,14 @@ function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: num
         discipline={discipline}
         token={token}
         existingSet={editingSet}
-        onSave={() => { setEditing(false); setEditingSet(null); loadZones(); }}
+        onSave={(saved) => {
+          setEditing(false); setEditingSet(null); loadZones();
+          const count = (saved as TrainingZoneSet & { sessions_updated?: number }).sessions_updated;
+          if (count && count > 0) {
+            setSessionsUpdatedMsg(`${count} sesión${count > 1 ? "es" : ""} futura${count > 1 ? "s" : ""} actualizada${count > 1 ? "s" : ""} con las nuevas zonas`);
+            setTimeout(() => setSessionsUpdatedMsg(null), 6000);
+          }
+        }}
         onCancel={() => { setEditing(false); setEditingSet(null); }}
       />
     );
@@ -2301,6 +2431,22 @@ function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: num
 
   return (
     <div style={{ display: "grid", gap: 10 }}>
+      {sessionsUpdatedMsg && (
+        <div style={{
+          background: "rgba(58, 154, 91, 0.12)", border: "1px solid rgba(58, 154, 91, 0.35)",
+          borderRadius: 8, padding: "8px 14px", fontSize: "0.82rem", color: "#3a9a5b",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <span>&#10003;</span> {sessionsUpdatedMsg}
+        </div>
+      )}
+      {staleness?.is_stale && !stalenessDismissed && (
+        <StalenessReviewBanner
+          staleness={staleness}
+          onReview={() => { setEditingSet(null); setEditing(true); }}
+          onDismiss={() => setStalenessDismissed(true)}
+        />
+      )}
       <TrainingZonesDisplay
         zoneSet={activeSet}
         discipline={discipline}
@@ -2460,6 +2606,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const [cyclingPowerTarget, setCyclingPowerTarget] = useState("");
   const [cyclingPowerTolerance, setCyclingPowerTolerance] = useState("15");
   const [selectedEstimateType, setSelectedEstimateType] = useState<string | null>(null);
+  const [useEvidenceMode, setUseEvidenceMode] = useState(false);
   const [thresholdReferenceVisibility, setThresholdReferenceVisibility] = useState({
     lt1: true,
     lt2: true,
@@ -4789,9 +4936,29 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               <small className="ad-threshold-detail">{thresholdDetailLine(threshold, activeDiscipline, athleteWeight)}</small>
             </article>
           ))}
+          {relevantEstimates.some((e) => e.evidence_ritmo_objetivo != null) && (
+            <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end", marginBottom: -4 }}>
+              <button
+                type="button"
+                onClick={() => setUseEvidenceMode((v) => !v)}
+                style={{
+                  padding: "4px 10px",
+                  fontSize: 11,
+                  borderRadius: 6,
+                  border: useEvidenceMode ? "1px solid #3182ce" : "1px solid rgba(255,255,255,0.15)",
+                  background: useEvidenceMode ? "rgba(49,130,206,0.15)" : "rgba(255,255,255,0.04)",
+                  color: useEvidenceMode ? "#63b3ed" : "#a0aec0",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+              >
+                {useEvidenceMode ? "Evidencia contrastada" : "Usar evidencia contrastada"}
+              </button>
+            </div>
+          )}
           {relevantEstimates.map((estimate, index) => {
-            const raceSummary = racePredictionSummary(estimate);
-            const visualRange = estimateVisualRange(estimate, athleteWeight);
+            const raceSummary = racePredictionSummary(estimate, useEvidenceMode);
+            const visualRange = estimateVisualRange(estimate, athleteWeight, useEvidenceMode);
             return (
               <article
                 key={`${estimate.estimate_type}-${estimate.discipline}-${estimate.valid_on ?? "na"}-${index}`}
@@ -4799,7 +4966,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                 onClick={() => setSelectedEstimateType(estimate.estimate_type)}
               >
                 <div className="status-head">
-                  <span className="eyebrow">{estimate.estimate_type}</span>
+                  <span className="eyebrow">{estimate.estimate_type}{useEvidenceMode && estimate.evidence_ritmo_objetivo != null ? " (ev.)" : ""}</span>
                   <span className={`status-badge ${estimate.reliability_label}`}>{estimate.reliability_label}</span>
                 </div>
                 <strong>
@@ -5310,7 +5477,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                 ) : plotView.pool.length ? (
                   /* Standard lactate scatter chart */
                   <ResponsiveContainer width="100%" height={420}>
-                    <ScatterChart margin={{ top: 16, right: 20, bottom: 16, left: 8 }}>
+                    <ScatterChart margin={{ top: 16, right: 20, bottom: 16, left: 32 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(11, 29, 38, 0.07)" />
                       <XAxis
                         type="number"
@@ -5319,8 +5486,9 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                         name={plotView.plotLabel}
                         domain={["auto", "auto"]}
                         reversed={disciplineKey !== "ciclismo"}
+                        padding={{ left: 10, right: 10 }}
                       />
-                      <YAxis type="number" dataKey="lactate" name="Lactato" unit=" mmol/L" domain={[0, "auto"]} />
+                      <YAxis type="number" dataKey="lactate" name="Lactato" unit=" mmol/L" domain={[0, "auto"]} width={48} />
                       <Tooltip
                         content={({ active, payload }) => customThresholdTooltip(active, payload as Array<{ payload?: Record<string, unknown> }> | undefined, disciplineKey, athleteWeight)}
                       />
@@ -5783,7 +5951,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         {relevantEstimates.length > 1 ? (
           <div className="estimate-selector-strip">
             {relevantEstimates.map((estimate) => {
-              const raceSummary = racePredictionSummary(estimate);
+              const raceSummary = racePredictionSummary(estimate, useEvidenceMode);
               const compactValue = raceSummary
                 ? raceSummary.totalTime
                 : estimate.estimate_type === "FTP" && estimate.unit === "W"
@@ -5808,7 +5976,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
           <>
             <div className="list estimate-grid estimate-visual-grid">
               {(() => {
-                const visual = estimateVisualRange(selectedRelevantEstimate, athleteWeight);
+                const visual = estimateVisualRange(selectedRelevantEstimate, athleteWeight, useEvidenceMode);
                 return (
                   <div
                     key={`${selectedRelevantEstimate.estimate_type}-${selectedRelevantEstimate.discipline}-${selectedRelevantEstimate.valid_on ?? "na"}`}

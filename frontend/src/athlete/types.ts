@@ -37,6 +37,7 @@ export type WellnessSeriesPoint = {
   respirationRate: number | null;
   breathingEvents: number | null;
   weight: number | null;
+  steps: number | null;
 };
 
 export type SleepStageKey = "awake" | "rem" | "light" | "deep";

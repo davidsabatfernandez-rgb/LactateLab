@@ -125,7 +125,7 @@ def test_build_mesocycle_draft_progresses_lt1_across_work_weeks_and_finishes_in_
     # El wave principle de Olbrecht: load→build→build_peak→recovery
     # build_peak usa ANC spice (run_anc_submax_spice) + run_lt1_long_reps, no run_lt1_extensive
     # Por eso buscamos las sesiones LT1 en cualquiera de las familias lt1_* usadas
-    lt1_families = {"lt1_extensive", "lt1_long_reps", "anc_submax_spice"}
+    lt1_families = {"lt1_extensive", "lt1_long_reps", "anc_submax_spice", "escalated_lt1"}
     lt1_sessions = []
     for week in draft["weeks"][:-1]:  # Excluir semana de recovery
         for s in week["sessions"]:

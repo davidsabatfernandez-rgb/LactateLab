@@ -33,7 +33,6 @@ export function Layout({ onLogout, themeMode, onToggleTheme, children }: LayoutP
           <NavLink to="/lab">Inicio</NavLink>
           <NavLink to="/athletes">Atletas</NavLink>
           <NavLink to="/planning">Planificacion</NavLink>
-          <NavLink to="/nutrition">Nutricion</NavLink>
           <div className={`nav-group ly-nav-group ${isLibraryOpen ? "open" : ""}`}>
             <button
               type="button"

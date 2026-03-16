@@ -125,6 +125,21 @@
   background: rgba(47, 122, 119, 0.14);
 }
 
+/* ── Auto-calculation warning ── */
+
+.tz-auto-warning {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255, 152, 0, 0.08);
+  border: 1px solid rgba(255, 152, 0, 0.25);
+  font-size: 0.8rem;
+  color: #8b5e14;
+  line-height: 1.5;
+}
+.tz-auto-warning strong {
+  color: #c27a2e;
+}
+
 /* ── Set name ── */
 
 .tz-name-row {
@@ -495,4 +510,97 @@
   .tz-col-label {
     width: 120px;
   }
+}
+
+/* ── Multi-discipline zone cards (CalendarZonesTab) ── */
+
+.zones-discipline-card {
+  border-left: 3px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left-width: 3px;
+  padding: 16px 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.zones-discipline-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.zones-discipline-card-head strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+}
+
+.zones-stale-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 152, 0, 0.12);
+  color: #e68a00;
+  border: 1px solid rgba(255, 152, 0, 0.25);
+  cursor: help;
+}
+.zones-ok-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(46, 139, 87, 0.10);
+  color: #2e8b57;
+  border: 1px solid rgba(46, 139, 87, 0.2);
+}
+
+.zones-stale-detail {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 152, 0, 0.06);
+  border: 1px solid rgba(255, 152, 0, 0.15);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 0.76rem;
+  color: #b07020;
+}
+.zones-stale-detail p {
+  margin: 0;
+  width: 100%;
+  font-weight: 500;
+}
+.zones-stale-detail span {
+  white-space: nowrap;
+}
+
+.zones-discipline-loading,
+.zones-discipline-empty {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.zones-discipline-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.zones-archived-detail {
+  font-size: 0.76rem;
+  color: var(--muted);
+  margin-left: auto;
+}
+.zones-archived-list {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+.zones-archived-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }

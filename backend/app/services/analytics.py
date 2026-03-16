@@ -54,11 +54,20 @@ def _threshold_result_from_payload(payload: dict[str, Any]) -> ThresholdResult:
 
 
 def _smooth(values: list[float]) -> list[float]:
+    """3-point moving average with reflective padding (scipy mode='reflect').
+
+    Without padding, endpoint values are averaged with fewer neighbours, which
+    compresses peak lactate and underestimates LT2 in steep curves.
+    Reflective padding preserves endpoint magnitude — standard in signal
+    processing (Smith 1997, scipy.ndimage).
+    """
     if len(values) < 3:
         return values[:]
+    # Reflective pad: [v1, v0, v0, v1, v2, ..., vN, vN, vN-1]
+    padded = [values[1], values[0]] + values + [values[-1], values[-2]]
     smoothed: list[float] = []
-    for index in range(len(values)):
-        neighborhood = values[max(0, index - 1): min(len(values), index + 2)]
+    for index in range(2, len(padded) - 2):
+        neighborhood = padded[index - 1: index + 2]
         smoothed.append(sum(neighborhood) / len(neighborhood))
     return smoothed
 
@@ -179,6 +188,84 @@ def _peak_lactate(session: AthleteSession) -> Optional[dict[str, Any]]:
     return best
 
 
+def _calculate_measured_vlamax(session: AthleteSession) -> Optional[dict[str, Any]]:
+    """Calculate VLamax from a sprint all-out test using Mader's formula.
+
+    Requires session_type == "vlamax_test". The session should contain:
+    - A sprint interval (15-30s all-out) with duration_seconds
+    - Post-sprint lactate samples (typically at min 3, 5, 7)
+    - A baseline_lactate on at least one sample
+
+    Simplified Mader formula:
+      VLamax = (peak_lactate - baseline) / (2 × sprint_duration_s)
+
+    Units: mmol/L/s — consistent with published VLamax values and the
+    prediction engine proxy (range 0.15–0.75).
+    Literature ranges: sprinter 0.6–0.9, trained 0.3–0.5, endurance 0.15–0.30.
+    """
+    if session.session_type != "vlamax_test":
+        return None
+
+    # Find sprint interval: shortest duration interval (the all-out effort)
+    sprint_interval = None
+    for interval in session.intervals:
+        if interval.duration_seconds and interval.duration_seconds <= 120:
+            if sprint_interval is None or interval.duration_seconds < sprint_interval.duration_seconds:
+                sprint_interval = interval
+
+    if sprint_interval is None or not sprint_interval.duration_seconds:
+        return None
+
+    sprint_duration_s = sprint_interval.duration_seconds
+
+    # Find baseline lactate (pre-sprint resting value)
+    baseline = None
+    for interval in session.intervals:
+        sample = interval.lactate_sample
+        if sample and sample.baseline_lactate is not None:
+            baseline = sample.baseline_lactate
+            break
+    # Fallback: use the lowest lactate in the session as baseline
+    if baseline is None:
+        all_lactates = [
+            iv.lactate_sample.lactate_mmol
+            for iv in session.intervals
+            if iv.lactate_sample
+        ]
+        if all_lactates:
+            baseline = min(all_lactates)
+
+    if baseline is None:
+        return None
+
+    # Find peak post-sprint lactate (highest value in the session)
+    peak = None
+    for interval in session.intervals:
+        sample = interval.lactate_sample
+        if sample and (peak is None or sample.lactate_mmol > peak):
+            peak = sample.lactate_mmol
+
+    if peak is None or peak <= baseline:
+        return None
+
+    # Simplified Mader: VLamax (mmol/L/s) = Δlactate / (2 × t_sprint_s)
+    # The factor of 2 accounts for the glycolytic stoichiometry (Mader 2003):
+    # only ~50% of glycolytic flux appears as blood lactate.
+    vlamax = (peak - baseline) / (2.0 * sprint_duration_s)
+
+    # Sanity clamp: physiological range 0.15–0.90 mmol/L/s
+    vlamax = max(0.15, min(0.90, vlamax))
+
+    return {
+        "vlamax_mmol_min": round(vlamax, 3),
+        "peak_lactate": round(peak, 2),
+        "baseline_lactate": round(baseline, 2),
+        "sprint_duration_s": sprint_duration_s,
+        "source": "mader_sprint_test",
+        "confidence": 0.90,
+    }
+
+
 def _curve_points(session: AthleteSession, metric: str) -> list[dict[str, Any]]:
     points: list[dict[str, Any]] = []
     peak_lactate = max(
@@ -273,6 +360,7 @@ def _method_baseline_rise(candidates: list[dict[str, Any]]) -> list[ThresholdMet
             lt1_index = idx
             break
     lt2_index = len(lactates) - 1
+    lt2_is_fallback = True
     for idx, value in enumerate(lactates):
         prev_value = lactates[idx - 1] if idx > 0 else value
         next_value = lactates[idx + 1] if idx + 1 < len(lactates) else value
@@ -287,6 +375,7 @@ def _method_baseline_rise(candidates: list[dict[str, Any]]) -> list[ThresholdMet
             # Si cae, es un artefacto y seguimos buscando.
             if next_value >= value - 0.5:
                 lt2_index = idx
+                lt2_is_fallback = False
                 break
     output = []
     for name, idx, explanation in [
@@ -299,8 +388,16 @@ def _method_baseline_rise(candidates: list[dict[str, Any]]) -> list[ThresholdMet
         confidence = min(0.88, 0.56 + len(candidates) * 0.05)
         confidence = round(max(0.25, min(0.95, confidence * (0.72 + protocol_score * 0.28))), 2)
         explanation_used = explanation
+        # Penalizar LT2 que viene de fallback (último punto) — no es una
+        # detección real sino ausencia de señal clara.
+        if name == "LT2" and lt2_is_fallback:
+            confidence = round(confidence * 0.4, 2)
+            explanation_used = (
+                "FALLBACK: ningún método detectó LT2 claro; se usa el último "
+                "dato como proxy con confianza reducida."
+            )
         if protocol_score < 0.7:
-            explanation_used = f"{explanation} La fiabilidad baja por duración/descanso del escalón poco favorables."
+            explanation_used = f"{explanation_used} La fiabilidad baja por duración/descanso del escalón poco favorables."
         output.append(
             ThresholdMethodEstimate(
                 threshold_name=name,
@@ -319,7 +416,7 @@ def _method_baseline_rise(candidates: list[dict[str, Any]]) -> list[ThresholdMet
 
 def _method_sustained_increase(candidates: list[dict[str, Any]]) -> list[ThresholdMethodEstimate]:
     lactates = _smooth([item["lactate"] for item in candidates])
-    lt1_index = 0
+    lt1_index: Optional[int] = None  # None = no detection (was: 0 fallback)
     baseline = min(lactates[: min(4, len(lactates))])
     for idx in range(1, len(lactates)):
         if (
@@ -331,25 +428,38 @@ def _method_sustained_increase(candidates: list[dict[str, Any]]) -> list[Thresho
             lt1_index = idx
             break
     lt2_index = len(lactates) - 1
+    lt2_is_fallback = True
     for idx in range(2, len(lactates)):
         local_slope = lactates[idx] - lactates[idx - 1]
         prior_slope = lactates[idx - 1] - lactates[idx - 2]
         if lactates[idx] >= max(3.2, baseline + 1.4) and local_slope >= max(0.45, prior_slope + 0.2):
             lt2_index = idx
+            lt2_is_fallback = False
             break
     output = []
     for name, idx, explanation in [
         ("LT1", lt1_index, "Se elige el primer ascenso mantenido entre dos pasos consecutivos."),
         ("LT2", lt2_index, "Se elige la primera rotura clara de pendiente frente al tramo anterior."),
     ]:
+        # Skip LT1 if no sustained increase was detected (avoids contaminating
+        # the aggregation with index 0 — the first data point).
+        if idx is None:
+            continue
         interval = candidates[idx]["interval"]
         sample = interval.lactate_sample
         protocol_score = candidates[idx].get("protocol_score", 0.7)
         confidence = min(0.84, 0.52 + len(candidates) * 0.05)
         confidence = round(max(0.25, min(0.95, confidence * (0.72 + protocol_score * 0.28))), 2)
         explanation_used = explanation
+        # Penalizar LT2 fallback (último punto = ausencia de señal clara)
+        if name == "LT2" and lt2_is_fallback:
+            confidence = round(confidence * 0.4, 2)
+            explanation_used = (
+                "FALLBACK: sin rotura de pendiente clara; se usa el último "
+                "dato como proxy con confianza reducida."
+            )
         if protocol_score < 0.7:
-            explanation_used = f"{explanation} La fiabilidad baja por duración/descanso del escalón poco favorables."
+            explanation_used = f"{explanation_used} La fiabilidad baja por duración/descanso del escalón poco favorables."
         output.append(
             ThresholdMethodEstimate(
                 threshold_name=name,
@@ -463,16 +573,6 @@ def _aggregate_threshold(name: str, methods: list[ThresholdMethodEstimate]) -> T
         )
 
     filtering_notes: list[str] = []
-    if name == "LT1":
-        filtered_lt1 = [
-            method
-            for method in valid
-            if not (method.method == "dmax_proxy" and method.lactate is not None and method.lactate >= 3.2)
-        ]
-        if filtered_lt1 and len(filtered_lt1) != len(valid):
-            valid = filtered_lt1
-            filtering_notes.append("Se excluyó Dmax para LT1 por caer demasiado alto en lactato y contaminar el primer umbral.")
-
     best = max(valid, key=lambda method: method.confidence)
     lactate_values = [item.lactate for item in valid if item.lactate is not None]
     pace_values = [item.pace_seconds_per_km for item in valid if item.pace_seconds_per_km is not None]
@@ -483,6 +583,10 @@ def _aggregate_threshold(name: str, methods: list[ThresholdMethodEstimate]) -> T
     if len(lactate_values) >= 2:
         lactate_range = max(lactate_values) - min(lactate_values)
         lactate_agreement = max(0.0, 1 - lactate_range / 1.5)
+    elif len(valid) == 1:
+        # Un solo método: no hay acuerdo posible → confianza baja (Faude 2009:
+        # la validez de un umbral requiere convergencia de ≥2 métodos)
+        lactate_agreement = 0.25
     else:
         lactate_agreement = 0.55
 
@@ -1347,6 +1451,7 @@ def analyze_session(session: AthleteSession) -> dict[str, Any]:
     ]
 
     peak = _peak_lactate(session)
+    measured_vlamax = _calculate_measured_vlamax(session)
     return {
         "curve_by_pace": _curve_points(session, "pace_seconds_per_km"),
         "curve_by_power": _curve_points(session, "power_watts"),
@@ -1358,6 +1463,7 @@ def analyze_session(session: AthleteSession) -> dict[str, Any]:
         "confidence_summary": threshold_confidence_items + confidence_items[:3],
         "contextual_details": contextual_details,
         "peak_lactate": peak,
+        "measured_vlamax": measured_vlamax,
         "historical_evolution": {},
         "real_thresholds": _detect_real_thresholds(session),
         "individual_thresholds": None,
@@ -1365,33 +1471,69 @@ def analyze_session(session: AthleteSession) -> dict[str, Any]:
 
 
 def _estimate_zones(thresholds: list[ThresholdResult], discipline: str) -> list[dict[str, Any]]:
+    """Genera zonas de entrenamiento (5 zonas) ancladas a LT1/LT2 individuales.
+
+    Modelo basado en Seiler 2006, Esteve-Lanao 2007, Faude 2009, Coggan 2010,
+    Nuuttila 2025 (EJAP 125:2161):
+      Z1 (Recovery):  < 85% de LT1
+      Z2 (Aeróbico):  85% LT1 → LT1          (upper = LT1)
+      Z3 (Tempo):     LT1 → LT2               (entre umbrales)
+      Z4 (Threshold): LT2 → LT2 × 1.05        (centrada en LT2/MLSS)
+      Z5 (VO2max+):   > LT2 × 1.05
+
+    Nuuttila 2025: el 43% de atletas se clasifican mal con zonas fijas (%HRmax).
+    Anclar a umbrales individuales elimina este error sistemático.
+
+    Para pace (running): valores más ALTOS = más lento, por eso los cálculos se
+    invierten (÷ en lugar de ×).
+    """
     lt1 = next((item for item in thresholds if item.name == "LT1"), None)
     lt2 = next((item for item in thresholds if item.name == "LT2"), None)
     zones: list[dict[str, Any]] = []
+
+    # ── Pace zones (running) ─────────────────────────────────────────────
     if discipline == "running" and lt1 and lt2 and lt1.pace_seconds_per_km and lt2.pace_seconds_per_km:
-        zones.extend(
-            [
-                {"zone": "Z1", "metric": "pace", "lower": lt1.pace_seconds_per_km * 1.15, "upper": lt1.pace_seconds_per_km, "unit": "s/km"},
-                {"zone": "Z2", "metric": "pace", "lower": lt1.pace_seconds_per_km, "upper": (lt1.pace_seconds_per_km + lt2.pace_seconds_per_km) / 2, "unit": "s/km"},
-                {"zone": "Z3", "metric": "pace", "lower": (lt1.pace_seconds_per_km + lt2.pace_seconds_per_km) / 2, "upper": lt2.pace_seconds_per_km, "unit": "s/km"},
-            ]
-        )
+        lt1_p = lt1.pace_seconds_per_km
+        lt2_p = lt2.pace_seconds_per_km
+        # Para pace: más lento = valor mayor, así que Z1 upper > Z2 upper
+        z1_lower = round(lt1_p / 0.85)        # ~85% LT1 speed → slower
+        z4_upper = round(lt2_p / 1.05)        # LT2+5% speed → faster
+        zones.extend([
+            {"zone": "Z1", "metric": "pace", "lower": z1_lower, "upper": lt1_p,  "unit": "s/km", "label": "Recovery"},
+            {"zone": "Z2", "metric": "pace", "lower": lt1_p,    "upper": lt1_p,  "unit": "s/km", "label": "Aeróbico"},
+            {"zone": "Z3", "metric": "pace", "lower": lt1_p,    "upper": lt2_p,  "unit": "s/km", "label": "Tempo"},
+            {"zone": "Z4", "metric": "pace", "lower": lt2_p,    "upper": z4_upper, "unit": "s/km", "label": "Threshold"},
+            {"zone": "Z5", "metric": "pace", "lower": z4_upper, "upper": None,   "unit": "s/km", "label": "VO2max+"},
+        ])
+
+    # ── HR zones ─────────────────────────────────────────────────────────
     if lt1 and lt2 and lt1.heart_rate and lt2.heart_rate:
-        zones.extend(
-            [
-                {"zone": "Z1", "metric": "heart_rate", "lower": None, "upper": lt1.heart_rate, "unit": "bpm"},
-                {"zone": "Z2", "metric": "heart_rate", "lower": lt1.heart_rate, "upper": lt2.heart_rate, "unit": "bpm"},
-                {"zone": "Z3", "metric": "heart_rate", "lower": lt2.heart_rate, "upper": None, "unit": "bpm"},
-            ]
-        )
+        lt1_hr = lt1.heart_rate
+        lt2_hr = lt2.heart_rate
+        z1_lower = round(lt1_hr * 0.85)
+        z4_upper = round(lt2_hr * 1.05)
+        zones.extend([
+            {"zone": "Z1", "metric": "heart_rate", "lower": z1_lower, "upper": lt1_hr,  "unit": "bpm", "label": "Recovery"},
+            {"zone": "Z2", "metric": "heart_rate", "lower": lt1_hr,   "upper": lt1_hr,  "unit": "bpm", "label": "Aeróbico"},
+            {"zone": "Z3", "metric": "heart_rate", "lower": lt1_hr,   "upper": lt2_hr,  "unit": "bpm", "label": "Tempo"},
+            {"zone": "Z4", "metric": "heart_rate", "lower": lt2_hr,   "upper": z4_upper, "unit": "bpm", "label": "Threshold"},
+            {"zone": "Z5", "metric": "heart_rate", "lower": z4_upper, "upper": None,    "unit": "bpm", "label": "VO2max+"},
+        ])
+
+    # ── Power zones (ciclismo) ───────────────────────────────────────────
     if lt1 and lt2 and lt1.power_watts and lt2.power_watts:
-        zones.extend(
-            [
-                {"zone": "Z1", "metric": "power", "lower": None, "upper": lt1.power_watts, "unit": "W"},
-                {"zone": "Z2", "metric": "power", "lower": lt1.power_watts, "upper": lt2.power_watts, "unit": "W"},
-                {"zone": "Z3", "metric": "power", "lower": lt2.power_watts, "upper": lt2.power_watts * 1.15, "unit": "W"},
-            ]
-        )
+        lt1_w = lt1.power_watts
+        lt2_w = lt2.power_watts
+        z1_lower = round(lt1_w * 0.85)
+        z4_upper = round(lt2_w * 1.05)
+        zones.extend([
+            {"zone": "Z1", "metric": "power", "lower": z1_lower, "upper": lt1_w,  "unit": "W", "label": "Recovery"},
+            {"zone": "Z2", "metric": "power", "lower": lt1_w,    "upper": lt1_w,  "unit": "W", "label": "Aeróbico"},
+            {"zone": "Z3", "metric": "power", "lower": lt1_w,    "upper": lt2_w,  "unit": "W", "label": "Tempo"},
+            {"zone": "Z4", "metric": "power", "lower": lt2_w,    "upper": z4_upper, "unit": "W", "label": "Threshold"},
+            {"zone": "Z5", "metric": "power", "lower": z4_upper, "upper": None,   "unit": "W", "label": "VO2max+"},
+        ])
+
     return zones
 
 
@@ -1440,6 +1582,7 @@ def _performance_estimates(
     dynamic_thresholds: Optional[dict[str, Any]] = None,
     snapshots: Optional[list[PhysiologicalSnapshot]] = None,
     swain_vo2max: Optional[dict[str, Any]] = None,
+    measured_vlamax: Optional[dict[str, Any]] = None,
 ) -> list[dict[str, Any]]:
     return build_performance_estimates(
         athlete=athlete,
@@ -1451,6 +1594,7 @@ def _performance_estimates(
         dynamic_thresholds=dynamic_thresholds,
         snapshots=snapshots or [],
         swain_vo2max=swain_vo2max,
+        measured_vlamax=measured_vlamax,
     )
 
 
@@ -1966,6 +2110,9 @@ def _discipline_view(
                 "glycogen_risk": item.payload.get("glycogen_risk"),
                 "durability_info": item.payload.get("durability_info"),
                 "quality_score": item.payload.get("quality_score"),
+                "evidence_ritmo_techo": item.payload.get("evidence_ritmo_techo"),
+                "evidence_ritmo_objetivo": item.payload.get("evidence_ritmo_objetivo"),
+                "evidence_ritmo_seguro": item.payload.get("evidence_ritmo_seguro"),
             }
             for item in discipline_estimates[:10]
         ],
@@ -2055,6 +2202,15 @@ def _discipline_view(
             }
     payload["swain_vo2max"] = swain_vo2max
 
+    # ── Measured VLamax from latest sprint test ───────────────────────────
+    _latest_measured_vlamax = None
+    for snap in reversed(snapshots):
+        _mv = (snap.payload or {}).get("measured_vlamax")
+        if _mv and _mv.get("vlamax_mmol_min"):
+            _latest_measured_vlamax = _mv
+            break
+    payload["measured_vlamax"] = _latest_measured_vlamax
+
     # ── Target curve from athlete's race goal ────────────────────────────
     target_curve = None
     if discipline == "running" and latest_snapshot:
@@ -2120,6 +2276,52 @@ def _discipline_view(
             for source in ("outdoor", "indoor")
             if any(_normalized_power_source(session) == source for session in sessions if session.discipline == discipline)
         }
+
+    # ── Level suggestion ─────────────────────────────────────────────────
+    from app.services.physiological_engine import suggest_athlete_level
+    if latest_snapshot and power_source is None:
+        lt2_pace = latest_snapshot.lt2_pace_seconds_per_km
+        lt2_power = latest_snapshot.lt2_power_watts
+        lt2_speed = round(3600 / lt2_pace, 3) if lt2_pace and lt2_pace > 0 else None
+        lt2_vals: dict[str, Optional[float]] = {}
+        if discipline == "ciclismo" and lt2_power:
+            lt2_vals["ciclismo"] = float(lt2_power)
+        elif discipline == "natacion" and lt2_speed:
+            lt2_vals["natacion"] = lt2_speed
+        elif lt2_speed:
+            lt2_vals["running"] = lt2_speed
+
+        vo2_est = swain_vo2max["vo2max"] if swain_vo2max else None
+        frac_est = swain_vo2max.get("fractional_utilization") if swain_vo2max else None
+        lt1_pace = latest_snapshot.lt1_pace_seconds_per_km
+        lt1_speed = round(3600 / lt1_pace, 3) if lt1_pace and lt1_pace > 0 else None
+        lt1_power = latest_snapshot.lt1_power_watts
+        ratio = None
+        if discipline == "ciclismo" and lt1_power and lt2_power and lt2_power > 0:
+            ratio = lt1_power / lt2_power
+        elif lt1_speed and lt2_speed and lt2_speed > 0:
+            ratio = lt1_speed / lt2_speed
+
+        sex = getattr(athlete, "sex", "male") or "male"
+        suggestion = suggest_athlete_level(
+            lt2_values=lt2_vals,
+            vo2max=vo2_est,
+            lt1_lt2_ratio=ratio,
+            fractional_utilization=frac_est,
+            sex=sex,
+        )
+        current_level = getattr(athlete, "athlete_level", "trained") or "trained"
+        suggestion.current_level = current_level
+        suggestion.matches_current = suggestion.suggested_level == current_level
+        payload["level_suggestion"] = {
+            "suggested_level": suggestion.suggested_level,
+            "confidence": suggestion.confidence,
+            "current_level": suggestion.current_level,
+            "matches_current": suggestion.matches_current,
+            "evidence": suggestion.evidence,
+            "scores": suggestion.scores,
+        }
+
     return payload
 
 
@@ -2396,6 +2598,15 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
             if _v is not None:
                 _swain_for_prediction = {"vo2max": _v, "fractional_utilization": _f, "confidence": _c}
 
+        # Find latest measured VLamax: from current session or most recent prior snapshot
+        _measured_vlamax = analysis.get("measured_vlamax")
+        if _measured_vlamax is None:
+            for _prior in reversed(prior_snapshots):
+                _prior_mv = (_prior.payload or {}).get("measured_vlamax")
+                if _prior_mv and _prior_mv.get("vlamax_mmol_min"):
+                    _measured_vlamax = _prior_mv
+                    break
+
         for estimate in _performance_estimates(
             athlete,
             snapshot.discipline,
@@ -2406,6 +2617,7 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
             dynamic_thresholds=analysis.get("dynamic_thresholds"),
             snapshots=comparable_snapshots,
             swain_vo2max=_swain_for_prediction,
+            measured_vlamax=_measured_vlamax,
         ):
             payload = dict(estimate)
             payload["valid_on"] = estimate["valid_on_iso"]

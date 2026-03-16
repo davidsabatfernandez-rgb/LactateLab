@@ -8,9 +8,20 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.planned_session import PlannedSession
 from app.schemas.planning import (
+    AddPlannedSessionRequest,
+    ApplyLibraryRequest,
+    ApplyPlanRequest,
     AthleteSessionEditRequest,
     BlaCheckUpdateRequest,
     CoachSessionEditRequest,
+    CoachLibraryCreate,
+    CoachLibraryRead,
+    CoachPlanCreate,
+    CoachPlanDayCreate,
+    CoachPlanDayRead,
+    CoachPlanRead,
+    CoachWorkoutTemplateCreate,
+    CoachWorkoutTemplateRead,
     MesocycleRecommendationRead,
     PlanningDetectedMesocycleRead,
     PlanningMesocycleDraftRead,
@@ -22,12 +33,36 @@ from app.schemas.planning import (
     TriathlonMesocycleDraftRead,
     WorkoutStepsEditRequest,
 )
+from app.models.coach_template import CoachLibrary, CoachWorkoutTemplate, CoachPlan, CoachPlanDay
 from app.schemas.workout_definition import WorkoutDefinition
 from app.services.planning_engine import recommend_next_mesocycle, triathlon_analysis, workout_library_payload
 from app.services.planned_session_publication import prepare_planned_session_for_publish
 from app.services.workout_definition_builder import build_library_workout_definition, build_workout_definition
 
 router = APIRouter(prefix="/planning", tags=["planning"])
+
+
+@router.get(
+    "/athletes/{athlete_id}/sessions",
+    response_model=list[PlanningPlannedSessionRead],
+)
+def athlete_planned_sessions(
+    athlete_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Devuelve TODAS las sesiones planificadas del atleta (todas las disciplinas).
+    Endpoint ligero para el calendario del atleta — no ejecuta el motor de planificación.
+    """
+    from sqlalchemy import select as sa_select
+    from app.models.planned_session import PlannedSession as PS
+
+    rows = db.scalars(
+        sa_select(PS)
+        .where(PS.athlete_id == athlete_id)
+        .order_by(PS.scheduled_date, PS.week_index, PS.day_offset)
+    ).all()
+    return rows
 
 
 @router.get("/athletes/{athlete_id}/overview", response_model=PlanningOverviewRead)
@@ -138,7 +173,7 @@ def create_triathlon_mesocycle(
         weakness_confidence=weakness.get("confianza", "moderate") if isinstance(weakness, dict) else "moderate",
         current_ctl=current_ctl,
         current_atl=current_atl,
-        ramp_rate=body.ramp_rate_tss_per_week,
+        ramp_rate=body.ramp_rate_pct,
         custom_tss_split=body.custom_tss_split,
         swim_mode=body.swim_mode,
     )
@@ -365,6 +400,50 @@ def athlete_edit_planned_session(
     return session
 
 
+@router.post(
+    "/planned-sessions",
+    response_model=PlanningPlannedSessionRead,
+    status_code=201,
+)
+def add_planned_session(
+    body: AddPlannedSessionRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Añade una sesión planificada individual (desde biblioteca o manual)."""
+    from datetime import date as date_type
+
+    session = PlannedSession(
+        athlete_id=body.athlete_id,
+        focus_block_id=None,
+        scheduled_date=date_type.fromisoformat(body.scheduled_date),
+        discipline=body.discipline,
+        week_index=0,
+        day_offset=0,
+        session_role=body.session_role or "support",
+        session_family=body.session_family or "manual",
+        workout_template_id=body.template_id,
+        public_label=body.public_label,
+        objective=body.objective or "",
+        dose_prescription="Manual",
+        coach_note=body.coach_note,
+        confidence=0.5,
+        status="planned",
+        bla_check=body.bla_check,
+        payload={
+            "added_manually": True,
+            "dose_step_index": body.dose_step,
+        },
+    )
+    db.add(session)
+    db.flush()
+    if body.template_id:
+        prepare_planned_session_for_publish(session)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
 @router.delete(
     "/planned-sessions/{session_id}",
     status_code=204,
@@ -419,3 +498,320 @@ def edit_workout_steps(
     db.commit()
     db.refresh(session)
     return session
+
+
+# ── Coach Libraries & Workout Templates ────────────────────────────────────────
+
+
+@router.get("/coach-libraries", response_model=list[CoachLibraryRead])
+def list_coach_libraries(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Lista todas las bibliotecas del entrenador con sus entrenos."""
+    from sqlalchemy import select
+    from sqlalchemy.orm import joinedload
+
+    query = (
+        select(CoachLibrary)
+        .where(CoachLibrary.user_id == user.id)
+        .options(joinedload(CoachLibrary.workouts))
+        .order_by(CoachLibrary.name)
+    )
+    return db.scalars(query).unique().all()
+
+
+@router.post("/coach-libraries", response_model=CoachLibraryRead, status_code=201)
+def create_coach_library(
+    body: CoachLibraryCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Crea una nueva biblioteca de entrenos."""
+    library = CoachLibrary(
+        user_id=user.id,
+        name=body.name,
+        description=body.description,
+        discipline=body.discipline,
+    )
+    db.add(library)
+    db.commit()
+    db.refresh(library)
+    return library
+
+
+@router.delete("/coach-libraries/{library_id}", status_code=204)
+def delete_coach_library(
+    library_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Elimina una biblioteca y todos sus entrenos."""
+    library = db.get(CoachLibrary, library_id)
+    if library is None or library.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Library not found")
+    db.delete(library)
+    db.commit()
+
+
+@router.post("/coach-libraries/{library_id}/workouts", response_model=CoachWorkoutTemplateRead, status_code=201)
+def add_workout_to_library(
+    library_id: int,
+    body: CoachWorkoutTemplateCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Añade un entreno a una biblioteca."""
+    library = db.get(CoachLibrary, library_id)
+    if library is None or library.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Library not found")
+
+    max_order = max((w.sort_order for w in library.workouts), default=-1) + 1
+    workout = CoachWorkoutTemplate(
+        library_id=library_id,
+        user_id=user.id,
+        day_offset=body.day_offset,
+        discipline=body.discipline,
+        session_family=body.session_family,
+        public_label=body.public_label,
+        objective=body.objective,
+        intensity_zone=body.intensity_zone,
+        duration_min=body.duration_min,
+        description=body.description,
+        sort_order=max_order,
+    )
+    db.add(workout)
+    db.commit()
+    db.refresh(workout)
+    return workout
+
+
+@router.delete("/coach-libraries/{library_id}/workouts/{workout_id}", status_code=204)
+def delete_workout_from_library(
+    library_id: int,
+    workout_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Elimina un entreno de una biblioteca."""
+    workout = db.get(CoachWorkoutTemplate, workout_id)
+    if workout is None or workout.library_id != library_id or workout.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    db.delete(workout)
+    db.commit()
+
+
+@router.post("/coach-libraries/{library_id}/apply", response_model=list[PlanningPlannedSessionRead], status_code=201)
+def apply_library_to_athlete(
+    library_id: int,
+    body: ApplyLibraryRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Aplica una biblioteca semanal a un atleta: crea PlannedSessions según day_offset desde start_date."""
+    from datetime import date as date_type, timedelta
+    from sqlalchemy.orm import joinedload
+
+    library = db.get(CoachLibrary, library_id)
+    if library is None or library.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Library not found")
+
+    start = date_type.fromisoformat(body.start_date)
+    created = []
+    for workout in library.workouts:
+        session = PlannedSession(
+            athlete_id=body.athlete_id,
+            focus_block_id=None,
+            scheduled_date=start + timedelta(days=workout.day_offset),
+            discipline=workout.discipline,
+            week_index=0,
+            day_offset=workout.day_offset,
+            session_role="support",
+            session_family=workout.session_family,
+            workout_template_id=None,
+            public_label=workout.public_label,
+            objective=workout.objective or "",
+            dose_prescription=f"Biblioteca: {library.name}",
+            coach_note=workout.description,
+            confidence=0.5,
+            status="planned",
+            bla_check=False,
+            payload={
+                "added_from_coach_library": True,
+                "library_id": library.id,
+                "library_name": library.name,
+            },
+        )
+        db.add(session)
+        created.append(session)
+
+    db.commit()
+    for s in created:
+        db.refresh(s)
+    return created
+
+
+# ── Coach Training Plans ─────────────────────────────────────────────────────
+
+@router.get("/coach-plans", response_model=list[CoachPlanRead])
+def list_coach_plans(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Lista todos los planes del entrenador."""
+    from sqlalchemy import select
+    from sqlalchemy.orm import joinedload
+    query = (
+        select(CoachPlan)
+        .where(CoachPlan.user_id == user.id)
+        .options(joinedload(CoachPlan.days))
+        .order_by(CoachPlan.name)
+    )
+    return db.scalars(query).unique().all()
+
+
+@router.post("/coach-plans", response_model=CoachPlanRead, status_code=201)
+def create_coach_plan(
+    body: CoachPlanCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Crea un nuevo plan de entrenamiento."""
+    plan = CoachPlan(
+        user_id=user.id,
+        name=body.name,
+        description=body.description,
+        duration_weeks=body.duration_weeks,
+    )
+    db.add(plan)
+    db.commit()
+    db.refresh(plan)
+    return plan
+
+
+@router.patch("/coach-plans/{plan_id}", response_model=CoachPlanRead)
+def update_coach_plan(
+    plan_id: int,
+    body: CoachPlanCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Actualiza nombre, descripción o duración de un plan."""
+    plan = db.get(CoachPlan, plan_id)
+    if plan is None or plan.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    plan.name = body.name
+    plan.description = body.description
+    plan.duration_weeks = body.duration_weeks
+    db.commit()
+    db.refresh(plan)
+    return plan
+
+
+@router.delete("/coach-plans/{plan_id}", status_code=204)
+def delete_coach_plan(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Elimina un plan y todas sus sesiones."""
+    plan = db.get(CoachPlan, plan_id)
+    if plan is None or plan.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    db.delete(plan)
+    db.commit()
+
+
+@router.post("/coach-plans/{plan_id}/days", response_model=CoachPlanDayRead, status_code=201)
+def add_day_to_plan(
+    plan_id: int,
+    body: CoachPlanDayCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Añade una sesión a un día del plan."""
+    plan = db.get(CoachPlan, plan_id)
+    if plan is None or plan.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    max_order = max((d.sort_order for d in plan.days), default=-1) + 1
+    day = CoachPlanDay(
+        plan_id=plan_id,
+        user_id=user.id,
+        day_number=body.day_number,
+        discipline=body.discipline,
+        session_family=body.session_family,
+        public_label=body.public_label,
+        objective=body.objective,
+        intensity_zone=body.intensity_zone,
+        duration_min=body.duration_min,
+        description=body.description,
+        sort_order=max_order,
+    )
+    db.add(day)
+    db.commit()
+    db.refresh(day)
+    return day
+
+
+@router.delete("/coach-plans/{plan_id}/days/{day_id}", status_code=204)
+def delete_day_from_plan(
+    plan_id: int,
+    day_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Elimina una sesión de un plan."""
+    day = db.get(CoachPlanDay, day_id)
+    if day is None or day.plan_id != plan_id or day.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Day not found")
+    db.delete(day)
+    db.commit()
+
+
+@router.post("/coach-plans/{plan_id}/apply", response_model=list[PlanningPlannedSessionRead], status_code=201)
+def apply_plan_to_athlete(
+    plan_id: int,
+    body: ApplyPlanRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Aplica un plan a un atleta: crea PlannedSessions para cada día del plan desde start_date."""
+    from datetime import date as date_type, timedelta
+
+    plan = db.get(CoachPlan, plan_id)
+    if plan is None or plan.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    start = date_type.fromisoformat(body.start_date)
+    created = []
+    for day in plan.days:
+        session = PlannedSession(
+            athlete_id=body.athlete_id,
+            focus_block_id=None,
+            scheduled_date=start + timedelta(days=day.day_number),
+            discipline=day.discipline,
+            week_index=day.day_number // 7,
+            day_offset=day.day_number % 7,
+            session_role="support",
+            session_family=day.session_family,
+            workout_template_id=None,
+            public_label=day.public_label,
+            objective=day.objective or "",
+            dose_prescription=f"Plan: {plan.name}",
+            coach_note=day.description,
+            confidence=0.5,
+            status="planned",
+            bla_check=False,
+            payload={
+                "added_from_coach_plan": True,
+                "plan_id": plan.id,
+                "plan_name": plan.name,
+            },
+        )
+        db.add(session)
+        created.append(session)
+
+    db.commit()
+    for s in created:
+        db.refresh(s)
+    return created

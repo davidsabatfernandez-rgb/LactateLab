@@ -137,6 +137,8 @@ class AthleteBase(BaseModel):
     ftp_cycling_watts: Optional[int] = Field(default=None, ge=50, le=600)
     ftpa_running_pace: Optional[float] = Field(default=None, ge=120, le=600)
     css_swimming_pace: Optional[float] = Field(default=None, ge=50, le=300)
+    initial_ctl: Optional[float] = Field(default=None, ge=0, le=300)
+    initial_atl: Optional[float] = Field(default=None, ge=0, le=500)
     created_at: date
 
 
@@ -160,6 +162,8 @@ class AthleteUpdate(BaseModel):
     ftp_cycling_watts: Optional[int] = Field(default=None, ge=50, le=600)
     ftpa_running_pace: Optional[float] = Field(default=None, ge=120, le=600)
     css_swimming_pace: Optional[float] = Field(default=None, ge=50, le=300)
+    initial_ctl: Optional[float] = Field(default=None, ge=0, le=300)
+    initial_atl: Optional[float] = Field(default=None, ge=0, le=500)
 
 
 class AthleteRead(AthleteBase):

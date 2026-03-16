@@ -7,7 +7,7 @@ from typing import Any, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.athlete import Athlete
+from app.models.athlete import Athlete, AthleteFocusBlock
 from app.models.metrics import PhysiologicalSnapshot
 from app.models.planned_session import PlannedSession
 from app.models.session import Session as AthleteSession
@@ -85,6 +85,43 @@ def _planned_blocks_for_discipline(athlete: Athlete, discipline: str) -> list[di
             }
         )
     return sorted(items, key=lambda item: (item["start_date"], item["id"]), reverse=True)
+
+
+def _planned_sessions_all(athlete: Athlete) -> list[dict[str, Any]]:
+    """Return ALL planned sessions for the athlete (all disciplines) for the calendar."""
+    items: list[dict[str, Any]] = []
+    for session in getattr(athlete, "planned_sessions", []):
+        items.append(
+            {
+                "id": session.id,
+                "focus_block_id": session.focus_block_id,
+                "scheduled_date": session.scheduled_date,
+                "discipline": session.discipline,
+                "week_index": session.week_index,
+                "day_offset": session.day_offset,
+                "session_role": session.session_role,
+                "session_family": session.session_family,
+                "workout_template_id": session.workout_template_id,
+                "public_label": session.public_label,
+                "objective": session.objective,
+                "dose_prescription": session.dose_prescription,
+                "dose_guidance": session.dose_guidance,
+                "progression_note": session.progression_note,
+                "expected_signal": session.expected_signal,
+                "coach_note": session.coach_note,
+                "confidence": session.confidence,
+                "status": session.status,
+                "bla_check": session.bla_check,
+                "estimated_tss": session.estimated_tss,
+                "athlete_note": session.athlete_note,
+                "scheduled_time": session.scheduled_time,
+                "publish_status": session.publish_status,
+                "publish_provider": session.publish_provider,
+                "publish_error": session.publish_error,
+                "payload": session.payload or {},
+            }
+        )
+    return sorted(items, key=lambda item: (item["scheduled_date"], item["week_index"], item["day_offset"]))
 
 
 def _planned_sessions_for_discipline(athlete: Athlete, discipline: str) -> list[dict[str, Any]]:
@@ -815,6 +852,26 @@ def _serialize_foundation(foundation) -> dict[str, Any]:
 
 
 @dataclass
+class BlockResponseRecord:
+    """Resultado medido de un bloque completado, comparando snapshots pre/post.
+
+    Esto permite al scoring aprender de la respuesta real del atleta,
+    no solo de reglas heurísticas estáticas.
+
+    Referencias:
+      - Olbrecht (2000): diagnóstico-intervención-evaluación iterativo
+      - Mujika & Padilla (2003): cuantificación de respuesta al entrenamiento
+      - Kiviniemi et al. (2007): individualización basada en respuesta HR/rendimiento
+    """
+
+    block_type: str
+    lt1_delta_pct: float | None  # +5% = mejoró 5%. Pace: negativo=mejora. Power: positivo=mejora. Normalizado.
+    lt2_delta_pct: float | None
+    confidence: float  # confianza del snapshot post-bloque
+    weeks_ago: int  # semanas desde que terminó el bloque
+
+
+@dataclass
 class BlockCandidate:
     """Un candidato de bloque con su puntuación y razones auditables."""
 
@@ -973,6 +1030,233 @@ def _score_initial_assignment_candidates(
     return sorted(candidates.values(), key=lambda c: c.score, reverse=True)
 
 
+# ── Response Factor — aprender de la respuesta real del atleta ────────────────
+# Progresiones naturales: después de un bloque exitoso, el siguiente debería
+# avanzar en especificidad. Olbrecht: AEC→THR→AEP→COMP.
+_NATURAL_PROGRESSION: dict[str, list[str]] = {
+    "aerobic_capacity_block": ["threshold_development_block", "aerobic_power_block"],
+    "threshold_development_block": ["aerobic_power_block", "competition_specific_block"],
+    "aerobic_power_block": ["competition_specific_block", "anaerobic_power_block"],
+    "anaerobic_capacity_block": ["aerobic_capacity_block", "threshold_development_block"],
+    "anaerobic_power_block": ["competition_specific_block"],
+}
+
+# Bloques protectores: cuando hay regresión, volver a base.
+_PROTECTIVE_BLOCKS = {"aerobic_capacity_block", "recovery_consolidation_block"}
+
+
+def _compute_block_response_history(
+    db: "Session",
+    athlete_id: int,
+    discipline: str,
+) -> list[BlockResponseRecord]:
+    """Consulta los bloques completados recientes y calcula deltas LT1/LT2.
+
+    Para cada focus block completado, busca el snapshot más cercano ANTES
+    del bloque (pre) y el más cercano DESPUÉS (post). Calcula el cambio
+    porcentual en LT2 pace/power y LT1, ponderado por la confianza del
+    snapshot post-bloque.
+
+    Solo mira los últimos 365 días y máximo 6 bloques.
+    """
+    from datetime import timedelta
+
+    cutoff = date.today() - timedelta(days=365)
+    blocks = db.scalars(
+        select(AthleteFocusBlock)
+        .where(
+            AthleteFocusBlock.athlete_id == athlete_id,
+            AthleteFocusBlock.status == "completed",
+            AthleteFocusBlock.start_date >= cutoff,
+        )
+        .order_by(AthleteFocusBlock.start_date)
+    ).all()
+
+    if not blocks:
+        return []
+
+    # Get all snapshots for this athlete+discipline in the window
+    snapshots = db.scalars(
+        select(PhysiologicalSnapshot)
+        .where(
+            PhysiologicalSnapshot.athlete_id == athlete_id,
+            PhysiologicalSnapshot.discipline == discipline,
+            PhysiologicalSnapshot.snapshot_date >= cutoff - timedelta(days=30),
+            PhysiologicalSnapshot.confidence > 0.0,
+        )
+        .order_by(PhysiologicalSnapshot.snapshot_date)
+    ).all()
+
+    if not snapshots:
+        return []
+
+    records: list[BlockResponseRecord] = []
+    today = date.today()
+
+    for block in blocks[-6:]:  # últimos 6 bloques
+        block_start = block.start_date
+        block_end = block.end_date or (block_start + timedelta(weeks=4))
+        block_type = block.energy_system_focus
+
+        # Find pre-block snapshot (closest before block_start, max 30 days before)
+        pre_snap = None
+        for snap in reversed(snapshots):
+            if snap.snapshot_date <= block_start and (block_start - snap.snapshot_date).days <= 30:
+                pre_snap = snap
+                break
+
+        # Find post-block snapshot (closest after block_end, max 21 days after)
+        post_snap = None
+        for snap in snapshots:
+            if snap.snapshot_date >= block_end and (snap.snapshot_date - block_end).days <= 21:
+                post_snap = snap
+                break
+
+        if not pre_snap or not post_snap:
+            continue
+
+        # Calculate deltas — normalize direction: positive = improvement
+        lt2_delta = _snapshot_delta(pre_snap, post_snap, "lt2", discipline)
+        lt1_delta = _snapshot_delta(pre_snap, post_snap, "lt1", discipline)
+        weeks_ago = max(0, (today - block_end).days // 7)
+
+        records.append(BlockResponseRecord(
+            block_type=block_type,
+            lt1_delta_pct=lt1_delta,
+            lt2_delta_pct=lt2_delta,
+            confidence=post_snap.confidence,
+            weeks_ago=weeks_ago,
+        ))
+
+    return records
+
+
+def _snapshot_delta(
+    pre: "PhysiologicalSnapshot",
+    post: "PhysiologicalSnapshot",
+    threshold: str,  # "lt1" or "lt2"
+    discipline: str,
+) -> float | None:
+    """Calcula el cambio porcentual en un umbral entre dos snapshots.
+
+    Normaliza la dirección: positivo = mejora.
+    - Pace (s/km): bajar es mejor → delta = (pre - post) / pre
+    - Power (W): subir es mejor → delta = (post - pre) / pre
+    """
+    pace_attr = f"{threshold}_pace_seconds_per_km"
+    power_attr = f"{threshold}_power_watts"
+
+    pre_pace = getattr(pre, pace_attr, None)
+    post_pace = getattr(post, pace_attr, None)
+    pre_power = getattr(pre, power_attr, None)
+    post_power = getattr(post, power_attr, None)
+
+    if discipline in ("running", "natación") and pre_pace and post_pace and pre_pace > 0:
+        return round((pre_pace - post_pace) / pre_pace * 100, 2)
+    elif discipline == "ciclismo" and pre_power and post_power and pre_power > 0:
+        return round((post_power - pre_power) / pre_power * 100, 2)
+    elif pre_pace and post_pace and pre_pace > 0:
+        return round((pre_pace - post_pace) / pre_pace * 100, 2)
+    elif pre_power and post_power and pre_power > 0:
+        return round((post_power - pre_power) / pre_power * 100, 2)
+    return None
+
+
+def _apply_response_factor(
+    candidates: dict[str, "BlockCandidate"],
+    response_history: list[BlockResponseRecord],
+    add_fn,
+    sub_fn,
+) -> None:
+    """Aplica los 3 factores de respuesta histórica al scoring.
+
+    1. response_bonus: si el último bloque respondió bien, bonus al siguiente
+       en la progresión natural (AEC→THR, THR→AEP, etc.)
+    2. stagnation_penalty: si 2+ bloques del mismo tipo sin mejora, penalizar repetir
+    3. regression_urgency: si un umbral empeoró, priorizar bloque protector (AEC)
+    """
+    if not response_history:
+        return
+
+    latest = response_history[-1]
+    _IMPROVEMENT_THRESHOLD = 2.0   # >2% mejora = respuesta positiva
+    _NOISE_THRESHOLD = 1.0         # <1% cambio = ruido/sin cambio
+    _REGRESSION_THRESHOLD = -2.0   # <-2% = empeoramiento real
+
+    # ── 1. Response bonus ──────────────────────────────────────────────────
+    # Si el último bloque tuvo respuesta positiva medible, bonus al siguiente
+    # en la progresión natural. Ponderado por confianza del snapshot.
+    latest_improvement = max(
+        latest.lt1_delta_pct or 0,
+        latest.lt2_delta_pct or 0,
+    )
+    if latest_improvement >= _IMPROVEMENT_THRESHOLD and latest.confidence >= 0.55:
+        next_blocks = _NATURAL_PROGRESSION.get(latest.block_type, [])
+        weight = min(1.0, latest.confidence)  # escalar por confianza
+        for next_bt in next_blocks:
+            if next_bt in candidates:
+                pts = round(15 * weight)
+                add_fn(next_bt, pts,
+                    f"Respuesta positiva al {latest.block_type.replace('_block','').replace('_',' ')} "
+                    f"(+{latest_improvement:.1f}%, conf {latest.confidence:.0%}): "
+                    f"avanzar en especificidad (Olbrecht).")
+
+    # ── 2. Stagnation penalty ──────────────────────────────────────────────
+    # Si 2+ bloques del mismo tipo sin mejora medible, penalizar repetirlo.
+    # Olbrecht: "si la adaptación no llega, variar el estímulo."
+    by_type: dict[str, list[BlockResponseRecord]] = {}
+    for record in response_history:
+        by_type.setdefault(record.block_type, []).append(record)
+
+    for block_type, records in by_type.items():
+        if len(records) < 2:
+            continue
+        # Últimos 2 bloques del mismo tipo
+        last_two = records[-2:]
+        both_stagnant = all(
+            (r.lt2_delta_pct is not None and abs(r.lt2_delta_pct) < _NOISE_THRESHOLD)
+            or (r.lt2_delta_pct is None and r.lt1_delta_pct is not None and abs(r.lt1_delta_pct) < _NOISE_THRESHOLD)
+            for r in last_two
+        )
+        if both_stagnant and block_type in candidates:
+            sub_fn(block_type, 20,
+                f"Estancamiento: 2 bloques de {block_type.replace('_block','').replace('_',' ')} "
+                f"sin mejora medible (LT2 Δ < {_NOISE_THRESHOLD}%). "
+                f"Variar estímulo (Olbrecht: cambiar eje AEC↔ANC).")
+            # Bonus a bloques alternativos que no se han probado
+            for alt_bt in candidates:
+                if alt_bt != block_type and alt_bt not in by_type and alt_bt not in _PROTECTIVE_BLOCKS:
+                    add_fn(alt_bt, 8,
+                        f"Estímulo no probado: alternativa al estancamiento en "
+                        f"{block_type.replace('_block','').replace('_',' ')}.")
+
+    # ── 3. Regression urgency ──────────────────────────────────────────────
+    # Si el último bloque empeoró un umbral, priorizar bloque protector.
+    # Especialmente si LT2 bajó: la base aeróbica está comprometida.
+    lt2_regressed = (latest.lt2_delta_pct is not None and latest.lt2_delta_pct <= _REGRESSION_THRESHOLD)
+    lt1_regressed = (latest.lt1_delta_pct is not None and latest.lt1_delta_pct <= _REGRESSION_THRESHOLD)
+
+    if lt2_regressed and latest.confidence >= 0.50:
+        for protective_bt in _PROTECTIVE_BLOCKS:
+            if protective_bt in candidates:
+                add_fn(protective_bt, 20,
+                    f"LT2 empeoró ({latest.lt2_delta_pct:+.1f}%) tras "
+                    f"{latest.block_type.replace('_block','').replace('_',' ')}. "
+                    f"Proteger base aeróbica antes de subir especificidad "
+                    f"(Mujika 2003: pérdida de adaptaciones centrales).")
+        # Penalizar repetir el bloque que causó la regresión
+        if latest.block_type in candidates:
+            sub_fn(latest.block_type, 15,
+                f"Bloque anterior ({latest.block_type.replace('_block','').replace('_',' ')}) "
+                f"produjo regresión en LT2: no repetir sin consolidar.")
+
+    if lt1_regressed and not lt2_regressed and latest.confidence >= 0.50:
+        if "aerobic_capacity_block" in candidates:
+            add_fn("aerobic_capacity_block", 12,
+                f"LT1 empeoró ({latest.lt1_delta_pct:+.1f}%) sin afectar LT2: "
+                f"reforzar capacidad aeróbica de base.")
+
+
 def _score_block_candidates(
     *,
     days_to_target: Optional[int],
@@ -981,6 +1265,7 @@ def _score_block_candidates(
     robustness: str,
     recent_session_count: int,
     discipline: str,
+    response_history: list[BlockResponseRecord] | None = None,
 ) -> list[BlockCandidate]:
     """Puntúa cada tipo de bloque candidato con reglas explícitas y auditables.
 
@@ -988,6 +1273,9 @@ def _score_block_candidates(
     No hay puntos base por defecto: solo se puntúa evidencia contextual real.
     El ganador es el bloque con mayor puntuación — el entrenador puede auditar
     todos los candidatos y sus razones.
+
+    Desde auditoría 1.2: integra response_history (deltas LT1/LT2 reales de
+    bloques completados) para modular el scoring con evidencia n=1 del atleta.
     """
 
     def _candidate(block_type: str) -> BlockCandidate:
@@ -1136,6 +1424,10 @@ def _score_block_candidates(
         add("technical_rebuild_block", 15, "En natación la técnica condiciona directamente la utilidad de la carga fisiológica.")
     if previous_major == "aerobic_capacity_block" and robustness == "low":
         add("technical_rebuild_block", 10, "Base incipiente con poca robustez: reforzar técnica y economía antes de subir carga.")
+
+    # ── Response factor — evidencia n=1 del atleta ─────────────────────────
+    if response_history:
+        _apply_response_factor(candidates, response_history, add, sub)
 
     return sorted(candidates.values(), key=lambda c: c.score, reverse=True)
 
@@ -1313,6 +1605,14 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
         _hr_rest = _extract_hr_rest(db, athlete)
         _garmin_vo2 = _extract_garmin_vo2max(db, athlete, selected_discipline)
 
+        # Find latest measured VLamax from athlete's snapshots
+        _measured_vlamax = None
+        for _snap in reversed(getattr(athlete, "snapshots", []) or []):
+            _mv = (_snap.payload or {}).get("measured_vlamax")
+            if _mv and _mv.get("vlamax_mmol_min"):
+                _measured_vlamax = _mv
+                break
+
         physio_ctx = build_physiological_context(
             analysis=analysis,
             athlete_level=getattr(athlete, "athlete_level", "trained") or "trained",
@@ -1331,6 +1631,7 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
             hr_rest=_hr_rest,
             weight_kg=getattr(athlete, "weight", None),
             garmin_vo2max=_garmin_vo2,
+            measured_vlamax=_measured_vlamax,
         )
         # I2 — Inyectar estado de estancamiento al contexto fisiológico
         physio_ctx.stagnation_detected = stagnation_detected
@@ -1378,6 +1679,9 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
         recent_session_count=len(recent_sessions),
     )
 
+    # Response factor: deltas LT1/LT2 de bloques completados
+    response_history = _compute_block_response_history(db, athlete_id, selected_discipline)
+
     if initial_assignment and physio_gap:
         scored_candidates = _score_initial_assignment_candidates(
             days_to_target=days_to_target,
@@ -1395,6 +1699,7 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
             robustness=robustness,
             recent_session_count=len(recent_sessions),
             discipline=selected_discipline,
+            response_history=response_history,
         )
 
     for candidate in scored_candidates:
@@ -1835,7 +2140,7 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
         "template_library": [_serialize_template(template) for template in templates_for_discipline(selected_discipline)],
         "current_block": current_block_payload,
         "planned_blocks": _planned_blocks_for_discipline(athlete, selected_discipline),
-        "planned_sessions": _planned_sessions_for_discipline(athlete, selected_discipline),
+        "planned_sessions": _planned_sessions_all(athlete),
         "detected_mesocycles": serialize_detected_mesocycles(detected_mesocycles),
         "next_recommendation": recommendation_payload,
         "recommended_workouts": recommended_workouts,

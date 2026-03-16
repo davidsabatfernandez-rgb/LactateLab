@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "../../lib/api";
 import { resolveTrainingThreshold } from "../../lib/trainingThresholds";
-import type { AthleteAnalysis, AthleteHealthOverview, AuthUser, PlanningOverview, PlanningPlannedSession } from "../../types";
+import type { AthleteAnalysis, AthleteHealthOverview, AuthUser, PlanningPlannedSession } from "../../types";
 import type { DisciplineSnapshot, WellnessSeriesPoint, SleepStageSegment } from "../types";
 import { disciplineOrder } from "../utils/formatters";
 import { parseMetricNumber } from "../utils/formatters";
@@ -139,14 +139,14 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
     return () => { cancelled = true; };
   }, [analysis?.athlete.garmin_connected, loading, token, user?.athlete_id]);
 
-  // Load planned sessions
+  // Load planned sessions (all disciplines — lightweight endpoint)
   useEffect(() => {
     let cancelled = false;
     async function load() {
       if (!user?.athlete_id || loading) return;
       try {
-        const result = (await api.planningOverview(token, user.athlete_id)) as PlanningOverview;
-        if (!cancelled) setPlannedSessions(result.planned_sessions ?? []);
+        const result = (await api.athletePlannedSessions(token, user.athlete_id)) as PlanningPlannedSession[];
+        if (!cancelled) setPlannedSessions(result ?? []);
       } catch { /* silent */ }
     }
     load();
@@ -176,16 +176,22 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
     setPlannedSessions((prev) => [...prev, fullSession]);
   }
 
-  // Move a session to a new date
+  // Move a session to a new date (optimistic + persist)
   function moveSession(sessionId: number, newDate: string) {
     setPlannedSessions((prev) =>
       prev.map((s) => s.id === sessionId ? { ...s, scheduled_date: newDate } : s),
     );
+    if (sessionId > 0) {
+      api.athleteEditSession(token, sessionId, { scheduled_date: newDate }).catch(() => {});
+    }
   }
 
-  // Remove a session
+  // Remove a session (optimistic + persist)
   function removeSession(sessionId: number) {
     setPlannedSessions((prev) => prev.filter((s) => s.id !== sessionId));
+    if (sessionId > 0) {
+      api.deletePlannedSession(token, sessionId).catch(() => {});
+    }
   }
 
   // Discipline snapshots
@@ -294,7 +300,8 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
     for (let i = 0; i < 7; i++) {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
-      const iso = d.toISOString().slice(0, 10);
+      // Use local date (not UTC) to avoid timezone shift in CET/CEST
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       days.push({
         date: d,
         iso,

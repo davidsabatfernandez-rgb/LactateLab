@@ -43,6 +43,11 @@ class Athlete(Base):
     """rFTPa running (sec/km, = LT2 pace)."""
     css_swimming_pace: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     """CSS natación (sec/100m)."""
+    initial_ctl: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    """CTL seed manual (puntos TSS). Si se proporciona, se usa como valor inicial de la EWMA
+    en lugar de arrancar desde 0. Solo necesario hasta que haya ≥42 días de actividades importadas."""
+    initial_atl: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    """ATL seed manual (puntos TSS). Mismo propósito que initial_ctl."""
     cycling_interpolated_from_running: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     """Si True, los umbrales de ciclismo se interpolan automáticamente desde running."""
     created_at: Mapped[date] = mapped_column(Date)

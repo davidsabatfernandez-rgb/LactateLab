@@ -10,11 +10,11 @@ Dynamic: `backend/app/services/dynamic_threshold_engine.py`
 | Profile | Points | LT1 (mmol) | LT1 Load | LT2 (mmol) | LT2 Load | LT1/LT2 | Conf LT1 | Conf LT2 |
 |---|---|---|---|---|---|---|---|---|
 | trained_runner_classic | 9 | 1.30 | 360s/km | 3.10 | 310s/km | 0.419 | 0.85 | 0.88 |
-| elite_runner_flat | 9 | 1.15 | 273s/km | 3.73 | 242s/km | 0.308 | 0.86 | 0.77 |
-| recreational_steep | 7 | 2.00 | 420s/km | 5.00 | 400s/km | 0.400 | 0.88 | 0.76 |
+| elite_runner_flat | 9 | 1.15 | 273s/km | 4.20 | 242s/km | 0.274 | 0.86 | 0.85 |
+| recreational_steep | 7 | 2.00 | 420s/km | 3.50 | 400s/km | 0.571 | 0.88 | 0.88 |
 | cyclist_power | 8 | 1.40 | 212W | 3.50 | 275W | 0.400 | 0.85 | 0.88 |
 | noisy_outlier | 8 | 1.10 | 360s/km | 3.80 | 290s/km | 0.289 | 0.88 | 0.88 |
-| minimal_3points | 3 | 2.50 | 320s/km | 6.00 | 270s/km | 0.417 | 0.52 | 0.52 |
+| minimal_3points | 3 | 2.50 | 320s/km | 6.00 | 270s/km | 0.417 | 0.52 | 0.50 |
 
 ## Detailed Results & Scientific Validation
 
@@ -50,11 +50,11 @@ Dynamic: `backend/app/services/dynamic_threshold_engine.py`
   - Confidence: 0.86, Agreement: 0.83
   - Primary method: baseline_rise, All methods: ['baseline_rise', 'sustained_increase']
   - Expected lactate range: (0.9, 1.8) -> PASS
-- **LT2**: 3.73 mmol @ pace=242.0s/km, HR=189
-  - Confidence: 0.77, Agreement: 0.53
+- **LT2**: 4.20 mmol @ pace=242.0s/km, HR=189
+  - Confidence: 0.85, Agreement: 0.8
   - Primary method: baseline_rise, All methods: ['baseline_rise', 'sustained_increase', 'moddmax']
   - Expected lactate range: (2.0, 4.5) -> PASS
-- **VLamax proxy** (LT1/LT2 ratio): 0.308
+- **VLamax proxy** (LT1/LT2 ratio): 0.274
 
 **Real thresholds quality gate:**
 - Sufficient: True
@@ -62,7 +62,7 @@ Dynamic: `backend/app/services/dynamic_threshold_engine.py`
 - Signal score: 0.95
 - Protocol score: 0.95
 - LT1 detection state: confirmed
-- LT2 detection state: candidate_strong
+- LT2 detection state: confirmed
 
 ### recreational_steep — Recreational runner — steep/glycolytic curve (high VLamax)
 
@@ -73,11 +73,11 @@ Dynamic: `backend/app/services/dynamic_threshold_engine.py`
   - Confidence: 0.88, Agreement: 0.91
   - Primary method: baseline_rise, All methods: ['baseline_rise', 'sustained_increase']
   - Expected lactate range: (1.2, 2.2) -> PASS
-- **LT2**: 5.00 mmol @ pace=400.0s/km, HR=165
-  - Confidence: 0.76, Agreement: 0.5
-  - Primary method: baseline_rise, All methods: ['baseline_rise', 'sustained_increase', 'moddmax']
+- **LT2**: 3.50 mmol @ pace=400.0s/km, HR=165
+  - Confidence: 0.88, Agreement: 0.91
+  - Primary method: baseline_rise, All methods: ['baseline_rise', 'sustained_increase']
   - Expected lactate range: (2.5, 5.5) -> PASS
-- **VLamax proxy** (LT1/LT2 ratio): 0.400
+- **VLamax proxy** (LT1/LT2 ratio): 0.571
 
 **Real thresholds quality gate:**
 - Sufficient: True
@@ -85,7 +85,7 @@ Dynamic: `backend/app/services/dynamic_threshold_engine.py`
 - Signal score: 0.95
 - Protocol score: 0.95
 - LT1 detection state: confirmed
-- LT2 detection state: candidate_strong
+- LT2 detection state: confirmed
 
 ### cyclist_power — Trained cyclist — power-based test
 
@@ -146,7 +146,7 @@ Dynamic: `backend/app/services/dynamic_threshold_engine.py`
   - Primary method: baseline_rise, All methods: ['baseline_rise', 'sustained_increase']
   - Expected lactate range: (0.0, 10.0) -> PASS
 - **LT2**: 6.00 mmol @ pace=270.0s/km, HR=180
-  - Confidence: 0.52, Agreement: 0.67
+  - Confidence: 0.5, Agreement: 0.61
   - Primary method: baseline_rise, All methods: ['baseline_rise', 'sustained_increase']
   - Expected lactate range: (0.0, 10.0) -> PASS
 - **VLamax proxy** (LT1/LT2 ratio): 0.417
@@ -192,8 +192,8 @@ The LT1/LT2 lactate ratio is used as a VLamax proxy in `physiological_engine.py`
 - 0.79-0.87 = moderate
 - < 0.79 = high VLamax (glycolytic)
 
-- Elite flat (diesel): LT1/LT2 ratio = 0.308
-- Recreational steep (glycolytic): LT1/LT2 ratio = 0.4
+- Elite flat (diesel): LT1/LT2 ratio = 0.274
+- Recreational steep (glycolytic): LT1/LT2 ratio = 0.571
 - **CONCERN**: Flat curve ratio NOT higher than steep. The motor's threshold detection may not preserve the expected VLamax differentiation between curve shapes.
 
 ## Recommendations

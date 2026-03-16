@@ -89,7 +89,7 @@ export type CalendarMesocycleOption = {
   whyNotAsGood: string[];
 };
 
-export type QuickAddKind = "running" | "ciclismo" | "natación" | "event" | "off" | "note" | "mesocycle";
+export type QuickAddKind = "running" | "ciclismo" | "natación" | "fuerza" | "event" | "off" | "note" | "mesocycle";
 
 export type WorkoutLibraryLayer =
   | "base"
@@ -111,7 +111,7 @@ export type CalendarQuickAddState = {
   selectedLayer?: WorkoutLibraryLayer;
 };
 
-export type CalendarWorkspaceTab = "athletes" | "library" | "calendar" | "summary" | "zones";
+export type CalendarWorkspaceTab = "athletes" | "library" | "calendar" | "summary" | "zones" | "workouts" | "plans";
 
 export type SummaryQuickBar = {
   label: string;

@@ -54,6 +54,7 @@ class Zone(BaseModel):
     lower: Optional[float]
     upper: Optional[float]
     unit: str
+    label: Optional[str] = None
 
 
 class PerformanceEstimateRead(BaseModel):
@@ -86,6 +87,10 @@ class PerformanceEstimateRead(BaseModel):
     glycogen_risk: Optional[dict[str, str]] = None
     durability_info: Optional[dict[str, Any]] = None
     quality_score: Optional[float] = None
+    # Evidence-only predictions (pure Daniels + di Prampero, no internal calibrations)
+    evidence_ritmo_techo: Optional[float] = None
+    evidence_ritmo_objetivo: Optional[float] = None
+    evidence_ritmo_seguro: Optional[float] = None
 
 
 class PowerBestRead(BaseModel):
@@ -180,6 +185,15 @@ class TrendRead(BaseModel):
     summary: str
 
 
+class LevelSuggestionRead(BaseModel):
+    suggested_level: str
+    confidence: float
+    current_level: str
+    matches_current: bool
+    evidence: list[str]
+    scores: dict[str, float]
+
+
 class DisciplineAnalysisRead(BaseModel):
     discipline: str
     power_source: Optional[str] = None
@@ -197,7 +211,9 @@ class DisciplineAnalysisRead(BaseModel):
     real_thresholds: Optional[RealThresholdsRead] = None
     individual_thresholds: Optional[IndividualThresholdsRead] = None
     swain_vo2max: Optional[dict] = None
+    measured_vlamax: Optional[dict] = None
     target_curve: Optional[dict] = None
+    level_suggestion: Optional[LevelSuggestionRead] = None
 
 
 class SessionAnalysisRead(BaseModel):
@@ -212,6 +228,7 @@ class SessionAnalysisRead(BaseModel):
     contextual_details: list[dict]
     historical_evolution: dict[str, list[HistoricalPoint]]
     peak_lactate: Optional[dict] = None
+    measured_vlamax: Optional[dict] = None
     real_thresholds: Optional[RealThresholdsRead] = None
     individual_thresholds: Optional[IndividualThresholdsRead] = None
 

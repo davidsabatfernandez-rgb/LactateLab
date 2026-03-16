@@ -2,7 +2,7 @@ import { useCallback, useEffect } from "react";
 import type { Dispatch } from "react";
 
 import { api } from "../../lib/api";
-import type { Athlete, AthleteAnalysis, PlanningOverview, PlanningWorkoutTemplate } from "../../types";
+import type { Athlete, AthleteAnalysis, CoachLibrary, CoachPlan, PlanningOverview, PlanningWorkoutTemplate } from "../../types";
 import type { PlanningAction, PlanningState } from "./PlanningContext";
 
 /**
@@ -192,6 +192,36 @@ export function usePlanningData(
       }
     }
     loadQuickAddLibraries();
+    return () => { cancelled = true; };
+  }, [token, dispatch]);
+
+  // ── Load coach libraries ──
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCoachLibraries() {
+      try {
+        const result = (await api.listCoachLibraries(token)) as CoachLibrary[];
+        if (!cancelled) dispatch({ type: "SET_COACH_LIBRARIES", payload: result });
+      } catch {
+        if (!cancelled) dispatch({ type: "SET_COACH_LIBRARIES", payload: [] });
+      }
+    }
+    loadCoachLibraries();
+    return () => { cancelled = true; };
+  }, [token, dispatch]);
+
+  // ── Load coach plans ──
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCoachPlans() {
+      try {
+        const result = (await api.listCoachPlans(token)) as CoachPlan[];
+        if (!cancelled) dispatch({ type: "SET_COACH_PLANS", payload: result });
+      } catch {
+        if (!cancelled) dispatch({ type: "SET_COACH_PLANS", payload: [] });
+      }
+    }
+    loadCoachPlans();
     return () => { cancelled = true; };
   }, [token, dispatch]);
 

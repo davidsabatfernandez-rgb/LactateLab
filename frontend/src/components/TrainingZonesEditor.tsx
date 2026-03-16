@@ -6,22 +6,55 @@ import type { ThresholdProfileForZones, TrainingZoneItem, TrainingZoneSet } from
 
 type ZoneDraft = Omit<TrainingZoneItem, "id"> & { key: string };
 
-const DEFAULT_COLORS = ["#3a9a5b", "#2e8b57", "#b58a2e", "#c27a2e", "#c44040", "#7c3aed", "#cd564f"];
+const DEFAULT_COLORS = [
+  "#3a9a5b", "#2e8b57", "#6dae48", "#b58a2e", "#d4a017",
+  "#c27a2e", "#e06030", "#c44040", "#7c3aed", "#cd564f",
+];
 
-function defaultZonesDraft(count = 5): ZoneDraft[] {
-  const labels = ["Z1 - Recuperación", "Z2 - Fondo", "Z3 - Tempo", "Z4 - Umbral", "Z5 - VO2max", "Z6 - Anaeróbico", "Z7 - Sprint"];
-  return Array.from({ length: count }, (_, i) => ({
+const ZONE_PRESETS: Record<string, { label: string; color: string; description: string }[]> = {
+  running: [
+    { label: "E1 - Recuperación", color: "#3a9a5b", description: "Trote suave, recuperación activa." },
+    { label: "E2 - Fondo aeróbico", color: "#2e8b57", description: "Base aeróbica, conversación cómoda. Incluye sub-LT1." },
+    { label: "LT1 - Umbral aeróbico", color: "#b58a2e", description: "Zona de LT1 práctico. Intensidad de referencia para sesiones LT1." },
+    { label: "Tempo", color: "#d4a017", description: "Entre LT1 y LT2 prácticos. Maratón pace, medio fondo." },
+    { label: "LT2 - Umbral anaeróbico", color: "#c27a2e", description: "Zona de LT2 práctico. Referencia para intervalos de umbral." },
+    { label: "VO2max", color: "#c44040", description: "Potencia aeróbica máxima, intervalos 2-6 min." },
+    { label: "ANC - Anaeróbico", color: "#7c3aed", description: "Capacidad anaeróbica, esfuerzos <2 min." },
+  ],
+  ciclismo: [
+    { label: "Z1 - Recuperación", color: "#3a9a5b", description: "Pedaleo suave, recuperación activa." },
+    { label: "Z2 - Resistencia", color: "#2e8b57", description: "Base aeróbica, larga duración." },
+    { label: "Z3 - Tempo", color: "#b58a2e", description: "Esfuerzo sostenido, entre LT1 y LT2." },
+    { label: "Z4 - Umbral (FTP)", color: "#c27a2e", description: "Potencia de umbral funcional, ~40-60 min." },
+    { label: "Z5 - VO2max", color: "#c44040", description: "Potencia aeróbica máxima, intervalos 3-8 min." },
+    { label: "Z6 - Capacidad anaeróbica", color: "#7c3aed", description: "Esfuerzos 30s-2 min, alta potencia." },
+    { label: "Z7 - Neuromuscular", color: "#cd564f", description: "Sprints <30s, potencia máxima." },
+  ],
+  natacion: [
+    { label: "Z1 - Recuperación", color: "#3a9a5b", description: "Nado suave, técnica y recuperación." },
+    { label: "Z2 - Aeróbico base", color: "#2e8b57", description: "Resistencia aeróbica, larga distancia." },
+    { label: "Z3 - Aeróbico medio", color: "#6dae48", description: "Nado constante sub-CSS." },
+    { label: "Z4 - Sub-umbral", color: "#b58a2e", description: "Justo debajo de CSS, series 400-1000m." },
+    { label: "Z5 - CSS/Umbral", color: "#c27a2e", description: "Critical Swim Speed, series 100-400m." },
+    { label: "Z6 - VO2max", color: "#c44040", description: "Intervalos 50-200m a máxima intensidad aeróbica." },
+    { label: "Z7 - Anaeróbico", color: "#7c3aed", description: "Sprints 25-100m, velocidad máxima." },
+  ],
+};
+
+function defaultZonesDraft(discipline?: string): ZoneDraft[] {
+  const preset = ZONE_PRESETS[discipline ?? ""] ?? ZONE_PRESETS.running;
+  return preset.map((p, i) => ({
     key: `z-${i}-${Date.now()}`,
     zone_number: i + 1,
-    zone_label: labels[i] ?? `Z${i + 1}`,
-    zone_color: DEFAULT_COLORS[i] ?? "#6b7280",
+    zone_label: p.label,
+    zone_color: p.color,
     pace_lower_seconds: null,
     pace_upper_seconds: null,
     hr_lower: null,
     hr_upper: null,
     power_lower: null,
     power_upper: null,
-    description: null,
+    description: p.description,
   }));
 }
 
@@ -56,75 +89,175 @@ function sourceColor(source: string) {
 // ── Suggested zones from thresholds ────────────────────────────────────────
 
 function suggestZonesFromProfile(profile: ThresholdProfileForZones, discipline: string): ZoneDraft[] {
+  // Fisiológicos (2.0/4.0 mmol) — para E1/E2 y VO2max/ANC
   const lt1Pace = profile.lt1?.pace_seconds_per_km ?? null;
   const lt2Pace = profile.lt2?.pace_seconds_per_km ?? null;
   const lt1Hr = profile.lt1?.heart_rate ?? null;
   const lt2Hr = profile.lt2?.heart_rate ?? null;
-  const lt1Power = profile.lt1?.power_watts ?? null;
   const lt2Power = profile.lt2?.power_watts ?? null;
 
-  // 5-zone model based on LT1/LT2 anchors
-  const zones: ZoneDraft[] = [
-    {
-      key: `sug-0-${Date.now()}`, zone_number: 1, zone_label: "Z1 - Recuperación",
-      zone_color: "#3a9a5b",
-      pace_lower_seconds: null,
-      pace_upper_seconds: lt1Pace ? Math.round(lt1Pace * 1.15) : null,
-      hr_lower: null,
-      hr_upper: lt1Hr ? Math.round(lt1Hr * 0.88) : null,
-      power_lower: null,
-      power_upper: lt1Power ? Math.round(lt1Power * 0.65) : null,
-      description: "Recuperación activa, conversación fácil.",
-    },
-    {
-      key: `sug-1-${Date.now()}`, zone_number: 2, zone_label: "Z2 - Fondo aeróbico",
-      zone_color: "#2e8b57",
-      pace_lower_seconds: lt1Pace ? Math.round(lt1Pace * 1.15) : null,
-      pace_upper_seconds: lt1Pace ? Math.round(lt1Pace * 1.02) : null,
-      hr_lower: lt1Hr ? Math.round(lt1Hr * 0.88) : null,
-      hr_upper: lt1Hr ? Math.round(lt1Hr * 0.97) : null,
-      power_lower: lt1Power ? Math.round(lt1Power * 0.65) : null,
-      power_upper: lt1Power ? Math.round(lt1Power * 0.92) : null,
-      description: "Base aeróbica, intensidad moderada.",
-    },
-    {
-      key: `sug-2-${Date.now()}`, zone_number: 3, zone_label: "Z3 - Tempo / LT1",
-      zone_color: "#b58a2e",
-      pace_lower_seconds: lt1Pace ? Math.round(lt1Pace * 1.02) : null,
-      pace_upper_seconds: lt2Pace && lt1Pace ? Math.round((lt1Pace + lt2Pace) / 2) : lt1Pace,
-      hr_lower: lt1Hr ? Math.round(lt1Hr * 0.97) : null,
-      hr_upper: lt2Hr && lt1Hr ? Math.round((lt1Hr + lt2Hr) / 2) : lt1Hr ? Math.round(lt1Hr * 1.04) : null,
-      power_lower: lt1Power ? Math.round(lt1Power * 0.92) : null,
-      power_upper: lt2Power && lt1Power ? Math.round((lt1Power + lt2Power) / 2) : lt1Power ? Math.round(lt1Power * 1.08) : null,
-      description: "Zona media entre LT1 y LT2.",
-    },
-    {
-      key: `sug-3-${Date.now()}`, zone_number: 4, zone_label: "Z4 - Umbral / LT2",
-      zone_color: "#c27a2e",
-      pace_lower_seconds: lt2Pace && lt1Pace ? Math.round((lt1Pace + lt2Pace) / 2) : null,
-      pace_upper_seconds: lt2Pace ? Math.round(lt2Pace * 0.96) : null,
-      hr_lower: lt2Hr && lt1Hr ? Math.round((lt1Hr + lt2Hr) / 2) : null,
-      hr_upper: lt2Hr ? Math.round(lt2Hr * 1.02) : null,
-      power_lower: lt2Power && lt1Power ? Math.round((lt1Power + lt2Power) / 2) : null,
-      power_upper: lt2Power ? Math.round(lt2Power * 1.05) : null,
-      description: "Umbral funcional, intensidad sostenible ~40-60 min.",
-    },
-    {
-      key: `sug-4-${Date.now()}`, zone_number: 5, zone_label: "Z5 - VO2max",
-      zone_color: "#c44040",
-      pace_lower_seconds: lt2Pace ? Math.round(lt2Pace * 0.96) : null,
-      pace_upper_seconds: lt2Pace ? Math.round(lt2Pace * 0.88) : null,
-      hr_lower: lt2Hr ? Math.round(lt2Hr * 1.02) : null,
-      hr_upper: null,
-      power_lower: lt2Power ? Math.round(lt2Power * 1.05) : null,
-      power_upper: lt2Power ? Math.round(lt2Power * 1.30) : null,
-      description: discipline === "ciclismo"
-        ? "Potencia aeróbica máxima, intervalos 3-8 min."
-        : "Velocidad aeróbica máxima, intervalos 3-6 min.",
-    },
-  ];
+  // Prácticos (~1.6/~3.1 mmol) — para zonas LT1 y LT2 de entrenamiento
+  const pLt1Pace = profile.practical_lt1?.pace_seconds_per_km ?? lt1Pace;
+  const pLt1Hr = profile.practical_lt1?.heart_rate ?? lt1Hr;
+  const pLt2Pace = profile.practical_lt2?.pace_seconds_per_km ?? lt2Pace;
+  const pLt2Hr = profile.practical_lt2?.heart_rate ?? lt2Hr;
+  const pLt2Power = profile.practical_lt2?.power_watts ?? lt2Power;
 
-  return zones;
+  const ts = Date.now();
+  const mk = (i: number, preset: typeof ZONE_PRESETS["running"][0], overrides: Partial<ZoneDraft>): ZoneDraft => ({
+    key: `sug-${i}-${ts}`,
+    zone_number: i + 1,
+    zone_label: preset.label,
+    zone_color: preset.color,
+    pace_lower_seconds: null,
+    pace_upper_seconds: null,
+    hr_lower: null,
+    hr_upper: null,
+    power_lower: null,
+    power_upper: null,
+    description: preset.description,
+    ...overrides,
+  });
+
+  // Helper: interpolación entre prácticos LT1 y LT2
+  const pPaceAt = (fraction: number) =>
+    pLt1Pace && pLt2Pace ? Math.round(pLt1Pace + (pLt2Pace - pLt1Pace) * fraction) : null;
+  const pHrAt = (fraction: number) =>
+    pLt1Hr && pLt2Hr ? Math.round(pLt1Hr + (pLt2Hr - pLt1Hr) * fraction) : null;
+
+  if (discipline === "ciclismo") {
+    // Coggan 7-zone — FTP = LT2 práctico (no fisiológico)
+    const ftp = pLt2Power;
+    const lt1P = profile.practical_lt1?.power_watts ?? (ftp ? Math.round(ftp * 0.75) : null);
+    const preset = ZONE_PRESETS.ciclismo;
+    return [
+      mk(0, preset[0], {
+        hr_upper: pLt1Hr ? Math.round(pLt1Hr * 0.82) : null,
+        power_upper: ftp ? Math.round(ftp * 0.55) : null,
+      }),
+      mk(1, preset[1], {
+        hr_lower: pLt1Hr ? Math.round(pLt1Hr * 0.82) : null,
+        hr_upper: pLt1Hr,
+        power_lower: ftp ? Math.round(ftp * 0.55) : null,
+        power_upper: lt1P,
+      }),
+      mk(2, preset[2], {
+        hr_lower: pLt1Hr,
+        hr_upper: pLt2Hr ? Math.round(pLt2Hr * 0.92) : null,
+        power_lower: lt1P,
+        power_upper: ftp ? Math.round(ftp * 0.90) : null,
+      }),
+      mk(3, preset[3], {  // Z4 = FTP = LT2 práctico
+        hr_lower: pLt2Hr ? Math.round(pLt2Hr * 0.92) : null,
+        hr_upper: pLt2Hr ? Math.round(pLt2Hr * 1.02) : null,
+        power_lower: ftp ? Math.round(ftp * 0.90) : null,
+        power_upper: ftp ? Math.round(ftp * 1.05) : null,
+      }),
+      mk(4, preset[4], {
+        hr_lower: pLt2Hr ? Math.round(pLt2Hr * 1.02) : null,
+        hr_upper: null,
+        power_lower: ftp ? Math.round(ftp * 1.05) : null,
+        power_upper: ftp ? Math.round(ftp * 1.20) : null,
+      }),
+      mk(5, preset[5], {
+        power_lower: ftp ? Math.round(ftp * 1.20) : null,
+        power_upper: ftp ? Math.round(ftp * 1.50) : null,
+      }),
+      mk(6, preset[6], {
+        power_lower: ftp ? Math.round(ftp * 1.50) : null,
+      }),
+    ];
+  }
+
+  if (discipline === "natacion") {
+    // 7-zone swim — CSS = LT2 práctico pace
+    const css = pLt2Pace;
+    const preset = ZONE_PRESETS.natacion;
+    return [
+      mk(0, preset[0], {
+        pace_upper_seconds: css ? Math.round(css * 1.25) : null,
+        hr_upper: pLt1Hr ? Math.round(pLt1Hr * 0.82) : null,
+      }),
+      mk(1, preset[1], {
+        pace_lower_seconds: css ? Math.round(css * 1.25) : null,
+        pace_upper_seconds: css ? Math.round(css * 1.12) : null,
+        hr_lower: pLt1Hr ? Math.round(pLt1Hr * 0.82) : null,
+        hr_upper: pLt1Hr ? Math.round(pLt1Hr * 0.92) : null,
+      }),
+      mk(2, preset[2], {
+        pace_lower_seconds: css ? Math.round(css * 1.12) : null,
+        pace_upper_seconds: css ? Math.round(css * 1.05) : null,
+        hr_lower: pLt1Hr ? Math.round(pLt1Hr * 0.92) : null,
+        hr_upper: pLt1Hr,
+      }),
+      mk(3, preset[3], {
+        pace_lower_seconds: css ? Math.round(css * 1.05) : null,
+        pace_upper_seconds: css ? Math.round(css * 1.01) : null,
+        hr_lower: pLt1Hr,
+        hr_upper: pHrAt(0.85),
+      }),
+      mk(4, preset[4], {  // CSS = LT2 práctico
+        pace_lower_seconds: css ? Math.round(css * 1.01) : null,
+        pace_upper_seconds: css ? Math.round(css * 0.97) : null,
+        hr_lower: pHrAt(0.85),
+        hr_upper: pLt2Hr,
+      }),
+      mk(5, preset[5], {
+        pace_lower_seconds: css ? Math.round(css * 0.97) : null,
+        pace_upper_seconds: css ? Math.round(css * 0.90) : null,
+        hr_lower: pLt2Hr,
+        hr_upper: null,
+      }),
+      mk(6, preset[6], {
+        pace_lower_seconds: css ? Math.round(css * 0.90) : null,
+        pace_upper_seconds: null,
+      }),
+    ];
+  }
+
+  // ── Running: 7 zonas (Seiler 2010, Faude 2009, Billat 2001) ──
+  // E1/E2 anclados en LT1 fisiológico; LT1/LT2 en prácticos; VO2max/ANC en LT2 fisiológico
+  const preset = ZONE_PRESETS.running;
+  return [
+    mk(0, preset[0], {  // E1: <85% FC LT1 práctico
+      pace_upper_seconds: pLt1Pace ? Math.round(pLt1Pace * 1.15) : null,
+      hr_upper: pLt1Hr ? Math.round(pLt1Hr * 0.85) : null,
+    }),
+    mk(1, preset[1], {  // E2: 85% LT1 práctico → LT1 práctico (incluye sub-LT1)
+      pace_lower_seconds: pLt1Pace ? Math.round(pLt1Pace * 1.15) : null,
+      pace_upper_seconds: pLt1Pace,
+      hr_lower: pLt1Hr ? Math.round(pLt1Hr * 0.85) : null,
+      hr_upper: pLt1Hr,
+    }),
+    mk(2, preset[2], {  // LT1: zona del LT1 práctico → ~35% del gap hacia LT2 práctico
+      pace_lower_seconds: pLt1Pace,
+      pace_upper_seconds: pPaceAt(0.35),
+      hr_lower: pLt1Hr,
+      hr_upper: pHrAt(0.35),
+    }),
+    mk(3, preset[3], {  // Tempo: 35-70% del gap entre prácticos
+      pace_lower_seconds: pPaceAt(0.35),
+      pace_upper_seconds: pPaceAt(0.70),
+      hr_lower: pHrAt(0.35),
+      hr_upper: pHrAt(0.70),
+    }),
+    mk(4, preset[4], {  // LT2: 70% gap → LT2 práctico + 3% (margen de tolerancia)
+      pace_lower_seconds: pPaceAt(0.70),
+      pace_upper_seconds: pLt2Pace ? Math.round(pLt2Pace * 0.97) : null,
+      hr_lower: pHrAt(0.70),
+      hr_upper: pLt2Hr ? Math.round(pLt2Hr * 1.02) : null,
+    }),
+    mk(5, preset[5], {  // VO2max: por encima de LT2 fisiológico
+      pace_lower_seconds: lt2Pace ? Math.round(lt2Pace * 0.97) : (pLt2Pace ? Math.round(pLt2Pace * 0.94) : null),
+      pace_upper_seconds: lt2Pace ? Math.round(lt2Pace * 0.88) : (pLt2Pace ? Math.round(pLt2Pace * 0.85) : null),
+      hr_lower: lt2Hr ? Math.round(lt2Hr * 1.02) : (pLt2Hr ? Math.round(pLt2Hr * 1.05) : null),
+      hr_upper: null,
+    }),
+    mk(6, preset[6], {  // ANC: >112% LT2
+      pace_lower_seconds: lt2Pace ? Math.round(lt2Pace * 0.88) : (pLt2Pace ? Math.round(pLt2Pace * 0.85) : null),
+      pace_upper_seconds: null,
+    }),
+  ];
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -145,10 +278,11 @@ export function TrainingZonesEditor({
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [setName, setSetName] = useState(existingSet?.name ?? "");
   const [zones, setZones] = useState<ZoneDraft[]>(
-    existingSet ? zoneSetToZoneDrafts(existingSet) : defaultZonesDraft(),
+    existingSet ? zoneSetToZoneDrafts(existingSet) : defaultZonesDraft(discipline),
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoSuggested, setAutoSuggested] = useState(false);
 
   const showPower = discipline === "ciclismo";
   const showPace = discipline !== "ciclismo";
@@ -165,6 +299,7 @@ export function TrainingZonesEditor({
     if (!profile) return;
     const suggested = suggestZonesFromProfile(profile, discipline);
     setZones(suggested);
+    setAutoSuggested(true);
     if (!setName) setSetName(`Zonas ${discipline} — ${new Date().toLocaleDateString("es-ES", { month: "short", year: "numeric" })}`);
   }, [profile, discipline, setName]);
 
@@ -261,22 +396,40 @@ export function TrainingZonesEditor({
             <div className="tz-profile-values">
               {profile.lt1 ? (
                 <div className="tz-profile-threshold lt1">
-                  <strong>LT1</strong>
+                  <strong>LT1 fisiol.</strong>
                   <span>{profile.lt1.lactate.toFixed(1)} mmol</span>
                   {profile.lt1.pace_label ? <span>{profile.lt1.pace_label}</span> : null}
                   {profile.lt1.heart_rate ? <span>{profile.lt1.heart_rate} bpm</span> : null}
                   {profile.lt1.power_watts ? <span>{Math.round(profile.lt1.power_watts)}W</span> : null}
                 </div>
               ) : <div className="tz-profile-threshold lt1 empty"><strong>LT1</strong><span>Sin datos</span></div>}
+              {profile.practical_lt1 ? (
+                <div className="tz-profile-threshold lt1">
+                  <strong>LT1 pract.</strong>
+                  <span>{profile.practical_lt1.lactate.toFixed(1)} mmol</span>
+                  {profile.practical_lt1.pace_label ? <span>{profile.practical_lt1.pace_label}</span> : null}
+                  {profile.practical_lt1.heart_rate ? <span>{profile.practical_lt1.heart_rate} bpm</span> : null}
+                  {profile.practical_lt1.power_watts ? <span>{Math.round(profile.practical_lt1.power_watts)}W</span> : null}
+                </div>
+              ) : null}
               {profile.lt2 ? (
                 <div className="tz-profile-threshold lt2">
-                  <strong>LT2</strong>
+                  <strong>LT2 fisiol.</strong>
                   <span>{profile.lt2.lactate.toFixed(1)} mmol</span>
                   {profile.lt2.pace_label ? <span>{profile.lt2.pace_label}</span> : null}
                   {profile.lt2.heart_rate ? <span>{profile.lt2.heart_rate} bpm</span> : null}
                   {profile.lt2.power_watts ? <span>{Math.round(profile.lt2.power_watts)}W</span> : null}
                 </div>
               ) : <div className="tz-profile-threshold lt2 empty"><strong>LT2</strong><span>Sin datos</span></div>}
+              {profile.practical_lt2 ? (
+                <div className="tz-profile-threshold lt2">
+                  <strong>LT2 pract.</strong>
+                  <span>{profile.practical_lt2.lactate.toFixed(1)} mmol</span>
+                  {profile.practical_lt2.pace_label ? <span>{profile.practical_lt2.pace_label}</span> : null}
+                  {profile.practical_lt2.heart_rate ? <span>{profile.practical_lt2.heart_rate} bpm</span> : null}
+                  {profile.practical_lt2.power_watts ? <span>{Math.round(profile.practical_lt2.power_watts)}W</span> : null}
+                </div>
+              ) : null}
             </div>
             {profile.confidence != null ? (
               <span className="tz-profile-confidence">Confianza: {Math.round(profile.confidence * 100)}%</span>
@@ -294,6 +447,19 @@ export function TrainingZonesEditor({
           </button>
         ) : null}
       </div>
+
+      {/* Auto-calculation warning */}
+      {autoSuggested ? (
+        <div className="tz-auto-warning">
+          <strong>Zonas auto-calculadas</strong> — Revisa y ajusta los valores.
+          {profile?.practical_lt1 || profile?.practical_lt2
+            ? " Las zonas LT1 y LT2 usan umbrales prácticos (intensidad de entrenamiento), no fisiológicos."
+            : " Sin umbrales prácticos disponibles; se usaron los fisiológicos como referencia."}
+          {profile?.confidence != null && profile.confidence < 0.6
+            ? " La confianza de los datos es baja — valida con un test reciente."
+            : null}
+        </div>
+      ) : null}
 
       {/* Set name */}
       <div className="tz-name-row">

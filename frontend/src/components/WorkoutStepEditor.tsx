@@ -97,6 +97,23 @@ function parseDistanceToMeters(raw: string): number | null {
   return null;
 }
 
+/** Parse "4:30" or "4'30" → 270 seconds (pace per km or per 100m) */
+function parsePaceToSeconds(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^(\d+)[:']\s*(\d{1,2})$/);
+  if (match) return Number(match[1]) * 60 + Number(match[2]);
+  return null;
+}
+
+/** Format seconds → "4:30" */
+function formatPace(totalSeconds: number | null | undefined): string {
+  if (totalSeconds == null || totalSeconds <= 0) return "";
+  const min = Math.floor(totalSeconds / 60);
+  const sec = Math.round(totalSeconds % 60);
+  return `${min}:${String(sec).padStart(2, "0")}`;
+}
+
 function segmentHeight(tone: string): number {
   if (tone === "warmup" || tone === "recovery") return 0.28;
   if (tone === "aerobic") return 0.56;
@@ -114,6 +131,7 @@ type WorkoutStepEditorProps = {
   onSave: (workout: WorkoutDefinition) => void;
   onCancel: () => void;
   saving?: boolean;
+  discipline?: string;
 };
 
 type EditingStepState = {
@@ -123,7 +141,7 @@ type EditingStepState = {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function WorkoutStepEditor({ workout, onSave, onCancel, saving }: WorkoutStepEditorProps) {
+export function WorkoutStepEditor({ workout, onSave, onCancel, saving, discipline }: WorkoutStepEditorProps) {
   const [steps, setSteps] = useState<WorkoutStep[]>(() => structuredClone(workout.steps));
   const [title, setTitle] = useState(workout.title);
   const [editingStep, setEditingStep] = useState<EditingStepState | null>(null);
@@ -307,6 +325,7 @@ export function WorkoutStepEditor({ workout, onSave, onCancel, saving }: Workout
             onUpdateChild={(childIndex, patch) => updateStep(childIndex, patch, index)}
             onRemoveChild={(childIndex) => removeStep(childIndex, index)}
             onAddChild={(afterIndex, type) => addStep(afterIndex, type, index)}
+            discipline={discipline}
           />
         ))}
 
@@ -353,11 +372,12 @@ type StepRowProps = {
   onUpdateChild: (childIndex: number, patch: Partial<WorkoutStep>) => void;
   onRemoveChild: (childIndex: number) => void;
   onAddChild: (afterIndex: number, type: string) => void;
+  discipline?: string;
 };
 
 function StepRow({
   step, index, isEditing, onSelect, onUpdate, onRemove, onAdd, onMove,
-  onSelectChild, editingChildIndex, onUpdateChild, onRemoveChild, onAddChild,
+  onSelectChild, editingChildIndex, onUpdateChild, onRemoveChild, onAddChild, discipline,
 }: StepRowProps) {
   const zone = zoneFromTarget(step.target, step.intensity_label);
   const tone = step.step_type === "warmup" ? "warmup" : step.step_type === "cooldown" ? "warmup" : step.step_type === "recovery" ? "recovery" : zoneTone(zone);
@@ -376,6 +396,23 @@ function StepRow({
         {step.target?.target_type === "heart_rate" && step.target.value_from && step.target.value_to && (
           <span className="workout-editor-step-hr">{Math.round(step.target.value_from)}-{Math.round(step.target.value_to)} bpm</span>
         )}
+        {step.target?.unit === "pace" && (step.target.value_from || step.target.value_to) && (
+          <span className="workout-editor-step-hr">
+            {step.target.value_from && step.target.value_to
+              ? `${formatPace(step.target.value_from)}-${formatPace(step.target.value_to)}`
+              : formatPace(step.target.value_from ?? step.target.value_to)}
+            {discipline === "natación" ? " /100m" : " /km"}
+          </span>
+        )}
+        {step.target?.unit === "watts" && (step.target.value_from || step.target.value_to) && (
+          <span className="workout-editor-step-hr">
+            {step.target.value_from && step.target.value_to
+              ? `${Math.round(step.target.value_from)}-${Math.round(step.target.value_to)} W`
+              : step.target.value_from
+                ? `>${Math.round(step.target.value_from)} W`
+                : `<${Math.round(step.target.value_to!)} W`}
+          </span>
+        )}
         {step.instructions && <span className="workout-editor-step-note">{step.instructions}</span>}
       </button>
 
@@ -386,6 +423,7 @@ function StepRow({
           onRemove={onRemove}
           onAdd={onAdd}
           onMove={onMove}
+          discipline={discipline}
         />
       )}
 
@@ -428,6 +466,7 @@ function StepRow({
                     onRemove={() => onRemoveChild(childIndex)}
                     onAdd={(type) => onAddChild(childIndex, type)}
                     compact
+                    discipline={discipline}
                   />
                 )}
               </div>
@@ -455,9 +494,10 @@ type StepEditPanelProps = {
   onAdd: (type: string) => void;
   onMove?: (direction: -1 | 1) => void;
   compact?: boolean;
+  discipline?: string;
 };
 
-function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact }: StepEditPanelProps) {
+function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact, discipline }: StepEditPanelProps) {
   const [durationInput, setDurationInput] = useState(formatStepDuration(step.length_type, step.length_value));
   const currentZone = zoneFromTarget(step.target, step.intensity_label);
 
@@ -465,6 +505,21 @@ function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact }: Ste
   const hrTo = step.target?.target_type === "heart_rate" ? step.target.value_to : null;
   const [hrMinInput, setHrMinInput] = useState(hrFrom != null ? String(Math.round(hrFrom)) : "");
   const [hrMaxInput, setHrMaxInput] = useState(hrTo != null ? String(Math.round(hrTo)) : "");
+
+  // Discipline-specific target state
+  const isRunning = discipline === "running";
+  const isCycling = discipline === "ciclismo";
+  const isSwimming = discipline === "natación";
+
+  const existingPaceFrom = step.target?.unit === "pace" ? step.target.value_from : null;
+  const existingPaceTo = step.target?.unit === "pace" ? step.target.value_to : null;
+  const existingPowerFrom = step.target?.unit === "watts" ? step.target.value_from : null;
+  const existingPowerTo = step.target?.unit === "watts" ? step.target.value_to : null;
+
+  const [paceMinInput, setPaceMinInput] = useState(formatPace(existingPaceFrom));
+  const [paceMaxInput, setPaceMaxInput] = useState(formatPace(existingPaceTo));
+  const [powerMinInput, setPowerMinInput] = useState(existingPowerFrom != null ? String(Math.round(existingPowerFrom)) : "");
+  const [powerMaxInput, setPowerMaxInput] = useState(existingPowerTo != null ? String(Math.round(existingPowerTo)) : "");
 
   const handleDurationBlur = useCallback(() => {
     if (step.length_type === "distance") {
@@ -491,6 +546,10 @@ function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact }: Ste
     });
     setHrMinInput("");
     setHrMaxInput("");
+    setPaceMinInput("");
+    setPaceMaxInput("");
+    setPowerMinInput("");
+    setPowerMaxInput("");
   }, [onUpdate]);
 
   const handleHrBlur = useCallback(() => {
@@ -510,10 +569,64 @@ function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact }: Ste
         },
       });
     } else if (step.target?.target_type === "heart_rate") {
-      // Clear HR target, revert to zone-only
       handleZoneChange(currentZone);
     }
   }, [hrMinInput, hrMaxInput, currentZone, onUpdate, step.target?.target_type, handleZoneChange]);
+
+  const handlePaceBlur = useCallback(() => {
+    const from = parsePaceToSeconds(paceMinInput);
+    const to = parsePaceToSeconds(paceMaxInput);
+    if (from != null || to != null) {
+      const zoneOption = ZONE_OPTIONS.find((z) => z.value === currentZone);
+      const zoneLabel = zoneOption?.label ?? currentZone;
+      const paceUnit = isSwimming ? "/100m" : "/km";
+      const label = from && to
+        ? `${zoneLabel} · ${formatPace(from)}-${formatPace(to)} ${paceUnit}`
+        : from
+          ? `${zoneLabel} · ${formatPace(from)} ${paceUnit}`
+          : to
+            ? `${zoneLabel} · ${formatPace(to)} ${paceUnit}`
+            : zoneLabel;
+      onUpdate({
+        target: {
+          target_type: "pace",
+          value_from: from,
+          value_to: to,
+          unit: "pace",
+          label,
+        },
+      });
+    } else if (step.target?.unit === "pace") {
+      handleZoneChange(currentZone);
+    }
+  }, [paceMinInput, paceMaxInput, currentZone, isSwimming, onUpdate, step.target?.unit, handleZoneChange]);
+
+  const handlePowerBlur = useCallback(() => {
+    const from = powerMinInput.trim() ? Number(powerMinInput) : null;
+    const to = powerMaxInput.trim() ? Number(powerMaxInput) : null;
+    if (from != null || to != null) {
+      const zoneOption = ZONE_OPTIONS.find((z) => z.value === currentZone);
+      const zoneLabel = zoneOption?.label ?? currentZone;
+      const label = from && to
+        ? `${zoneLabel} · ${from}-${to} W`
+        : from
+          ? `${zoneLabel} · >${from} W`
+          : to
+            ? `${zoneLabel} · <${to} W`
+            : zoneLabel;
+      onUpdate({
+        target: {
+          target_type: "power",
+          value_from: from,
+          value_to: to,
+          unit: "watts",
+          label,
+        },
+      });
+    } else if (step.target?.unit === "watts") {
+      handleZoneChange(currentZone);
+    }
+  }, [powerMinInput, powerMaxInput, currentZone, onUpdate, step.target?.unit, handleZoneChange]);
 
   return (
     <div className={`workout-editor-edit-panel ${compact ? "compact" : ""}`}>
@@ -538,7 +651,7 @@ function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact }: Ste
             onChange={(e) => setDurationInput(e.target.value)}
             onBlur={handleDurationBlur}
             onKeyDown={(e) => { if (e.key === "Enter") handleDurationBlur(); }}
-            placeholder="ej: 8', 90'', 1km"
+            placeholder={isSwimming ? "ej: 400m, 8'" : "ej: 8', 90'', 1km"}
             className="workout-editor-duration-input"
           />
         </label>
@@ -555,6 +668,69 @@ function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact }: Ste
           </select>
         </label>
       </div>
+
+      {/* ── Discipline-specific targets ── */}
+      {(isRunning || isSwimming) && (
+        <div className="workout-editor-edit-row">
+          <label className="workout-editor-hr-label">
+            {isSwimming ? "Ritmo rápido (/100m)" : "Ritmo rápido (/km)"}
+            <input
+              type="text"
+              value={paceMinInput}
+              onChange={(e) => setPaceMinInput(e.target.value)}
+              onBlur={handlePaceBlur}
+              onKeyDown={(e) => { if (e.key === "Enter") handlePaceBlur(); }}
+              placeholder={isSwimming ? "ej: 1:40" : "ej: 4:30"}
+              className="workout-editor-hr-input"
+            />
+          </label>
+          <label className="workout-editor-hr-label">
+            {isSwimming ? "Ritmo lento (/100m)" : "Ritmo lento (/km)"}
+            <input
+              type="text"
+              value={paceMaxInput}
+              onChange={(e) => setPaceMaxInput(e.target.value)}
+              onBlur={handlePaceBlur}
+              onKeyDown={(e) => { if (e.key === "Enter") handlePaceBlur(); }}
+              placeholder={isSwimming ? "ej: 1:50" : "ej: 4:45"}
+              className="workout-editor-hr-input"
+            />
+          </label>
+        </div>
+      )}
+
+      {isCycling && (
+        <div className="workout-editor-edit-row">
+          <label className="workout-editor-hr-label">
+            Potencia min (W)
+            <input
+              type="number"
+              min={0}
+              max={2000}
+              value={powerMinInput}
+              onChange={(e) => setPowerMinInput(e.target.value)}
+              onBlur={handlePowerBlur}
+              onKeyDown={(e) => { if (e.key === "Enter") handlePowerBlur(); }}
+              placeholder="ej: 220"
+              className="workout-editor-hr-input"
+            />
+          </label>
+          <label className="workout-editor-hr-label">
+            Potencia max (W)
+            <input
+              type="number"
+              min={0}
+              max={2000}
+              value={powerMaxInput}
+              onChange={(e) => setPowerMaxInput(e.target.value)}
+              onBlur={handlePowerBlur}
+              onKeyDown={(e) => { if (e.key === "Enter") handlePowerBlur(); }}
+              placeholder="ej: 260"
+              className="workout-editor-hr-input"
+            />
+          </label>
+        </div>
+      )}
 
       <div className="workout-editor-edit-row">
         <label className="workout-editor-hr-label">

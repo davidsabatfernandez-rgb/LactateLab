@@ -7,6 +7,7 @@ from typing import Union
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.athlete import Athlete, AthleteFocusBlock, AthleteTarget, AthleteWeightHistory
+from app.models.planned_session import PlannedSession
 from app.models.training_zone import TrainingZone, TrainingZoneSet
 from app.models.user import User
 from app.schemas.ai import (
@@ -34,6 +35,7 @@ from app.schemas.training_zone import (
     TrainingZoneSetCreate,
     TrainingZoneSetRead,
     TrainingZoneSetUpdate,
+    ZoneStalenessCheck,
 )
 from app.schemas.report import PhysiologyReportRead
 from app.services.analytics import athlete_analysis_payload, recalculate_athlete
@@ -389,6 +391,29 @@ def threshold_profile_for_zones(
         secs = int(seconds) % 60
         return f"{mins}:{secs:02d}/km"
 
+    def _item_from_ref(ref: dict) -> ThresholdItemForZones:
+        pace = ref.get("estimated_pace_seconds_per_km")
+        return ThresholdItemForZones(
+            lactate=ref.get("target_lactate", 0),
+            pace_seconds_per_km=pace,
+            heart_rate=ref.get("estimated_hr_at_target"),
+            power_watts=ref.get("estimated_power_watts"),
+            pace_label=_pace_label(pace),
+        )
+
+    # Extract practical thresholds from dynamic engine (available in all sources)
+    practical_lt1_item: ThresholdItemForZones | None = None
+    practical_lt2_item: ThresholdItemForZones | None = None
+    dynamic = payload.get("dynamic_thresholds")
+    if dynamic:
+        chronic = dynamic.get("chronic", {})
+        prac_lt1 = chronic.get("practical_lt1")
+        prac_lt2 = chronic.get("practical_lt2")
+        if prac_lt1:
+            practical_lt1_item = _item_from_ref(prac_lt1)
+        if prac_lt2:
+            practical_lt2_item = _item_from_ref(prac_lt2)
+
     # Priority: individual > dynamic/physiological > analysis thresholds
     individual = payload.get("individual_thresholds")
     if individual and individual.get("data_quality", {}).get("sufficient") is not False:
@@ -409,33 +434,24 @@ def threshold_profile_for_zones(
                 power_watts=lt2_ind.get("power_watts"),
                 pace_label=_pace_label(lt2_ind.get("pace_seconds_per_km")),
             ) if lt2_ind else None,
+            practical_lt1=practical_lt1_item,
+            practical_lt2=practical_lt2_item,
             source="individual",
             source_label="Individual (multi-sesión)",
             confidence=lt2_ind.get("confidence") if lt2_ind else None,
             snapshot_date=str(snapshot.snapshot_date),
         )
 
-    dynamic = payload.get("dynamic_thresholds")
     if dynamic:
         chronic = dynamic.get("chronic", {})
         ref_2 = chronic.get("reference_2mmol")
         ref_4 = chronic.get("reference_4mmol")
         if ref_2 or ref_4:
             return ThresholdProfileForZones(
-                lt1=ThresholdItemForZones(
-                    lactate=ref_2.get("target_lactate", 2.0),
-                    pace_seconds_per_km=ref_2.get("estimated_pace_seconds_per_km"),
-                    heart_rate=ref_2.get("estimated_hr_at_target"),
-                    power_watts=ref_2.get("estimated_power_watts"),
-                    pace_label=_pace_label(ref_2.get("estimated_pace_seconds_per_km")),
-                ) if ref_2 else None,
-                lt2=ThresholdItemForZones(
-                    lactate=ref_4.get("target_lactate", 4.0),
-                    pace_seconds_per_km=ref_4.get("estimated_pace_seconds_per_km"),
-                    heart_rate=ref_4.get("estimated_hr_at_target"),
-                    power_watts=ref_4.get("estimated_power_watts"),
-                    pace_label=_pace_label(ref_4.get("estimated_pace_seconds_per_km")),
-                ) if ref_4 else None,
+                lt1=_item_from_ref(ref_2) if ref_2 else None,
+                lt2=_item_from_ref(ref_4) if ref_4 else None,
+                practical_lt1=practical_lt1_item,
+                practical_lt2=practical_lt2_item,
                 source="physiological",
                 source_label="Fisiológico (2.0 / 4.0 mmol)",
                 confidence=ref_4.get("confidence_score") if ref_4 else None,
@@ -461,11 +477,136 @@ def threshold_profile_for_zones(
             power_watts=lt2_th.get("power_watts"),
             pace_label=_pace_label(lt2_th.get("pace_seconds_per_km")),
         ) if lt2_th else None,
+        practical_lt1=practical_lt1_item,
+        practical_lt2=practical_lt2_item,
         source="analysis",
         source_label="Análisis de sesión",
         confidence=lt2_th.get("confidence") if lt2_th else None,
         snapshot_date=str(snapshot.snapshot_date),
     )
+
+
+@router.get("/{athlete_id}/training-zones/staleness-check", response_model=ZoneStalenessCheck)
+def check_zone_staleness(
+    athlete_id: int,
+    discipline: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Compare active zones' threshold_context vs current thresholds.
+
+    Returns is_stale=True when the practical LT2 pace/power has shifted
+    by ≥3% or HR by ≥5 bpm since zones were created (Seiler 2006).
+    """
+    from app.models.metrics import PhysiologicalSnapshot
+
+    # 1. Get active zone set
+    active = db.scalars(
+        select(TrainingZoneSet)
+        .where(
+            TrainingZoneSet.athlete_id == athlete_id,
+            TrainingZoneSet.discipline == discipline,
+            TrainingZoneSet.is_active == True,  # noqa: E712
+        )
+    ).first()
+    if active is None:
+        return ZoneStalenessCheck(is_stale=False, reason="No hay zonas activas")
+
+    # 2. Get current snapshot
+    snapshot = db.scalars(
+        select(PhysiologicalSnapshot)
+        .where(PhysiologicalSnapshot.athlete_id == athlete_id, PhysiologicalSnapshot.discipline == discipline)
+        .order_by(PhysiologicalSnapshot.snapshot_date.desc())
+    ).first()
+    if snapshot is None:
+        return ZoneStalenessCheck(is_stale=False, reason="Sin datos de umbral")
+
+    # 3. Extract current practical thresholds
+    payload = snapshot.payload or {}
+    dynamic = payload.get("dynamic_thresholds", {})
+    chronic = dynamic.get("chronic", {})
+    current_prac_lt2 = chronic.get("practical_lt2", {})
+    current_prac_lt1 = chronic.get("practical_lt1", {})
+
+    if not current_prac_lt2 and not current_prac_lt1:
+        return ZoneStalenessCheck(is_stale=False, reason="Sin umbrales prácticos actuales")
+
+    # 4. Extract zone-creation thresholds from threshold_context
+    ctx = active.threshold_context or {}
+    old_prac_lt2 = ctx.get("practical_lt2", {})
+    old_prac_lt1 = ctx.get("practical_lt1", {})
+
+    result = ZoneStalenessCheck(
+        zones_created_at=str(active.created_at.date()) if active.created_at else None,
+        zones_threshold_source=active.threshold_source,
+        current_snapshot_date=str(snapshot.snapshot_date),
+    )
+
+    # 5. Compute deltas
+    reasons = []
+
+    # LT2 pace
+    old_pace = old_prac_lt2.get("estimated_pace_seconds_per_km") or old_prac_lt2.get("pace_seconds_per_km")
+    new_pace = current_prac_lt2.get("estimated_pace_seconds_per_km")
+    if old_pace and new_pace:
+        delta = new_pace - old_pace
+        result.lt2_pace_delta_seconds = round(delta, 1)
+        if abs(delta / old_pace) >= 0.03:
+            reasons.append(f"LT2 pace cambió {abs(delta):.0f}s/km ({abs(delta/old_pace)*100:.0f}%)")
+
+    # LT2 HR
+    old_hr = old_prac_lt2.get("estimated_hr_at_target") or old_prac_lt2.get("heart_rate")
+    new_hr = current_prac_lt2.get("estimated_hr_at_target")
+    if old_hr and new_hr:
+        delta = int(new_hr - old_hr)
+        result.lt2_hr_delta = delta
+        if abs(delta) >= 5:
+            reasons.append(f"LT2 FC cambió {abs(delta)} bpm")
+
+    # LT2 power
+    old_pow = old_prac_lt2.get("estimated_power_watts") or old_prac_lt2.get("power_watts")
+    new_pow = current_prac_lt2.get("estimated_power_watts")
+    if old_pow and new_pow:
+        delta = round(new_pow - old_pow, 1)
+        result.lt2_power_delta = delta
+        if abs(delta / old_pow) >= 0.03:
+            reasons.append(f"LT2 potencia cambió {abs(delta):.0f}W ({abs(delta/old_pow)*100:.0f}%)")
+
+    # LT1 pace
+    old_p1 = old_prac_lt1.get("estimated_pace_seconds_per_km") or old_prac_lt1.get("pace_seconds_per_km")
+    new_p1 = current_prac_lt1.get("estimated_pace_seconds_per_km")
+    if old_p1 and new_p1:
+        delta = new_p1 - old_p1
+        result.lt1_pace_delta_seconds = round(delta, 1)
+        if abs(delta / old_p1) >= 0.03:
+            reasons.append(f"LT1 pace cambió {abs(delta):.0f}s/km ({abs(delta/old_p1)*100:.0f}%)")
+
+    # LT1 HR
+    old_h1 = old_prac_lt1.get("estimated_hr_at_target") or old_prac_lt1.get("heart_rate")
+    new_h1 = current_prac_lt1.get("estimated_hr_at_target")
+    if old_h1 and new_h1:
+        delta = int(new_h1 - old_h1)
+        result.lt1_hr_delta = delta
+        if abs(delta) >= 5:
+            reasons.append(f"LT1 FC cambió {abs(delta)} bpm")
+
+    # LT1 power
+    old_pw1 = old_prac_lt1.get("estimated_power_watts") or old_prac_lt1.get("power_watts")
+    new_pw1 = current_prac_lt1.get("estimated_power_watts")
+    if old_pw1 and new_pw1:
+        delta = round(new_pw1 - old_pw1, 1)
+        result.lt1_power_delta = delta
+        if abs(delta / old_pw1) >= 0.03:
+            reasons.append(f"LT1 potencia cambió {abs(delta):.0f}W")
+
+    if not reasons and not old_prac_lt2 and current_prac_lt2:
+        reasons.append("Zonas creadas sin contexto de umbral — imposible verificar")
+        result.is_stale = True
+    elif reasons:
+        result.is_stale = True
+
+    result.reason = "; ".join(reasons) if reasons else "Zonas actualizadas"
+    return result
 
 
 @router.post("/{athlete_id}/training-zones", response_model=TrainingZoneSetRead, status_code=status.HTTP_201_CREATED)
@@ -507,7 +648,49 @@ def create_training_zone_set(
     db.add(zone_set)
     db.commit()
     db.refresh(zone_set)
-    return zone_set
+
+    # Regenerate structured workouts for future planned sessions of this discipline
+    updated_count = _regenerate_future_workouts(db, athlete_id, payload.discipline)
+
+    # Attach session count to response (not a DB column, just response-level info)
+    result = TrainingZoneSetRead.model_validate(zone_set)
+    result.sessions_updated = updated_count
+    return result
+
+
+def _regenerate_future_workouts(db: Session, athlete_id: int, discipline: str) -> int:
+    """Regenerate structured_workout_payload for future planned sessions.
+
+    Called when training zones are updated so Garmin pushes reflect new targets.
+    Only touches sessions that haven't been coach-edited.
+    Returns number of sessions updated.
+    """
+    from datetime import date as date_type
+    from app.services.planned_session_publication import prepare_planned_session_for_publish
+
+    future_sessions = db.scalars(
+        select(PlannedSession).where(
+            PlannedSession.athlete_id == athlete_id,
+            PlannedSession.discipline == discipline,
+            PlannedSession.scheduled_date >= date_type.today(),
+            PlannedSession.status == "planned",
+        )
+    ).all()
+
+    count = 0
+    for session in future_sessions:
+        # Skip coach-edited workouts
+        existing = session.structured_workout_payload
+        if isinstance(existing, dict):
+            sp = existing.get("source_payload") or {}
+            if sp.get("coach_edited"):
+                continue
+        prepare_planned_session_for_publish(session)
+        count += 1
+
+    if count > 0:
+        db.commit()
+    return count
 
 
 @router.patch("/{athlete_id}/training-zones/{zone_set_id}", response_model=TrainingZoneSetRead)

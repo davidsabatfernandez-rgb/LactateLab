@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     dynamic_practical_lt1_target_mmol: float = 1.6
     dynamic_practical_lt2_target_mmol: float = 3.1
     dynamic_practical_translation_mode: str = "configured"
-    dynamic_acute_window_days: int = 10
+    dynamic_acute_window_days: int = 42  # unified with chronic — single effective model
     dynamic_chronic_window_days: int = 42
     dynamic_recency_decay_days: int = 18
     dynamic_quality_weight: float = 1.0

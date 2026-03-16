@@ -136,7 +136,7 @@ export function buildSyntheticCalendarSessions(source: PlanningCalendarSource) {
 export function buildPersistedCalendarSessions(source: PlanningCalendarSource, plannedSessions: PlanningPlannedSession[]) {
   if (source.kind !== "planned" || !source.focusBlockId) return null;
   const selected = plannedSessions
-    .filter((session) => session.focus_block_id === source.focusBlockId)
+    .filter((session) => session.focus_block_id === source.focusBlockId || session.focus_block_id == null)
     .map<CalendarSession>((session) => ({
       id: `planned-session-${session.id}`,
       date: session.scheduled_date,

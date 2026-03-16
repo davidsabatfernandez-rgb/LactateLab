@@ -577,6 +577,7 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
               onSave={handleSaveWorkout}
               onCancel={() => setEditMode(false)}
               saving={saving}
+              discipline={template?.discipline}
             />
           </div>
         ) : (

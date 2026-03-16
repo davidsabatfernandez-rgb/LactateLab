@@ -30,6 +30,7 @@ type CalendarLibraryTabProps = {
   openPlannedWorkoutPreview: (sessionId: number) => boolean;
   openPlannedWorkoutRawInformation: (sessionId: number) => void;
   openLibraryWorkoutPreview: (template: PlanningWorkoutTemplate) => void;
+  onAddToDay?: ((template: PlanningWorkoutTemplate, date: string) => void) | null;
 };
 
 export function CalendarLibraryTab({
@@ -47,6 +48,7 @@ export function CalendarLibraryTab({
   openPlannedWorkoutPreview,
   openPlannedWorkoutRawInformation,
   openLibraryWorkoutPreview,
+  onAddToDay,
 }: CalendarLibraryTabProps) {
   const [librarySubTab, setLibrarySubTab] = useState<"mesocycles" | "workouts">("mesocycles");
   const selectedTemplate = useMemo(
@@ -158,6 +160,7 @@ export function CalendarLibraryTab({
               overview={overview}
               selectedDiscipline={selectedDiscipline}
               onPreview={openLibraryWorkoutPreview}
+              onAddToDay={onAddToDay}
             />
           </section>
         ) : (

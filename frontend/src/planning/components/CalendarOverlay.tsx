@@ -44,6 +44,7 @@ import {
   workoutLayerTone,
 } from "../utils-workout";
 import type { CalendarNavigationRefs } from "../context/useCalendarNavigation";
+import { PlanningCompactHeader } from "./PlanningCompactHeader";
 import { QuickAddIcon } from "./QuickAddIcon";
 import { CalendarAthletesTab } from "./CalendarAthletesTab";
 import { CalendarLibraryTab } from "./CalendarLibraryTab";
@@ -51,25 +52,34 @@ import { CalendarSummaryTab } from "./CalendarSummaryTab";
 import { MesocycleComposer } from "./MesocycleComposer";
 import { CalendarView } from "./CalendarView";
 import { IntelligenceBanner } from "./IntelligenceBanner";
+import { LibraryWeekEditor } from "./LibraryWeekEditor";
+import { TrainingPlanEditor } from "./TrainingPlanEditor";
+import { TrainingPlansPanel } from "./TrainingPlansPanel";
+import { WorkoutLibraryPanel } from "./WorkoutLibraryPanel";
 import type { PlanningState } from "../context/PlanningContext";
 
-// ── Inline CalendarZonesTab ────────────────────────────────────────────────
+// ── Inline CalendarZonesTab (multi-discipline) ───────────────────────────
 
-function CalendarZonesTab({ athleteId, discipline, token, athleteName }: {
-  athleteId: string | null;
+type StalenessResult = {
+  is_stale: boolean; reason: string | null;
+  lt2_pace_delta_seconds: number | null; lt2_hr_delta: number | null; lt2_power_delta: number | null;
+  lt1_pace_delta_seconds: number | null; lt1_hr_delta: number | null; lt1_power_delta: number | null;
+};
+
+function DisciplineZoneCard({ athleteId, discipline, token, onEdit, onCreateNew }: {
+  athleteId: number;
   discipline: string;
   token: string;
-  athleteName: string;
+  onEdit: (zoneSet: TrainingZoneSet) => void;
+  onCreateNew: () => void;
 }) {
   const [zoneSets, setZoneSets] = useState<TrainingZoneSet[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [editingSet, setEditingSet] = useState<TrainingZoneSet | null>(null);
+  const [staleness, setStaleness] = useState<StalenessResult | null>(null);
 
   const loadZones = useCallback(() => {
-    if (!athleteId) return;
     setLoading(true);
-    api.trainingZoneSets(token, Number(athleteId), discipline)
+    api.trainingZoneSets(token, athleteId, discipline)
       .then((data) => setZoneSets(data as TrainingZoneSet[]))
       .catch(() => setZoneSets([]))
       .finally(() => setLoading(false));
@@ -77,63 +87,69 @@ function CalendarZonesTab({ athleteId, discipline, token, athleteName }: {
 
   useEffect(() => { loadZones(); }, [loadZones]);
 
+  useEffect(() => {
+    api.zoneStalenessCheck(token, athleteId, discipline)
+      .then((data) => setStaleness(data))
+      .catch(() => setStaleness(null));
+  }, [token, athleteId, discipline]);
+
   const activeSet = zoneSets.find((zs) => zs.is_active) ?? null;
-
-  if (!athleteId) {
-    return <div className="planning-calendar-tab-empty"><p>Selecciona un atleta para ver sus zonas.</p></div>;
-  }
-
-  if (editing) {
-    return (
-      <div style={{ padding: "24px 28px" }}>
-        <TrainingZonesEditor
-          athleteId={Number(athleteId)}
-          discipline={discipline}
-          token={token}
-          existingSet={editingSet}
-          onSave={() => { setEditing(false); setEditingSet(null); loadZones(); }}
-          onCancel={() => { setEditing(false); setEditingSet(null); }}
-        />
-      </div>
-    );
-  }
+  const discLabel = discipline === "ciclismo" ? "Ciclismo" : discipline === "natación" ? "Natación" : "Carrera a pie";
+  const discAccent = discipline === "running" ? "#22c55e" : discipline === "ciclismo" ? "#f59e0b" : "#0ea5e9";
 
   return (
-    <div style={{ padding: "24px 28px", display: "grid", gap: 18 }}>
-      <div style={{ display: "grid", gap: 6 }}>
-        <span className="eyebrow">Zonas de entrenamiento</span>
-        <h2 style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: "1.3rem" }}>
-          {athleteName} — {discipline === "ciclismo" ? "Ciclismo" : discipline === "natación" ? "Natación" : "Carrera a pie"}
-        </h2>
+    <div className="zones-discipline-card" style={{ borderLeftColor: discAccent }}>
+      <div className="zones-discipline-card-head">
+        <strong>{discLabel}</strong>
+        {staleness?.is_stale ? (
+          <span className="zones-stale-badge" title={staleness.reason ?? ""}>Actualizar zonas</span>
+        ) : activeSet ? (
+          <span className="zones-ok-badge">OK</span>
+        ) : null}
       </div>
 
       {loading ? (
-        <p style={{ color: "var(--muted)", fontSize: "0.84rem", margin: 0 }}>Cargando zonas...</p>
+        <p className="zones-discipline-loading">Cargando...</p>
       ) : activeSet ? (
-        <TrainingZonesDisplay
-          zoneSet={activeSet}
-          discipline={discipline}
-          onEdit={() => { setEditingSet(activeSet); setEditing(true); }}
-        />
+        <>
+          <TrainingZonesDisplay zoneSet={activeSet} discipline={discipline} onEdit={() => onEdit(activeSet)} compact />
+          {staleness?.is_stale ? (
+            <div className="zones-stale-detail">
+              <p>{staleness.reason}</p>
+              {staleness.lt2_pace_delta_seconds != null ? (
+                <span>LT2 pace: {staleness.lt2_pace_delta_seconds > 0 ? "+" : ""}{staleness.lt2_pace_delta_seconds.toFixed(0)}s/km</span>
+              ) : null}
+              {staleness.lt2_hr_delta != null ? (
+                <span>LT2 FC: {staleness.lt2_hr_delta > 0 ? "+" : ""}{staleness.lt2_hr_delta} bpm</span>
+              ) : null}
+              {staleness.lt2_power_delta != null ? (
+                <span>LT2 pot: {staleness.lt2_power_delta > 0 ? "+" : ""}{staleness.lt2_power_delta.toFixed(0)}W</span>
+              ) : null}
+            </div>
+          ) : null}
+        </>
       ) : (
-        <p style={{ color: "var(--muted)", fontSize: "0.84rem", margin: 0 }}>
-          No hay zonas definidas. Crea un conjunto para esta disciplina.
-        </p>
+        <p className="zones-discipline-empty">Sin zonas definidas</p>
       )}
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button type="button" className="tz-suggest-btn" onClick={() => { setEditingSet(null); setEditing(true); }}>
-          {activeSet ? "Crear nuevo conjunto" : "Crear zonas de entrenamiento"}
-        </button>
+      <div className="zones-discipline-card-actions">
+        {activeSet ? (
+          <>
+            <button type="button" className="tz-edit-btn" onClick={() => onEdit(activeSet)}>Editar</button>
+            <button type="button" className="tz-suggest-btn" onClick={onCreateNew}>Nuevo conjunto</button>
+          </>
+        ) : (
+          <button type="button" className="tz-suggest-btn" onClick={onCreateNew}>Crear zonas</button>
+        )}
         {zoneSets.filter((zs) => !zs.is_active).length > 0 ? (
-          <details style={{ fontSize: "0.78rem", color: "var(--muted)" }}>
+          <details className="zones-archived-detail">
             <summary>{zoneSets.filter((zs) => !zs.is_active).length} archivado{zoneSets.filter((zs) => !zs.is_active).length > 1 ? "s" : ""}</summary>
-            <div style={{ display: "grid", gap: 4, marginTop: 6 }}>
+            <div className="zones-archived-list">
               {zoneSets.filter((zs) => !zs.is_active).map((zs) => (
-                <div key={zs.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div key={zs.id} className="zones-archived-item">
                   <span>{zs.name}</span>
                   <button type="button" className="tz-edit-btn" onClick={() => {
-                    api.activateTrainingZoneSet(token, Number(athleteId), zs.id).then(() => loadZones());
+                    api.activateTrainingZoneSet(token, athleteId, zs.id).then(() => loadZones());
                   }}>Activar</button>
                 </div>
               ))}
@@ -141,6 +157,58 @@ function CalendarZonesTab({ athleteId, discipline, token, athleteName }: {
           </details>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function CalendarZonesTab({ athleteId, disciplines, token, athleteName }: {
+  athleteId: string | null;
+  disciplines: string[];
+  token: string;
+  athleteName: string;
+}) {
+  const [editingDiscipline, setEditingDiscipline] = useState<string | null>(null);
+  const [editingSet, setEditingSet] = useState<TrainingZoneSet | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  if (!athleteId) {
+    return <div className="planning-calendar-tab-empty"><p>Selecciona un atleta para ver sus zonas.</p></div>;
+  }
+
+  if (editingDiscipline) {
+    return (
+      <div style={{ padding: "24px 28px", overflowY: "auto", height: "100%" }}>
+        <TrainingZonesEditor
+          athleteId={Number(athleteId)}
+          discipline={editingDiscipline}
+          token={token}
+          existingSet={editingSet}
+          onSave={() => { setEditingDiscipline(null); setEditingSet(null); setRefreshKey((k) => k + 1); }}
+          onCancel={() => { setEditingDiscipline(null); setEditingSet(null); }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "24px 28px", display: "grid", gap: 20, overflowY: "auto", height: "100%", alignContent: "start" }}>
+      <div style={{ display: "grid", gap: 6 }}>
+        <span className="eyebrow">Zonas de entrenamiento</span>
+        <h2 style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: "1.3rem" }}>
+          {athleteName}
+        </h2>
+      </div>
+
+      {disciplines.map((disc) => (
+        <DisciplineZoneCard
+          key={`${disc}-${refreshKey}`}
+          athleteId={Number(athleteId)}
+          discipline={disc}
+          token={token}
+          onEdit={(zs) => { setEditingSet(zs); setEditingDiscipline(disc); }}
+          onCreateNew={() => { setEditingSet(null); setEditingDiscipline(disc); }}
+        />
+      ))}
     </div>
   );
 }
@@ -200,6 +268,9 @@ type CalendarOverlayProps = {
   handlePushToGarmin: () => Promise<void>;
   loadPlanningContext: (athleteId: string, discipline: string) => Promise<void>;
   onCopyWeek?: () => void;
+  showAllDisciplines?: boolean;
+  onToggleAllDisciplines?: () => void;
+  hasMultipleDisciplines?: boolean;
   // Navigation refs and handlers
   navRefs: CalendarNavigationRefs;
   jumpCalendarToToday: () => void;
@@ -207,6 +278,15 @@ type CalendarOverlayProps = {
   shiftCalendarForward: () => void;
   handleContinuousWeekScroll: () => void;
   handleContinuousMonthScroll: () => void;
+  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => Promise<void>;
+  // Compact header data (calendar-first redesign)
+  compactHeader?: {
+    athletes: Athlete[];
+    availableDisciplines: string[];
+    visibleTargets: import("../../types").AthleteTarget[];
+    planningLt1: ReturnType<typeof import("../utils").resolveTrainingThreshold>;
+    planningLt2: ReturnType<typeof import("../utils").resolveTrainingThreshold>;
+  };
 };
 
 export function CalendarOverlay({
@@ -262,12 +342,17 @@ export function CalendarOverlay({
   handlePushToGarmin,
   loadPlanningContext,
   onCopyWeek,
+  showAllDisciplines,
+  onToggleAllDisciplines,
+  hasMultipleDisciplines,
   navRefs,
   jumpCalendarToToday,
   shiftCalendarBackward,
   shiftCalendarForward,
   handleContinuousWeekScroll,
   handleContinuousMonthScroll,
+  onAddSessionToDay,
+  compactHeader,
 }: CalendarOverlayProps) {
   const {
     overview,
@@ -292,6 +377,7 @@ export function CalendarOverlay({
     plannedSessionStructuredPreviewError,
     plannedSessionRegeneratingId,
     planningSourceModal,
+    coachLibraries,
     weeks,
     blockIntent,
     primaryWeakness,
@@ -324,6 +410,12 @@ export function CalendarOverlay({
     if (plannedSessionStructuredPreview) return plannedSessionStructuredPreview;
     return null;
   }, [activePlannedPreviewSession, plannedSessionStructuredPreview]);
+
+  // ── Library Week Editor ──
+  const [libraryWeekEditorOpen, setLibraryWeekEditorOpen] = useState(false);
+  const [libraryWeekEditorTarget, setLibraryWeekEditorTarget] = useState<import("../../types").CoachLibrary | null>(null);
+  const [planEditorOpen, setPlanEditorOpen] = useState(false);
+  const [planEditorTarget, setPlanEditorTarget] = useState<import("../../types").CoachPlan | null>(null);
 
   // ── Drag-and-drop: move session to a different day ──
   const handleMoveSession = useCallback(async (session: CalendarEntry, newDate: string) => {
@@ -359,6 +451,18 @@ export function CalendarOverlay({
       dispatch({ type: "MOVE_SYNTHETIC_SESSION", payload: { syntheticId: session.id, newDate } });
     }
   }, [athleteId, dispatch, loadPlanningContext, overview?.planned_sessions, selectedDiscipline, token]);
+
+  const handleDeleteSession = useCallback(async (session: CalendarEntry) => {
+    if (session.rawId == null) return;
+    dispatch({ type: "DELETE_SESSION", payload: { sessionId: session.rawId } });
+    try {
+      await api.deletePlannedSession(token, session.rawId);
+      if (athleteId) await loadPlanningContext(String(athleteId), selectedDiscipline);
+    } catch (err) {
+      console.error("[DnD] Error al eliminar sesión:", err);
+      if (athleteId) await loadPlanningContext(String(athleteId), selectedDiscipline);
+    }
+  }, [athleteId, dispatch, loadPlanningContext, selectedDiscipline, token]);
 
   const handleRenameSession = useCallback(async (newTitle: string) => {
     const sessionId = activePlannedPreviewSession?.id;
@@ -416,15 +520,47 @@ export function CalendarOverlay({
           openPlannedWorkoutPreview={openPlannedWorkoutPreview}
           openPlannedWorkoutRawInformation={openPlannedWorkoutRawInformation}
           openLibraryWorkoutPreview={openLibraryWorkoutPreview}
+          onAddToDay={(template, date) => {
+            onAddSessionToDay(date, template.discipline, template);
+          }}
+        />
+      );
+    }
+
+    if (calendarWorkspaceTab === "workouts") {
+      return (
+        <WorkoutLibraryPanel
+          workoutLibrary={workoutLibrary}
+          coachLibraries={coachLibraries}
+          overview={overview}
+          selectedDiscipline={selectedDiscipline}
+          token={token}
+          dispatch={dispatch}
+          onPreview={openLibraryWorkoutPreview}
+          onAddSessionToDay={onAddSessionToDay}
+          onOpenWeekEditor={(lib) => { setLibraryWeekEditorTarget(lib ?? null); setLibraryWeekEditorOpen(true); }}
+        />
+      );
+    }
+
+    if (calendarWorkspaceTab === "plans") {
+      return (
+        <TrainingPlansPanel
+          coachPlans={state.coachPlans}
+          token={token}
+          dispatch={dispatch}
+          onCreatePlan={() => { setPlanEditorTarget(null); setPlanEditorOpen(true); }}
+          onEditPlan={(plan) => { setPlanEditorTarget(plan); setPlanEditorOpen(true); }}
         />
       );
     }
 
     if (calendarWorkspaceTab === "zones") {
+      const allDisciplines = ["running", "ciclismo", "natación"];
       return (
         <CalendarZonesTab
           athleteId={athleteId}
-          discipline={selectedDiscipline}
+          disciplines={allDisciplines}
           token={token}
           athleteName={overview?.athlete_name ?? "Atleta"}
         />
@@ -515,6 +651,10 @@ export function CalendarOverlay({
         openCalendarQuickAdd={openCalendarQuickAdd}
         onCopyWeek={onCopyWeek}
         onMoveSession={handleMoveSession}
+        onDeleteSession={handleDeleteSession}
+        showAllDisciplines={showAllDisciplines}
+        onToggleAllDisciplines={onToggleAllDisciplines}
+        hasMultipleDisciplines={hasMultipleDisciplines}
         calendarWeekScrollerRef={navRefs.calendarWeekScrollerRef}
         calendarWeekSectionRefs={navRefs.calendarWeekSectionRefs}
         calendarMonthScrollerRef={navRefs.calendarMonthScrollerRef}
@@ -524,66 +664,85 @@ export function CalendarOverlay({
   };
 
   return (
-    <div className="planning-calendar-overlay-page">
-      <button type="button" className="planning-calendar-overlay-close" onClick={closeCalendarPanel} aria-label="Cerrar calendario">
-        ×
-      </button>
+    <div className="planning-calendar-overlay-page planning-redesign">
+      {compactHeader ? (
+        <PlanningCompactHeader
+          overview={overview ? { athlete_name: overview.athlete_name, athlete_id: overview.athlete_id } : null}
+          athletes={compactHeader.athletes}
+          athleteId={athleteId}
+          selectedDiscipline={selectedDiscipline}
+          availableDisciplines={compactHeader.availableDisciplines}
+          visibleTargets={compactHeader.visibleTargets}
+          planningLt1={compactHeader.planningLt1}
+          planningLt2={compactHeader.planningLt2}
+          activeBlockLabel={activeBlockLabel}
+          onAthleteChange={updatePlanningRoute}
+        />
+      ) : (
+        <button type="button" className="planning-calendar-overlay-close" onClick={closeCalendarPanel} aria-label="Cerrar calendario">
+          ×
+        </button>
+      )}
 
       <div className="planning-calendar-app">
-        <header className="planning-calendar-app-topnav">
-          <div className="planning-calendar-app-brand">PeakAerobic</div>
-          <nav className="planning-calendar-app-nav">
-            <button type="button" className="planning-calendar-app-tab" onClick={closeCalendarPanel}>Planificación</button>
-            <button
-              type="button"
-              className={`planning-calendar-app-tab ${calendarWorkspaceTab === "athletes" ? "active" : ""}`}
-              onClick={() => openCalendarWorkspaceTab("athletes")}
-            >
-              Atletas
-            </button>
-            <button
-              type="button"
-              className={`planning-calendar-app-tab ${calendarWorkspaceTab === "library" ? "active" : ""}`}
-              onClick={() => openCalendarWorkspaceTab("library")}
-            >
-              Biblioteca
-            </button>
-            <button
-              type="button"
-              className={`planning-calendar-app-tab ${calendarWorkspaceTab === "calendar" ? "active" : ""}`}
-              onClick={() => openCalendarWorkspaceTab("calendar")}
-            >
-              Calendario
-            </button>
-            <button
-              type="button"
-              className={`planning-calendar-app-tab ${calendarWorkspaceTab === "summary" ? "active" : ""}`}
-              onClick={() => openCalendarWorkspaceTab("summary")}
-            >
-              Resumen
-            </button>
-            <button
-              type="button"
-              className={`planning-calendar-app-tab ${calendarWorkspaceTab === "zones" ? "active" : ""}`}
-              onClick={() => openCalendarWorkspaceTab("zones")}
-            >
-              Zonas
-            </button>
-            <button type="button" className="planning-calendar-app-tab">Panel de control</button>
-          </nav>
-          <div className="planning-calendar-app-user">
-            <span>{overview ? firstName(overview.athlete_name) : "Atleta"}</span>
-            <button type="button" className="planning-calendar-back subtle" onClick={closeCalendarPanel}>
-              Volver
-            </button>
-          </div>
-        </header>
+        <nav className="planning-calendar-app-nav-strip">
+          <button
+            type="button"
+            className={`planning-nav-tab ${calendarWorkspaceTab === "calendar" ? "active" : ""}`}
+            onClick={() => openCalendarWorkspaceTab("calendar")}
+          >
+            Calendario
+          </button>
+          <button
+            type="button"
+            className={`planning-nav-tab ${calendarWorkspaceTab === "athletes" ? "active" : ""}`}
+            onClick={() => openCalendarWorkspaceTab("athletes")}
+          >
+            Atletas
+          </button>
+          <button
+            type="button"
+            className={`planning-nav-tab ${calendarWorkspaceTab === "library" ? "active" : ""}`}
+            onClick={() => openCalendarWorkspaceTab("library")}
+          >
+            Biblioteca
+          </button>
+          <button
+            type="button"
+            className={`planning-nav-tab ${calendarWorkspaceTab === "summary" ? "active" : ""}`}
+            onClick={() => openCalendarWorkspaceTab("summary")}
+          >
+            Resumen
+          </button>
+          <button
+            type="button"
+            className={`planning-nav-tab ${calendarWorkspaceTab === "zones" ? "active" : ""}`}
+            onClick={() => openCalendarWorkspaceTab("zones")}
+          >
+            Zonas
+          </button>
+          <button
+            type="button"
+            className={`planning-nav-tab ${calendarWorkspaceTab === "workouts" ? "active" : ""}`}
+            onClick={() => openCalendarWorkspaceTab("workouts")}
+          >
+            Entrenos
+          </button>
+          <button
+            type="button"
+            className={`planning-nav-tab ${calendarWorkspaceTab === "plans" ? "active" : ""}`}
+            onClick={() => openCalendarWorkspaceTab("plans")}
+          >
+            Planes
+          </button>
+        </nav>
+
+        <IntelligenceBanner overview={overview} />
 
         <div className="planning-calendar-app-body">
           <section className="planning-calendar-app-workspace">
             {renderWorkspace()}
           </section>
-          <IntelligenceBanner overview={overview} />
         </div>
       </div>
 
@@ -605,6 +764,10 @@ export function CalendarOverlay({
           openCalendarWorkoutLibrary={openCalendarWorkoutLibrary}
           openLibraryWorkoutPreview={openLibraryWorkoutPreview}
           openCalendarMesocycleComposer={openCalendarMesocycleComposer}
+          onAddSessionToDay={onAddSessionToDay}
+          coachLibraries={coachLibraries}
+          token={token}
+          onOpenWeekEditor={(lib) => { setLibraryWeekEditorTarget(lib ?? null); setLibraryWeekEditorOpen(true); }}
         />
       )}
 
@@ -747,7 +910,8 @@ export function CalendarOverlay({
               </article>
               {(overview?.next_recommendation.candidates_scored?.length ?? 0) > 0 ? (
                 <article className="planning-source-modal-card">
-                  <span className="planning-kicker">Posiciones por scoring entre mesociclos</span>
+                  <span className="planning-kicker">Sugerencia del motor (modelo experto Olbrecht)</span>
+                  <p className="muted" style={{ fontSize: 11, marginBottom: 6 }}>Basado en lógica fisiológica, no en RCTs. El entrenador decide.</p>
                   <div className="planning-modal-score-list">
                     {overview!.next_recommendation.candidates_scored!.map((candidate, index) => (
                       <article key={candidate.block_type} className={`planning-modal-score-item ${index === 0 ? "winner" : ""}`}>
@@ -783,6 +947,34 @@ export function CalendarOverlay({
           </section>
         </div>
       )}
+
+      {/* Training Plan Editor */}
+      {planEditorOpen && (
+        <TrainingPlanEditor
+          token={token}
+          athletes={athletes}
+          dispatch={dispatch}
+          onClose={() => { setPlanEditorOpen(false); setPlanEditorTarget(null); }}
+          editPlan={planEditorTarget}
+          loadPlanningContext={loadPlanningContext}
+          selectedDiscipline={selectedDiscipline}
+          athleteId={athleteId}
+        />
+      )}
+
+      {/* Library Week Editor */}
+      {libraryWeekEditorOpen && (
+        <LibraryWeekEditor
+          token={token}
+          athletes={athletes}
+          dispatch={dispatch}
+          onClose={() => { setLibraryWeekEditorOpen(false); setLibraryWeekEditorTarget(null); }}
+          editLibrary={libraryWeekEditorTarget}
+          loadPlanningContext={loadPlanningContext}
+          selectedDiscipline={selectedDiscipline}
+          athleteId={athleteId}
+        />
+      )}
     </div>
   );
 }
@@ -805,6 +997,10 @@ function QuickAddModal({
   openCalendarWorkoutLibrary,
   openLibraryWorkoutPreview,
   openCalendarMesocycleComposer,
+  onAddSessionToDay,
+  coachLibraries,
+  token,
+  onOpenWeekEditor,
 }: {
   calendarQuickAdd: CalendarQuickAddState;
   quickAddDiscipline: string;
@@ -821,7 +1017,23 @@ function QuickAddModal({
   openCalendarWorkoutLibrary: (date: string, discipline: "running" | "ciclismo" | "natación") => void;
   openLibraryWorkoutPreview: (template: PlanningWorkoutTemplate) => void;
   openCalendarMesocycleComposer: (date: string) => void;
+  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => Promise<void>;
+  coachLibraries: import("../../types").CoachLibrary[];
+  token: string;
+  onOpenWeekEditor?: (lib?: import("../../types").CoachLibrary) => void;
 }) {
+  const [addingTemplate, setAddingTemplate] = useState<string | null>(null);
+  const [expandedLayer, setExpandedLayer] = useState<WorkoutLibraryLayer | null>(null);
+  const [blaCheck, setBlaCheck] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualLabel, setManualLabel] = useState("");
+
+  // Templates for the expanded layer
+  const expandedTemplates = useMemo(() => {
+    if (!expandedLayer) return [];
+    return quickAddDisciplineLibrary.filter((t) => workoutLayerForTemplate(t) === expandedLayer);
+  }, [expandedLayer, quickAddDisciplineLibrary]);
+
   return (
     <div className="target-modal-backdrop" onClick={closeCalendarQuickAdd}>
       <section className="card target-modal-card planning-calendar-quick-add-modal" onClick={(event) => event.stopPropagation()}>
@@ -863,26 +1075,27 @@ function QuickAddModal({
 
         {calendarQuickAdd.mode === "library" ? (
           <div className="planning-calendar-quick-add-library">
-            <div className="planning-calendar-quick-add-section-head">
-              <span className="planning-kicker">Biblioteca de sesiones</span>
-              <strong>{disciplineLabel(quickAddDiscipline)} · {quickAddFilteredLibrary.length} opciones visibles</strong>
-            </div>
+            {/* Discipline tabs */}
             <div className="planning-calendar-quick-add-discipline-tabs">
               {(["running", "ciclismo", "natación"] as const).map((discipline) => (
                 <button
                   key={discipline}
                   type="button"
                   className={`planning-calendar-quick-add-tab ${quickAddDiscipline === discipline ? "active" : ""}`}
-                  onClick={() => dispatch({
-                    type: "SET_CALENDAR_QUICK_ADD",
-                    payload: {
-                      ...calendarQuickAdd,
-                      mode: "library",
-                      selectedKind: discipline,
-                      selectedDiscipline: discipline,
-                      selectedLayer: undefined,
-                    },
-                  })}
+                  onClick={() => {
+                    setExpandedLayer(null);
+                    setManualMode(false);
+                    dispatch({
+                      type: "SET_CALENDAR_QUICK_ADD",
+                      payload: {
+                        ...calendarQuickAdd,
+                        mode: "library",
+                        selectedKind: discipline,
+                        selectedDiscipline: discipline,
+                        selectedLayer: undefined,
+                      },
+                    });
+                  }}
                 >
                   <span className="planning-calendar-quick-add-tab-label">
                     <QuickAddIcon kind={discipline} />
@@ -891,95 +1104,152 @@ function QuickAddModal({
                 </button>
               ))}
             </div>
-            <div className="planning-calendar-quick-add-category-list">
+
+            {/* BLa check toggle */}
+            <label className="planning-bla-check-toggle">
+              <input type="checkbox" checked={blaCheck} onChange={(e) => setBlaCheck(e.target.checked)} />
+              <span className={`planning-bla-check-pill ${blaCheck ? "active" : ""}`}>
+                <span className="planning-bla-check-icon">🩸</span> BLa check
+              </span>
+            </label>
+
+            {/* Accordion categories */}
+            <div className="planning-calendar-quick-add-accordion">
               {quickAddAvailableLayers.map((layer) => {
                 const tone = workoutLayerTone(layer);
-                const isActive = quickAddActiveLayer === layer;
+                const isExpanded = expandedLayer === layer;
+                const count = quickAddLayerCounts[layer] ?? 0;
+                const layerTemplates = isExpanded ? expandedTemplates : [];
                 return (
-                  <button
-                    key={layer}
-                    type="button"
-                    className={`planning-calendar-quick-add-category tone-${tone} ${isActive ? "active" : ""}`}
-                    onClick={() => dispatch({
-                      type: "SET_CALENDAR_QUICK_ADD",
-                      payload: { ...calendarQuickAdd, selectedLayer: layer },
-                    })}
-                  >
-                    <span className={`planning-calendar-quick-add-category-glyph tone-${tone}`}>{workoutLayerGlyph(layer)}</span>
-                    <span className="planning-calendar-quick-add-category-copy">
-                      <strong>{workoutLayerLabel(layer)}</strong>
-                      <small>{workoutLayerCue(layer)}</small>
-                    </span>
-                    <span className="planning-calendar-quick-add-category-count">{quickAddLayerCounts[layer] ?? 0} sesiones</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="planning-calendar-quick-add-grid library">
-              {quickAddFilteredLibrary.map((template) => {
-                const isRecommended = (overview?.recommended_workouts ?? []).some((item) => item.template_id === template.template_id);
-                const firstDose = template.dose_ladder[0];
-                return (
-                  <button
-                    key={template.template_id}
-                    type="button"
-                    className={`planning-calendar-quick-add-card ${isRecommended ? "recommended" : ""}`}
-                    onClick={() => openLibraryWorkoutPreview(template)}
-                  >
-                    <div className="planning-calendar-quick-add-card-top">
-                      <div className="planning-calendar-quick-add-card-hero">
-                        <QuickAddIcon kind={quickAddDiscipline as "running" | "ciclismo" | "natación"} large />
+                  <div key={layer} className={`planning-accordion-section ${isExpanded ? "expanded" : ""}`}>
+                    <button
+                      type="button"
+                      className={`planning-accordion-header tone-${tone}`}
+                      onClick={() => { setExpandedLayer(isExpanded ? null : layer); setManualMode(false); }}
+                    >
+                      <span className={`planning-calendar-quick-add-category-glyph tone-${tone}`}>{workoutLayerGlyph(layer)}</span>
+                      <span className="planning-accordion-header-copy">
+                        <strong>{workoutLayerLabel(layer)}</strong>
+                        <small>{workoutLayerCue(layer)}</small>
+                      </span>
+                      <span className="planning-accordion-header-meta">
+                        <span className="planning-calendar-quick-add-category-count">{count}</span>
+                        <span className={`planning-accordion-chevron ${isExpanded ? "open" : ""}`}>▾</span>
+                      </span>
+                    </button>
+                    {isExpanded && (
+                      <div className="planning-accordion-body">
+                        {layerTemplates.map((template) => {
+                          const isRecommended = (overview?.recommended_workouts ?? []).some((item) => item.template_id === template.template_id);
+                          const firstDose = template.dose_ladder[0];
+                          const isAdding = addingTemplate === template.template_id;
+                          return (
+                            <div key={template.template_id} className={`planning-accordion-item ${isRecommended ? "recommended" : ""}`}>
+                              <button
+                                type="button"
+                                className="planning-accordion-item-info"
+                                onClick={() => openLibraryWorkoutPreview(template)}
+                              >
+                                <strong>{template.public_label}</strong>
+                                <small>
+                                  {firstDose?.intensity_zone || template.objective}
+                                  {firstDose?.total_duration_min ? ` · ${firstDose.total_duration_min} min` : ""}
+                                </small>
+                                {isRecommended ? <span className="planning-calendar-quick-add-badge">Sugerida</span> : null}
+                              </button>
+                              <button
+                                type="button"
+                                className="planning-accordion-item-add"
+                                disabled={isAdding}
+                                onClick={async () => {
+                                  setAddingTemplate(template.template_id);
+                                  try {
+                                    await onAddSessionToDay(calendarQuickAdd.date, quickAddDiscipline, template, undefined, { bla_check: blaCheck });
+                                    closeCalendarQuickAdd();
+                                  } catch {
+                                    setAddingTemplate(null);
+                                  }
+                                }}
+                              >
+                                {isAdding ? "..." : "+"}
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <span className="planning-kicker">{workoutLayerLabel(workoutLayerForTemplate(template))}</span>
-                      {isRecommended ? <span className="planning-calendar-quick-add-badge">Sugerida</span> : null}
-                    </div>
-                    <strong>{template.public_label}</strong>
-                    <small>
-                      {firstDose?.intensity_zone || template.objective}
-                      {firstDose?.total_duration_min ? ` · ${firstDose.total_duration_min} min` : ""}
-                    </small>
-                  </button>
+                    )}
+                  </div>
                 );
               })}
-              {!quickAddFilteredLibrary.length ? (
-                <article className="planning-empty-state">
-                  <strong>Sin sesiones en esta subcapa.</strong>
-                  <p>Cambia de capa o de disciplina para seguir navegando la biblioteca.</p>
-                </article>
-              ) : null}
+
+              {/* Manual session creation */}
+              <div className={`planning-accordion-section ${manualMode ? "expanded" : ""}`}>
+                <button
+                  type="button"
+                  className="planning-accordion-header tone-manual"
+                  onClick={() => { setManualMode(!manualMode); setExpandedLayer(null); }}
+                >
+                  <span className="planning-calendar-quick-add-category-glyph tone-manual">✏️</span>
+                  <span className="planning-accordion-header-copy">
+                    <strong>Sesión manual</strong>
+                    <small>Crea un entreno libre sin plantilla</small>
+                  </span>
+                  <span className="planning-accordion-header-meta">
+                    <span className={`planning-accordion-chevron ${manualMode ? "open" : ""}`}>▾</span>
+                  </span>
+                </button>
+                {manualMode && (
+                  <div className="planning-accordion-body">
+                    <div className="planning-accordion-manual-form">
+                      <input
+                        type="text"
+                        className="planning-manual-input"
+                        placeholder="Nombre de la sesión (ej: Fartlek 6×3')"
+                        value={manualLabel}
+                        onChange={(e) => setManualLabel(e.target.value)}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        className="planning-manual-save-btn"
+                        disabled={!manualLabel.trim() || addingTemplate === "__manual__"}
+                        onClick={async () => {
+                          setAddingTemplate("__manual__");
+                          try {
+                            await onAddSessionToDay(calendarQuickAdd.date, quickAddDiscipline, null, manualLabel.trim(), { bla_check: blaCheck });
+                            closeCalendarQuickAdd();
+                          } catch {
+                            setAddingTemplate(null);
+                          }
+                        }}
+                      >
+                        {addingTemplate === "__manual__" ? "Guardando..." : "Añadir sesión manual"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Coach custom libraries */}
+              <CoachLibrariesAccordion
+                coachLibraries={coachLibraries}
+                discipline={quickAddDiscipline}
+                date={calendarQuickAdd.date}
+                blaCheck={blaCheck}
+                token={token}
+                onOpenWeekEditor={onOpenWeekEditor}
+                dispatch={dispatch}
+                onAddSessionToDay={onAddSessionToDay}
+                closeCalendarQuickAdd={closeCalendarQuickAdd}
+              />
             </div>
           </div>
         ) : calendarQuickAdd.mode === "manual" ? (
-          <div className="planning-calendar-quick-add-manual">
-            <div className="planning-calendar-quick-add-section-head">
-              <span className="planning-kicker">Entrada manual</span>
-              <strong>
-                {calendarQuickAdd.selectedKind === "event"
-                  ? "Evento"
-                  : calendarQuickAdd.selectedKind === "off"
-                    ? "Dia off"
-                    : "Nota"}
-              </strong>
-            </div>
-            <div className="planning-calendar-quick-add-grid">
-              <article className="planning-calendar-quick-add-card accent">
-                <div className="planning-calendar-quick-add-card-top">
-                  <div className="planning-calendar-quick-add-card-hero">
-                    <QuickAddIcon kind={calendarQuickAdd.selectedKind} large />
-                  </div>
-                  <span className="planning-kicker">Acceso preparado</span>
-                </div>
-                <strong>
-                  {calendarQuickAdd.selectedKind === "event"
-                    ? "Evento del calendario"
-                    : calendarQuickAdd.selectedKind === "off"
-                      ? "Dia de descanso"
-                      : "Nota del entrenador"}
-                </strong>
-                <small>UI lista. Falta conectar el guardado manual real.</small>
-              </article>
-            </div>
-          </div>
+          <ManualEntryForm
+            calendarQuickAdd={calendarQuickAdd}
+            onAddSessionToDay={onAddSessionToDay}
+            closeCalendarQuickAdd={closeCalendarQuickAdd}
+          />
         ) : (
           <div className="planning-calendar-quick-add-body">
             <div className="planning-calendar-quick-add-grid actions">
@@ -996,10 +1266,41 @@ function QuickAddModal({
                     </div>
                     <span className="planning-kicker">Disciplina</span>
                   </div>
-                  <strong>{discipline === "running" ? "Carrera a pie" : discipline === "ciclismo" ? "Ciclismo" : "Natacion"}</strong>
+                  <strong>{discipline === "running" ? "Carrera a pie" : discipline === "ciclismo" ? "Ciclismo" : "Natación"}</strong>
                   <small>{(quickAddLibraries[discipline] ?? []).length} plantillas</small>
                 </button>
               ))}
+
+              <button
+                type="button"
+                className="planning-calendar-quick-add-card primary"
+                onClick={() => {
+                  // Open library filtered to strength layer for running (most common strength context)
+                  dispatch({
+                    type: "SET_SELECTED_CALENDAR_DATE",
+                    payload: calendarQuickAdd.date,
+                  });
+                  dispatch({
+                    type: "SET_CALENDAR_QUICK_ADD",
+                    payload: {
+                      date: calendarQuickAdd.date,
+                      mode: "library",
+                      selectedKind: "fuerza",
+                      selectedDiscipline: "running",
+                      selectedLayer: "strength",
+                    },
+                  });
+                }}
+              >
+                <div className="planning-calendar-quick-add-card-top">
+                  <div className="planning-calendar-quick-add-card-hero">
+                    <QuickAddIcon kind="fuerza" large />
+                  </div>
+                  <span className="planning-kicker">Disciplina</span>
+                </div>
+                <strong>Fuerza</strong>
+                <small>Sesiones de fuerza y gym</small>
+              </button>
 
               <button
                 type="button"
@@ -1074,5 +1375,330 @@ function QuickAddModal({
         )}
       </section>
     </div>
+  );
+}
+
+// ── Manual Entry Form (event / off / note) ──
+
+function ManualEntryForm({
+  calendarQuickAdd,
+  onAddSessionToDay,
+  closeCalendarQuickAdd,
+}: {
+  calendarQuickAdd: CalendarQuickAddState;
+  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => Promise<void>;
+  closeCalendarQuickAdd: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [label, setLabel] = useState("");
+  const kind = calendarQuickAdd.selectedKind;
+
+  const kindConfig = kind === "event"
+    ? { title: "Evento", discipline: "running", family: "event", role: "event", placeholder: "Nombre del evento (ej: Carrera popular 10k)" }
+    : kind === "off"
+      ? { title: "Día de descanso", discipline: "running", family: "off", role: "off", placeholder: "" }
+      : { title: "Nota del entrenador", discipline: "running", family: "note", role: "note", placeholder: "Escribe tu nota..." };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const finalLabel = kind === "off" ? "Día de descanso" : label.trim() || kindConfig.title;
+      await onAddSessionToDay(calendarQuickAdd.date, kindConfig.discipline, null, finalLabel);
+      closeCalendarQuickAdd();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="planning-calendar-quick-add-manual">
+      <div className="planning-calendar-quick-add-section-head">
+        <span className="planning-kicker">Entrada manual</span>
+        <strong>{kindConfig.title}</strong>
+      </div>
+      <div className="planning-calendar-quick-add-manual-form">
+        <div className="planning-calendar-quick-add-card-hero" style={{ marginBottom: 8 }}>
+          <QuickAddIcon kind={kind} large />
+        </div>
+        {kind !== "off" && (
+          <input
+            type="text"
+            className="planning-manual-input"
+            placeholder={kindConfig.placeholder}
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            autoFocus
+          />
+        )}
+        {kind === "note" && (
+          <textarea
+            className="planning-manual-textarea"
+            placeholder="Detalles adicionales (opcional)"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            rows={3}
+          />
+        )}
+        <button
+          type="button"
+          className="planning-manual-save-btn"
+          disabled={saving || (kind !== "off" && !label.trim())}
+          onClick={handleSave}
+        >
+          {saving ? "Guardando..." : `Añadir ${kindConfig.title.toLowerCase()}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Coach Libraries Accordion ──
+
+const COACH_FAMILY_OPTIONS = [
+  { value: "recovery_regeneration", label: "Recuperación" },
+  { value: "long_aerobic_durability", label: "Base / Aeróbico" },
+  { value: "lt1_extensive", label: "LT1" },
+  { value: "subthreshold_reps", label: "Subumbral" },
+  { value: "lt2_cruise_intervals", label: "LT2 / Umbral" },
+  { value: "vo2_hills", label: "VO2max" },
+  { value: "economy_strides", label: "Técnica" },
+  { value: "strength", label: "Fuerza" },
+  { value: "specific", label: "Específico / Competición" },
+  { value: "other", label: "Otro" },
+];
+
+function CoachLibrariesAccordion({
+  coachLibraries,
+  discipline,
+  date,
+  blaCheck,
+  token,
+  dispatch,
+  onAddSessionToDay,
+  closeCalendarQuickAdd,
+  onOpenWeekEditor,
+}: {
+  coachLibraries: import("../../types").CoachLibrary[];
+  discipline: string;
+  date: string;
+  blaCheck: boolean;
+  token: string;
+  dispatch: (action: import("../context/PlanningContext").PlanningAction) => void;
+  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => Promise<void>;
+  closeCalendarQuickAdd: () => void;
+  onOpenWeekEditor?: (lib?: import("../../types").CoachLibrary) => void;
+}) {
+  const [expandedLibraryId, setExpandedLibraryId] = useState<number | null>(null);
+  const [adding, setAdding] = useState<number | null>(null);
+  const [creatingLibrary, setCreatingLibrary] = useState(false);
+  const [newLibName, setNewLibName] = useState("");
+  const [newLibDesc, setNewLibDesc] = useState("");
+  // Add workout form
+  const [addingWorkoutTo, setAddingWorkoutTo] = useState<number | null>(null);
+  const [wLabel, setWLabel] = useState("");
+  const [wFamily, setWFamily] = useState("lt1_extensive");
+  const [wZone, setWZone] = useState("");
+  const [wDuration, setWDuration] = useState("");
+  const [wDesc, setWDesc] = useState("");
+  const [savingWorkout, setSavingWorkout] = useState(false);
+
+  const reloadLibraries = async () => {
+    const updated = (await api.listCoachLibraries(token)) as import("../../types").CoachLibrary[];
+    dispatch({ type: "SET_COACH_LIBRARIES", payload: updated });
+  };
+
+  const handleCreateLibrary = async () => {
+    if (!newLibName.trim()) return;
+    setCreatingLibrary(true);
+    try {
+      await api.createCoachLibrary(token, { name: newLibName.trim(), description: newLibDesc.trim() || null });
+      await reloadLibraries();
+      setNewLibName(""); setNewLibDesc("");
+    } finally {
+      setCreatingLibrary(false);
+    }
+  };
+
+  const handleDeleteLibrary = async (id: number) => {
+    await api.deleteCoachLibrary(token, id);
+    await reloadLibraries();
+  };
+
+  const handleAddWorkout = async (libraryId: number) => {
+    if (!wLabel.trim()) return;
+    setSavingWorkout(true);
+    try {
+      await api.addWorkoutToLibrary(token, libraryId, {
+        discipline,
+        session_family: wFamily,
+        public_label: wLabel.trim(),
+        intensity_zone: wZone.trim() || null,
+        duration_min: wDuration ? Number(wDuration) : null,
+        description: wDesc.trim() || null,
+      });
+      await reloadLibraries();
+      setWLabel(""); setWZone(""); setWDuration(""); setWDesc(""); setAddingWorkoutTo(null);
+    } finally {
+      setSavingWorkout(false);
+    }
+  };
+
+  const handleDeleteWorkout = async (libraryId: number, workoutId: number) => {
+    await api.deleteWorkoutFromLibrary(token, libraryId, workoutId);
+    await reloadLibraries();
+  };
+
+  // Filter libraries: show all (discipline=null means multi-discipline) or matching discipline
+  const visible = coachLibraries.filter((lib) => !lib.discipline || lib.discipline === discipline);
+  const totalWorkouts = visible.reduce((sum, lib) => sum + lib.workouts.length, 0);
+
+  return (
+    <>
+      {/* Libraries header */}
+      <div className="planning-accordion-section coach expanded">
+        <div className="planning-accordion-header tone-coach" style={{ cursor: "default" }}>
+          <span className="planning-calendar-quick-add-category-glyph tone-coach">📋</span>
+          <span className="planning-accordion-header-copy">
+            <strong>Mis bibliotecas</strong>
+            <small>{visible.length} bibliotecas · {totalWorkouts} entrenos</small>
+          </span>
+        </div>
+        <div className="planning-accordion-body">
+          {/* Each library */}
+          {visible.map((lib) => {
+            const isExpanded = expandedLibraryId === lib.id;
+            const libWorkouts = lib.workouts.filter((w) => w.discipline === discipline);
+            return (
+              <div key={lib.id} className={`planning-coach-library ${isExpanded ? "expanded" : ""}`}>
+                <div className="planning-coach-library-header">
+                  <button
+                    type="button"
+                    className="planning-coach-library-toggle"
+                    onClick={() => setExpandedLibraryId(isExpanded ? null : lib.id)}
+                  >
+                    <span className={`planning-accordion-chevron ${isExpanded ? "open" : ""}`}>▾</span>
+                    <span className="planning-coach-library-name">
+                      <strong>{lib.name}</strong>
+                      <small>{libWorkouts.length} entrenos{lib.description ? ` · ${lib.description}` : ""}</small>
+                    </span>
+                  </button>
+                  {onOpenWeekEditor && (
+                    <button
+                      type="button"
+                      className="planning-accordion-item-add"
+                      title="Editar semana"
+                      onClick={() => onOpenWeekEditor(lib)}
+                      style={{ fontSize: "0.68rem" }}
+                    >
+                      Ed
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="planning-accordion-item-delete"
+                    title="Eliminar biblioteca"
+                    onClick={() => handleDeleteLibrary(lib.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+                {isExpanded && (
+                  <div className="planning-coach-library-body">
+                    {libWorkouts.map((w) => {
+                      const isAddingThis = adding === w.id;
+                      return (
+                        <div key={w.id} className="planning-accordion-item">
+                          <div className="planning-accordion-item-info" style={{ cursor: "default" }}>
+                            <strong>{w.public_label}</strong>
+                            <small>
+                              {w.intensity_zone || COACH_FAMILY_OPTIONS.find((o) => o.value === w.session_family)?.label || w.session_family}
+                              {w.duration_min ? ` · ${w.duration_min} min` : ""}
+                            </small>
+                          </div>
+                          <button
+                            type="button"
+                            className="planning-accordion-item-add"
+                            disabled={isAddingThis}
+                            title="Añadir al día"
+                            onClick={async () => {
+                              setAdding(w.id);
+                              try {
+                                await onAddSessionToDay(date, discipline, null, w.public_label, { bla_check: blaCheck });
+                                closeCalendarQuickAdd();
+                              } catch {
+                                setAdding(null);
+                              }
+                            }}
+                          >
+                            {isAddingThis ? "..." : "+"}
+                          </button>
+                          <button
+                            type="button"
+                            className="planning-accordion-item-delete"
+                            title="Eliminar entreno"
+                            onClick={() => handleDeleteWorkout(lib.id, w.id)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                    {/* Add workout form */}
+                    {addingWorkoutTo === lib.id ? (
+                      <div className="planning-accordion-manual-form coach-create-form">
+                        <input type="text" className="planning-manual-input" placeholder="Nombre del entreno" value={wLabel} onChange={(e) => setWLabel(e.target.value)} autoFocus />
+                        <select className="planning-manual-input" value={wFamily} onChange={(e) => setWFamily(e.target.value)}>
+                          {COACH_FAMILY_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                        </select>
+                        <div className="planning-coach-form-row">
+                          <input type="text" className="planning-manual-input" placeholder="Zona (ej: LT2)" value={wZone} onChange={(e) => setWZone(e.target.value)} />
+                          <input type="number" className="planning-manual-input" placeholder="Min" value={wDuration} onChange={(e) => setWDuration(e.target.value)} style={{ width: 80 }} />
+                        </div>
+                        <textarea className="planning-manual-textarea" placeholder="Descripción (opcional)" value={wDesc} onChange={(e) => setWDesc(e.target.value)} rows={2} />
+                        <div className="planning-coach-form-row">
+                          <button type="button" className="planning-manual-save-btn" disabled={!wLabel.trim() || savingWorkout} onClick={() => handleAddWorkout(lib.id)}>
+                            {savingWorkout ? "Guardando..." : "Añadir entreno"}
+                          </button>
+                          <button type="button" className="ghost-button" onClick={() => setAddingWorkoutTo(null)}>Cancelar</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button type="button" className="planning-coach-add-template-btn" onClick={() => setAddingWorkoutTo(lib.id)}>
+                        + Nuevo entreno
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Create new library */}
+          <div className="planning-coach-new-library">
+            <input type="text" className="planning-manual-input" placeholder="Nueva biblioteca (ej: IRONMAN Base)" value={newLibName} onChange={(e) => setNewLibName(e.target.value)} />
+            {newLibName.trim() && (
+              <>
+                <input type="text" className="planning-manual-input" placeholder="Descripción (opcional)" value={newLibDesc} onChange={(e) => setNewLibDesc(e.target.value)} />
+                <button type="button" className="planning-manual-save-btn" disabled={creatingLibrary} onClick={handleCreateLibrary}>
+                  {creatingLibrary ? "Creando..." : "Crear biblioteca"}
+                </button>
+              </>
+            )}
+          </div>
+          {/* Open week editor */}
+          {onOpenWeekEditor && (
+            <button
+              type="button"
+              className="planning-coach-add-template-btn"
+              style={{ marginTop: 6, fontWeight: 600 }}
+              onClick={() => onOpenWeekEditor()}
+            >
+              + Crear semana tipo (calendario)
+            </button>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

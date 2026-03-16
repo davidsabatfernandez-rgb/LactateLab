@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { WorkoutPreviewModal } from "../components/WorkoutPreviewModal";
 import { api } from "../lib/api";
 import type {
   Athlete,
@@ -26,13 +25,7 @@ import type {
   PlanTone,
   WorkoutLibraryLayer,
 } from "../planning/types";
-import { BlockBuilder } from "../planning/components/BlockBuilder";
-import { BlockRibbon } from "../planning/components/BlockRibbon";
 import { CalendarOverlay } from "../planning/components/CalendarOverlay";
-import { DraftPreview } from "../planning/components/DraftPreview";
-import { PlanningHero } from "../planning/components/PlanningHero";
-import { PlanningKPIToolbar } from "../planning/components/PlanningKPIToolbar";
-import { PlanningSourceModal } from "../planning/components/PlanningSourceModal";
 import {
   addDays, addMonths, buildCalendarMonthRows, buildCalendarWeekSnapshot,
   compactPlanningSourceTitle, dateValue, describePlanningSource, diffCalendarMonths,
@@ -145,6 +138,37 @@ function PlanningPageInner() {
     loading, error, disciplineOverviews, syntheticDateOverrides,
     garminActivities, garminActivitiesLoading,
   } = state;
+
+  // ── Multi-discipline calendar toggle ──
+
+  // Default to all disciplines for triathlon athletes
+  const isTriathlete = useMemo(() => {
+    const athlete = athletes.find((a) => String(a.id) === String(athleteId));
+    return athlete?.primary_discipline === "triatlón";
+  }, [athletes, athleteId]);
+  const [showAllDisciplines, setShowAllDisciplines] = useState(true);
+
+  // Auto-enable all disciplines on load for triathletes
+  useEffect(() => {
+    if (isTriathlete && overview) {
+      const others = (getAvailableDisciplines(overview, searchDiscipline)).filter((d) => d !== selectedDiscipline);
+      if (others.length > 0) {
+        setShowAllDisciplines(true);
+        dispatch({ type: "SET_ENABLED_OVERLAY_DISCIPLINES", payload: others });
+      }
+    }
+  }, [isTriathlete, overview, searchDiscipline, selectedDiscipline, dispatch]);
+
+  const handleToggleAllDisciplines = useCallback(() => {
+    setShowAllDisciplines((prev) => {
+      const next = !prev;
+      if (next) {
+        const others = (getAvailableDisciplines(overview, searchDiscipline)).filter((d) => d !== selectedDiscipline);
+        dispatch({ type: "SET_ENABLED_OVERLAY_DISCIPLINES", payload: others });
+      }
+      return next;
+    });
+  }, [overview, searchDiscipline, selectedDiscipline, dispatch]);
 
   // ── Computed values (same logic as before) ──
 
@@ -915,187 +939,102 @@ function PlanningPageInner() {
 
   const calendarNavigation = useCalendarNavigation(dispatch, calendarMonth, calendarVisualMode, selectedWeekStart, selectedWeekdayOffset, continuousWeekStarts, continuousMonthStarts);
 
+  // ── Add session to day (from library or manual) ──
+
+  const handleAddSessionToDay = useCallback(async (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => {
+    if (!athleteId) return;
+    const label = template?.public_label || manualLabel || "Sesión manual";
+    await api.addPlannedSession(token, {
+      athlete_id: Number(athleteId),
+      scheduled_date: date,
+      discipline,
+      template_id: template?.template_id ?? null,
+      public_label: label,
+      objective: template?.objective ?? "",
+      session_family: template?.session_family ?? "manual",
+      session_role: template ? "support" : "support",
+      dose_step: template?.dose_ladder?.[0] ? 0 : null,
+      bla_check: opts?.bla_check ?? false,
+    });
+    await loadPlanningContext(athleteId, selectedDiscipline);
+  }, [athleteId, token, selectedDiscipline, loadPlanningContext]);
+
   // ── Render ──
 
   if (loading) return <div className="loading">Preparando planificación...</div>;
   if (error) return <div className="error">No se pudo cargar la planificación: {error}</div>;
 
-  if (calendarPanelOpen) {
-    return (
-      <CalendarOverlay
-        state={state}
-        dispatch={dispatch}
-        token={token}
-        athleteId={athleteId}
-        calendarWorkspaceTab={calendarWorkspaceTab}
-        selectedAthlete={selectedAthlete}
-        activeBlockLabel={activeBlockLabel}
-        nextTargetPrimaryLabel={nextTargetPrimaryLabel}
-        nextTargetLabel={nextTargetLabel}
-        templateLibrary={templateLibrary}
-        calendarSources={calendarSources}
-        selectedCalendarSource={selectedCalendarSource}
-        draftCalendarSource={draftCalendarSource}
-        calendarMesocycleOptions={calendarMesocycleOptions}
-        continuousMonthSections={continuousMonthSections}
-        continuousWeekStarts={continuousWeekStarts}
-        sessionsByDate={sessionsByDate}
-        primaryEntries={primaryEntries}
-        overlayEntries={overlayEntries}
-        selectedWeekStart={selectedWeekStart}
-        selectedWeekEnd={selectedWeekEnd}
-        calendarToolbarHeading={calendarToolbarHeading}
-        calendarToolbarSubheading={calendarToolbarSubheading}
-        planningLt1={planningLt1}
-        planningLt2={planningLt2}
-        planningThresholdBasis={planningThresholdBasis}
-        quickAddDisciplineLibrary={quickAddDisciplineLibrary}
-        quickAddAvailableLayers={quickAddAvailableLayers}
-        quickAddActiveLayer={quickAddActiveLayer}
-        quickAddLayerCounts={quickAddLayerCounts}
-        quickAddFilteredLibrary={quickAddFilteredLibrary}
-        quickAddDiscipline={quickAddDiscipline}
-        closeCalendarPanel={closeCalendarPanel}
-        openCalendarWorkspaceTab={openCalendarWorkspaceTab}
-        updatePlanningRoute={updatePlanningRoute}
-        openCalendarMesocycleComposer={openCalendarMesocycleComposer}
-        closeCalendarMesocycleComposer={closeCalendarMesocycleComposer}
-        openCalendarQuickAdd={openCalendarQuickAdd}
-        closeCalendarQuickAdd={closeCalendarQuickAdd}
-        openCalendarWorkoutLibrary={openCalendarWorkoutLibrary}
-        openCalendarSessionDetail={openCalendarSessionDetail}
-        openPlannedWorkoutPreview={openPlannedWorkoutPreview}
-        openPlannedWorkoutRawInformation={openPlannedWorkoutRawInformation}
-        openLibraryWorkoutPreview={openLibraryWorkoutPreview}
-        openMesocycleLibraryFromSource={openMesocycleLibraryFromSource}
-        deletePlanningSourceFromModal={deletePlanningSourceFromModal}
-        saveFocusBlockFromPlanning={saveFocusBlockFromPlanning}
-        regeneratePlannedSessionStructure={regeneratePlannedSessionStructure}
-        handleSaveWorkoutSteps={handleSaveWorkoutSteps}
-        handlePushToGarmin={handlePushToGarmin}
-        loadPlanningContext={loadPlanningContext}
-        onCopyWeek={copyCurrentWeek}
-        navRefs={calendarNavigation}
-        jumpCalendarToToday={calendarNavigation.jumpCalendarToToday}
-        shiftCalendarBackward={calendarNavigation.shiftCalendarBackward}
-        shiftCalendarForward={calendarNavigation.shiftCalendarForward}
-        handleContinuousWeekScroll={calendarNavigation.handleContinuousWeekScroll}
-        handleContinuousMonthScroll={calendarNavigation.handleContinuousMonthScroll}
-      />
-    );
-  }
-
   return (
-    <div className="page-grid planning-page">
-      <PlanningHero
-        overview={overview}
-        athletes={athletes}
-        athleteId={athleteId}
-        selectedDiscipline={selectedDiscipline}
-        availableDisciplines={availableDisciplines}
-        visibleTargets={visibleTargets}
-        onAthleteChange={updatePlanningRoute}
-      />
-
-      <PlanningKPIToolbar
-        selectedDiscipline={selectedDiscipline}
-        activeBlockLabel={activeBlockLabel}
-        currentBlockStartDate={overview?.current_block.start_date}
-        currentBlockEndDate={overview?.current_block.end_date || overview?.current_block.target_date}
-        nextTargetPrimaryLabel={nextTargetPrimaryLabel}
-        nextTargetLabel={nextTargetLabel}
-        plannedBlocksCount={overview?.planned_blocks.length ?? 0}
-        planningLt1={planningLt1}
-        planningLt2={planningLt2}
-        planningPracticalLt1={planningPracticalLt1}
-        planningPracticalLt2={planningPracticalLt2}
-        planningThresholdBasis={planningThresholdBasis}
-      />
-
-      <BlockRibbon
-        ribbonCards={ribbonCards}
-        ribbonExpanded={ribbonExpanded}
-        calendarSources={calendarSources}
-        selectedCalendarSourceId={selectedCalendarSourceId}
-        deletingBlockId={deletingBlockId}
-        onToggleExpand={() => dispatch({ type: "SET_RIBBON_EXPANDED", payload: !ribbonExpanded })}
-        onOpenCalendar={openCalendarPanel}
-        onSelectSource={(id) => dispatch({ type: "SET_SELECTED_CALENDAR_SOURCE_ID", payload: id })}
-        onOpenSourceDetail={openMesocycleLibraryFromSource}
-        onDeleteBlock={deletePlannedBlock}
-      />
-
-      <BlockBuilder
-        overview={overview}
-        selectedDiscipline={selectedDiscipline}
-        availableDisciplines={availableDisciplines}
-        athleteId={athleteId}
-        blockObjective={blockObjective}
-        primaryWeakness={primaryWeakness}
-        secondaryWeakness={secondaryWeakness}
-        weeks={weeks}
-        density={density}
-        priority={priority}
-        blockStartDate={blockStartDate}
-        blockPhase={blockPhase}
-        blockIntent={blockIntent}
-        coachNotes={coachNotes}
-        saveError={saveError}
-        saveMessage={saveMessage}
-        saving={saving}
-        templateLibrary={templateLibrary}
-        selectedTemplate={selectedTemplate}
-        expandedTemplateId={expandedTemplateId}
-        selectedObjectiveOptions={selectedObjectiveOptions}
-        selectedWeaknessOptions={selectedWeaknessOptions}
-        phaseOptions={phaseOptions}
-        quickGuardrails={quickGuardrails}
-        durationFeedback={durationFeedback}
-        microcycle={microcycle}
-        onAthleteRoute={updatePlanningRoute}
-        onSelectedDiscipline={(d) => dispatch({ type: "SET_SELECTED_DISCIPLINE", payload: d })}
-        onBlockObjective={(v) => dispatch({ type: "SET_BLOCK_OBJECTIVE", payload: v })}
-        onPrimaryWeakness={(v) => dispatch({ type: "SET_PRIMARY_WEAKNESS", payload: v })}
-        onSecondaryWeakness={(v) => dispatch({ type: "SET_SECONDARY_WEAKNESS", payload: v })}
-        onWeeks={(v) => dispatch({ type: "SET_WEEKS", payload: v })}
-        onDensity={(v) => dispatch({ type: "SET_DENSITY", payload: v })}
-        onPriority={(v) => dispatch({ type: "SET_PRIORITY", payload: v })}
-        onBlockStartDate={(v) => dispatch({ type: "SET_BLOCK_START_DATE", payload: v })}
-        onBlockPhase={(v) => dispatch({ type: "SET_BLOCK_PHASE", payload: v })}
-        onBlockIntent={(v) => dispatch({ type: "SET_BLOCK_INTENT", payload: v })}
-        onCoachNotes={(v) => dispatch({ type: "SET_COACH_NOTES", payload: v })}
-        onSelectTemplate={(v) => dispatch({ type: "SET_SELECTED_TEMPLATE_ID", payload: v })}
-        onExpandTemplate={(v) => dispatch({ type: "SET_EXPANDED_TEMPLATE_ID", payload: v })}
-        onSave={saveFocusBlockFromPlanning}
-      />
-
-      {overview?.mesocycle_draft && (
-        <DraftPreview
-          draft={overview.mesocycle_draft}
-          selectedDiscipline={selectedDiscipline}
-          planningLt1={planningLt1}
-          planningLt2={planningLt2}
-          onOpenSession={openDraftWorkoutPreview}
-        />
-      )}
-
-      {openWorkoutPreview && (
-        <WorkoutPreviewModal
-          template={openWorkoutPreview.template}
-          selection={openWorkoutPreview.selection}
-          onClose={() => dispatch({ type: "SET_OPEN_WORKOUT_PREVIEW", payload: null })}
-        />
-      )}
-
-      {planningSourceModal && (
-        <PlanningSourceModal
-          modal={planningSourceModal}
-          nextRecommendation={overview?.next_recommendation ?? null}
-          deletingBlockId={deletingBlockId}
-          onClose={() => dispatch({ type: "SET_PLANNING_SOURCE_MODAL", payload: null })}
-          onDelete={deletePlanningSourceFromModal}
-        />
-      )}
-    </div>
+    <CalendarOverlay
+      state={state}
+      dispatch={dispatch}
+      token={token}
+      athleteId={athleteId}
+      calendarWorkspaceTab={calendarPanelOpen ? calendarWorkspaceTab : "calendar"}
+      selectedAthlete={selectedAthlete}
+      activeBlockLabel={activeBlockLabel}
+      nextTargetPrimaryLabel={nextTargetPrimaryLabel}
+      nextTargetLabel={nextTargetLabel}
+      templateLibrary={templateLibrary}
+      calendarSources={calendarSources}
+      selectedCalendarSource={selectedCalendarSource}
+      draftCalendarSource={draftCalendarSource}
+      calendarMesocycleOptions={calendarMesocycleOptions}
+      continuousMonthSections={continuousMonthSections}
+      continuousWeekStarts={continuousWeekStarts}
+      sessionsByDate={sessionsByDate}
+      primaryEntries={primaryEntries}
+      overlayEntries={overlayEntries}
+      selectedWeekStart={selectedWeekStart}
+      selectedWeekEnd={selectedWeekEnd}
+      calendarToolbarHeading={calendarToolbarHeading}
+      calendarToolbarSubheading={calendarToolbarSubheading}
+      planningLt1={planningLt1}
+      planningLt2={planningLt2}
+      planningThresholdBasis={planningThresholdBasis}
+      quickAddDisciplineLibrary={quickAddDisciplineLibrary}
+      quickAddAvailableLayers={quickAddAvailableLayers}
+      quickAddActiveLayer={quickAddActiveLayer}
+      quickAddLayerCounts={quickAddLayerCounts}
+      quickAddFilteredLibrary={quickAddFilteredLibrary}
+      quickAddDiscipline={quickAddDiscipline}
+      closeCalendarPanel={closeCalendarPanel}
+      openCalendarWorkspaceTab={openCalendarWorkspaceTab}
+      updatePlanningRoute={updatePlanningRoute}
+      openCalendarMesocycleComposer={openCalendarMesocycleComposer}
+      closeCalendarMesocycleComposer={closeCalendarMesocycleComposer}
+      openCalendarQuickAdd={openCalendarQuickAdd}
+      closeCalendarQuickAdd={closeCalendarQuickAdd}
+      openCalendarWorkoutLibrary={openCalendarWorkoutLibrary}
+      openCalendarSessionDetail={openCalendarSessionDetail}
+      openPlannedWorkoutPreview={openPlannedWorkoutPreview}
+      openPlannedWorkoutRawInformation={openPlannedWorkoutRawInformation}
+      openLibraryWorkoutPreview={openLibraryWorkoutPreview}
+      openMesocycleLibraryFromSource={openMesocycleLibraryFromSource}
+      deletePlanningSourceFromModal={deletePlanningSourceFromModal}
+      saveFocusBlockFromPlanning={saveFocusBlockFromPlanning}
+      regeneratePlannedSessionStructure={regeneratePlannedSessionStructure}
+      handleSaveWorkoutSteps={handleSaveWorkoutSteps}
+      handlePushToGarmin={handlePushToGarmin}
+      loadPlanningContext={loadPlanningContext}
+      onCopyWeek={copyCurrentWeek}
+      showAllDisciplines={showAllDisciplines}
+      onToggleAllDisciplines={handleToggleAllDisciplines}
+      hasMultipleDisciplines={availableDisciplines.length > 1}
+      navRefs={calendarNavigation}
+      jumpCalendarToToday={calendarNavigation.jumpCalendarToToday}
+      shiftCalendarBackward={calendarNavigation.shiftCalendarBackward}
+      shiftCalendarForward={calendarNavigation.shiftCalendarForward}
+      handleContinuousWeekScroll={calendarNavigation.handleContinuousWeekScroll}
+      handleContinuousMonthScroll={calendarNavigation.handleContinuousMonthScroll}
+      onAddSessionToDay={handleAddSessionToDay}
+      compactHeader={{
+        athletes,
+        availableDisciplines,
+        visibleTargets,
+        planningLt1,
+        planningLt2,
+      }}
+    />
   );
 }

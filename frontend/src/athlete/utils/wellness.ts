@@ -19,6 +19,7 @@ export function buildWellnessSeries(days: AthleteHealthDaily[]): WellnessSeriesP
       respirationRate: typeof day.respiration_rate === "number" ? day.respiration_rate : null,
       breathingEvents: typeof day.breathing_events === "number" ? day.breathing_events : null,
       weight: typeof (day as any).weight === "number" ? (day as any).weight : null,
+      steps: typeof day.steps === "number" ? day.steps : null,
     }));
 }
 

@@ -4,6 +4,7 @@ function quickAddKindSlug(kind: QuickAddKind | "library") {
   if (kind === "running") return "running";
   if (kind === "ciclismo") return "cycling";
   if (kind === "natación") return "swimming";
+  if (kind === "fuerza") return "strength";
   if (kind === "event") return "event";
   if (kind === "off") return "off";
   if (kind === "note") return "note";
@@ -38,6 +39,14 @@ export function QuickAddIcon({ kind, large = false }: { kind: QuickAddKind | "li
             <path d="M4 11.6c1.2-.6 2.8-1.1 4.3-.6 1 .3 1.7 1 2.7 1.2 1.8.4 3.1-.8 4.5-1.7" />
             <path d="M15.6 7.3l1.9 1.1" />
             <path d="M14.5 9.1c.8-.6 1.9-.8 2.8-.5" />
+          </>
+        ) : kind === "fuerza" ? (
+          <>
+            <path d="M6.5 6.5v11" strokeWidth="2.5" />
+            <path d="M17.5 6.5v11" strokeWidth="2.5" />
+            <path d="M6.5 12h11" strokeWidth="2" />
+            <path d="M4 8v8" strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M20 8v8" strokeWidth="2.5" strokeLinecap="round" />
           </>
         ) : kind === "event" ? (
           <>

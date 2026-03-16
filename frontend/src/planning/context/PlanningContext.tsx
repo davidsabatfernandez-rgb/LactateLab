@@ -4,6 +4,8 @@ import { useSearchParams } from "react-router-dom";
 import type {
   Athlete,
   AthleteAnalysis,
+  CoachLibrary,
+  CoachPlan,
   DailyTrainingLoad,
   PlanningOverview,
   PlanningPlannedSession,
@@ -80,6 +82,8 @@ export type PlanningState = {
   enabledOverlayDisciplines: string[];
   workoutLibrary: PlanningWorkoutTemplate[];
   quickAddLibraries: Record<string, PlanningWorkoutTemplate[]>;
+  coachLibraries: CoachLibrary[];
+  coachPlans: CoachPlan[];
   openWorkoutPreview: OpenWorkoutPreviewState | null;
   showPlannedSessionRawInformation: boolean;
   plannedSessionStructuredPreview: WorkoutDefinition | null;
@@ -136,6 +140,8 @@ export type PlanningAction =
   | { type: "SET_ENABLED_OVERLAY_DISCIPLINES"; payload: string[] }
   | { type: "SET_WORKOUT_LIBRARY"; payload: PlanningWorkoutTemplate[] }
   | { type: "SET_QUICK_ADD_LIBRARIES"; payload: Record<string, PlanningWorkoutTemplate[]> }
+  | { type: "SET_COACH_LIBRARIES"; payload: CoachLibrary[] }
+  | { type: "SET_COACH_PLANS"; payload: CoachPlan[] }
   | { type: "SET_OPEN_WORKOUT_PREVIEW"; payload: OpenWorkoutPreviewState | null }
   | { type: "SET_SHOW_PLANNED_SESSION_RAW_INFORMATION"; payload: boolean }
   | { type: "SET_PLANNED_SESSION_STRUCTURED_PREVIEW"; payload: WorkoutDefinition | null }
@@ -147,6 +153,7 @@ export type PlanningAction =
   | { type: "SET_CALENDAR_QUICK_ADD"; payload: CalendarQuickAddState | null }
   | { type: "SET_OVERVIEW_AND_DISCIPLINE"; payload: { overview: PlanningOverview; discipline: string } }
   | { type: "MOVE_SESSION"; payload: { sessionId: number; newDate: string } }
+  | { type: "DELETE_SESSION"; payload: { sessionId: number } }
   | { type: "MOVE_SYNTHETIC_SESSION"; payload: { syntheticId: string; newDate: string } }
   | { type: "SET_GARMIN_ACTIVITIES"; payload: GarminCalendarActivity[] }
   | { type: "SET_GARMIN_ACTIVITIES_LOADING"; payload: boolean }
@@ -231,6 +238,10 @@ function planningReducer(state: PlanningState, action: PlanningAction): Planning
       return { ...state, workoutLibrary: action.payload };
     case "SET_QUICK_ADD_LIBRARIES":
       return { ...state, quickAddLibraries: action.payload };
+    case "SET_COACH_LIBRARIES":
+      return { ...state, coachLibraries: action.payload };
+    case "SET_COACH_PLANS":
+      return { ...state, coachPlans: action.payload };
     case "SET_OPEN_WORKOUT_PREVIEW":
       return { ...state, openWorkoutPreview: action.payload };
     case "SET_SHOW_PLANNED_SESSION_RAW_INFORMATION":
@@ -265,6 +276,17 @@ function planningReducer(state: PlanningState, action: PlanningAction): Planning
           planned_sessions: state.overview.planned_sessions.map((s) =>
             s.id === sessionId ? { ...s, scheduled_date: newDate } : s,
           ),
+        },
+      };
+    }
+    case "DELETE_SESSION": {
+      if (!state.overview) return state;
+      const { sessionId } = action.payload;
+      return {
+        ...state,
+        overview: {
+          ...state.overview,
+          planned_sessions: state.overview.planned_sessions.filter((s) => s.id !== sessionId),
         },
       };
     }
@@ -358,6 +380,8 @@ export function PlanningProvider({ token, children }: PlanningProviderProps) {
     enabledOverlayDisciplines: [],
     workoutLibrary: [],
     quickAddLibraries: {},
+    coachLibraries: [],
+    coachPlans: [],
     openWorkoutPreview: null,
     showPlannedSessionRawInformation: false,
     plannedSessionStructuredPreview: null,

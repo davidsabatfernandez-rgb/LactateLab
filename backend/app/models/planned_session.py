@@ -12,7 +12,7 @@ class PlannedSession(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     athlete_id: Mapped[int] = mapped_column(ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
-    focus_block_id: Mapped[int] = mapped_column(ForeignKey("athlete_focus_blocks.id", ondelete="CASCADE"), index=True)
+    focus_block_id: Mapped[Optional[int]] = mapped_column(ForeignKey("athlete_focus_blocks.id", ondelete="CASCADE"), index=True, nullable=True)
     scheduled_date: Mapped[date] = mapped_column(Date, index=True)
     discipline: Mapped[str] = mapped_column(String(50), index=True)
     week_index: Mapped[int] = mapped_column(Integer)

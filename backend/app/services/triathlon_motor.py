@@ -106,20 +106,52 @@ def compute_weekly_tss_targets(
     current_ctl: float,
     phase: str,
     ramp_rate: float = 5.0,
-) -> float:
-    """Compute weekly TSS target from CTL + ramp_rate + phase modifier."""
+    recovery_factor: float = 0.55,
+) -> tuple[float, list[str]]:
+    """Compute weekly TSS target from CTL + relative ramp + phase modifier.
+
+    Returns (target_tss, warnings).
+
+    ramp_rate is treated as a PERCENTAGE of daily CTL (default 5 = 5%).
+    Gabbett 2016 (BJSM): >10% weekly increase doubles injury risk.
+    Hulin 2014: ACWR spikes correlate with injury independent of absolute load.
+
+    The ramp is clamped between absolute bounds:
+      - min +3 TSS/week (avoid stagnation at very low CTL)
+      - max +15 TSS/week (cap for very high CTL)
+
+    ACWR is computed for informational purposes only — coach decides.
+    Impellizzeri 2020: ACWR lacks causal evidence; hard caps prevent
+    legitimate shock blocks (Issurin 2010).
+
+    Recovery weeks reduce BOTH ramp and base CTL.
+    Mujika & Padilla 2023 meta-analysis: optimal taper = 41-60% volume reduction.
+    recovery_factor: fraction of CTL to maintain (0.41–0.60, default 0.55).
+    """
+    warnings: list[str] = []
     modifier = _PHASE_MODIFIER.get(phase, 1.0)
-    target = current_ctl * 7 + ramp_rate * modifier * 7
-    # Safety: project ACWR
-    projected_daily = target / 7
-    projected_atl = projected_daily  # rough 1-week approximation
+    if phase == "recovery":
+        # Clamp to evidence-backed range (Mujika 2023, Bompa 2009)
+        rf = max(0.41, min(0.60, recovery_factor))
+        target = current_ctl * 7 * rf
+    else:
+        # Relative ramp: ramp_rate% of daily CTL, clamped to safe absolute bounds
+        ramp_pct = ramp_rate / 100.0  # 5 → 0.05
+        daily_ramp = current_ctl * ramp_pct * modifier
+        # Absolute safety clamps (Gabbett 2016)
+        daily_ramp = max(3.0 / 7, min(15.0 / 7, daily_ramp))  # 0.43–2.14 TSS/day
+        target = (current_ctl + daily_ramp) * 7
+    # ACWR as advisory warning, NOT as hard cap (Impellizzeri 2020)
     if current_ctl > 10:
-        acwr = projected_atl / current_ctl
-        if acwr > 1.3:
-            target = current_ctl * 7 * 1.3
-        elif acwr < 0.8:
-            target = current_ctl * 7 * 0.8
-    return round(target, 1)
+        projected_daily = target / 7
+        acwr = projected_daily / current_ctl
+        if acwr > 1.5:
+            warnings.append(f"Ratio A:C proyectado {acwr:.2f} — incremento de carga muy elevado respecto a la habitual.")
+        elif acwr > 1.3:
+            warnings.append(f"Ratio A:C proyectado {acwr:.2f} — incremento de carga alto, monitorizar respuesta del atleta.")
+        elif phase != "recovery" and acwr < 0.8:
+            warnings.append(f"Ratio A:C proyectado {acwr:.2f} — carga reciente baja respecto a la habitual.")
+    return round(target, 1), warnings
 
 
 # ── TSS Estimation per Session ───────────────────────────────────────────────
@@ -228,12 +260,14 @@ def _cross_discipline_day_assignment(
         all_slots.append(slot)
 
     # 5. Place secondary support → remaining gaps
+    dropped: list[str] = []
     for slot in secondary_support:
         day = _find_free_day(used_days, [1, 3, 5, 7])
-        if day:
-            slot.day_offset = day
-            used_days.add(day)
-            all_slots.append(slot)
+        if day in used_days:
+            dropped.append(f"Soporte {slot.discipline} ({slot.template_id}) forzada a día {day} ya ocupado — considerar ajustar manualmente")
+        slot.day_offset = day
+        used_days.add(day)
+        all_slots.append(slot)
 
     # 6. Place swim sessions — can double up (AM swim + PM land)
     for slot in swim_slots:
@@ -249,12 +283,11 @@ def _cross_discipline_day_assignment(
             all_slots.append(slot)
         else:
             day = _find_free_day(used_days, [1, 3, 5, 7])
-            if day:
-                slot.day_offset = day
-                used_days.add(day)
-                all_slots.append(slot)
+            slot.day_offset = day
+            used_days.add(day)
+            all_slots.append(slot)
 
-    return sorted(all_slots, key=lambda s: (s.day_offset, s.scheduled_time or "12:00"))
+    return sorted(all_slots, key=lambda s: (s.day_offset, s.scheduled_time or "12:00")), dropped
 
 
 def _find_free_day(
@@ -335,6 +368,37 @@ def validate_triathlon_spacing(slots: list[DraftSlotTri]) -> list[str]:
                     f"Millet 2002: bike→run order preserves running economy."
                 )
 
+    # Rule 3: No same energy system in 2 disciplines same day
+    # (Olbrecht SoW Triathlon: "anticipating the negative interaction")
+    # Map session families to energy system categories
+    _ENERGY_SYSTEM: dict[str, str] = {
+        "lt1": "aerobic", "aerobic": "aerobic", "recovery": "aerobic",
+        "lt2": "threshold", "threshold": "threshold", "sub-threshold": "threshold",
+        "vo2": "anaerobic_power", "vo2max": "anaerobic_power",
+        "anc": "anaerobic_capacity", "sprint": "anaerobic_capacity",
+    }
+    for day, day_slots in by_day.items():
+        land_slots = [s for s in day_slots if s.discipline != "natación"]
+        if len(land_slots) < 2:
+            continue
+        systems_by_disc: dict[str, str] = {}
+        for s in land_slots:
+            family_key = s.session_family.split("_")[0].lower() if s.session_family else ""
+            system = _ENERGY_SYSTEM.get(family_key, "unknown")
+            if system != "unknown" and s.discipline in systems_by_disc:
+                if systems_by_disc[s.discipline] == system:
+                    continue  # same discipline, ok
+            systems_by_disc[s.discipline] = system
+        # Check if 2 different disciplines target same system
+        seen_systems: dict[str, str] = {}
+        for disc, system in systems_by_disc.items():
+            if system in seen_systems and seen_systems[system] != disc:
+                warnings.append(
+                    f"Day {day}: {seen_systems[system]} and {disc} both target {system}. "
+                    f"Olbrecht: avoid same energy system in 2 disciplines same day."
+                )
+            seen_systems[system] = disc
+
     # Rule 5: Only 1 LONG per weekend
     weekend_longs = [s for s in slots if s.day_offset in (6, 7) and "long" in (s.template_id or "")]
     if len(weekend_longs) > 1:
@@ -352,8 +416,9 @@ def project_weekly_load(
     weekly_tss_targets: list[float],
 ) -> list[dict[str, Any]]:
     """Project CTL/ATL/TSB/ACWR week by week from current values."""
-    atl_decay = 1 - math.exp(-1 / 7)
-    ctl_decay = 1 - math.exp(-1 / 42)
+    # TrainingPeaks standard: α = 2 / (n + 1)
+    atl_decay = 2.0 / (7 + 1)   # 0.25
+    ctl_decay = 2.0 / (42 + 1)  # 0.04651
     projections: list[dict[str, Any]] = []
     atl = current_atl
     ctl = current_ctl
@@ -408,6 +473,7 @@ def build_triathlon_mesocycle_draft(
     current_atl: float = 0.0,
     current_ctl_by_discipline: dict[str, float] | None = None,
     ramp_rate: float = 5.0,
+    recovery_factor: float = 0.55,
     custom_tss_split: dict[str, float] | None = None,
     swim_mode: str = "auto",
     phases: list[str] | None = None,
@@ -451,8 +517,9 @@ def build_triathlon_mesocycle_draft(
         swim_phase = _SWIM_PHASE_MAP.get(phase, phase)
 
         # Weekly TSS target
-        weekly_tss = compute_weekly_tss_targets(current_ctl, phase, ramp_rate)
+        weekly_tss, acwr_warnings = compute_weekly_tss_targets(current_ctl, phase, ramp_rate, recovery_factor)
         weekly_tss_targets.append(weekly_tss)
+        all_spacing_warnings.extend([f"W{week_index}: {w}" for w in acwr_warnings])
 
         # TSS per discipline
         tss_primary = weekly_tss * split.get("primary", 0.45)
@@ -493,7 +560,8 @@ def build_triathlon_mesocycle_draft(
         swim_slots = _to_tri_slots(swim_raw, "natación", max_count=3)
 
         # Assign days across disciplines
-        week_slots = _cross_discipline_day_assignment(primary_slots, secondary_slots, swim_slots)
+        week_slots, placement_warnings = _cross_discipline_day_assignment(primary_slots, secondary_slots, swim_slots)
+        all_spacing_warnings.extend([f"W{week_index}: {w}" for w in placement_warnings])
 
         # Build session dicts with TSS estimation
         sessions: list[dict[str, Any]] = []

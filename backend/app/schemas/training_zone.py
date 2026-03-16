@@ -48,6 +48,7 @@ class TrainingZoneSetRead(BaseModel):
     notes: Optional[str] = None
     created_at: datetime
     zones: list[TrainingZoneRead]
+    sessions_updated: Optional[int] = None  # populated when zones trigger workout regeneration
 
     model_config = {"from_attributes": True}
 
@@ -60,12 +61,30 @@ class ThresholdItemForZones(BaseModel):
     pace_label: Optional[str] = None
 
 
+class ZoneStalenessCheck(BaseModel):
+    """Result of comparing active zones' threshold_context vs current thresholds."""
+    is_stale: bool = False
+    reason: Optional[str] = None
+    zones_created_at: Optional[str] = None
+    zones_threshold_source: Optional[str] = None
+    current_snapshot_date: Optional[str] = None
+    # Deltas (current minus zone-creation values) — positive = athlete improved
+    lt2_pace_delta_seconds: Optional[float] = None  # negative = faster
+    lt2_hr_delta: Optional[int] = None
+    lt2_power_delta: Optional[float] = None
+    lt1_pace_delta_seconds: Optional[float] = None
+    lt1_hr_delta: Optional[int] = None
+    lt1_power_delta: Optional[float] = None
+
+
 class ThresholdProfileForZones(BaseModel):
     """Perfil de umbral mostrado al crear zonas — el entrenador necesita ver
     el ancla (individual/fisiológico/análisis) para decidir si las zonas son fiables."""
 
     lt1: Optional[ThresholdItemForZones] = None
     lt2: Optional[ThresholdItemForZones] = None
+    practical_lt1: Optional[ThresholdItemForZones] = None
+    practical_lt2: Optional[ThresholdItemForZones] = None
     source: str
     source_label: str
     confidence: Optional[float] = None
