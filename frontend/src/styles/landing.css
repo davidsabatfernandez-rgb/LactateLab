@@ -1335,6 +1335,30 @@
   margin: 0;
 }
 
+/* ── Data warning ── */
+.ld-warning {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: rgba(210, 106, 54, 0.06);
+  border: 1px solid rgba(210, 106, 54, 0.18);
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
+.ld-warning__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.ld-warning__text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #7a4a2a;
+  margin: 0;
+}
+
 /* ── Live preview ── */
 .ld-preview {
   display: flex;

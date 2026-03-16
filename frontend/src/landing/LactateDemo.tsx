@@ -373,6 +373,26 @@ export function LactateDemo() {
     [rows, mode, hrMax, hrRest, peakLac, showResult],
   );
 
+  // Monotonicity validation: detect if faster intensity has lower lactate
+  const dataWarning = useMemo(() => {
+    const parsed = rows
+      .map((r, i) => ({
+        idx: i,
+        intensity: r.intensity.trim(),
+        lac: parseFloat(r.lactate),
+        speed: mode === "pace" ? paceToSpeed(r.intensity) : parseFloat(r.intensity),
+      }))
+      .filter((p) => p.speed > 0 && !isNaN(p.lac) && p.lac >= 0);
+    if (parsed.length < 2) return null;
+    parsed.sort((a, b) => a.speed - b.speed);
+    for (let i = 1; i < parsed.length; i++) {
+      if (parsed[i].lac < parsed[i - 1].lac - 0.05) {
+        return true;
+      }
+    }
+    return false;
+  }, [rows, mode]);
+
   // Live preview: always compute curve from current rows (no thresholds/predictions)
   const livePreview = useMemo(() => {
     if (showResult) return null; // full result takes over
@@ -446,7 +466,6 @@ export function LactateDemo() {
             </div>
 
             {/* HR + VLamax fields */}
-            <p className="ld-hr-helper">{t("demo_hr_helper")}</p>
             <div className="ld-hr-row ld-hr-row--3">
               <div className="ld-hr-field">
                 <label className="ld-hr-field__label">{t("demo_hrmax")}</label>
@@ -486,6 +505,7 @@ export function LactateDemo() {
                 />
               </div>
             </div>
+            <p className="ld-hr-helper">{t("demo_hr_helper")}</p>
 
             {/* Header */}
             <div className="ld-row ld-row--head">
@@ -522,9 +542,21 @@ export function LactateDemo() {
               <button type="button" className="ld-actions__reset" onClick={resetSample}>{t("demo_reset")}</button>
             </div>
 
-            <button type="button" className="lp-btn-solid ld-analyze" onClick={() => setShowResult(true)}>
-              {t("demo_analyze")}
-            </button>
+            {dataWarning ? (
+              <div className="ld-warning">
+                <div className="ld-warning__icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d26a36" strokeWidth="2" strokeLinecap="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                </div>
+                <p className="ld-warning__text">{t("demo_warning_monotonicity")}</p>
+              </div>
+            ) : (
+              <button type="button" className="lp-btn-solid ld-analyze" onClick={() => setShowResult(true)}>
+                {t("demo_analyze")}
+              </button>
+            )}
           </div>
 
           {/* ── Result panel ── */}
