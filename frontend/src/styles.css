@@ -1264,6 +1264,41 @@ textarea {
   border-radius: 14px;
 }
 
+.invite-athlete-inline {
+  background: var(--card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 360px;
+}
+
+.invite-athlete-inline label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--secondary, rgba(220, 228, 236, 0.7));
+}
+
+.invite-athlete-inline input {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  background: var(--field-bg, rgba(255, 255, 255, 0.05));
+  color: var(--primary, #f0f4f8);
+  font-size: 0.82rem;
+}
+
+.invite-success {
+  color: #6ec87a;
+  font-size: 0.82rem;
+  margin: 0;
+}
+
 .cycling-cadence-card {
   display: grid;
   gap: 18px;
@@ -3448,37 +3483,18 @@ textarea {
   display: grid;
   place-items: center;
   padding: 24px;
-  background:
-    linear-gradient(90deg, rgba(7, 19, 27, 0.58) 0%, rgba(8, 23, 31, 0.46) 28%, rgba(10, 27, 38, 0.24) 56%, rgba(16, 34, 42, 0.18) 100%),
-    radial-gradient(circle at 22% 26%, rgba(16, 34, 42, 0.2), transparent 26%),
-    linear-gradient(180deg, rgba(6, 18, 24, 0.08), rgba(7, 18, 24, 0.24)),
-    url("/foto-inicio-v3.jpg");
+  background: #f7f8fa;
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
 }
 
 .login-screen::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  background:
-    radial-gradient(ellipse at center, rgba(9, 22, 30, 0.3) 0%, rgba(9, 22, 30, 0.12) 34%, rgba(9, 22, 30, 0) 72%);
-  transform: translateX(-18%);
-  pointer-events: none;
+  display: none;
 }
 
 .login-screen::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background:
-    linear-gradient(180deg, rgba(6, 16, 23, 0.04) 0%, rgba(6, 16, 23, 0.18) 100%),
-    radial-gradient(circle at 84% 18%, rgba(91, 132, 164, 0.1), transparent 24%),
-    radial-gradient(circle at 12% 86%, rgba(156, 108, 52, 0.08), transparent 22%);
-  pointer-events: none;
+  display: none;
 }
 
 .login-panel {
@@ -3628,22 +3644,6 @@ textarea {
   padding: 28px;
 }
 
-.login-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(16, 34, 42, 0.28);
-  backdrop-filter: blur(12px);
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  z-index: 20;
-}
-
-.login-modal {
-  width: min(560px, 100%);
-  border-radius: 28px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 244, 238, 0.94));
-}
 
 .virtual-ride-screen {
   align-items: center;
@@ -19743,6 +19743,7 @@ h4 {
 .dp-summary-card.neutral { border-left: 3px solid var(--border-strong); }
 
 /* ── lf- LoginForm ─────────────────────────────────────────────── */
+/* ── Login — light professional design ── */
 .lf-screen {
   min-height: 100vh;
   display: flex;
@@ -19750,186 +19751,271 @@ h4 {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  gap: 28px;
+  gap: 24px;
 }
 
-.lf-panel {
+.lf-glass-panel {
   text-align: center;
-  max-width: 480px;
+  max-width: 420px;
   width: 100%;
-  padding: 40px 32px 32px;
-  background: rgba(8, 18, 26, 0.55);
-  backdrop-filter: blur(24px) saturate(1.2);
-  -webkit-backdrop-filter: blur(24px) saturate(1.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 44px 36px 36px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 12px 40px rgba(0, 0, 0, 0.06);
+  animation: lf-fade-in 0.28s ease-out;
+}
+
+@keyframes lf-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Brand block ── */
+.lf-brand {
+  margin-bottom: 22px;
 }
 
 .lf-eyebrow {
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 0.64rem;
-  color: #e09245;
+  letter-spacing: 0.18em;
+  font-size: 0.62rem;
+  color: #c47a2a;
   font-weight: 700;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .lf-title {
   font-family: "Space Grotesk", sans-serif;
-  font-size: clamp(1.7rem, 4vw, 2.5rem);
+  font-size: clamp(1.4rem, 3.4vw, 2rem);
   font-weight: 800;
-  letter-spacing: -0.04em;
-  color: #f0f4f8;
-  margin: 0 0 10px;
-  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.15;
 }
 
+/* ── View: select mode ── */
+.lf-view { }
+
 .lf-subtitle {
-  font-size: 0.84rem;
-  color: rgba(220, 228, 236, 0.7);
-  margin: 0 0 28px;
-  line-height: 1.45;
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin: 0 0 24px;
+  line-height: 1.5;
 }
 
 .lf-mode-selector {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
-  justify-content: center;
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 }
 
 .lf-mode-btn {
-  padding: 12px 34px;
-  border-radius: 10px;
-  font-size: 0.84rem;
-  font-weight: 700;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(220, 228, 236, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 22px 14px 18px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: #fafafa;
+  color: #374151;
   cursor: pointer;
   transition: all 0.18s ease;
-  letter-spacing: 0.01em;
 }
 
 .lf-mode-btn:hover {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
-  color: #f0f4f8;
+  border-color: #c47a2a;
+  background: #fff8f0;
+  color: #1a1a1a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(196, 122, 42, 0.1);
 }
 
-.lf-mode-btn.active {
-  background: #e09245;
-  color: #0a141c;
-  border-color: #e09245;
-  box-shadow: 0 4px 20px rgba(224, 146, 69, 0.3);
+.lf-mode-btn strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #1a1a1a;
 }
 
-.lf-secondary-link {
-  margin-top: 12px;
+.lf-mode-btn small {
+  font-size: 0.68rem;
+  color: #9ca3af;
+  letter-spacing: 0.01em;
 }
 
-.lf-secondary-btn {
-  font-size: 0.74rem;
-  color: rgba(220, 228, 236, 0.45);
-  text-decoration: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: color 0.15s ease;
-  letter-spacing: 0.02em;
+/* ── View: form (login / register / forgot) ── */
+.lf-view-form {
+  text-align: left;
 }
 
-.lf-secondary-btn:hover {
-  color: rgba(220, 228, 236, 0.7);
+.lf-form-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 22px;
+  text-align: left;
 }
 
-.lf-modal-card {
-  background: rgba(12, 22, 32, 0.85);
-  backdrop-filter: blur(20px) saturate(1.1);
-  -webkit-backdrop-filter: blur(20px) saturate(1.1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
-  padding: 28px;
-  width: 100%;
-  max-width: 400px;
-}
-
-.lf-modal-card h2 {
+.lf-form-header h2 {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  margin: 0 0 6px;
-  color: #f0f4f8;
+  margin: 0;
+  color: #1a1a1a;
 }
 
-.lf-modal-card p {
-  font-size: 0.78rem;
-  color: rgba(220, 228, 236, 0.6);
-  margin: 0 0 18px;
-  line-height: 1.45;
+.lf-form-header small {
+  display: block;
+  font-size: 0.74rem;
+  color: #9ca3af;
+  margin-top: 3px;
+  line-height: 1.4;
 }
 
-.lf-modal-card label {
+.lf-back-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fafafa;
+  color: #6b7280;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 2px;
+}
+
+.lf-back-btn:hover {
+  border-color: #d1d5db;
+  background: #f3f4f6;
+  color: #1a1a1a;
+}
+
+.lf-view-form label {
   display: grid;
   gap: 5px;
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: rgba(220, 228, 236, 0.55);
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 12px;
 }
 
-.lf-modal-card input {
+.lf-view-form label span {
+  padding-left: 2px;
+}
+
+.lf-view-form input {
   padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #f0f4f8;
+  background: #fafafa;
+  color: #1a1a1a;
   font-size: 0.84rem;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
-.lf-modal-card input:focus {
-  border-color: #e09245;
-  background: rgba(255, 255, 255, 0.08);
+.lf-view-form input:focus {
+  border-color: #c47a2a;
+  background: #fff;
   outline: none;
+  box-shadow: 0 0 0 3px rgba(196, 122, 42, 0.1);
 }
 
-.lf-modal-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 20px;
+.lf-view-form input::placeholder {
+  color: #c0c5cc;
 }
 
-.lf-modal-actions .rd-btn-ghost {
-  color: rgba(220, 228, 236, 0.6);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.lf-modal-actions .rd-btn-ghost:hover {
-  color: #f0f4f8;
-  border-color: rgba(255, 255, 255, 0.25);
-}
-
-.lf-modal-actions .rd-btn-primary {
-  background: #e09245;
-  color: #0a141c;
-  border-color: #e09245;
+/* ── Submit button ── */
+.lf-submit-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 6px;
+  border: none;
+  border-radius: 10px;
+  background: #1a1a1a;
+  color: #ffffff;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.88rem;
   font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
 }
 
-.lf-modal-actions .rd-btn-primary:hover {
-  background: #d4832e;
-  border-color: #d4832e;
+.lf-submit-btn:hover:not(:disabled) {
+  background: #333333;
+}
+
+.lf-submit-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.lf-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Error / success ── */
+.lf-error {
+  color: #dc2626;
+  font-size: 0.78rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  margin-bottom: 4px;
+}
+
+.lf-success-block {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.lf-success-block p {
+  color: #16a34a;
+  font-size: 0.88rem;
+  margin: 0 0 16px;
+}
+
+/* ── Bottom links ── */
+.lf-bottom-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.lf-link-btn {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 0.76rem;
+  cursor: pointer;
+  padding: 2px 0;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.lf-link-btn:hover {
+  color: #c47a2a;
 }
 
 .lf-credit {
-  font-size: 0.62rem;
-  color: rgba(220, 228, 236, 0.28);
+  font-size: 0.6rem;
+  color: #c0c5cc;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -20342,7 +20428,12 @@ h4 {
 :root[data-theme="dark"] .rd-form input,
 :root[data-theme="dark"] .rd-form select,
 :root[data-theme="dark"] .rd-form textarea,
-:root[data-theme="dark"] .lf-modal-card input {
+:root[data-theme="dark"] .lf-glass-panel {
+  background: rgba(18, 24, 32, 0.95);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .lf-view-form input {
   background: var(--field-bg);
   border-color: var(--border);
   color: var(--primary);
@@ -20359,7 +20450,7 @@ h4 {
 
 :root[data-theme="dark"] .rd-filter-pill.active,
 :root[data-theme="dark"] .ad-disc-tab.active,
-:root[data-theme="dark"] .lf-mode-btn.active,
+:root[data-theme="dark"] .lf-mode-btn:hover,
 :root[data-theme="dark"] .dp-template-btn.active {
   background: var(--accent);
   color: #fff;
@@ -20371,15 +20462,6 @@ h4 {
 
 :root[data-theme="dark"] .rd-table tr:hover td {
   background: rgba(255, 255, 255, 0.04);
-}
-
-:root[data-theme="dark"] .lf-screen {
-  background: inherit;
-}
-
-:root[data-theme="dark"] .lf-modal-card {
-  background: rgba(12, 22, 32, 0.9);
-  border-color: rgba(255, 255, 255, 0.1);
 }
 
 :root[data-theme="dark"] .tp-preview-box {

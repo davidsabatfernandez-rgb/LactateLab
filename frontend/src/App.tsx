@@ -186,6 +186,30 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
+    const handler = () => {
+      localStorage.removeItem("lactate-token");
+      setToken(null);
+    };
+    window.addEventListener("auth:unauthorized", handler);
+    return () => window.removeEventListener("auth:unauthorized", handler);
+  }, []);
+
+  // Refresh token every 20 hours (token expires in 24h)
+  useEffect(() => {
+    if (!token) return;
+    const interval = setInterval(async () => {
+      try {
+        const result = await api.refreshToken(token);
+        localStorage.setItem("lactate-token", result.access_token);
+        setToken(result.access_token);
+      } catch {
+        // If refresh fails, don't force logout — let normal 401 handling kick in
+      }
+    }, 20 * 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [token]);
+
+  useEffect(() => {
     document.documentElement.dataset.theme = themeMode;
     document.documentElement.style.colorScheme = themeMode === "dark" ? "dark" : "light";
     localStorage.setItem("lactate-theme", themeMode);

@@ -178,6 +178,9 @@ async function requestForm<T>(path: string, body: FormData, token: string): Prom
     try {
       const response = await fetchWithTimeout(requestUrl, { method: "POST", headers, body });
       if (!response.ok) {
+        if (response.status === 401) {
+          window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+        }
         const detail = await parseErrorPayload(response);
         const httpError = buildHttpError(requestUrl, path, { method: "POST" }, response, detail);
         logApiFailure(requestUrl, path, { method: "POST" }, httpError);
@@ -212,6 +215,9 @@ async function requestBlob(path: string, options: FetchOptions = {}): Promise<Bl
     try {
       const response = await fetchWithTimeout(requestUrl, { ...options, headers });
       if (!response.ok) {
+        if (response.status === 401) {
+          window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+        }
         const detail = await parseErrorPayload(response);
         const httpError = buildHttpError(requestUrl, path, options, response, detail);
         logApiFailure(requestUrl, path, options, httpError);

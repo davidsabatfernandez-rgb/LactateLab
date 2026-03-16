@@ -2650,6 +2650,34 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     notes: "",
   });
 
+  // Invite athlete to portal
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePassword, setInvitePassword] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState(false);
+
+  async function handleInviteAthlete() {
+    if (!analysis) return;
+    setInviteError(null);
+    if (!inviteEmail.trim()) { setInviteError("El email es obligatorio."); return; }
+    if (invitePassword.length < 8) { setInviteError("La contrasena debe tener al menos 8 caracteres."); return; }
+    setInviteLoading(true);
+    try {
+      await api.inviteAthlete(token, {
+        athlete_id: analysis.athlete.id,
+        email: inviteEmail,
+        password: invitePassword,
+      });
+      setInviteSuccess(true);
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : "No se pudo crear la invitacion.");
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (analysis?.athlete.training_goal) {
       setTrainingGoal(analysis.athlete.training_goal);
@@ -4736,7 +4764,35 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
             <button className="ghost-button" type="button" onClick={() => setTargetsOverlayOpen(true)}>
               Objetivos y competiciones
             </button>
+            <button className="ghost-button" type="button" onClick={() => { setInviteOpen(!inviteOpen); setInviteError(null); setInviteSuccess(false); }}>
+              Invitar al portal
+            </button>
           </div>
+          {inviteOpen && (
+            <div className="invite-athlete-inline">
+              {inviteSuccess ? (
+                <p className="invite-success">Invitacion creada. El atleta ya puede acceder al portal.</p>
+              ) : (
+                <>
+                  <label>
+                    Email del atleta
+                    <input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="atleta@email.com" />
+                  </label>
+                  <label>
+                    Contrasena inicial
+                    <input type="password" value={invitePassword} onChange={(e) => setInvitePassword(e.target.value)} placeholder="Min. 8 caracteres" />
+                  </label>
+                  {inviteError ? <p className="rd-error" style={{ fontSize: "0.8rem" }}>{inviteError}</p> : null}
+                  <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+                    <button type="button" className="ghost-button" onClick={() => setInviteOpen(false)}>Cancelar</button>
+                    <button type="button" className="primary-button" disabled={inviteLoading} onClick={handleInviteAthlete}>
+                      {inviteLoading ? "Creando..." : "Crear acceso"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           <p>{analysis.athlete.notes}</p>
           <div className="hero-goal-row">
             {analysis.athlete.primary_discipline === "triatlón" ? (
