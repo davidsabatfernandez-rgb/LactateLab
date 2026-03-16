@@ -27,8 +27,8 @@ const MODE_COPY: Record<LoginMode, { title: string; hint: string; defaultEmail: 
   athlete: {
     title: "Acceso atleta",
     hint: "Portal personal con sesiones, objetivos y progreso.",
-    defaultEmail: "athlete@lactatelab.dev",
-    defaultPassword: "demo1234",
+    defaultEmail: "",
+    defaultPassword: "",
   },
 };
 
@@ -344,6 +344,9 @@ export function LoginForm({ onLogin }: LoginFormProps) {
               </button>
             </div>
             <div className="lf-bottom-links">
+              <button type="button" className="lf-link-btn" onClick={() => { setAuthView("athlete-step1"); setAthError(null); }}>
+                Crear cuenta de atleta
+              </button>
               <button type="button" className="lf-link-btn" onClick={() => setAuthView("register")}>
                 Crear cuenta de entrenador
               </button>
