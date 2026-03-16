@@ -137,9 +137,9 @@ export function SessionCard({ session, expanded, onToggle }: SessionCardProps) {
               <div className="ath-session-comparison-row">
                 <span>Duracion: {durationMin} min planificados / {Math.round((session.actual_performance.duration_s || 0) / 60)} min reales</span>
               </div>
-              {session.actual_performance.distance_m && session.payload?.total_distance_m && (
+              {Boolean(session.actual_performance.distance_m && session.payload?.total_distance_m) && (
                 <div className="ath-session-comparison-row">
-                  <span>Distancia: {formatDistance(session.payload.total_distance_m as number)} plan / {formatDistance(session.actual_performance.distance_m)} real</span>
+                  <span>Distancia: {formatDistance(session.payload!.total_distance_m as number)} plan / {formatDistance(session.actual_performance.distance_m as number)} real</span>
                 </div>
               )}
             </div>

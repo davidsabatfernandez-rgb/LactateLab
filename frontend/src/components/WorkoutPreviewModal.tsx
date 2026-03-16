@@ -34,7 +34,7 @@ type WorkoutPreviewModalProps = {
     onToggle: () => void;
     label?: string;
     statusLabel?: string;
-    statusTone?: "positive" | "neutral" | "negative";
+    statusTone?: "positive" | "neutral" | "negative" | "warning";
     panel?: ReactNode;
   } | null;
   /** If provided, the modal shows an "Editar" button that opens the step editor. */
