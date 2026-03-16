@@ -303,6 +303,58 @@ function CurveSVG({ result, mode }: { result: DemoResult; mode: InputMode }) {
   );
 }
 
+/* ── Live preview curve (no thresholds, just the raw curve) ── */
+function LiveCurveSVG({ points, mode }: { points: { x: number; y: number; intensity: string; lac: number }[]; mode: InputMode }) {
+  const W = 480, H = 220, PAD = 45, TOP = 20;
+
+  const px = (x: number) => PAD + x * (W - PAD - 20);
+  const pyC = (y: number) => TOP + (1 - y) * (H - PAD - TOP);
+
+  const pathPoints = points.map((p) => `${px(p.x)},${pyC(p.y)}`);
+  let d = `M${pathPoints[0]}`;
+  for (let i = 1; i < pathPoints.length; i++) {
+    const [prevX, prevY] = pathPoints[i - 1].split(",").map(Number);
+    const [curX, curY] = pathPoints[i].split(",").map(Number);
+    const cpx = (prevX + curX) / 2;
+    d += ` C${cpx},${prevY} ${cpx},${curY} ${curX},${curY}`;
+  }
+
+  const lastPt = pathPoints[pathPoints.length - 1].split(",").map(Number);
+  const firstPt = pathPoints[0].split(",").map(Number);
+  const fillD = `${d} L${lastPt[0]},${H - PAD} L${firstPt[0]},${H - PAD} Z`;
+  const maxLac = Math.max(...points.map((p) => p.lac));
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="ld-svg ld-svg--live" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="live-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#d26a36" stopOpacity=".08" />
+          <stop offset="100%" stopColor="#d26a36" stopOpacity=".01" />
+        </linearGradient>
+      </defs>
+      {[0.25, 0.5, 0.75, 1].map((f) => (
+        <line key={f} x1={PAD} y1={pyC(f)} x2={W - 20} y2={pyC(f)} stroke="#1a2f38" strokeWidth=".4" opacity=".08" />
+      ))}
+      {[0.25, 0.5, 0.75, 1].map((f) => (
+        <text key={f} x={PAD - 6} y={pyC(f) + 3} textAnchor="end" fill="#9aabb4" fontSize="9" fontFamily="Space Grotesk" opacity=".5">
+          {(maxLac * 1.15 * f).toFixed(1)}
+        </text>
+      ))}
+      <text x={12} y={H / 2} textAnchor="middle" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk" opacity=".5" transform={`rotate(-90 12 ${H / 2})`}>mmol/L</text>
+      {[0, Math.floor(points.length / 2), points.length - 1].map((i) => (
+        <text key={i} x={px(points[i].x)} y={H - PAD + 16} textAnchor="middle" fill="#9aabb4" fontSize="9" fontFamily="Space Grotesk" opacity=".5">
+          {mode === "pace" ? points[i].intensity : `${Math.round(parseFloat(points[i].intensity))}W`}
+        </text>
+      ))}
+      <path d={fillD} fill="url(#live-fill)" />
+      <path d={d} fill="none" stroke="#d26a36" strokeWidth="2" strokeLinecap="round" opacity=".35" />
+      {points.map((p, i) => (
+        <circle key={i} cx={px(p.x)} cy={pyC(p.y)} r="3.5" fill="#fff" stroke="#d26a36" strokeWidth="1.5" opacity=".4" />
+      ))}
+    </svg>
+  );
+}
+
 /* ══════════════════════════════════════════
    Main Demo Component
    ══════════════════════════════════════════ */
@@ -320,6 +372,29 @@ export function LactateDemo() {
     () => (showResult ? analyze(rows, mode, parseInt(hrMax) || 0, parseInt(hrRest) || 0, parseFloat(peakLac) || 0) : null),
     [rows, mode, hrMax, hrRest, peakLac, showResult],
   );
+
+  // Live preview: always compute curve from current rows (no thresholds/predictions)
+  const livePreview = useMemo(() => {
+    if (showResult) return null; // full result takes over
+    const parsed = rows
+      .map((r) => ({
+        intensity: r.intensity.trim(),
+        lac: parseFloat(r.lactate),
+        speed: mode === "pace" ? paceToSpeed(r.intensity) : parseFloat(r.intensity),
+      }))
+      .filter((p) => p.speed > 0 && !isNaN(p.lac) && p.lac >= 0);
+    if (parsed.length < 2) return null;
+    parsed.sort((a, b) => a.speed - b.speed);
+    const minSpeed = parsed[0].speed;
+    const maxSpeed = parsed[parsed.length - 1].speed;
+    const maxLac = Math.max(...parsed.map((p) => p.lac));
+    return parsed.map((p) => ({
+      x: (p.speed - minSpeed) / (maxSpeed - minSpeed || 1),
+      y: p.lac / (maxLac * 1.15),
+      intensity: p.intensity,
+      lac: p.lac,
+    }));
+  }, [rows, mode, showResult]);
 
   function updateRow(i: number, field: "intensity" | "lactate", val: string) {
     setRows((prev) => prev.map((r, j) => (j === i ? { ...r, [field]: val } : r)));
@@ -549,16 +624,25 @@ export function LactateDemo() {
                 </div>
               </>
             ) : (
-              <div className="ld-placeholder">
-                <svg viewBox="0 0 120 80" width="120" opacity=".2">
-                  <path d="M10 70 C30 68, 50 60, 70 40 C85 25, 95 12, 110 8" fill="none" stroke="#d26a36" strokeWidth="2.5" strokeLinecap="round" />
-                  <circle cx="10" cy="70" r="3" fill="#d26a36" />
-                  <circle cx="40" cy="64" r="3" fill="#d26a36" />
-                  <circle cx="70" cy="40" r="3" fill="#d26a36" />
-                  <circle cx="95" cy="16" r="3" fill="#d26a36" />
-                  <circle cx="110" cy="8" r="3" fill="#d26a36" />
-                </svg>
-                <p>{t("demo_analyze")}</p>
+              <div className="ld-preview">
+                {livePreview ? (
+                  <>
+                    <LiveCurveSVG points={livePreview} mode={mode} />
+                    <p className="ld-preview__hint">{t("demo_analyze")}</p>
+                  </>
+                ) : (
+                  <div className="ld-placeholder">
+                    <svg viewBox="0 0 120 80" width="120" opacity=".2">
+                      <path d="M10 70 C30 68, 50 60, 70 40 C85 25, 95 12, 110 8" fill="none" stroke="#d26a36" strokeWidth="2.5" strokeLinecap="round" />
+                      <circle cx="10" cy="70" r="3" fill="#d26a36" />
+                      <circle cx="40" cy="64" r="3" fill="#d26a36" />
+                      <circle cx="70" cy="40" r="3" fill="#d26a36" />
+                      <circle cx="95" cy="16" r="3" fill="#d26a36" />
+                      <circle cx="110" cy="8" r="3" fill="#d26a36" />
+                    </svg>
+                    <p>{t("demo_analyze")}</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

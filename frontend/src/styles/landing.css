@@ -1335,6 +1335,32 @@
   margin: 0;
 }
 
+/* ── Live preview ── */
+.ld-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  gap: 8px;
+}
+
+.ld-preview .ld-svg--live {
+  width: 100%;
+  max-width: 480px;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.ld-preview__hint {
+  font-size: 13px;
+  color: var(--c-faint);
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
 /* ═══ RESPONSIVE ════════════════════════════ */
 
 @media (max-width: 900px) {
