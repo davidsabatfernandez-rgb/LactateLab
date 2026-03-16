@@ -259,7 +259,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
       }
       const result = await api.registerAthlete(payload);
       localStorage.setItem("lactate-token", result.access_token);
-      window.location.href = "/planning";
+      window.location.href = "/athlete";
     } catch (err) {
       setAthError(err instanceof Error ? err.message : "No se pudo crear la cuenta.");
     } finally {
