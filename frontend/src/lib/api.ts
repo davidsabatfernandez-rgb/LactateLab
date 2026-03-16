@@ -253,6 +253,30 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  registerAthlete: (payload: {
+    email: string;
+    password: string;
+    full_name: string;
+    sex: string;
+    weight_kg: number;
+    height_cm?: number;
+    date_of_birth?: string;
+    primary_discipline: string;
+    athlete_level?: string;
+    goals: {
+      event_name: string;
+      target_date?: string;
+      discipline: string;
+      target_value?: string;
+      target_type?: string;
+    }[];
+    garmin_email?: string;
+    garmin_password?: string;
+  }) =>
+    request<{ access_token: string; token_type: string; user_id: number; role: string }>("/auth/register-athlete", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   inviteAthlete: (token: string, payload: { athlete_id: number; email: string; password: string }) =>
     request("/auth/invite-athlete", {
       token,
@@ -495,12 +519,34 @@ export const api = {
     }),
   planningMesocycleDraft: (token: string, athleteId: string | number, discipline?: string) =>
     request(`/planning/athletes/${athleteId}/mesocycle-draft${discipline ? `?discipline=${encodeURIComponent(discipline)}` : ""}`, { token }),
+  submitCoachFeedback: (
+    token: string,
+    sessionId: number,
+    feedback: string | null,
+    rating: string | null,
+  ) =>
+    request(`/planning/planned-sessions/${sessionId}/coach-feedback`, {
+      token,
+      method: "PATCH",
+      body: JSON.stringify({ feedback, rating }),
+    }),
   toggleBlaCheck: (token: string, sessionId: number, blaCheck: boolean) =>
     request(`/planning/planned-sessions/${sessionId}/bla-check`, {
       token,
       method: "PATCH",
       body: JSON.stringify({ bla_check: blaCheck }),
     }),
+  updateTargetMode: (token: string, sessionId: number, targetMode: "pace" | "hr" | "power") =>
+    request(`/planning/planned-sessions/${sessionId}/target-mode`, {
+      token,
+      method: "PATCH",
+      body: JSON.stringify({ target_mode: targetMode }),
+    }),
+  autoGenerateZones: (token: string, athleteId: number, discipline: string) =>
+    request<{ zone_set_id: number | null; auto_generated: boolean; warning: string | null }>(
+      `/planning/athletes/${athleteId}/auto-generate-zones?discipline=${encodeURIComponent(discipline)}`,
+      { token, method: "POST" },
+    ),
   coachEditSession: (
     token: string,
     sessionId: number,
@@ -532,13 +578,29 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ workout }),
     }),
+  refreshStaleTargets: (token: string, athleteId: number, discipline?: string) =>
+    request<{ refreshed: number; needs_republish: number; skipped_coach_edited: number }>(
+      `/planning/athletes/${athleteId}/refresh-stale-targets${discipline ? `?discipline=${encodeURIComponent(discipline)}` : ""}`,
+      { token, method: "POST" },
+    ),
+  republishPlannedSession: (token: string, sessionId: number) =>
+    request(`/planning/planned-sessions/${sessionId}/republish`, {
+      token,
+      method: "POST",
+    }),
   pushWorkoutToGarmin: (token: string, athleteId: number, sessionId: number) =>
     request(`/garmin/athletes/${athleteId}/push-workout/${sessionId}`, {
       token,
       method: "POST",
     }),
+  garminSyncStatus: (token: string, athleteId: number) =>
+    request<{ connected: boolean; last_sync_at: string | null; stale: boolean; garmin_email: string | null }>(
+      `/garmin/athletes/${athleteId}/sync-status`,
+      { token },
+    ),
   garminSync: (token: string, athleteId: number, daysBack = 56) =>
-    request(`/garmin/athletes/${athleteId}/sync?days_back=${daysBack}`, {
+    request<{ athlete_id: number; synced: boolean; new_activities: number; total_activities: number; sync_range_start: string; sync_range_end: string; last_sync_at: string | null }>(
+      `/garmin/athletes/${athleteId}/sync?days_back=${daysBack}`, {
       token,
       method: "POST",
     }),
@@ -622,4 +684,11 @@ export const api = {
   // ── Science Advisor ──
   scienceAdvisorAsk: (token: string, body: { question: string; athlete_id?: number; discipline?: string }) =>
     request("/science-advisor/ask", { token, method: "POST", body: JSON.stringify(body) }),
+
+  // ── Beta Signup (public, no auth) ──
+  betaSignup: (email: string) =>
+    request<{ status: string }>("/beta-signup", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
 };

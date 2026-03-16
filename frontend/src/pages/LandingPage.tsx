@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { LangProvider, useLang, LANG_LABELS, type Lang } from "../landing/i18n";
 import { LactateDemo } from "../landing/LactateDemo";
+import { api } from "../lib/api";
 
 /* ── Intersection Observer hook for scroll animations ── */
 function useInView(threshold = 0.15) {
@@ -195,13 +196,19 @@ function LandingInner() {
   const [activeAthleteTab, setActiveAthleteTab] = useState(0);
   const [activeCoachTab, setActiveCoachTab] = useState(0);
 
-  function handleBeta(e: React.FormEvent) {
+  async function handleBeta(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) return;
-    const list = JSON.parse(localStorage.getItem("pa-beta-signups") || "[]");
-    list.push({ email: email.trim(), ts: new Date().toISOString() });
-    localStorage.setItem("pa-beta-signups", JSON.stringify(list));
-    setSubmitted(true);
+    try {
+      await api.betaSignup(email.trim());
+      setSubmitted(true);
+    } catch {
+      // Fallback to localStorage if API is unavailable
+      const list = JSON.parse(localStorage.getItem("pa-beta-signups") || "[]");
+      list.push({ email: email.trim(), ts: new Date().toISOString() });
+      localStorage.setItem("pa-beta-signups", JSON.stringify(list));
+      setSubmitted(true);
+    }
   }
 
   const athleteTabs = [
@@ -243,6 +250,7 @@ function LandingInner() {
         <div className="lp-w lp-hero__grid">
           <div className="lp-hero__left">
             <p className="lp-hero__kicker">{t("hero_kicker")}</p>
+            <span className="lp-hero__badge">{t("hero_badge")}</span>
             <h1 className="lp-hero__h1">
               {t("hero_h1_1")}<br />
               {t("hero_h1_2")}<br />
@@ -275,6 +283,29 @@ function LandingInner() {
           </div>
         </div>
       </section>
+
+      {/* ══ HOW IT WORKS ══ */}
+      <AnimSection>
+        <section className="lp-section lp-how" id="how">
+          <div className="lp-w">
+            <p className="lp-ey">{t("how_ey")}</p>
+            <h2 className="lp-h2">{t("how_h2")}</h2>
+            <div className="lp-how__steps">
+              {[
+                { num: "1", title: t("how_s1_title"), desc: t("how_s1_desc") },
+                { num: "2", title: t("how_s2_title"), desc: t("how_s2_desc") },
+                { num: "3", title: t("how_s3_title"), desc: t("how_s3_desc") },
+              ].map((s) => (
+                <div key={s.num} className="lp-how__step">
+                  <span className="lp-how__num">{s.num}</span>
+                  <h3 className="lp-how__step-title">{s.title}</h3>
+                  <p className="lp-how__step-desc">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </AnimSection>
 
       {/* ══ INTERACTIVE DEMO ══ */}
       <LactateDemo />
@@ -428,7 +459,7 @@ function LandingInner() {
                 <div className="lp-compare__col lp-compare__col--pa">PeakAerobic</div>
                 <div className="lp-compare__col">{t("cmp_others")}</div>
               </div>
-              {(["c1","c2","c3","c4","c5","c6","c7","c8"] as const).map((k) => (
+              {(["c1","c2","c3","c4","c5","c6","c7"] as const).map((k) => (
                 <div key={k} className="lp-compare__row">
                   <div className="lp-compare__feature">{t(`cmp_${k}`)}</div>
                   <div className="lp-compare__col lp-compare__col--pa">

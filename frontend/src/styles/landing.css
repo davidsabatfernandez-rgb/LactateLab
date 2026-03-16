@@ -1479,6 +1479,78 @@
   background: var(--c-border);
 }
 
+/* ── Hero badge ── */
+.lp-hero__badge {
+  display: inline-block;
+  background: var(--c-green);
+  color: #fff;
+  font-family: var(--ff-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 5px 14px;
+  border-radius: 100px;
+  margin-bottom: 12px;
+}
+
+/* ═══ HOW IT WORKS ═══════════════════════ */
+
+.lp-how {
+  background: var(--c-bg);
+}
+
+.lp-how__steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  margin-top: 40px;
+}
+
+.lp-how__step {
+  text-align: center;
+  padding: 28px 20px;
+  border-radius: 12px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+}
+
+.lp-how__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--c-accent);
+  color: #fff;
+  font-family: var(--ff-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.lp-how__step-title {
+  font-family: var(--ff-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--c-text);
+  margin: 0 0 8px;
+}
+
+.lp-how__step-desc {
+  font-size: 0.92rem;
+  color: var(--c-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .lp-how__steps {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
 /* ═══ PORTAL SECTIONS ═════════════════════ */
 
 .lp-portal {

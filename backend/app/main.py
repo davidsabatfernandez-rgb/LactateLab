@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import analytics, athlete_health, athletes, auth, garmin, planning, reports, science_advisor, sessions, strava, training_load
+from app.api.routes import analytics, athlete_health, athletes, auth, beta_signup, garmin, planning, reports, science_advisor, sessions, strava, training_load
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -27,6 +27,7 @@ app.include_router(garmin.router, prefix=settings.api_prefix)
 app.include_router(athlete_health.router, prefix=settings.api_prefix)
 app.include_router(training_load.router, prefix=settings.api_prefix)
 app.include_router(science_advisor.router, prefix=settings.api_prefix)
+app.include_router(beta_signup.router, prefix=settings.api_prefix)
 
 
 @app.get("/")
