@@ -6808,7 +6808,7 @@
 
 .ath-tests-form__header {
   display: grid;
-  grid-template-columns: 28px 50px 1fr 60px 60px 28px;
+  grid-template-columns: 28px 40px 50px 1fr 60px 60px;
   gap: 6px;
   padding: 4px 0;
   font-size: 0.72rem;
@@ -6820,7 +6820,7 @@
 
 .ath-tests-form__row {
   display: grid;
-  grid-template-columns: 28px 50px 1fr 60px 60px 28px;
+  grid-template-columns: 28px 40px 50px 1fr 60px 60px;
   gap: 6px;
   align-items: center;
   padding: 3px 0;
@@ -6868,6 +6868,140 @@
 }
 
 .ath-tests-form__add:hover { border-color: var(--ath-accent, #d26a36); color: var(--ath-accent, #d26a36); }
+
+.ath-tests-form__hint {
+  font-size: 0.82rem;
+  color: var(--ath-text-muted, #8899a4);
+  margin: -8px 0 16px;
+  line-height: 1.5;
+}
+
+.ath-tests-form__actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* ── Quick-log rows ── */
+.ath-tests-form__quick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ath-tests-quick-row {
+  background: var(--ath-bg, #f7f8fa);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.ath-tests-quick-row__main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ath-tests-quick-row__zone {
+  width: 70px;
+  padding: 5px 4px;
+  border: 1px solid var(--ath-border, #e5e7eb);
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--ath-card-bg, #fff);
+}
+
+.ath-tests-quick-row__lac {
+  width: 100px;
+  padding: 6px 8px;
+  border: 2px solid var(--ath-accent, #d26a36);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: var(--ath-card-bg, #fff);
+  text-align: center;
+}
+
+.ath-tests-quick-row__lac:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(210, 106, 54, 0.15);
+}
+
+.ath-tests-quick-row__note {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--ath-border, #e5e7eb);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: var(--ath-text-secondary, #5e6e78);
+  background: var(--ath-card-bg, #fff);
+}
+
+.ath-tests-quick-row__note::placeholder {
+  font-style: italic;
+  opacity: 0.5;
+}
+
+.ath-tests-quick-row__adv {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  padding-left: 34px;
+}
+
+/* ── Overlay panel ── */
+.ath-tests-overlay-panel {
+  margin-bottom: 20px;
+}
+
+.ath-tests-overlay-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.ath-tests-overlay-dose {
+  font-size: 0.82rem;
+  color: var(--ath-text-muted, #8899a4);
+  margin: 2px 0 0;
+}
+
+.ath-tests-overlay-match {
+  font-size: 0.82rem;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.ath-tests-overlay-match--ok {
+  background: rgba(34, 197, 94, 0.08);
+  color: #16a34a;
+}
+
+.ath-tests-overlay-match--no {
+  background: rgba(249, 115, 22, 0.08);
+  color: #ea580c;
+}
+
+.ath-tests-form__dur,
+.ath-tests-form__zone {
+  font-size: 0.78rem;
+  color: var(--ath-text-muted, #8899a4);
+  white-space: nowrap;
+}
+
+.ath-tests-form__input--prefilled {
+  background: rgba(34, 197, 94, 0.06);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.ath-tests-form__input--lac {
+  border-color: var(--ath-accent, #d26a36);
+  font-weight: 600;
+}
 
 .ath-tests-form__submit {
   background: var(--ath-accent, #d26a36);

@@ -26,16 +26,20 @@ function formatDate(iso: string): string {
 
 /* ── Types ── */
 type StepRow = {
+  zone_tag: string;
   duration_min: string;
   pace: string;
   power: string;
   hr: string;
+  hr_max: string;
   lactate: string;
+  note: string;
 };
 
 type Discipline = "running" | "ciclismo" | "natación";
 
-const EMPTY_ROW: StepRow = { duration_min: "", pace: "", power: "", hr: "", lactate: "" };
+const ZONE_TAGS = ["LT1", "LT2", "VO2", "ANC", "REC", "BASE", "TEMPO", ""];
+const EMPTY_ROW: StepRow = { zone_tag: "", duration_min: "", pace: "", power: "", hr: "", hr_max: "", lactate: "", note: "" };
 
 /* ── Mini curve SVG ── */
 function MiniCurve({ points }: { points: CurvePoint[] }) {
@@ -238,14 +242,13 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
   const [discipline, setDiscipline] = useState<Discipline>("running");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [rows, setRows] = useState<StepRow[]>([
-    { ...EMPTY_ROW }, { ...EMPTY_ROW }, { ...EMPTY_ROW }, { ...EMPTY_ROW }, { ...EMPTY_ROW },
+    { ...EMPTY_ROW }, { ...EMPTY_ROW }, { ...EMPTY_ROW },
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const usePace = discipline !== "ciclismo";
-  const paceLabel = discipline === "natación" ? "Ritmo /100m" : "Ritmo /km";
-  const paceHint = discipline === "natación" ? "m:ss" : "m:ss";
 
   function updateRow(i: number, field: keyof StepRow, value: string) {
     setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
@@ -256,23 +259,37 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
   }
 
   function removeRow(i: number) {
-    if (rows.length <= 2) return;
+    if (rows.length <= 1) return;
     setRows((prev) => prev.filter((_, idx) => idx !== i));
   }
+
+  // Check if any row has non-lactate data filled → auto-expand advanced
+  const hasAdvancedData = rows.some((r) => r.pace || r.power || r.hr || r.hr_max || r.duration_min);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    // Parse rows
+    const rowsWithLactate = rows.filter((r) => {
+      const lac = parseFloat(r.lactate);
+      return !isNaN(lac) && lac > 0;
+    });
+
+    if (rowsWithLactate.length < 3) {
+      setError("Necesitas al menos 3 puntos con lactato para el análisis. Puedes dejar los demás campos vacíos y rellenarlos después.");
+      return;
+    }
+
     const intervals = rows
       .map((r, i) => {
         const lac = parseFloat(r.lactate);
         if (isNaN(lac) || lac <= 0) return null;
         const durMin = parseFloat(r.duration_min) || 5;
         const hr = parseInt(r.hr) || undefined;
+        const hrMax = parseInt(r.hr_max) || undefined;
         const paceVal = usePace ? paceToSeconds(r.pace) : undefined;
-        const powerVal = !usePace ? parseFloat(r.power) || undefined : undefined;
+        const powerVal = !usePace ? (parseFloat(r.power) || undefined) : undefined;
+        const purpose = r.zone_tag ? r.zone_tag.toLowerCase().replace("vo2", "VO2max").replace("anc", "anaerobic") : "threshold_work";
 
         return {
           order_index: i + 1,
@@ -280,24 +297,20 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
           rest_seconds: 60,
           rest_type: "passive",
           heart_rate_avg: hr,
+          heart_rate_max: hrMax,
           pace_seconds_per_km: discipline === "running" ? paceVal : undefined,
           power_watts: discipline === "ciclismo" ? powerVal : undefined,
-          cadence: undefined,
-          rpe: undefined,
-          purpose: "threshold_work",
+          purpose,
+          notes: r.note || undefined,
           lactate_sample: {
             lactate_mmol: lac,
             sample_delay_seconds: 30,
             sample_timing_label: "30s post",
+            sampling_notes: r.note || undefined,
           },
         };
       })
       .filter(Boolean);
-
-    if (intervals.length < 3) {
-      setError("Necesitas al menos 3 puntos con lactato para el análisis.");
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -306,7 +319,7 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
         performed_at: `${date}T10:00:00`,
         discipline,
         session_type: "lactate_test",
-        goal: "Test de lactato manual",
+        goal: rows.some((r) => r.zone_tag) ? `Lactato: ${rows.filter((r) => r.zone_tag).map((r) => r.zone_tag).join(", ")}` : "Test de lactato",
         intervals,
       });
       onCreated();
@@ -319,7 +332,10 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <form className="ath-tests-form" onSubmit={handleSubmit}>
-      <h3>Nuevo test de lactato</h3>
+      <h3>Registrar lactato</h3>
+      <p className="ath-tests-form__hint">
+        Apunta el lactato de cada intervalo. Todo lo demás es opcional — puedes completarlo después del entreno.
+      </p>
 
       <div className="ath-tests-form__top">
         <label>
@@ -336,71 +352,72 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
         </label>
       </div>
 
-      <div className="ath-tests-form__table">
-        <div className="ath-tests-form__header">
-          <span>#</span>
-          <span>Min</span>
-          <span>{usePace ? paceLabel : "Watts"}</span>
-          <span>FC</span>
-          <span>Lactato</span>
-          <span></span>
-        </div>
+      {/* Quick rows: zone tag + lactate + note */}
+      <div className="ath-tests-form__quick">
         {rows.map((row, i) => (
-          <div key={i} className="ath-tests-form__row">
-            <span className="ath-tests-form__idx">{i + 1}</span>
-            <input
-              type="text"
-              placeholder="5"
-              value={row.duration_min}
-              onChange={(e) => updateRow(i, "duration_min", e.target.value)}
-              className="ath-tests-form__input ath-tests-form__input--sm"
-            />
-            {usePace ? (
+          <div key={i} className="ath-tests-quick-row">
+            <div className="ath-tests-quick-row__main">
+              <span className="ath-tests-form__idx">{i + 1}</span>
+              <select
+                value={row.zone_tag}
+                onChange={(e) => updateRow(i, "zone_tag", e.target.value)}
+                className="ath-tests-quick-row__zone"
+              >
+                <option value="">Zona</option>
+                {ZONE_TAGS.filter(Boolean).map((z) => <option key={z} value={z}>{z}</option>)}
+              </select>
               <input
                 type="text"
-                placeholder={paceHint}
-                value={row.pace}
-                onChange={(e) => updateRow(i, "pace", e.target.value)}
-                className="ath-tests-form__input"
+                placeholder="Lactato (mmol)"
+                value={row.lactate}
+                onChange={(e) => updateRow(i, "lactate", e.target.value)}
+                className="ath-tests-quick-row__lac"
+                autoFocus={i === 0}
               />
-            ) : (
               <input
                 type="text"
-                placeholder="watts"
-                value={row.power}
-                onChange={(e) => updateRow(i, "power", e.target.value)}
-                className="ath-tests-form__input"
+                placeholder="Nota rápida..."
+                value={row.note}
+                onChange={(e) => updateRow(i, "note", e.target.value)}
+                className="ath-tests-quick-row__note"
               />
+              <button type="button" className="ath-tests-form__remove" onClick={() => removeRow(i)} title="Quitar">
+                &times;
+              </button>
+            </div>
+
+            {/* Advanced fields (collapsible) */}
+            {(showAdvanced || hasAdvancedData) && (
+              <div className="ath-tests-quick-row__adv">
+                <input type="text" placeholder="Min" value={row.duration_min} onChange={(e) => updateRow(i, "duration_min", e.target.value)} className="ath-tests-form__input ath-tests-form__input--sm" />
+                {usePace ? (
+                  <input type="text" placeholder="Ritmo" value={row.pace} onChange={(e) => updateRow(i, "pace", e.target.value)} className="ath-tests-form__input" />
+                ) : (
+                  <input type="text" placeholder="Watts" value={row.power} onChange={(e) => updateRow(i, "power", e.target.value)} className="ath-tests-form__input" />
+                )}
+                <input type="text" placeholder="FC med" value={row.hr} onChange={(e) => updateRow(i, "hr", e.target.value)} className="ath-tests-form__input ath-tests-form__input--sm" />
+                <input type="text" placeholder="FC max" value={row.hr_max} onChange={(e) => updateRow(i, "hr_max", e.target.value)} className="ath-tests-form__input ath-tests-form__input--sm" />
+              </div>
             )}
-            <input
-              type="text"
-              placeholder="bpm"
-              value={row.hr}
-              onChange={(e) => updateRow(i, "hr", e.target.value)}
-              className="ath-tests-form__input ath-tests-form__input--sm"
-            />
-            <input
-              type="text"
-              placeholder="mmol"
-              value={row.lactate}
-              onChange={(e) => updateRow(i, "lactate", e.target.value)}
-              className="ath-tests-form__input ath-tests-form__input--sm"
-            />
-            <button type="button" className="ath-tests-form__remove" onClick={() => removeRow(i)} title="Quitar">
-              &times;
-            </button>
           </div>
         ))}
       </div>
 
-      <button type="button" className="ath-tests-form__add" onClick={addRow}>
-        + Punto
-      </button>
+      <div className="ath-tests-form__actions">
+        <button type="button" className="ath-tests-form__add" onClick={addRow}>
+          + Punto
+        </button>
+        {!showAdvanced && !hasAdvancedData && (
+          <button type="button" className="ath-tests-form__add" onClick={() => setShowAdvanced(true)}>
+            Duración / ritmo / FC
+          </button>
+        )}
+      </div>
 
       {error && <p className="ath-tests-error">{error}</p>}
 
       <button type="submit" className="ath-tests-form__submit" disabled={submitting}>
-        {submitting ? "Analizando..." : "Analizar test"}
+        {submitting ? "Analizando..." : "Guardar y analizar"}
       </button>
     </form>
   );
