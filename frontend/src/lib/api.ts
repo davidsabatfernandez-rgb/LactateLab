@@ -686,6 +686,27 @@ export const api = {
   scienceAdvisorAsk: (token: string, body: { question: string; athlete_id?: number; discipline?: string }) =>
     request("/science-advisor/ask", { token, method: "POST", body: JSON.stringify(body) }),
 
+  // ── Lap Match ──
+  plannedSessionLapMatch: (token: string, sessionId: number) =>
+    request<{
+      planned_session_id: number;
+      discipline: string;
+      scheduled_date: string;
+      dose_prescription: string;
+      matched: boolean;
+      n_work_steps: number;
+      steps: Array<{
+        order: number;
+        planned_duration_s: number;
+        intensity_label: string;
+        garmin_matched: boolean;
+        hr_avg: number | null;
+        power_watts: number | null;
+        pace_seconds_per_km: number | null;
+        pace_seconds_per_100m?: number | null;
+      }>;
+    }>(`/planning/planned-sessions/${sessionId}/lap-match`, { token }),
+
   // ── Beta Signup (public, no auth) ──
   betaSignup: (email: string) =>
     request<{ status: string }>("/beta-signup", {

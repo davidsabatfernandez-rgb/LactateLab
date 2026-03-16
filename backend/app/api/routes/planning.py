@@ -984,3 +984,147 @@ def apply_plan_to_athlete(
     for s in created:
         db.refresh(s)
     return created
+
+
+# ── Lap matching for lactate overlay ──────────────────────────
+
+
+def _extract_work_steps(payload: dict | None) -> list[dict]:
+    """Extract flat list of work intervals from structured_workout_payload."""
+    if not payload or "steps" not in payload:
+        return []
+    result = []
+    for step in payload["steps"]:
+        st = step.get("step_type", "")
+        if st == "repeat":
+            for child in step.get("children", []):
+                cst = child.get("step_type", "")
+                if cst in ("interval", "steady"):
+                    result.append(child)
+        elif st in ("interval", "steady"):
+            result.append(step)
+    return result
+
+
+def _match_laps_to_steps(
+    work_steps: list[dict], laps: list[dict], tolerance_s: int = 10
+) -> list[dict | None]:
+    """Try to find a contiguous subsequence of laps matching work_steps by duration ±tolerance.
+
+    Returns a list parallel to work_steps: matched lap dict or None.
+    """
+    n_steps = len(work_steps)
+    n_laps = len(laps)
+    if n_steps == 0 or n_laps < n_steps:
+        return [None] * n_steps
+
+    step_durations = [s.get("length_value") or 0 for s in work_steps]
+
+    for start in range(n_laps - n_steps + 1):
+        all_match = True
+        for i in range(n_steps):
+            lap_dur = laps[start + i].get("elapsed_time_seconds") or laps[start + i].get("moving_time_seconds") or 0
+            if abs(lap_dur - step_durations[i]) > tolerance_s:
+                all_match = False
+                break
+        if all_match:
+            return [laps[start + i] for i in range(n_steps)]
+
+    return [None] * n_steps
+
+
+@router.get("/planned-sessions/{session_id}/lap-match")
+def planned_session_lap_match(
+    session_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Match planned work intervals with Garmin laps for lactate overlay.
+
+    Returns steps with Garmin HR/pace pre-filled if laps match (±10s), empty otherwise.
+    """
+    from sqlalchemy import select as sa_select
+    from app.models.garmin_activity import GarminActivity
+
+    ps = db.get(PlannedSession, session_id)
+    if not ps:
+        raise HTTPException(404, "Planned session not found")
+
+    # Auth: athlete can only access own sessions
+    if user.role == "athlete":
+        if not user.athlete_id or user.athlete_id != ps.athlete_id:
+            raise HTTPException(403, "Access denied")
+
+    work_steps = _extract_work_steps(ps.structured_workout_payload)
+    discipline = ps.discipline or "running"
+
+    result_steps = []
+    matched = False
+
+    if ps.linked_activity_id and work_steps:
+        # Find the Garmin activity
+        activity = db.scalar(
+            sa_select(GarminActivity).where(
+                GarminActivity.provider_activity_id == ps.linked_activity_id
+            )
+        )
+        if not activity:
+            activity = db.scalar(
+                sa_select(GarminActivity).where(
+                    GarminActivity.planned_session_id == ps.id
+                )
+            )
+
+        laps = []
+        if activity and activity.raw_summary:
+            laps = activity.raw_summary.get("laps", [])
+
+        lap_matches = _match_laps_to_steps(work_steps, laps)
+        matched = any(m is not None for m in lap_matches)
+
+        for i, step in enumerate(work_steps):
+            lap = lap_matches[i]
+            duration_s = step.get("length_value") or 0
+            entry: dict = {
+                "order": i + 1,
+                "planned_duration_s": duration_s,
+                "intensity_label": step.get("intensity_label") or step.get("target", {}).get("label") or "",
+                "garmin_matched": lap is not None,
+            }
+            if lap:
+                speed = lap.get("average_speed_m_s")
+                entry["hr_avg"] = round(lap["average_heartrate"]) if lap.get("average_heartrate") else None
+                entry["power_watts"] = round(lap["average_watts"]) if lap.get("average_watts") else None
+                if speed and speed > 0 and discipline == "running":
+                    entry["pace_seconds_per_km"] = round(1000.0 / speed)
+                elif speed and speed > 0 and discipline == "natación":
+                    entry["pace_seconds_per_100m"] = round(100.0 / speed)
+                else:
+                    entry["pace_seconds_per_km"] = None
+            else:
+                entry["hr_avg"] = None
+                entry["power_watts"] = None
+                entry["pace_seconds_per_km"] = None
+
+            result_steps.append(entry)
+    elif work_steps:
+        for i, step in enumerate(work_steps):
+            result_steps.append({
+                "order": i + 1,
+                "planned_duration_s": step.get("length_value") or 0,
+                "intensity_label": step.get("intensity_label") or step.get("target", {}).get("label") or "",
+                "garmin_matched": False,
+                "hr_avg": None,
+                "power_watts": None,
+                "pace_seconds_per_km": None,
+            })
+
+    return {
+        "planned_session_id": ps.id,
+        "discipline": discipline,
+        "scheduled_date": str(ps.scheduled_date),
+        "dose_prescription": ps.dose_prescription,
+        "matched": matched,
+        "n_work_steps": len(work_steps),
+        "steps": result_steps,
+    }

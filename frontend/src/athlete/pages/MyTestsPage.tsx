@@ -407,6 +407,207 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   LACTATE OVERLAY — Add lactate to completed planned session
+   ══════════════════════════════════════════════════════════════ */
+type LapMatchStep = {
+  order: number;
+  planned_duration_s: number;
+  intensity_label: string;
+  garmin_matched: boolean;
+  hr_avg: number | null;
+  power_watts: number | null;
+  pace_seconds_per_km: number | null;
+  pace_seconds_per_100m?: number | null;
+};
+
+type LapMatchResult = {
+  planned_session_id: number;
+  discipline: string;
+  scheduled_date: string;
+  dose_prescription: string;
+  matched: boolean;
+  n_work_steps: number;
+  steps: LapMatchStep[];
+};
+
+function LactateOverlay({ sessionId, onCreated, onClose }: { sessionId: number; onCreated: () => void; onClose: () => void }) {
+  const { user, token } = useAthleteData();
+  const [lapMatch, setLapMatch] = useState<LapMatchResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Editable rows: lactate + manual overrides for HR/pace if not garmin-matched
+  const [rows, setRows] = useState<Array<{ lactate: string; hr: string; pace: string; power: string }>>([]);
+
+  useEffect(() => {
+    setLoading(true);
+    api.plannedSessionLapMatch(token, sessionId)
+      .then((r) => {
+        setLapMatch(r);
+        setRows(r.steps.map((s) => ({
+          lactate: "",
+          hr: s.hr_avg != null ? String(s.hr_avg) : "",
+          pace: s.pace_seconds_per_km != null ? secondsToPace(s.pace_seconds_per_km) : "",
+          power: s.power_watts != null ? String(s.power_watts) : "",
+        })));
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Error cargando intervalos"))
+      .finally(() => setLoading(false));
+  }, [sessionId, token]);
+
+  function updateRow(i: number, field: string, value: string) {
+    setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!lapMatch || !user.athlete_id) return;
+    setError(null);
+
+    const discipline = lapMatch.discipline;
+    const usePace = discipline !== "ciclismo";
+
+    const intervals = lapMatch.steps.map((step, i) => {
+      const row = rows[i];
+      const lac = parseFloat(row.lactate);
+      const hr = parseInt(row.hr) || undefined;
+      const paceVal = usePace ? paceToSeconds(row.pace) : undefined;
+      const powerVal = !usePace ? (parseFloat(row.power) || undefined) : undefined;
+
+      return {
+        order_index: step.order,
+        duration_seconds: step.planned_duration_s,
+        rest_seconds: 60,
+        rest_type: "passive",
+        heart_rate_avg: hr,
+        pace_seconds_per_km: discipline === "running" ? paceVal : undefined,
+        power_watts: discipline === "ciclismo" ? powerVal : undefined,
+        purpose: "threshold_work",
+        lactate_sample: !isNaN(lac) && lac > 0 ? {
+          lactate_mmol: lac,
+          sample_delay_seconds: 30,
+          sample_timing_label: "30s post",
+        } : undefined,
+      };
+    }).filter((iv) => iv.lactate_sample);
+
+    if (intervals.length < 3) {
+      setError("Necesitas al menos 3 puntos con lactato para el análisis.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.createSession(token, {
+        athlete_id: user.athlete_id,
+        performed_at: `${lapMatch.scheduled_date}T10:00:00`,
+        discipline: lapMatch.discipline,
+        session_type: "lactate_test",
+        goal: `Lactato sobre sesión: ${lapMatch.dose_prescription}`,
+        intervals,
+      });
+      onCreated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error creando la sesión.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loading) return <div className="ath-tests-overlay-panel">Cargando intervalos...</div>;
+  if (error && !lapMatch) return <div className="ath-tests-overlay-panel"><p className="ath-tests-error">{error}</p><button onClick={onClose}>Cerrar</button></div>;
+  if (!lapMatch || lapMatch.steps.length === 0) return <div className="ath-tests-overlay-panel"><p>Esta sesión no tiene intervalos de trabajo definidos.</p><button onClick={onClose}>Cerrar</button></div>;
+
+  const discipline = lapMatch.discipline;
+  const usePace = discipline !== "ciclismo";
+
+  return (
+    <form className="ath-tests-form ath-tests-overlay-panel" onSubmit={handleSubmit}>
+      <div className="ath-tests-overlay-head">
+        <div>
+          <h3>Añadir lactato a sesión</h3>
+          <p className="ath-tests-overlay-dose">{lapMatch.dose_prescription}</p>
+        </div>
+        <button type="button" className="ath-tests-modal__close" onClick={onClose}>&times;</button>
+      </div>
+
+      {lapMatch.matched ? (
+        <p className="ath-tests-overlay-match ath-tests-overlay-match--ok">
+          Garmin match: laps coinciden con intervalos (±10s). FC y ritmo pre-rellenados.
+        </p>
+      ) : (
+        <p className="ath-tests-overlay-match ath-tests-overlay-match--no">
+          Sin match de laps. Introduce FC y ritmo manualmente para cada intervalo.
+        </p>
+      )}
+
+      <div className="ath-tests-form__table">
+        <div className="ath-tests-form__header">
+          <span>#</span>
+          <span>Dur</span>
+          <span>Zona</span>
+          <span>{usePace ? "Ritmo" : "Watts"}</span>
+          <span>FC</span>
+          <span>Lac</span>
+        </div>
+        {lapMatch.steps.map((step, i) => {
+          const row = rows[i];
+          if (!row) return null;
+          const durLabel = step.planned_duration_s >= 60
+            ? `${Math.round(step.planned_duration_s / 60)}'`
+            : `${step.planned_duration_s}"`;
+          return (
+            <div key={i} className="ath-tests-form__row">
+              <span className="ath-tests-form__idx">{step.order}</span>
+              <span className="ath-tests-form__dur">{durLabel}</span>
+              <span className="ath-tests-form__zone">{step.intensity_label || "--"}</span>
+              {usePace ? (
+                <input
+                  type="text"
+                  placeholder="m:ss"
+                  value={row.pace}
+                  onChange={(e) => updateRow(i, "pace", e.target.value)}
+                  className={`ath-tests-form__input ${step.garmin_matched ? "ath-tests-form__input--prefilled" : ""}`}
+                />
+              ) : (
+                <input
+                  type="text"
+                  placeholder="W"
+                  value={row.power}
+                  onChange={(e) => updateRow(i, "power", e.target.value)}
+                  className={`ath-tests-form__input ${step.garmin_matched ? "ath-tests-form__input--prefilled" : ""}`}
+                />
+              )}
+              <input
+                type="text"
+                placeholder="bpm"
+                value={row.hr}
+                onChange={(e) => updateRow(i, "hr", e.target.value)}
+                className={`ath-tests-form__input ath-tests-form__input--sm ${step.garmin_matched ? "ath-tests-form__input--prefilled" : ""}`}
+              />
+              <input
+                type="text"
+                placeholder="mmol"
+                value={row.lactate}
+                onChange={(e) => updateRow(i, "lactate", e.target.value)}
+                className="ath-tests-form__input ath-tests-form__input--sm ath-tests-form__input--lac"
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {error && <p className="ath-tests-error">{error}</p>}
+
+      <button type="submit" className="ath-tests-form__submit" disabled={submitting}>
+        {submitting ? "Analizando..." : "Crear test de lactato"}
+      </button>
+    </form>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
    MY TESTS PAGE
    ══════════════════════════════════════════════════════════════ */
 export function MyTestsPage() {
