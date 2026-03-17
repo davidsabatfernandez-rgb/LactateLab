@@ -263,6 +263,47 @@ def _build_library_main_steps(
     zone: str,
     start_order: int,
 ) -> list[WorkoutStep]:
+    """Build main workout steps from a dose-step label.
+
+    Handles formats:
+      - Simple repeat: ``4×3'``, ``6×800m``, ``8×30''``
+      - Multi-block:   ``4×20'' + 6×4' LT1``
+      - Nested repeat: ``2×(6×3')``, ``3×(3'LT1+3'LT2)``
+      - Descending:    ``15-12-10-8-6' LT1``
+      - Continuous:    ``55' cont``
+    """
+    # ── 1. Split on '+' outside parentheses first ──
+    blocks = _split_outside_parentheses(label)
+    if not blocks:
+        blocks = [label]
+
+    # Check if this is a multi-block label (has repeat pattern in any part)
+    has_multi_block = len(blocks) > 1 and any(re.search(r"\d+\s*[x×]", b) for b in blocks)
+
+    # ── 2. Multi-block labels: parse each block independently ──
+    if has_multi_block:
+        return _build_multi_block_steps(blocks, zone=zone, rest_min=rest_min, start_order=start_order)
+
+    # ── 3. Nested repeat: N×(content) ──
+    nested = re.match(r"^(\d+)\s*[x×]\s*\((.+)\)\s*(.*)", label.strip(), re.IGNORECASE)
+    if nested:
+        return _build_nested_repeat_steps(
+            outer_reps=int(nested.group(1)),
+            inner_label=nested.group(2).strip(),
+            suffix=nested.group(3).strip(),
+            zone=zone,
+            rest_min=rest_min,
+            start_order=start_order,
+        )
+
+    # ── 4. Descending intervals: 15-12-10-8-6' ZONE ──
+    descending = re.match(r"^(\d+(?:-\d+)+)\s*'\s*(.*)", label.strip(), re.IGNORECASE)
+    if descending:
+        durations = [int(d) for d in descending.group(1).split("-")]
+        block_zone = _extract_zone_from_suffix(descending.group(2)) or zone
+        return _build_descending_steps(durations_min=durations, zone=block_zone, rest_min=rest_min, start_order=start_order)
+
+    # ── 5. Simple repeat: N×T (no '+' in label, no parentheses) ──
     reps_count = _infer_reps_count(label)
     if reps_count and useful_duration_min > 0:
         per_rep_seconds = round((useful_duration_min / reps_count) * 60)
@@ -289,7 +330,6 @@ def _build_library_main_steps(
                     instructions="Recuperación entre repeticiones",
                 )
             )
-
         return [
             WorkoutStep(
                 order=start_order,
@@ -304,17 +344,14 @@ def _build_library_main_steps(
             )
         ]
 
-    parts = _split_outside_parentheses(label)
-    if not parts:
-        parts = [label]
-
+    # ── 6. Fallback: single continuous / sequential parts ──
     steps: list[WorkoutStep] = []
-    for index, part in enumerate(parts):
+    for index, part in enumerate(blocks):
         parsed_length = _parse_library_label_length(part)
         steps.append(
             WorkoutStep(
                 order=start_order + len(steps),
-                step_type="interval" if len(parts) > 1 else "steady",
+                step_type="interval" if len(blocks) > 1 else "steady",
                 length_type=parsed_length["length_type"],
                 length_value=parsed_length["length_value"],
                 target=WorkoutTarget(target_type="other", label=zone),
@@ -322,7 +359,7 @@ def _build_library_main_steps(
                 instructions=part,
             )
         )
-        if rest_min > 0 and index < len(parts) - 1:
+        if rest_min > 0 and index < len(blocks) - 1:
             steps.append(
                 WorkoutStep(
                     order=start_order + len(steps),
@@ -332,6 +369,320 @@ def _build_library_main_steps(
                     target=WorkoutTarget(target_type="easy", label="Suave"),
                     intensity_label="recovery",
                     instructions="Recuperación entre bloques",
+                )
+            )
+    return steps
+
+
+# ── Multi-block builder ──
+
+
+def _parse_single_block(text: str, fallback_zone: str) -> dict:
+    """Parse a single block part like '4×20''', '6×4' LT1', '20'E1', '8' LT1'.
+
+    Returns dict with keys: reps, duration_s, zone, rest_s_label (from c/T'' suffix).
+    """
+    text = text.strip()
+
+    # Extract c/T'' or c/T' rest suffix (e.g. "c/15''", "c/20''")
+    label_rest_s = 0.0
+    rest_suffix = re.search(r"c/(\d+(?:[.,]\d+)?)\s*(''|'|s)", text, re.IGNORECASE)
+    if rest_suffix:
+        val = float(rest_suffix.group(1).replace(",", "."))
+        label_rest_s = val if rest_suffix.group(2) in ("''", "s") else val * 60
+        text = text[: rest_suffix.start()].strip()
+
+    # Extract zone from suffix text (LT1, LT2, VO2, E1, SIT, MAX, ANC, CadMax, etc.)
+    block_zone = _extract_zone_from_suffix(text) or fallback_zone
+
+    # Try repeat pattern: N×T'' or N×T' or N×Dm/km
+    repeat_match = re.match(
+        r"^(\d+)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(''|'|km|m|s|sec)",
+        text,
+        re.IGNORECASE,
+    )
+    if repeat_match:
+        reps = int(repeat_match.group(1))
+        val = float(repeat_match.group(2).replace(",", "."))
+        unit = repeat_match.group(3).lower()
+        if unit in ("''", "s", "sec"):
+            duration_s = val
+        elif unit == "'":
+            duration_s = val * 60
+        elif unit == "km":
+            duration_s = val * 1000  # distance in meters, not time
+        elif unit == "m":
+            duration_s = val
+        else:
+            duration_s = val * 60
+        length_type = "distance" if unit in ("km", "m") else "time"
+        return {"reps": reps, "duration_s": duration_s, "zone": block_zone, "label_rest_s": label_rest_s, "length_type": length_type}
+
+    # Try single duration: T' or T'' or Dm
+    single_sec = re.match(r"^(\d+(?:[.,]\d+)?)\s*''", text, re.IGNORECASE)
+    if single_sec:
+        return {"reps": 1, "duration_s": float(single_sec.group(1).replace(",", ".")), "zone": block_zone, "label_rest_s": label_rest_s, "length_type": "time"}
+
+    single_min = re.match(r"^(\d+(?:[.,]\d+)?)\s*'", text, re.IGNORECASE)
+    if single_min:
+        return {"reps": 1, "duration_s": float(single_min.group(1).replace(",", ".")) * 60, "zone": block_zone, "label_rest_s": label_rest_s, "length_type": "time"}
+
+    single_dist = re.match(r"^(\d+(?:[.,]\d+)?)\s*(km|m)\b", text, re.IGNORECASE)
+    if single_dist:
+        val = float(single_dist.group(1).replace(",", "."))
+        meters = val * 1000 if single_dist.group(2).lower() == "km" else val
+        return {"reps": 1, "duration_s": meters, "zone": block_zone, "label_rest_s": label_rest_s, "length_type": "distance"}
+
+    return {"reps": 1, "duration_s": 0, "zone": block_zone, "label_rest_s": label_rest_s, "length_type": "open"}
+
+
+def _extract_zone_from_suffix(text: str) -> str | None:
+    """Extract intensity zone label from text suffix."""
+    # Order matters — longer matches first
+    for pattern, zone_label in [
+        (r"\bCadMax\b", "ANC"),
+        (r"\bSIT\b", "ANC"),
+        (r"\bMAX\b", "ANC"),
+        (r"\bVO2\b", "VO2"),
+        (r"\bLT2b?\b", "LT2"),
+        (r"\bLT1\b", "LT1"),
+        (r"\bSUB-?T\b", "SUB-T"),
+        (r"\bHM[_\s]?pace\b", "LT2"),
+        (r"\bANC\b", "ANC"),
+        (r"\bAEP\b", "VO2"),
+        (r"\bAEC\b", "LT1"),
+        (r"\bCSS\b", "LT2"),
+        (r"\bE1\b", "E1"),
+        (r"\bE2\b", "E2"),
+        (r"\bD2\b", "SUB-T"),
+    ]:
+        if re.search(pattern, text, re.IGNORECASE):
+            return zone_label
+    return None
+
+
+def _build_repeat_step(
+    *,
+    reps: int,
+    duration_s: float,
+    length_type: str,
+    zone: str,
+    rest_s: float,
+    order: int,
+    instructions: str,
+) -> WorkoutStep:
+    """Build a repeat step with work + optional rest children."""
+    children = [
+        WorkoutStep(
+            order=1,
+            step_type="interval",
+            length_type=length_type,
+            length_value=round(duration_s),
+            target=WorkoutTarget(target_type="other", label=zone),
+            intensity_label=zone,
+            instructions=instructions,
+        )
+    ]
+    if rest_s > 0:
+        children.append(
+            WorkoutStep(
+                order=2,
+                step_type="recovery",
+                length_type="time",
+                length_value=round(rest_s),
+                target=WorkoutTarget(target_type="easy", label="Suave"),
+                intensity_label="recovery",
+                instructions="Recuperación",
+            )
+        )
+    return WorkoutStep(
+        order=order,
+        step_type="repeat",
+        length_type="open",
+        repeat_count=reps,
+        target=WorkoutTarget(target_type="other", label=zone),
+        intensity_label=zone,
+        instructions=instructions,
+        children=children,
+    )
+
+
+def _build_multi_block_steps(
+    blocks: list[str],
+    *,
+    zone: str,
+    rest_min: float,
+    start_order: int,
+) -> list[WorkoutStep]:
+    """Handle multi-block labels like '4×20'' + 6×4' LT1'."""
+    steps: list[WorkoutStep] = []
+    transition_s = max(rest_min * 60, 120)  # at least 2min between blocks
+
+    for idx, block_text in enumerate(blocks):
+        parsed = _parse_single_block(block_text, fallback_zone=zone)
+        block_rest_s = parsed["label_rest_s"] or (rest_min * 60)
+        order = start_order + len(steps)
+
+        if parsed["reps"] > 1:
+            steps.append(
+                _build_repeat_step(
+                    reps=parsed["reps"],
+                    duration_s=parsed["duration_s"],
+                    length_type=parsed["length_type"],
+                    zone=parsed["zone"],
+                    rest_s=block_rest_s,
+                    order=order,
+                    instructions=block_text.strip(),
+                )
+            )
+        else:
+            steps.append(
+                WorkoutStep(
+                    order=order,
+                    step_type="interval",
+                    length_type=parsed["length_type"],
+                    length_value=round(parsed["duration_s"]) if parsed["duration_s"] else None,
+                    target=WorkoutTarget(target_type="other", label=parsed["zone"]),
+                    intensity_label=parsed["zone"],
+                    instructions=block_text.strip(),
+                )
+            )
+
+        # Add transition rest between blocks (not after last)
+        if idx < len(blocks) - 1:
+            steps.append(
+                WorkoutStep(
+                    order=start_order + len(steps),
+                    step_type="recovery",
+                    length_type="time",
+                    length_value=round(transition_s),
+                    target=WorkoutTarget(target_type="easy", label="Suave"),
+                    intensity_label="recovery",
+                    instructions="Transición entre bloques",
+                )
+            )
+
+    return steps
+
+
+def _build_nested_repeat_steps(
+    *,
+    outer_reps: int,
+    inner_label: str,
+    suffix: str,
+    zone: str,
+    rest_min: float,
+    start_order: int,
+) -> list[WorkoutStep]:
+    """Handle nested repeats like '2×(6×3')' or '3×(3'LT1+3'LT2)'."""
+    inner_parts = _split_outside_parentheses(inner_label)
+    if not inner_parts:
+        inner_parts = [inner_label]
+
+    # Multi-zone inner: e.g. "3'LT1+3'LT2" → build sequential children
+    if len(inner_parts) > 1:
+        children: list[WorkoutStep] = []
+        for part in inner_parts:
+            parsed = _parse_single_block(part, fallback_zone=zone)
+            children.append(
+                WorkoutStep(
+                    order=len(children) + 1,
+                    step_type="interval",
+                    length_type=parsed["length_type"],
+                    length_value=round(parsed["duration_s"]) if parsed["duration_s"] else None,
+                    target=WorkoutTarget(target_type="other", label=parsed["zone"]),
+                    intensity_label=parsed["zone"],
+                    instructions=part.strip(),
+                )
+            )
+        # Add rest between sets
+        if rest_min > 0:
+            children.append(
+                WorkoutStep(
+                    order=len(children) + 1,
+                    step_type="recovery",
+                    length_type="time",
+                    length_value=round(rest_min * 60),
+                    target=WorkoutTarget(target_type="easy", label="Suave"),
+                    intensity_label="recovery",
+                    instructions="Recuperación entre series",
+                )
+            )
+        return [
+            WorkoutStep(
+                order=start_order,
+                step_type="repeat",
+                length_type="open",
+                repeat_count=outer_reps,
+                target=WorkoutTarget(target_type="other", label=zone),
+                intensity_label=zone,
+                instructions=f"{outer_reps}×({inner_label})",
+                children=children,
+            )
+        ]
+
+    # Single inner repeat: e.g. "6×3'" → flatten to outer*inner reps
+    inner_parsed = _parse_single_block(inner_parts[0], fallback_zone=zone)
+    if inner_parsed["reps"] > 1:
+        total_reps = outer_reps * inner_parsed["reps"]
+        block_rest_s = inner_parsed["label_rest_s"] or (rest_min * 60)
+        return [
+            _build_repeat_step(
+                reps=total_reps,
+                duration_s=inner_parsed["duration_s"],
+                length_type=inner_parsed["length_type"],
+                zone=inner_parsed["zone"],
+                rest_s=block_rest_s,
+                order=start_order,
+                instructions=f"{outer_reps}×({inner_label})",
+            )
+        ]
+
+    # Fallback: single inner block repeated
+    return [
+        _build_repeat_step(
+            reps=outer_reps,
+            duration_s=inner_parsed["duration_s"],
+            length_type=inner_parsed["length_type"],
+            zone=inner_parsed["zone"],
+            rest_s=rest_min * 60,
+            order=start_order,
+            instructions=f"{outer_reps}×({inner_label})",
+        )
+    ]
+
+
+def _build_descending_steps(
+    *,
+    durations_min: list[int],
+    zone: str,
+    rest_min: float,
+    start_order: int,
+) -> list[WorkoutStep]:
+    """Handle descending intervals like '15-12-10-8-6' LT1'."""
+    steps: list[WorkoutStep] = []
+    for idx, dur in enumerate(durations_min):
+        steps.append(
+            WorkoutStep(
+                order=start_order + len(steps),
+                step_type="interval",
+                length_type="time",
+                length_value=dur * 60,
+                target=WorkoutTarget(target_type="other", label=zone),
+                intensity_label=zone,
+                instructions=f"{dur}' {zone}",
+            )
+        )
+        if rest_min > 0 and idx < len(durations_min) - 1:
+            steps.append(
+                WorkoutStep(
+                    order=start_order + len(steps),
+                    step_type="recovery",
+                    length_type="time",
+                    length_value=round(rest_min * 60),
+                    target=WorkoutTarget(target_type="easy", label="Suave"),
+                    intensity_label="recovery",
+                    instructions="Recuperación",
                 )
             )
     return steps

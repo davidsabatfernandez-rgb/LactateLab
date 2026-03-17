@@ -17,11 +17,12 @@ from app.services.zone_generator import get_active_zone_set
 # Zone label → zone number mapping for lookup
 # Maps common labels found in workout templates to zone labels in the zone set
 _ZONE_LABEL_ALIASES: dict[str, list[str]] = {
-    "LT1": ["lt1", "e2", "aerobic", "aeróbico", "base aeróbica", "fondo aeróbico"],
-    "LT2": ["lt2", "umbral", "threshold", "lt2 / umbral", "css", "ftp"],
-    "SUB-T": ["sub-t", "zona media", "sub-t / zona media", "tempo"],
-    "VO2": ["vo2", "vo2max", "vo2 / potencia", "potencia"],
+    "LT1": ["lt1", "e2", "aerobic", "aeróbico", "base aeróbica", "fondo aeróbico", "aec"],
+    "LT2": ["lt2", "umbral", "threshold", "lt2 / umbral", "css", "ftp", "hm_pace", "hm pace", "lt2b"],
+    "SUB-T": ["sub-t", "zona media", "sub-t / zona media", "tempo", "d2"],
+    "VO2": ["vo2", "vo2max", "vo2 / potencia", "potencia", "aep", "anp"],
     "BASE": ["base", "base aeróbica", "e1", "recuperación", "recovery"],
+    "ANC": ["anc", "sit", "cadmax", "max", "sprint"],
 }
 
 
