@@ -987,7 +987,7 @@ function PlanningPageInner() {
 
   // ── Add session to day (from library or manual) ──
 
-  const handleAddSessionToDay = useCallback(async (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => {
+  const handleAddSessionToDay = useCallback(async (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string }) => {
     if (!athleteId) {
       console.error("[AddSession] No athleteId available");
       return;
@@ -1000,8 +1000,8 @@ function PlanningPageInner() {
         discipline,
         template_id: template?.template_id ?? null,
         public_label: label,
-        objective: template?.objective ?? "",
-        session_family: template?.session_family ?? "manual",
+        objective: opts?.objective || template?.objective || "",
+        session_family: opts?.session_family || template?.session_family || "manual",
         session_role: template ? "support" : "support",
         dose_step: template?.dose_ladder?.[0] ? 0 : null,
         bla_check: opts?.bla_check ?? false,

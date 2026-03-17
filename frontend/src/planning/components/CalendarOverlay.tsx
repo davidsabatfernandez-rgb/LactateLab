@@ -15,6 +15,7 @@ import type {
   TrainingZoneSet,
   WorkoutDefinition,
 } from "../../types";
+import { WorkoutBlockBuilder, blocksToDescription, type WBlock } from "./WorkoutBlockBuilder";
 import type {
   CalendarEntry,
   CalendarMesocycleOption,
@@ -279,7 +280,7 @@ type CalendarOverlayProps = {
   shiftCalendarForward: () => void;
   handleContinuousWeekScroll: () => void;
   handleContinuousMonthScroll: () => void;
-  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => Promise<void>;
+  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string }) => Promise<void>;
   onReviewSession?: (session: CalendarEntry) => void;
   // Compact header data (calendar-first redesign)
   compactHeader?: {
@@ -1025,7 +1026,7 @@ function QuickAddModal({
   openCalendarWorkoutLibrary: (date: string, discipline: "running" | "ciclismo" | "natación") => void;
   openLibraryWorkoutPreview: (template: PlanningWorkoutTemplate) => void;
   openCalendarMesocycleComposer: (date: string) => void;
-  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => Promise<void>;
+  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string }) => Promise<void>;
   coachLibraries: import("../../types").CoachLibrary[];
   token: string;
   onOpenWeekEditor?: (lib?: import("../../types").CoachLibrary) => void;
@@ -1035,6 +1036,13 @@ function QuickAddModal({
   const [blaCheck, setBlaCheck] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const [manualLabel, setManualLabel] = useState("");
+
+  // WorkoutBlockBuilder state for manual session creation
+  const [builderBlocks, setBuilderBlocks] = useState<WBlock[]>([]);
+  const [builderDiscipline, setBuilderDiscipline] = useState(quickAddDiscipline);
+  const [builderName, setBuilderName] = useState("");
+  const [builderFamily, setBuilderFamily] = useState("lt1_extensive");
+  const [builderSaving, setBuilderSaving] = useState(false);
 
   // Templates for the expanded layer
   const expandedTemplates = useMemo(() => {
@@ -1190,50 +1198,70 @@ function QuickAddModal({
                 );
               })}
 
-              {/* Manual session creation */}
+              {/* Manual session creation — full WorkoutBlockBuilder */}
               <div className={`planning-accordion-section ${manualMode ? "expanded" : ""}`}>
                 <button
                   type="button"
                   className="planning-accordion-header tone-manual"
-                  onClick={() => { setManualMode(!manualMode); setExpandedLayer(null); }}
+                  onClick={() => {
+                    setManualMode(!manualMode);
+                    setExpandedLayer(null);
+                    if (!manualMode) {
+                      setBuilderDiscipline(quickAddDiscipline);
+                      setBuilderBlocks([]);
+                      setBuilderName("");
+                      setBuilderFamily("lt1_extensive");
+                    }
+                  }}
                 >
                   <span className="planning-calendar-quick-add-category-glyph tone-manual">✏️</span>
                   <span className="planning-accordion-header-copy">
-                    <strong>Sesión manual</strong>
-                    <small>Crea un entreno libre sin plantilla</small>
+                    <strong>Crear entreno</strong>
+                    <small>Diseña un entreno personalizado con bloques</small>
                   </span>
                   <span className="planning-accordion-header-meta">
                     <span className={`planning-accordion-chevron ${manualMode ? "open" : ""}`}>▾</span>
                   </span>
                 </button>
                 {manualMode && (
-                  <div className="planning-accordion-body">
-                    <div className="planning-accordion-manual-form">
-                      <input
-                        type="text"
-                        className="planning-manual-input"
-                        placeholder="Nombre de la sesión (ej: Fartlek 6×3')"
-                        value={manualLabel}
-                        onChange={(e) => setManualLabel(e.target.value)}
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        className="planning-manual-save-btn"
-                        disabled={!manualLabel.trim() || addingTemplate === "__manual__"}
-                        onClick={async () => {
-                          setAddingTemplate("__manual__");
-                          try {
-                            await onAddSessionToDay(calendarQuickAdd.date, quickAddDiscipline, null, manualLabel.trim(), { bla_check: blaCheck });
-                            closeCalendarQuickAdd();
-                          } catch {
-                            setAddingTemplate(null);
-                          }
-                        }}
-                      >
-                        {addingTemplate === "__manual__" ? "Guardando..." : "Añadir sesión manual"}
-                      </button>
-                    </div>
+                  <div className="planning-accordion-body" style={{ padding: 0 }}>
+                    <WorkoutBlockBuilder
+                      blocks={builderBlocks}
+                      discipline={builderDiscipline}
+                      name={builderName}
+                      family={builderFamily}
+                      compact
+                      saving={builderSaving}
+                      saveLabel="Añadir entreno"
+                      onChange={(update) => {
+                        if (update.blocks !== undefined) setBuilderBlocks(update.blocks);
+                        if (update.discipline !== undefined) setBuilderDiscipline(update.discipline);
+                        if (update.name !== undefined) setBuilderName(update.name);
+                        if (update.family !== undefined) setBuilderFamily(update.family);
+                      }}
+                      onSave={async () => {
+                        setBuilderSaving(true);
+                        try {
+                          const label = builderName.trim() || `Sesión ${builderDiscipline}`;
+                          const description = blocksToDescription(builderBlocks, builderDiscipline);
+                          await onAddSessionToDay(
+                            calendarQuickAdd.date,
+                            builderDiscipline,
+                            null,
+                            label,
+                            { bla_check: blaCheck, objective: description, session_family: builderFamily },
+                          );
+                          closeCalendarQuickAdd();
+                        } catch {
+                          setBuilderSaving(false);
+                        }
+                      }}
+                      onCancel={() => {
+                        setManualMode(false);
+                        setBuilderBlocks([]);
+                        setBuilderName("");
+                      }}
+                    />
                   </div>
                 )}
               </div>
@@ -1394,7 +1422,7 @@ function ManualEntryForm({
   closeCalendarQuickAdd,
 }: {
   calendarQuickAdd: CalendarQuickAddState;
-  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => Promise<void>;
+  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string }) => Promise<void>;
   closeCalendarQuickAdd: () => void;
 }) {
   const [saving, setSaving] = useState(false);
@@ -1492,7 +1520,7 @@ function CoachLibrariesAccordion({
   blaCheck: boolean;
   token: string;
   dispatch: (action: import("../context/PlanningContext").PlanningAction) => void;
-  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => Promise<void>;
+  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string }) => Promise<void>;
   closeCalendarQuickAdd: () => void;
   onOpenWeekEditor?: (lib?: import("../../types").CoachLibrary) => void;
 }) {
