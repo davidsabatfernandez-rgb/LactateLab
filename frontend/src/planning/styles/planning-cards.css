@@ -3537,3 +3537,305 @@
   font-weight: 600;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — Cards
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Tablet: 768px ── */
+@media (max-width: 768px) {
+
+  /* KPI strip: 2 columns (already handled in layout, reinforce here) */
+  .planning-kpi-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .planning-kpi-card {
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+
+  .planning-kpi-card strong {
+    font-size: 0.9rem;
+  }
+
+  /* Threshold strip: 2 columns on tablet */
+  .planning-threshold-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .planning-threshold-card {
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
+
+  /* Timeline: tighter spacing */
+  .planning-timeline-tools {
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.86rem;
+  }
+
+  .planning-timeline-toolbar {
+    gap: 8px;
+  }
+
+  .planning-timeline-pill {
+    min-width: 180px;
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
+
+  .planning-timeline-pill strong {
+    font-size: 0.9rem;
+  }
+
+  /* Foundation grid: 2 columns */
+  .planning-foundation-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .planning-foundation-card {
+    padding: 12px 14px;
+    border-radius: 16px;
+  }
+
+  /* Mini list: single column */
+  .planning-mini-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  /* Session inline actions: touch-friendly */
+  .planning-session-inline-actions .planning-inline-action {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.82rem;
+    padding: 8px 12px;
+  }
+
+  /* Card dismiss / inline action: touch-friendly */
+  .planning-card-dismiss,
+  .planning-inline-action {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    font-size: 0.76rem;
+  }
+
+  /* Target cards: compact */
+  .planning-target-main {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  /* Dose picker: touch-friendly steps */
+  .dose-picker-step {
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+
+  .dose-picker-confirm {
+    min-height: 44px;
+    padding: 12px;
+    font-size: 0.86rem;
+  }
+
+  /* Meso detail: already single col via existing 800px rule */
+
+  /* Session confidence badge: compact */
+  .planning-session-confidence {
+    padding: 4px 8px;
+    font-size: 0.68rem;
+  }
+
+  /* Publish badge: compact */
+  .planning-session-publish-badge {
+    padding: 2px 6px;
+    font-size: 0.54rem;
+  }
+}
+
+/* ── Small mobile: 480px ── */
+@media (max-width: 480px) {
+
+  /* KPI strip: single column */
+  .planning-kpi-strip {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .planning-kpi-card {
+    padding: 10px;
+    border-radius: 12px;
+    gap: 3px;
+  }
+
+  .planning-kpi-card strong {
+    font-size: 0.86rem;
+  }
+
+  .planning-kpi-label {
+    font-size: 0.66rem;
+  }
+
+  /* Threshold strip: single column */
+  .planning-threshold-strip {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .planning-threshold-card {
+    padding: 10px 12px;
+    border-radius: 12px;
+    gap: 4px;
+  }
+
+  .planning-threshold-card strong {
+    font-size: 0.92rem;
+  }
+
+  /* Timeline pills: compact scrollable */
+  .planning-timeline-strip {
+    gap: 6px;
+  }
+
+  .planning-timeline-pill {
+    min-width: 160px;
+    max-width: 200px;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .planning-timeline-pill strong {
+    font-size: 0.86rem;
+    padding-left: 14px;
+  }
+
+  .planning-timeline-pill::before {
+    width: 8px;
+    height: 8px;
+    left: 12px;
+  }
+
+  /* Foundation grid: single column */
+  .planning-foundation-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .planning-foundation-card {
+    padding: 10px 12px;
+    border-radius: 14px;
+    gap: 6px;
+  }
+
+  /* Mini/Archive card: compact */
+  .planning-mini-card,
+  .planning-archive-card {
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+
+  /* Inline actions: stack if many */
+  .planning-inline-actions {
+    gap: 6px;
+  }
+
+  .planning-card-dismiss,
+  .planning-inline-action {
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 0.76rem;
+    border-radius: 10px;
+  }
+
+  /* Session inline actions: full-width, touch-friendly */
+  .planning-session-inline-actions {
+    gap: 6px;
+  }
+
+  .planning-session-inline-actions .planning-inline-action {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Timeline toolbar: compact */
+  .planning-timeline-toolbar {
+    gap: 6px;
+  }
+
+  .planning-timeline-toolbar input {
+    padding: 10px;
+    min-height: 44px;
+    font-size: 1rem;
+    border-radius: 10px;
+  }
+
+  .planning-timeline-toolbar label {
+    font-size: 0.82rem;
+  }
+
+  /* Target main: compact */
+  .planning-target-main {
+    padding: 12px;
+    border-radius: 12px;
+    gap: 4px;
+  }
+
+  /* Dose picker: mobile-optimized */
+  .dose-picker-overlay {
+    padding: 12px;
+  }
+
+  .dose-picker-step {
+    padding: 10px 12px;
+    min-height: 48px;
+    border-radius: 10px;
+    gap: 10px;
+  }
+
+  .dose-picker-step-num {
+    width: 28px;
+    height: 28px;
+    font-size: 0.74rem;
+  }
+
+  .dose-picker-step-body strong {
+    font-size: 0.8rem;
+  }
+
+  .dose-picker-confirm {
+    min-height: 48px;
+    padding: 14px;
+    font-size: 0.88rem;
+    border-radius: 10px;
+  }
+
+  /* Quick-add modal: full-screen on mobile */
+  .planning-calendar-quick-add-modal {
+    width: 100vw;
+    max-height: 100vh;
+    max-height: 100dvh;
+    padding: 14px;
+    gap: 14px;
+    border-radius: 0;
+  }
+
+  .planning-calendar-quick-add-head {
+    gap: 10px;
+  }
+
+  /* Meso detail: compact on mobile */
+  .meso-detail-body {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -7623,3 +7623,405 @@
   .ath-obj-delete-btn { opacity: 1; }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — Small screens (max-width: 640px)
+   Touch-first optimizations for athlete portal pages
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 640px) {
+
+  /* ── Global: reduce padding on mobile ─────────────────────── */
+  .ath-content {
+    padding: 0 12px 88px;
+  }
+  .ath-page {
+    padding: 14px 0;
+  }
+
+  /* ── Cards: tighter padding and smaller radius ────────────── */
+  .ath-dash-card {
+    padding: 12px;
+    border-radius: var(--ath-radius-md);
+  }
+  .ath-session-card {
+    padding: 8px 10px;
+    border-radius: var(--ath-radius-sm);
+  }
+  .ath-metric-card {
+    padding: 10px;
+    border-radius: var(--ath-radius-sm);
+  }
+  .ath-readiness-breakdown {
+    padding: 12px;
+  }
+  .ath-wellness-checkin {
+    padding: 14px;
+  }
+  .ath-balance-section {
+    padding: 12px 14px;
+  }
+
+  /* ── Touch targets: minimum 44px tap area ─────────────────── */
+  .ath-week-btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  .ath-pill {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  .ath-pill.small {
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+  .ath-checkin-dot {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+  .ath-side-nav-btn {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+  .ath-garmin-push-btn,
+  .ath-lactate-toggle-btn,
+  .ath-builder-save,
+  .ath-builder-add-btn,
+  .ath-tests-form__submit,
+  .ath-tests-form__add,
+  .ath-tests__new-btn {
+    min-height: 44px;
+  }
+
+  /* ── TODAY PAGE ────────────────────────────────────────────── */
+
+  /* Hero rings: smaller gap, let rings scale */
+  .ath-hero {
+    gap: 12px;
+    padding: 16px 0 24px;
+  }
+
+  /* Vitals grid: always 2 columns on mobile */
+  .ath-vitals-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  /* Today date header */
+  .ath-today-date {
+    font-size: 1.1rem;
+  }
+
+  /* Plan bar: stack target + phase vertically */
+  .ath-today-plan-bar {
+    gap: 8px;
+  }
+  .ath-target-card {
+    padding: 10px;
+  }
+  .ath-phase-timeline {
+    padding: 10px;
+  }
+
+  /* Dashboard grid: single column on small screens */
+  .ath-dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Dashboard chart containers: full width */
+  .ath-dash-load-chart,
+  .ath-dash-weight-chart {
+    margin: 0 -4px;
+  }
+
+  /* Wellness check-in: dots row wraps nicely */
+  .ath-checkin-dots {
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .ath-checkin-item {
+    padding-bottom: 10px;
+  }
+
+  /* Completed activities: tighter cards */
+  .ath-today-act-card {
+    padding: 10px 12px;
+    border-radius: var(--ath-radius-sm);
+  }
+  .ath-today-act-stats {
+    font-size: 11px;
+  }
+
+  /* ── WEEK PAGE ────────────────────────────────────────────── */
+
+  /* Header: stack nav + controls vertically */
+  .ath-week-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .ath-week-nav {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .ath-week-controls {
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+
+  /* Summary bar: allow wrapping */
+  .ath-week-summary {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Week grid: 2 columns instead of 7 on small screens */
+  .ath-week-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  /* Week day cards: more compact */
+  .ath-week-day {
+    min-height: auto;
+  }
+  .ath-week-day-label {
+    font-size: 11px;
+  }
+
+  /* Month grid: reduce cell size */
+  .ath-month-cell {
+    padding: 4px 3px;
+    min-height: 60px;
+  }
+  .ath-month-cell-num {
+    font-size: 10px;
+  }
+  .ath-month-mini-disc,
+  .ath-month-mini-dose {
+    font-size: 9px;
+  }
+  .ath-month-header-cell {
+    font-size: 10px;
+  }
+
+  /* Activity cards in week view */
+  .ath-week-activity-card {
+    padding: 6px 8px;
+    border-radius: var(--ath-radius-sm);
+  }
+
+  /* ── RECOVERY PAGE ────────────────────────────────────────── */
+
+  /* Recovery rings: stack vertically on small screens */
+  .ath-recovery-rings {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* Metric cards: always 2 columns (already set), tighter */
+  .ath-recovery-metrics {
+    gap: 8px;
+  }
+
+  /* Readiness breakdown: more compact rows */
+  .ath-readiness-row-header {
+    gap: 4px;
+  }
+  .ath-readiness-row-label {
+    font-size: 11px;
+  }
+  .ath-readiness-row-desc {
+    font-size: 10px;
+  }
+
+  /* Comparison tabs: horizontal scroll instead of wrap */
+  .ath-comparison-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+  .ath-comparison-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .ath-comparison-tabs .ath-pill {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Comparison chart: full width */
+  .ath-comparison-chart {
+    margin: 0 -4px;
+    border-radius: var(--ath-radius-sm);
+  }
+
+  /* Sleep stages: stack on mobile */
+  .ath-sleep-stages-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .ath-sleep-stages-legend {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  /* Balance bar section */
+  .ath-balance-ends {
+    font-size: 10px;
+  }
+
+  /* ── TESTS PAGE (MyTestsPage) ─────────────────────────────── */
+
+  /* Test cards: convert to stacked card layout */
+  .ath-tests__card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+    border-radius: var(--ath-radius-sm);
+  }
+  .ath-tests__card-left {
+    width: 100%;
+    height: 40px;
+  }
+  .ath-tests-minicurve {
+    width: 100%;
+    height: 40px;
+  }
+  .ath-tests__card-body {
+    width: 100%;
+  }
+  .ath-tests__card-top {
+    flex-wrap: wrap;
+  }
+  .ath-tests__card-thresholds {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Current thresholds grid: stack on mobile */
+  .ath-tests-current__grid {
+    flex-direction: column;
+  }
+  .ath-tests-current__card {
+    max-width: 100%;
+    flex-basis: 100%;
+  }
+
+  /* Test form: tighter layout */
+  .ath-tests-form {
+    padding: 12px;
+  }
+  .ath-tests-form__quick {
+    gap: 6px;
+  }
+  .ath-tests-quick-row__adv {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .ath-tests-form__input {
+    min-height: 40px;
+    font-size: 14px;
+  }
+  .ath-tests-quick-row__zone,
+  .ath-tests-quick-row__lac {
+    min-height: 40px;
+    font-size: 14px;
+  }
+
+  /* Test modal: full screen on mobile */
+  .ath-tests-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+    margin: 0;
+  }
+  .ath-tests-modal__thresholds {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ath-tests-th {
+    padding: 8px 10px;
+  }
+
+  /* Test overlay panel: full width */
+  .ath-tests-overlay-panel {
+    width: 100%;
+    border-radius: var(--ath-radius-sm);
+  }
+
+  /* ── Typography adjustments ───────────────────────────────── */
+  .ath-section-title {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+  .ath-section-heading {
+    font-size: 16px;
+  }
+  .ath-dash-card-title {
+    font-size: 11px;
+  }
+  .ath-dash-metric-value {
+    font-size: 18px;
+  }
+  .ath-dash-metric-label {
+    font-size: 10px;
+  }
+}
+
+/* ── Extra-small screens (max-width: 380px) ─────────────────── */
+@media (max-width: 380px) {
+  .ath-content {
+    padding: 0 8px 88px;
+  }
+
+  /* Week grid: single column on very small screens */
+  .ath-week-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Vitals: stack to single column */
+  .ath-vitals-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* Dashboard metric values: smaller */
+  .ath-ring-value {
+    font-size: 22px;
+  }
+  .ath-ring-value.small {
+    font-size: 16px;
+  }
+
+  /* Recovery metrics: single column */
+  .ath-recovery-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  /* Checkin dots: smaller to fit */
+  .ath-checkin-dot {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+  .ath-checkin-dots {
+    gap: 3px;
+  }
+}
+

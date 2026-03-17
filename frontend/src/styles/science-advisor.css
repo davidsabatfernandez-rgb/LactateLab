@@ -387,11 +387,19 @@
 /* ── Mobile ── */
 @media (max-width: 640px) {
   .sa-panel {
-    right: 8px;
-    bottom: 80px;
-    width: calc(100vw - 16px);
-    max-height: calc(100vh - 100px);
-    border-radius: var(--radius-md, 16px);
+    right: 0;
+    left: 0;
+    bottom: 0;
+    top: 0;
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    animation: sa-slide-up-mobile 0.2s ease-out;
+  }
+
+  @keyframes sa-slide-up-mobile {
+    from { opacity: 0; transform: translateY(100%); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   .sa-fab {
@@ -400,4 +408,53 @@
     width: 48px;
     height: 48px;
   }
+
+  .sa-header {
+    padding: 14px 16px 10px;
+  }
+
+  .sa-messages {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .sa-msg {
+    max-width: 95%;
+    font-size: 14px;
+  }
+
+  /* Fixed bottom input */
+  .sa-input-row {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg, #fff);
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border, rgba(16, 34, 42, 0.08));
+  }
+
+  .sa-input {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  .sa-empty {
+    padding: 32px 16px;
+  }
+
+  .sa-suggestion {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+}
+
+/* ── Extra small phones ── */
+@media (max-width: 480px) {
+  .sa-title { font-size: 14px; }
+  .sa-subtitle { font-size: 11px; }
+  .sa-msg { font-size: 13.5px; padding: 8px 12px; }
+  .sa-section-toggle { font-size: 12px; }
+  .sa-section-body { font-size: 12px; }
+  .sa-citations-list { font-size: 11px; }
+  .sa-meta { font-size: 10px; }
+  .sa-send { width: 36px; height: 36px; }
 }

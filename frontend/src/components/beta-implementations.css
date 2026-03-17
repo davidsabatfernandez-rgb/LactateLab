@@ -364,3 +364,106 @@
   font-weight: 600;
   margin-top: 4px;
 }
+
+/* ── Mobile: single column cards, reduced padding ── */
+@media (max-width: 640px) {
+  .beta-implementations {
+    gap: 12px;
+  }
+
+  .beta-chart-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .beta-chart-header {
+    padding: 10px 12px 6px;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .beta-chart-title {
+    font-size: 0.92rem;
+  }
+
+  .beta-chart-body {
+    padding: 4px 8px 8px;
+  }
+
+  .beta-metric-row {
+    padding: 6px 12px;
+    gap: 8px;
+    font-size: 0.72rem;
+  }
+
+  .beta-race-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .beta-race-card {
+    padding: 10px;
+  }
+
+  .beta-glycogen-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .beta-glycogen-card {
+    padding: 10px;
+  }
+
+  .beta-global-warning {
+    padding: 10px 12px;
+    font-size: 0.78rem;
+  }
+
+  .beta-explanation-content {
+    padding: 4px 12px 10px;
+  }
+
+  .beta-papers-list {
+    padding: 0 12px 8px;
+  }
+
+  .beta-caution-list {
+    padding: 0 12px 6px;
+  }
+}
+
+/* ── Extra small phones ── */
+@media (max-width: 480px) {
+  .beta-chart-header {
+    padding: 8px 10px 4px;
+  }
+
+  .beta-chart-title {
+    font-size: 0.84rem;
+  }
+
+  .beta-chart-subtitle {
+    font-size: 0.7rem;
+  }
+
+  .beta-chart-body {
+    padding: 2px 4px 6px;
+    min-height: 80px;
+  }
+
+  .beta-race-label {
+    font-size: 0.82rem;
+  }
+
+  .beta-race-line {
+    font-size: 0.72rem;
+  }
+
+  .beta-glycogen-card h4 {
+    font-size: 0.84rem;
+  }
+
+  .beta-glycogen-details {
+    font-size: 0.7rem;
+  }
+}

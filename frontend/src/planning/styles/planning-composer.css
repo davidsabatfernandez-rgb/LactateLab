@@ -484,3 +484,184 @@
   background: #ffedd5;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — Composer / Editor
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Tablet: 768px ── */
+@media (max-width: 768px) {
+
+  /* Composer content: single column, sidebar below */
+  .planning-calendar-composer-content {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px;
+    gap: 14px;
+  }
+
+  /* Composer sidebar: static flow */
+  .planning-calendar-composer-sidebar {
+    gap: 12px;
+  }
+
+  /* Insight grid: 2 columns on tablet */
+  .planning-calendar-composer-insight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  /* Option columns: single column */
+  .planning-calendar-composer-option-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  /* Option cards: tighter */
+  .planning-calendar-composer-option {
+    padding: 14px 16px;
+    border-radius: 18px;
+  }
+
+  .planning-calendar-composer-option-head strong {
+    font-size: 1.15rem;
+  }
+
+  /* Context cards: reduced padding */
+  .planning-calendar-composer-context,
+  .planning-calendar-composer-sidecard {
+    padding: 14px 16px;
+    border-radius: 18px;
+  }
+
+  .planning-calendar-composer-context strong,
+  .planning-calendar-composer-sidecard strong {
+    font-size: 1.2rem;
+  }
+
+  /* Mesocycle timeline: compact */
+  .mesocycle-timeline-bar {
+    max-width: 36px;
+  }
+
+  /* Intelligence banner: scrollable list */
+  .intelligence-banner-list {
+    max-height: 200px;
+  }
+}
+
+/* ── Small mobile: 480px — Full-screen composer ── */
+@media (max-width: 480px) {
+
+  /* Composer shell: fill screen */
+  .planning-calendar-composer-shell {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Composer content: minimal padding */
+  .planning-calendar-composer-content {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 8px;
+    gap: 10px;
+  }
+
+  /* Main area: scrollable */
+  .planning-calendar-composer-main {
+    gap: 12px;
+    padding-right: 0;
+  }
+
+  /* Insight grid: single column */
+  .planning-calendar-composer-insight-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .planning-calendar-composer-insight-grid article,
+  .planning-calendar-composer-mini-grid article {
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
+
+  /* Option cards: compact */
+  .planning-calendar-composer-option {
+    padding: 12px 14px;
+    border-radius: 16px;
+    gap: 12px;
+  }
+
+  .planning-calendar-composer-option-head strong {
+    font-size: 1rem;
+  }
+
+  .planning-calendar-composer-option-score {
+    min-width: 64px;
+    padding: 8px 10px;
+    font-size: 0.86rem;
+  }
+
+  /* Context / side cards: compact */
+  .planning-calendar-composer-context,
+  .planning-calendar-composer-sidecard {
+    padding: 12px 14px;
+    border-radius: 14px;
+    gap: 10px;
+  }
+
+  .planning-calendar-composer-context strong,
+  .planning-calendar-composer-sidecard strong {
+    font-size: 1.05rem;
+  }
+
+  .planning-calendar-composer-headline {
+    font-size: 0.92rem;
+  }
+
+  .planning-calendar-composer-context-line {
+    font-size: 0.88rem;
+    gap: 6px;
+  }
+
+  /* Sidecard form elements: touch-friendly */
+  .planning-calendar-composer-sidecard select,
+  .planning-calendar-composer-sidecard textarea {
+    padding: 12px;
+    min-height: 44px;
+    border-radius: 12px;
+    font-size: 1rem;
+  }
+
+  /* Mesocycle timeline: very compact */
+  .mesocycle-timeline-bar {
+    max-width: 24px;
+    border-radius: 3px 3px 0 0;
+  }
+
+  .mesocycle-timeline-bar-label {
+    font-size: 7px;
+  }
+
+  .mesocycle-timeline-week-label {
+    font-size: 8px;
+  }
+
+  /* Intelligence banner: compact */
+  .intelligence-banner-toggle {
+    padding: 4px 10px;
+    font-size: 0.68rem;
+  }
+
+  .intelligence-banner-list {
+    max-height: 180px;
+    padding: 0 10px 10px;
+  }
+
+  .intelligence-banner-item {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .intelligence-banner-item-text {
+    font-size: 0.76rem;
+  }
+}
+

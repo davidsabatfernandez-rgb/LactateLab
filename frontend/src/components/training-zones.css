@@ -512,6 +512,174 @@
   }
 }
 
+/* ── Mobile: stacked zone rows ── */
+@media (max-width: 640px) {
+  .tz-editor {
+    gap: 14px;
+  }
+
+  /* Hide the desktop table header */
+  .tz-zones-header {
+    display: none;
+  }
+
+  /* Stack zone rows vertically */
+  .tz-zone-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 10px;
+  }
+
+  /* Color picker + label + delete on same row */
+  .tz-zone-row > .tz-color-picker,
+  .tz-zone-row > .tz-label-input,
+  .tz-zone-row > .tz-remove-btn {
+    /* Reset to allow row layout via a wrapper trick —
+       we float them into a single line via flex-wrap */
+  }
+
+  .tz-zone-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 26px;
+    grid-template-rows: auto;
+    gap: 6px 8px;
+    align-items: center;
+  }
+
+  /* Color picker: row 1, col 1 */
+  .tz-color-picker {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  /* Label input: row 1, col 2 */
+  .tz-label-input {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100% !important;
+  }
+
+  /* Remove button: row 1, col 3 */
+  .tz-remove-btn {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  /* Range inputs: full width, each on its own row */
+  .tz-range-inputs {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  /* Profile card: stack threshold values vertically */
+  .tz-profile-values {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tz-profile-threshold {
+    width: 100%;
+  }
+
+  .tz-profile-card {
+    padding: 14px;
+  }
+
+  /* Actions full width */
+  .tz-actions {
+    flex-direction: row;
+    justify-content: stretch;
+    gap: 8px;
+  }
+
+  .tz-cancel-btn,
+  .tz-save-btn {
+    flex: 1;
+    text-align: center;
+  }
+
+  /* Display bars: stack label and values */
+  .tz-display-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .tz-display-bar-label {
+    min-width: unset;
+  }
+
+  .tz-display-bar-values {
+    gap: 8px;
+  }
+}
+
+/* ── Extra small phones ── */
+@media (max-width: 480px) {
+  .tz-editor {
+    gap: 10px;
+  }
+
+  .tz-zone-row {
+    padding: 8px;
+    gap: 5px 6px;
+    border-radius: 8px;
+  }
+
+  .tz-label-input {
+    font-size: 0.76rem;
+    padding: 5px 6px;
+  }
+
+  .tz-range-input {
+    font-size: 0.74rem;
+    padding: 4px 5px;
+  }
+
+  .tz-profile-threshold strong {
+    font-size: 0.64rem;
+  }
+
+  .tz-profile-threshold span {
+    font-size: 0.78rem;
+  }
+
+  .tz-suggest-btn,
+  .tz-add-btn {
+    font-size: 0.74rem;
+    padding: 5px 10px;
+  }
+
+  .tz-save-btn,
+  .tz-cancel-btn {
+    font-size: 0.78rem;
+    padding: 7px 14px;
+  }
+
+  .tz-auto-warning {
+    font-size: 0.74rem;
+    padding: 8px 10px;
+  }
+
+  .tz-name-input {
+    font-size: 0.82rem;
+  }
+
+  /* Display mode compact on small screens */
+  .tz-display-bar-label {
+    font-size: 0.72rem;
+  }
+
+  .tz-display-bar-values span {
+    font-size: 0.72rem;
+  }
+
+  .tz-display-head strong {
+    font-size: 0.86rem;
+  }
+}
+
 /* ── Multi-discipline zone cards (CalendarZonesTab) ── */
 
 .zones-discipline-card {

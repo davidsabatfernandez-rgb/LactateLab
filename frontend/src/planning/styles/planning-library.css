@@ -2985,3 +2985,251 @@
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — Library & Workout Modals
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Tablet: 768px ── */
+@media (max-width: 768px) {
+
+  /* Library workout modal: near full-screen */
+  .library-workout-modal {
+    width: min(100vw, calc(100vw - 16px));
+    padding: 16px;
+    gap: 16px;
+    border-radius: 14px;
+    max-height: 94vh;
+    overflow-y: auto;
+  }
+
+  /* Hero: single column */
+  .library-workout-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  /* Metrics: 2 columns */
+  .library-workout-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .library-workout-metrics div {
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+
+  /* Phase grid: single column on tablet */
+  .library-workout-phase-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  /* Phase visual: reduced height */
+  .library-workout-phase-visual {
+    min-height: 100px;
+  }
+
+  .library-workout-phase-visual.main {
+    min-height: 120px;
+  }
+
+  /* Modal body: single column */
+  .library-workout-modal-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  /* Workout panels: tighter */
+  .library-workout-panel {
+    padding: 14px;
+    border-radius: 18px;
+    gap: 12px;
+  }
+
+  /* Intervals: tighter */
+  .library-workout-interval {
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  /* Title: responsive */
+  .library-workout-title-wrap h2 {
+    font-size: clamp(1.4rem, 4vw, 1.8rem);
+  }
+
+  /* Head actions: wrap */
+  .library-workout-head-actions {
+    gap: 8px;
+  }
+
+  .library-workout-close {
+    min-width: 80px;
+  }
+}
+
+/* ── Small mobile: 480px — Full-screen modal ── */
+@media (max-width: 480px) {
+
+  /* Library modal: full-screen */
+  .library-workout-modal {
+    width: 100vw;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 12px;
+    gap: 12px;
+    border-radius: 0;
+    max-height: none;
+  }
+
+  /* Head: stack vertically */
+  .library-workout-modal-head {
+    display: grid;
+    gap: 10px;
+  }
+
+  .library-workout-title-wrap h2 {
+    font-size: 1.3rem;
+  }
+
+  .library-workout-title-wrap p {
+    font-size: 0.86rem;
+  }
+
+  /* Head actions: full-width buttons */
+  .library-workout-head-actions {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .library-workout-head-actions > * {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .library-workout-close {
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  /* Badges: wrap compact */
+  .library-workout-badge-row {
+    gap: 6px;
+  }
+
+  .library-workout-zone,
+  .library-workout-readiness {
+    padding: 6px 10px;
+    font-size: 0.74rem;
+  }
+
+  /* Metrics: 2 columns, compact */
+  .library-workout-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .library-workout-metrics div {
+    padding: 8px 10px;
+    border-radius: 12px;
+    gap: 2px;
+  }
+
+  .library-workout-metrics strong {
+    font-size: 1rem;
+  }
+
+  .library-workout-metrics small {
+    font-size: 0.68rem;
+  }
+
+  /* Objective text: compact */
+  .library-workout-objective {
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  /* Threshold note: compact */
+  .library-workout-threshold-note {
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+
+  /* Threshold ref: scroll if needed */
+  .library-workout-threshold-ref {
+    gap: 10px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+  }
+
+  /* Phase visual: minimal height */
+  .library-workout-phase-visual {
+    min-height: 80px;
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  .library-workout-phase-visual.main {
+    min-height: 100px;
+  }
+
+  /* Phase card: compact */
+  .library-workout-phase-card {
+    padding: 12px;
+    border-radius: 16px;
+    gap: 10px;
+  }
+
+  .library-workout-phase-card header strong {
+    font-size: 0.88rem;
+  }
+
+  /* Workout blocks: compact */
+  .library-workout-block {
+    padding: 12px;
+    border-radius: 16px;
+    gap: 10px;
+  }
+
+  .library-workout-block header strong {
+    font-size: 0.94rem;
+  }
+
+  /* Intervals: compact, touch-friendly */
+  .library-workout-interval {
+    padding: 10px;
+    border-radius: 10px;
+    gap: 8px;
+    /* Touch-friendly min height */
+    min-height: 44px;
+  }
+
+  /* Raw JSON: scroll */
+  .library-workout-raw-json pre {
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+  }
+
+  /* Panels: compact */
+  .library-workout-panel {
+    padding: 12px;
+    border-radius: 14px;
+    gap: 10px;
+  }
+
+  .library-workout-panel-head h3 {
+    font-size: 1rem;
+  }
+
+  /* WPM (Workout Preview Modal) responsive */
+  .wpm-timeline-phases {
+    grid-template-columns: 1fr;
+  }
+
+  .wpm-body {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -2317,3 +2317,77 @@
   .lp-compare__feature { font-size: 11px; }
   .lp-compare__yes, .lp-compare__no, .lp-compare__partial { width: 16px; height: 16px; }
 }
+
+/* ── Extra small phones ── */
+@media (max-width: 480px) {
+  .lp-w { padding: 0 16px; }
+
+  /* Hero: centered, full-width */
+  .lp-hero { padding-top: 96px; }
+  .lp-hero__grid {
+    padding-top: 24px;
+    padding-bottom: 48px;
+    gap: 24px;
+    text-align: center;
+  }
+  .lp-hero__sub {
+    font-size: 14px;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .lp-hero__kicker { font-size: 12px; margin-bottom: 12px; }
+  .lp-hero__acts {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .lp-hero__proof-val { font-size: 20px; }
+  .lp-hero__proof-label { font-size: 10px; }
+
+  /* Feature cards: single column */
+  .lp-methods {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .lp-method { padding: 18px 16px; }
+  .lp-method__tag { font-size: 12px; padding: 2px 10px; }
+  .lp-method p { font-size: 13px; }
+  .lp-methods__footer { gap: 20px; }
+
+  /* Split sections */
+  .lp-split { gap: 20px; }
+
+  /* Strip grid */
+  .lp-strip { padding: 28px 0; }
+  .lp-strip__grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .lp-strip__ref { font-size: 12px; }
+  .lp-strip__detail { font-size: 10px; }
+
+  /* Portal */
+  .lp-portal__content { gap: 16px; }
+  .lp-portal__card { padding: 20px 16px; }
+  .lp-portal__card-title { font-size: 16px; }
+  .lp-portal__card-desc { font-size: 13px; }
+
+  /* Comparison table */
+  .lp-compare__head,
+  .lp-compare__row { grid-template-columns: 1fr 50px 50px; padding: 6px 10px; }
+  .lp-compare__feature { font-size: 10px; }
+  .lp-compare__head .lp-compare__col { font-size: 9px; }
+
+  /* Duo / predictions */
+  .lp-predictions { grid-template-columns: 1fr; }
+
+  /* Mockups */
+  .lp-mock { padding: 14px; font-size: 12px; }
+  .lp-mock__metric-val { font-size: 16px; }
+  .lp-mock__badge { font-size: 9px; }
+
+  /* Nav */
+  .lp-nav__row { padding-top: 12px; padding-bottom: 12px; }
+  .lp-nav__brand { font-size: 16px; }
+
+  /* CTA */
+  .lp-cta-section { padding: 48px 0 64px; }
+}

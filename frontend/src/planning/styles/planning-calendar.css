@@ -2901,3 +2901,407 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — Calendar
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Tablet: 768px ── */
+@media (max-width: 768px) {
+
+  /* Month-view grid: 3 columns with horizontal scroll fallback */
+  .planning-calendar-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  /* Day cells: reduced height */
+  .planning-calendar-day {
+    min-height: 80px;
+    padding: 8px;
+    border-radius: 12px;
+    gap: 6px;
+  }
+
+  /* Hide weekday labels (they don't match 3-col layout) */
+  .planning-calendar-weekday {
+    display: none;
+  }
+
+  /* Calendar header: stack vertically */
+  .planning-calendar-header {
+    display: grid;
+    gap: 10px;
+  }
+
+  /* Month nav: wrap and compact */
+  .planning-calendar-month-nav {
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    border-radius: 14px;
+    gap: 6px;
+  }
+
+  /* Session chips inside days: more compact */
+  .planning-calendar-chip {
+    padding: 2px 5px;
+    font-size: 0.62rem;
+    border-radius: 4px;
+  }
+
+  /* Calendar detail panel: reduced padding */
+  .planning-calendar-detail {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  /* Training calendar board: tighter spacing */
+  .training-calendar-board {
+    gap: 12px;
+  }
+
+  /* Training topbar: stack */
+  .training-calendar-topbar {
+    display: grid;
+    gap: 10px;
+  }
+
+  .training-calendar-heading strong {
+    font-size: 1.5rem;
+  }
+
+  /* View switch: wrap for touch */
+  .training-calendar-view-switch {
+    gap: 2px;
+    padding: 2px;
+  }
+
+  /* Week view layout: single column, sidebar below */
+  .training-calendar-week-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  /* Week grid: 3 columns on tablet */
+  .training-calendar-week-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  /* Week column cards: reduced minimum */
+  .training-calendar-week-column {
+    min-height: 200px;
+    padding: 10px;
+    border-radius: 14px;
+    gap: 8px;
+  }
+
+  /* Week head: smaller type */
+  .training-calendar-week-head strong {
+    font-size: 1rem;
+  }
+
+  .training-calendar-week-head span {
+    font-size: 0.64rem;
+  }
+
+  /* Session cards: compact for tablet */
+  .training-calendar-session-card {
+    font-size: 0.68rem;
+  }
+
+  .session-card-body {
+    padding: 3px 4px;
+  }
+
+  /* Week section: tighter */
+  .training-calendar-week-section {
+    padding: 10px;
+    border-radius: 18px;
+    gap: 10px;
+  }
+
+  /* Week stream: tighter padding */
+  .training-calendar-week-stream {
+    padding: 12px;
+  }
+
+  /* Summary kpi grid: 2 columns */
+  .training-calendar-week-summary-top {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* App grid: month view on tablet — allow horizontal scroll */
+  .planning-calendar-app-grid {
+    grid-template-columns: repeat(7, minmax(48px, 1fr));
+    gap: 2px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* App day cells: compact */
+  .planning-calendar-app-day {
+    min-height: 56px;
+    padding: 4px;
+    font-size: 0.7rem;
+  }
+
+  .planning-calendar-app-session {
+    font-size: 0.64rem;
+    padding: 2px 3px;
+  }
+
+  /* Day detail panel: full-width overlay on tablet */
+  .day-detail-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(360px, 92vw);
+    z-index: 100;
+    border-radius: 0;
+    box-shadow: -6px 0 24px rgba(16, 34, 42, 0.12);
+  }
+
+  /* Summary grid: single column */
+  .training-calendar-summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Coach review modal: near full width */
+  .coach-review-modal {
+    width: min(520px, 96vw);
+    max-height: 92vh;
+  }
+
+  .coach-review-header {
+    padding: 16px 16px 10px;
+  }
+
+  .coach-review-body {
+    padding: 14px 16px 20px;
+  }
+
+  .coach-review-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* ── Small mobile: 480px ── */
+@media (max-width: 480px) {
+
+  /* Calendar grid: vertical list — 1 column */
+  .planning-calendar-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    padding: 8px;
+    border-radius: 10px;
+  }
+
+  /* Day cells: horizontal card layout */
+  .planning-calendar-day {
+    min-height: 60px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    gap: 4px;
+  }
+
+  .planning-calendar-day-head small {
+    min-width: 20px;
+    height: 20px;
+    font-size: 0.66rem;
+  }
+
+  /* Session chips: inline, very compact */
+  .planning-calendar-chip {
+    padding: 2px 4px;
+    font-size: 0.58rem;
+    border-radius: 3px;
+  }
+
+  .planning-calendar-session-list {
+    gap: 2px;
+  }
+
+  /* Calendar detail: very tight */
+  .planning-calendar-detail {
+    padding: 12px;
+    border-radius: 12px;
+    gap: 10px;
+  }
+
+  /* Month nav: very compact */
+  .planning-calendar-month-nav {
+    padding: 6px 8px;
+    gap: 4px;
+    border-radius: 12px;
+  }
+
+  .planning-calendar-meta-pill {
+    padding: 5px 8px;
+    font-size: 0.72rem;
+  }
+
+  .planning-calendar-active-month-card {
+    padding: 10px 12px;
+    border-radius: 14px;
+    margin: 10px 0 12px;
+  }
+
+  /* Training calendar: very compact */
+  .training-calendar-heading strong {
+    font-size: 1.2rem;
+  }
+
+  /* Week grid: 1-2 columns on small mobile */
+  .training-calendar-week-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .training-calendar-week-column {
+    min-height: 140px;
+    padding: 8px;
+    border-radius: 12px;
+    gap: 6px;
+  }
+
+  .training-calendar-week-head strong {
+    font-size: 0.9rem;
+  }
+
+  /* Session cards: very compact */
+  .training-calendar-session-card {
+    font-size: 0.64rem;
+    border-radius: 4px;
+  }
+
+  .session-card-body {
+    padding: 2px 4px 3px;
+    gap: 1px;
+  }
+
+  .session-card-title {
+    font-size: 0.62rem;
+    -webkit-line-clamp: 1;
+  }
+
+  .session-card-metric {
+    font-size: 0.6rem;
+  }
+
+  .session-card-role-badge {
+    font-size: 0.5rem;
+    padding: 1px 3px;
+  }
+
+  .session-card-dose {
+    font-size: 0.62rem;
+    -webkit-line-clamp: 2;
+  }
+
+  .session-card-header {
+    gap: 3px;
+  }
+
+  .session-card-sport-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Week section: minimal */
+  .training-calendar-week-section {
+    padding: 8px;
+    border-radius: 14px;
+    gap: 8px;
+  }
+
+  .training-calendar-week-section-head strong {
+    font-size: 0.88rem;
+  }
+
+  /* Summary: single column everything */
+  .training-calendar-week-summary-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .training-calendar-week-summary-foot {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Week summary: compact */
+  .training-calendar-week-summary {
+    padding: 6px;
+    border-radius: 8px;
+    font-size: 0.68rem;
+  }
+
+  /* App grid on mobile: 2 columns with scroll */
+  .planning-calendar-app-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  .planning-calendar-app-day {
+    min-height: 48px;
+    padding: 3px;
+    font-size: 0.66rem;
+  }
+
+  .planning-calendar-app-session {
+    font-size: 0.6rem;
+    padding: 1px 3px;
+    border-radius: 3px;
+  }
+
+  /* Day detail: full-screen on mobile */
+  .day-detail-panel {
+    width: 100vw;
+    border-radius: 0;
+  }
+
+  /* Trash zone: bottom-center, compact on mobile */
+  .planning-calendar-trash-zone {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 16px;
+    padding: 10px 16px;
+    font-size: 11px;
+  }
+
+  /* Coach review: full-screen */
+  .coach-review-modal {
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .coach-review-header {
+    padding: 14px 14px 10px;
+  }
+
+  .coach-review-title {
+    font-size: 1rem;
+  }
+
+  .coach-review-body {
+    padding: 12px 14px 18px;
+    gap: 12px;
+  }
+
+  .coach-review-rating-btn {
+    padding: 8px 12px;
+    font-size: 0.78rem;
+    /* Touch-friendly: min 44px height */
+    min-height: 44px;
+  }
+
+  .coach-review-submit {
+    min-height: 44px;
+    font-size: 0.86rem;
+    padding: 10px 20px;
+  }
+}
