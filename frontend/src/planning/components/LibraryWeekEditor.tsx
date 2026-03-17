@@ -45,7 +45,7 @@ type LibraryWeekEditorProps = {
   /** If editing an existing library, pre-populate */
   editLibrary?: CoachLibrary | null;
   /** Reload planning after apply */
-  loadPlanningContext?: (athleteId: string, discipline: string) => Promise<void>;
+  loadPlanningContext?: (athleteId: string, discipline: string, opts?: { background?: boolean }) => Promise<void>;
   selectedDiscipline: string;
   athleteId: string | null;
 };
@@ -196,7 +196,7 @@ export function LibraryWeekEditor({
       });
       setMessage("Semana aplicada al atleta");
       if (loadPlanningContext && athleteId) {
-        await loadPlanningContext(athleteId, selectedDiscipline);
+        await loadPlanningContext(athleteId, selectedDiscipline, { background: true });
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Error al aplicar");

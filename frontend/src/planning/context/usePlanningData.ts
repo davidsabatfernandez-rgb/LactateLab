@@ -104,6 +104,13 @@ export function usePlanningData(
     return () => { cancelled = true; };
   }, [athletes, calendarPanelOpen, calendarWorkspaceTab, rosterAnalyses, token, dispatch]);
 
+  // ── Fire-and-forget Garmin sync (non-blocking) ──
+  useEffect(() => {
+    if (athleteId) {
+      api.planningGarminSync(token, athleteId).catch(() => {});
+    }
+  }, [athleteId, token]);
+
   // ── Load planning overview ──
   useEffect(() => {
     let cancelled = false;
@@ -226,8 +233,11 @@ export function usePlanningData(
   }, [token, dispatch]);
 
   // ── Reload planning context helper (used by save/delete callbacks) ──
-  const loadPlanningContext = useCallback(async (currentAthleteId: string, currentDiscipline: string) => {
-    dispatch({ type: "SET_LOADING", payload: true });
+  const loadPlanningContext = useCallback(async (currentAthleteId: string, currentDiscipline: string, opts?: { background?: boolean }) => {
+    const isBackground = opts?.background ?? false;
+    if (!isBackground) {
+      dispatch({ type: "SET_LOADING", payload: true });
+    }
     dispatch({ type: "SET_ERROR", payload: null });
     try {
       const result = (await api.planningOverview(token, currentAthleteId, currentDiscipline)) as PlanningOverview;
@@ -236,7 +246,9 @@ export function usePlanningData(
       dispatch({ type: "SET_OVERVIEW", payload: null });
       dispatch({ type: "SET_ERROR", payload: loadError instanceof Error ? loadError.message : "No se pudo cargar la planificación." });
     } finally {
-      dispatch({ type: "SET_LOADING", payload: false });
+      if (!isBackground) {
+        dispatch({ type: "SET_LOADING", payload: false });
+      }
     }
   }, [token, dispatch]);
 

@@ -759,7 +759,7 @@ function PlanningPageInner() {
       });
       dispatch({ type: "SET_SAVE_MESSAGE", payload: "Bloque guardado como activo desde planificación." });
       dispatch({ type: "SET_SAVING", payload: false });
-      loadPlanningContext(String(athleteId), selectedDiscipline);
+      loadPlanningContext(String(athleteId), selectedDiscipline, { background: true });
       return true;
     } catch (err) {
       dispatch({ type: "SET_SAVE_ERROR", payload: err instanceof Error ? err.message : "No se pudo guardar el bloque." });
@@ -776,7 +776,7 @@ function PlanningPageInner() {
     dispatch({ type: "SET_DELETING_BLOCK_ID", payload: blockId });
     try {
       await api.deleteFocusBlock(token, Number(athleteId), blockId);
-      await loadPlanningContext(String(athleteId), selectedDiscipline);
+      await loadPlanningContext(String(athleteId), selectedDiscipline, { background: true });
       return true;
     } catch (err) {
       dispatch({ type: "SET_SAVE_ERROR", payload: err instanceof Error ? err.message : "No se pudo eliminar el bloque." });
@@ -839,7 +839,7 @@ function PlanningPageInner() {
     try {
       const payload = (await api.preparePlannedSessionPublish(token, sessionId)) as PlanningPlannedSession;
       dispatch({ type: "SET_PLANNED_SESSION_STRUCTURED_PREVIEW", payload: payload.structured_workout_payload ?? null });
-      await loadPlanningContext(String(athleteId), selectedDiscipline);
+      await loadPlanningContext(String(athleteId), selectedDiscipline, { background: true });
       dispatch({ type: "SET_SHOW_PLANNED_SESSION_RAW_INFORMATION", payload: true });
     } catch (err) {
       dispatch({ type: "SET_PLANNED_SESSION_STRUCTURED_PREVIEW_ERROR", payload: err instanceof Error ? err.message : "No se pudo regenerar la estructura del entreno." });
@@ -852,20 +852,20 @@ function PlanningPageInner() {
     if (!activePlannedPreviewSession) return;
     const result = (await api.saveWorkoutSteps(token, activePlannedPreviewSession.id, workout as unknown as Record<string, unknown>)) as PlanningPlannedSession;
     dispatch({ type: "SET_PLANNED_SESSION_STRUCTURED_PREVIEW", payload: result.structured_workout_payload ?? null });
-    if (athleteId) await loadPlanningContext(String(athleteId), selectedDiscipline);
+    if (athleteId) await loadPlanningContext(String(athleteId), selectedDiscipline, { background: true });
   }, [activePlannedPreviewSession, athleteId, loadPlanningContext, selectedDiscipline, token, dispatch]);
 
   const handlePushToGarmin = useCallback(async () => {
     if (!activePlannedPreviewSession || !athleteId) return;
     await api.pushWorkoutToGarmin(token, Number(athleteId), activePlannedPreviewSession.id);
-    if (athleteId) await loadPlanningContext(String(athleteId), selectedDiscipline);
+    if (athleteId) await loadPlanningContext(String(athleteId), selectedDiscipline, { background: true });
   }, [activePlannedPreviewSession, athleteId, loadPlanningContext, selectedDiscipline, token]);
 
   const handleChangeTargetMode = useCallback(async (mode: "pace" | "hr" | "power") => {
     if (!activePlannedPreviewSession) return;
     const result = (await api.updateTargetMode(token, activePlannedPreviewSession.id, mode)) as PlanningPlannedSession;
     dispatch({ type: "SET_PLANNED_SESSION_STRUCTURED_PREVIEW", payload: result.structured_workout_payload ?? null });
-    if (athleteId) await loadPlanningContext(String(athleteId), selectedDiscipline);
+    if (athleteId) await loadPlanningContext(String(athleteId), selectedDiscipline, { background: true });
   }, [activePlannedPreviewSession, athleteId, loadPlanningContext, selectedDiscipline, token, dispatch]);
 
   // ── Display labels ──
@@ -921,7 +921,7 @@ function PlanningPageInner() {
           coach_notes: `Sesión copiada: ${original.public_label}`,
         });
       }
-      await loadPlanningContext(String(athleteId), selectedDiscipline);
+      await loadPlanningContext(String(athleteId), selectedDiscipline, { background: true });
       dispatch({ type: "SET_SELECTED_CALENDAR_DATE", payload: nextWeekStart });
     } catch (err) {
       alert(err instanceof Error ? err.message : "No se pudieron copiar las sesiones.");
@@ -1007,7 +1007,7 @@ function PlanningPageInner() {
     }
     const label = template?.public_label || manualLabel || "Sesión manual";
     try {
-      await api.addPlannedSession(token, {
+      const created = await api.addPlannedSession(token, {
         athlete_id: Number(athleteId),
         scheduled_date: date,
         discipline,
@@ -1019,17 +1019,21 @@ function PlanningPageInner() {
         dose_step: template?.dose_ladder?.[0] ? 0 : null,
         bla_check: opts?.bla_check ?? false,
       });
-      await loadPlanningContext(athleteId, selectedDiscipline);
+      // Optimistic update with API response
+      dispatch({ type: "ADD_SESSION", payload: created as PlanningPlannedSession });
+      // Background sync to pick up any server-side computed fields
+      loadPlanningContext(athleteId, selectedDiscipline, { background: true }).catch(() => {});
     } catch (err) {
       console.error("[AddSession] Error adding session:", err);
-      await loadPlanningContext(athleteId, selectedDiscipline);
+      // Reload to restore consistent state
+      loadPlanningContext(athleteId, selectedDiscipline, { background: true }).catch(() => {});
       throw err;
     }
-  }, [athleteId, token, selectedDiscipline, loadPlanningContext]);
+  }, [athleteId, token, selectedDiscipline, loadPlanningContext, dispatch]);
 
   // ── Render ──
 
-  if (loading) return <div className="loading">Preparando planificación...</div>;
+  if (loading && !overview) return <div className="loading">Preparando planificación...</div>;
   if (error) return <div className="error">No se pudo cargar la planificación: {error}</div>;
 
   const thresholdWarnings = overview?.threshold_warnings ?? [];
@@ -1038,7 +1042,7 @@ function PlanningPageInner() {
     if (!athleteId) return;
     try {
       await api.refreshStaleTargets(token, Number(athleteId));
-      await loadPlanningContext(athleteId, selectedDiscipline);
+      await loadPlanningContext(athleteId, selectedDiscipline, { background: true });
     } catch (err) {
       console.error("Failed to refresh stale targets:", err);
     }

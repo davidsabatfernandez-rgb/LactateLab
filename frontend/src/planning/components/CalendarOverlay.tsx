@@ -268,7 +268,7 @@ type CalendarOverlayProps = {
   handleSaveWorkoutSteps: (workout: WorkoutDefinition) => Promise<void>;
   handlePushToGarmin: () => Promise<void>;
   handleChangeTargetMode?: (mode: "pace" | "hr" | "power") => Promise<void>;
-  loadPlanningContext: (athleteId: string, discipline: string) => Promise<void>;
+  loadPlanningContext: (athleteId: string, discipline: string, opts?: { background?: boolean }) => Promise<void>;
   onCopyWeek?: () => void;
   showAllDisciplines?: boolean;
   onToggleAllDisciplines?: () => void;
@@ -436,13 +436,9 @@ export function CalendarOverlay({
       dispatch({ type: "MOVE_SESSION", payload: { sessionId: session.rawId, newDate } });
 
       try {
-        const result = await api.coachEditSession(token, session.rawId, { scheduled_date: newDate });
-        console.log("[DnD] API response:", result);
-        // Reload to sync fully
-        if (athleteId) {
-          await loadPlanningContext(String(athleteId), selectedDiscipline);
-        }
-        console.log("[DnD] Context reloaded successfully");
+        await api.coachEditSession(token, session.rawId, { scheduled_date: newDate });
+        // Background sync — optimistic update already applied
+        if (athleteId) loadPlanningContext(String(athleteId), selectedDiscipline, { background: true }).catch(() => {});
       } catch (err) {
         console.error("[DnD] Error al mover sesión:", err);
         // Revert optimistic update
@@ -462,26 +458,34 @@ export function CalendarOverlay({
     dispatch({ type: "DELETE_SESSION", payload: { sessionId: session.rawId } });
     try {
       await api.deletePlannedSession(token, session.rawId);
-      if (athleteId) await loadPlanningContext(String(athleteId), selectedDiscipline);
+      // Background sync — optimistic update already applied
+      if (athleteId) loadPlanningContext(String(athleteId), selectedDiscipline, { background: true }).catch(() => {});
     } catch (err) {
       console.error("[DnD] Error al eliminar sesión:", err);
-      if (athleteId) await loadPlanningContext(String(athleteId), selectedDiscipline);
+      // Reload to restore consistent state on error
+      if (athleteId) loadPlanningContext(String(athleteId), selectedDiscipline, { background: true }).catch(() => {});
     }
   }, [athleteId, dispatch, loadPlanningContext, selectedDiscipline, token]);
 
   const handleRenameSession = useCallback(async (newTitle: string) => {
     const sessionId = activePlannedPreviewSession?.id;
     if (!sessionId || !athleteId) return;
+    // Optimistic update
+    dispatch({ type: "UPDATE_SESSION", payload: { sessionId, changes: { public_label: newTitle } } });
     await api.coachEditSession(token, sessionId, { public_label: newTitle });
-    await loadPlanningContext(String(athleteId), selectedDiscipline);
-  }, [activePlannedPreviewSession, athleteId, loadPlanningContext, selectedDiscipline, token]);
+    // Background sync
+    loadPlanningContext(String(athleteId), selectedDiscipline, { background: true }).catch(() => {});
+  }, [activePlannedPreviewSession, athleteId, dispatch, loadPlanningContext, selectedDiscipline, token]);
 
   const handleSaveCoachNote = useCallback(async (note: string) => {
     const sessionId = activePlannedPreviewSession?.id;
     if (!sessionId || !athleteId) return;
+    // Optimistic update
+    dispatch({ type: "UPDATE_SESSION", payload: { sessionId, changes: { coach_note: note } } });
     await api.coachEditSession(token, sessionId, { coach_note: note });
-    await loadPlanningContext(String(athleteId), selectedDiscipline);
-  }, [activePlannedPreviewSession, athleteId, loadPlanningContext, selectedDiscipline, token]);
+    // Background sync
+    loadPlanningContext(String(athleteId), selectedDiscipline, { background: true }).catch(() => {});
+  }, [activePlannedPreviewSession, athleteId, dispatch, loadPlanningContext, selectedDiscipline, token]);
 
   // Lock body overflow when overlay is open
   useEffect(() => {
@@ -643,7 +647,7 @@ export function CalendarOverlay({
         workoutLibrary={workoutLibrary}
         athleteId={athleteId}
         token={token}
-        onBatchGarminComplete={athleteId ? () => loadPlanningContext(String(athleteId), selectedDiscipline) : undefined}
+        onBatchGarminComplete={athleteId ? () => loadPlanningContext(String(athleteId), selectedDiscipline, { background: true }) : undefined}
         trainingLoadDays={state.trainingLoadDays}
         jumpCalendarToToday={jumpCalendarToToday}
         shiftCalendarBackward={shiftCalendarBackward}

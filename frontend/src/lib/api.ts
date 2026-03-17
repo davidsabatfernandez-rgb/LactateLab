@@ -423,6 +423,8 @@ export const api = {
   athleteAnalysis: (token: string, athleteId: string | number) => request(`/athletes/${athleteId}/analysis`, { token }),
   athletePlannedSessions: (token: string, athleteId: string | number) =>
     request(`/planning/athletes/${athleteId}/sessions`, { token }),
+  planningGarminSync: (token: string, athleteId: string | number) =>
+    request(`/planning/athletes/${athleteId}/garmin-sync`, { token, method: "POST" }),
   planningOverview: (token: string, athleteId: string | number, discipline?: string) =>
     request(`/planning/athletes/${athleteId}/overview${discipline ? `?discipline=${encodeURIComponent(discipline)}` : ""}`, { token }),
   planningMesocycles: (token: string, athleteId: string | number, discipline?: string) =>

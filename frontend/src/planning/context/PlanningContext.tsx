@@ -152,6 +152,8 @@ export type PlanningAction =
   | { type: "SET_CALENDAR_COMPOSER_DATE"; payload: string | null }
   | { type: "SET_CALENDAR_QUICK_ADD"; payload: CalendarQuickAddState | null }
   | { type: "SET_OVERVIEW_AND_DISCIPLINE"; payload: { overview: PlanningOverview; discipline: string } }
+  | { type: "ADD_SESSION"; payload: PlanningPlannedSession }
+  | { type: "UPDATE_SESSION"; payload: { sessionId: number; changes: Partial<PlanningPlannedSession> } }
   | { type: "MOVE_SESSION"; payload: { sessionId: number; newDate: string } }
   | { type: "DELETE_SESSION"; payload: { sessionId: number } }
   | { type: "MOVE_SYNTHETIC_SESSION"; payload: { syntheticId: string; newDate: string } }
@@ -266,6 +268,29 @@ function planningReducer(state: PlanningState, action: PlanningAction): Planning
         overview: action.payload.overview,
         disciplineOverviews: { ...state.disciplineOverviews, [action.payload.discipline]: action.payload.overview },
       };
+    case "ADD_SESSION": {
+      if (!state.overview) return state;
+      return {
+        ...state,
+        overview: {
+          ...state.overview,
+          planned_sessions: [...state.overview.planned_sessions, action.payload],
+        },
+      };
+    }
+    case "UPDATE_SESSION": {
+      if (!state.overview) return state;
+      const { sessionId, changes } = action.payload;
+      return {
+        ...state,
+        overview: {
+          ...state.overview,
+          planned_sessions: state.overview.planned_sessions.map((s) =>
+            s.id === sessionId ? { ...s, ...changes } : s,
+          ),
+        },
+      };
+    }
     case "MOVE_SESSION": {
       if (!state.overview) return state;
       const { sessionId, newDate } = action.payload;

@@ -67,6 +67,38 @@ def athlete_planned_sessions(
     return rows
 
 
+@router.post("/athletes/{athlete_id}/garmin-sync")
+def trigger_garmin_sync(
+    athlete_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Lightweight endpoint to sync recent Garmin activities.
+
+    The frontend can fire-and-forget this on page mount so the planning
+    overview itself is never blocked by network latency to Garmin.
+    """
+    from sqlalchemy import select as sa_select
+    from app.models.athlete import Athlete
+    athlete = db.scalar(sa_select(Athlete).where(Athlete.id == athlete_id))
+    if not athlete:
+        raise HTTPException(status_code=404, detail="Athlete not found")
+    if not athlete.garmin_connected:
+        return {"synced": False, "reason": "not_connected"}
+
+    from datetime import datetime, timedelta
+    stale_threshold = datetime.utcnow() - timedelta(minutes=20)
+    if athlete.garmin_last_sync_at and athlete.garmin_last_sync_at >= stale_threshold:
+        return {"synced": False, "reason": "fresh"}
+
+    try:
+        from app.services.garmin import sync_garmin_activities
+        sync_garmin_activities(db, athlete, days_back=7)
+        return {"synced": True}
+    except Exception as exc:
+        return {"synced": False, "reason": str(exc)}
+
+
 @router.get("/athletes/{athlete_id}/overview", response_model=PlanningOverviewRead)
 def planning_overview(
     athlete_id: int,
@@ -74,20 +106,6 @@ def planning_overview(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
-    # Auto-sync recent Garmin activities if stale (>20 min since last sync)
-    from sqlalchemy import select as sa_select
-    from app.models.athlete import Athlete
-    athlete = db.scalar(sa_select(Athlete).where(Athlete.id == athlete_id))
-    if athlete and athlete.garmin_connected:
-        from datetime import datetime, timedelta
-        stale_threshold = datetime.utcnow() - timedelta(minutes=20)
-        if not athlete.garmin_last_sync_at or athlete.garmin_last_sync_at < stale_threshold:
-            try:
-                from app.services.garmin import sync_garmin_activities
-                sync_garmin_activities(db, athlete, days_back=7)
-            except Exception:
-                pass  # Don't block planning load if sync fails
-
     try:
         overview = recommend_next_mesocycle(db, athlete_id, discipline=discipline)
     except ValueError as exc:

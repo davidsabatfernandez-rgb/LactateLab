@@ -38,7 +38,7 @@ type TrainingPlanEditorProps = {
   dispatch: (action: PlanningAction) => void;
   onClose: () => void;
   editPlan?: CoachPlan | null;
-  loadPlanningContext?: (athleteId: string, discipline: string) => Promise<void>;
+  loadPlanningContext?: (athleteId: string, discipline: string, opts?: { background?: boolean }) => Promise<void>;
   selectedDiscipline: string;
   athleteId: string | null;
 };
@@ -199,7 +199,7 @@ export function TrainingPlanEditor({
       });
       setMessage("Plan aplicado al atleta");
       if (loadPlanningContext && athleteId) {
-        await loadPlanningContext(athleteId, selectedDiscipline);
+        await loadPlanningContext(athleteId, selectedDiscipline, { background: true });
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Error al aplicar");
