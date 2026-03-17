@@ -1920,13 +1920,13 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  border: 1px dashed rgba(16, 34, 42, 0.12);
+  border: 1px dashed rgba(16, 34, 42, 0.15);
   background: rgba(255, 255, 255, 0.4);
-  color: #9aa5ae;
+  color: #b8c0c8;
   font-size: 0.82rem;
   line-height: 1;
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.4;
   transition: opacity 140ms ease, background 140ms ease, border-color 140ms ease;
 }
 
