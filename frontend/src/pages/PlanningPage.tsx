@@ -1016,7 +1016,7 @@ function PlanningPageInner() {
         objective: opts?.objective || template?.objective || "",
         session_family: opts?.session_family || template?.session_family || "manual",
         session_role: template ? "support" : "support",
-        dose_step: opts?.dose_step ?? (template?.dose_ladder?.[0] ? 0 : null),
+        dose_step: opts?.dose_step ?? (template?.dose_ladder?.[0]?.step ?? null),
         bla_check: opts?.bla_check ?? false,
       });
       // Optimistic update with API response

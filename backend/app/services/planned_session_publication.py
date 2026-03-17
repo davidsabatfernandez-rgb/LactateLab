@@ -70,8 +70,8 @@ def build_structured_workout_for_planned_session(session: PlannedSession) -> Wor
     payload = session.payload or {}
 
     if template_id:
-        dose_step = session.dose_step_override or payload.get("dose_step_index")
-        source = "dose" if dose_step else "example"
+        dose_step = session.dose_step_override if session.dose_step_override is not None else payload.get("dose_step_index")
+        source = "dose" if dose_step is not None else "example"
         try:
             return build_library_workout_definition(
                 discipline=session.discipline,

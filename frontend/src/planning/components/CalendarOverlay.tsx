@@ -1040,7 +1040,7 @@ function QuickAddModal({
   const [blaCheck, setBlaCheck] = useState(false);
   // Dose step selector: when a template with dose_ladder is picked, show step picker
   const [dosePickerTemplate, setDosePickerTemplate] = useState<PlanningWorkoutTemplate | null>(null);
-  const [selectedDoseStep, setSelectedDoseStep] = useState<number>(0);
+  const [selectedDoseStep, setSelectedDoseStep] = useState<number>(1); // 1-based step number
   const [manualMode, setManualMode] = useState(false);
   const [manualLabel, setManualLabel] = useState("");
 
@@ -1187,11 +1187,11 @@ function QuickAddModal({
                                 onClick={async () => {
                                   if (template.dose_ladder?.length > 1) {
                                     setDosePickerTemplate(template);
-                                    setSelectedDoseStep(0); // default = first step
+                                    setSelectedDoseStep(template.dose_ladder[0]?.step ?? 1); // default = first step (1-based)
                                   } else {
                                     setAddingTemplate(template.template_id);
                                     try {
-                                      await onAddSessionToDay(calendarQuickAdd.date, quickAddDiscipline, template, undefined, { bla_check: blaCheck, dose_step: template.dose_ladder?.[0] ? 0 : null });
+                                      await onAddSessionToDay(calendarQuickAdd.date, quickAddDiscipline, template, undefined, { bla_check: blaCheck, dose_step: template.dose_ladder?.[0]?.step ?? null });
                                       closeCalendarQuickAdd();
                                     } catch {
                                       setAddingTemplate(null);
@@ -1301,12 +1301,12 @@ function QuickAddModal({
                 </div>
                 <p className="dose-picker-hint">Selecciona el peldaño de dosis</p>
                 <div className="dose-picker-list">
-                  {dosePickerTemplate.dose_ladder.map((step, idx) => (
+                  {dosePickerTemplate.dose_ladder.map((step) => (
                     <button
                       key={step.step}
                       type="button"
-                      className={`dose-picker-step ${selectedDoseStep === idx ? "selected" : ""}`}
-                      onClick={() => setSelectedDoseStep(idx)}
+                      className={`dose-picker-step ${selectedDoseStep === step.step ? "selected" : ""}`}
+                      onClick={() => setSelectedDoseStep(step.step)}
                     >
                       <span className="dose-picker-step-num">{step.step}</span>
                       <span className="dose-picker-step-body">
@@ -1330,7 +1330,7 @@ function QuickAddModal({
                     }
                   }}
                 >
-                  {addingTemplate === dosePickerTemplate.template_id ? "Añadiendo..." : `Añadir peldaño ${(dosePickerTemplate.dose_ladder[selectedDoseStep]?.step ?? 1)}`}
+                  {addingTemplate === dosePickerTemplate.template_id ? "Añadiendo..." : `Añadir peldaño ${selectedDoseStep}`}
                 </button>
               </div>
             )}

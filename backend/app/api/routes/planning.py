@@ -585,6 +585,19 @@ def add_planned_session(
     import logging
     logger = logging.getLogger(__name__)
 
+    # Resolve dose step label from template library
+    dose_label = "Manual"
+    if body.template_id and body.dose_step is not None:
+        try:
+            from app.services.workout_library import WORKOUT_TEMPLATES
+            tmpl = next((t for t in WORKOUT_TEMPLATES if t.template_id == body.template_id), None)
+            if tmpl and tmpl.dose_ladder:
+                step = next((s for s in tmpl.dose_ladder if s.step == body.dose_step), None)
+                if step:
+                    dose_label = step.label
+        except Exception:
+            pass
+
     session = PlannedSession(
         athlete_id=body.athlete_id,
         focus_block_id=None,
@@ -597,7 +610,7 @@ def add_planned_session(
         workout_template_id=body.template_id,
         public_label=body.public_label,
         objective=body.objective or "",
-        dose_prescription="Manual",
+        dose_prescription=dose_label,
         coach_note=body.coach_note,
         confidence=0.5,
         status="planned",
@@ -620,6 +633,12 @@ def add_planned_session(
                 logger.warning("prepare_planned_session_for_publish failed for new session: %s", exc)
         db.commit()
         db.refresh(session)
+        # Best-effort Google Calendar sync
+        try:
+            from app.services.google_calendar import sync_session_to_gcal
+            sync_session_to_gcal(db, session)
+        except Exception:
+            pass
         return session
     except Exception as exc:
         logger.error("add_planned_session crashed: %s", exc, exc_info=True)
@@ -639,6 +658,16 @@ def delete_planned_session(
     session = db.get(PlannedSession, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Sesión no encontrada.")
+    # Best-effort Google Calendar delete
+    try:
+        if session.gcal_event_id:
+            from app.services.google_calendar import delete_gcal_event
+            from app.models.athlete import Athlete
+            athlete = db.get(Athlete, session.athlete_id)
+            if athlete and athlete.gcal_connected:
+                delete_gcal_event(db, athlete, session)
+    except Exception:
+        pass
     db.delete(session)
     db.commit()
     return None
