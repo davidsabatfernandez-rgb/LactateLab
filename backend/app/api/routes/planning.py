@@ -564,6 +564,9 @@ def add_planned_session(
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Formato de fecha inválido: {body.scheduled_date}")
 
+    import logging
+    logger = logging.getLogger(__name__)
+
     session = PlannedSession(
         athlete_id=body.athlete_id,
         focus_block_id=None,
@@ -581,22 +584,29 @@ def add_planned_session(
         confidence=0.5,
         status="planned",
         bla_check=body.bla_check,
+        publish_status="draft",
+        execution_status="planned",
+        targets_stale=False,
         payload={
             "added_manually": True,
             "dose_step_index": body.dose_step,
         },
     )
-    db.add(session)
-    db.flush()
-    if body.template_id:
-        try:
-            prepare_planned_session_for_publish(session, db=db)
-        except Exception as exc:
-            import logging
-            logging.getLogger(__name__).warning("prepare_planned_session_for_publish failed for new session: %s", exc)
-    db.commit()
-    db.refresh(session)
-    return session
+    try:
+        db.add(session)
+        db.flush()
+        if body.template_id:
+            try:
+                prepare_planned_session_for_publish(session, db=db)
+            except Exception as exc:
+                logger.warning("prepare_planned_session_for_publish failed for new session: %s", exc)
+        db.commit()
+        db.refresh(session)
+        return session
+    except Exception as exc:
+        logger.error("add_planned_session crashed: %s", exc, exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al crear sesión: {exc}")
 
 
 @router.delete(
