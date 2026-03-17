@@ -2688,7 +2688,7 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
                     valid_on=estimate["valid_on"],
                     reliability_label=estimate["reliability_label"],
                     inputs_summary=estimate["inputs_summary"],
-                    payload=payload,
+                    payload=_json_safe(payload),
                 )
             )
 
