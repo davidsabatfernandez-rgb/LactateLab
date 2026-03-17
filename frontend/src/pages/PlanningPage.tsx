@@ -970,17 +970,30 @@ function PlanningPageInner() {
   const calendarMesocycleOptions = useMemo<CalendarMesocycleOption[]>(() => {
     const recommendation = overview?.next_recommendation;
     const candidateOrder = recommendation?.candidates_scored ?? [];
-    const options = candidateOrder.map<CalendarMesocycleOption | null>((candidate) => {
+
+    // 1) Scored candidates first (system recommendation)
+    const scoredBlockTypes = new Set<string>();
+    const scored = candidateOrder.map<CalendarMesocycleOption | null>((candidate) => {
       const template = templateLibrary.find((i) => i.block_type === candidate.block_type);
       if (!template) return null;
+      scoredBlockTypes.add(candidate.block_type);
       const isBest = template.template_id === recommendation?.template_id || candidate.block_type === recommendation?.recommended_block_type;
-      return { template, score: candidate.score ?? null, isBest, whyItFits: (isBest ? recommendation?.reasoning : candidate.reasons) ?? [], whyNotAsGood: (isBest ? recommendation?.risk_flags : candidate.contraindications) ?? [] };
+      return {
+        template, score: candidate.score ?? null, isBest,
+        whyItFits: ((isBest ? recommendation?.reasoning : candidate.reasons) ?? []).slice(0, 3),
+        whyNotAsGood: ((isBest ? recommendation?.risk_flags : candidate.contraindications) ?? []).slice(0, 3),
+      };
     }).filter((o): o is CalendarMesocycleOption => o !== null);
-    if (options.length) return options.map((o) => ({ ...o, whyItFits: o.whyItFits.slice(0, 3), whyNotAsGood: o.whyNotAsGood.slice(0, 3) }));
-    return templateLibrary.map((template, i) => {
-      const isBest = template.template_id === recommendation?.template_id || i === 0;
-      return { template, score: null, isBest, whyItFits: isBest ? (recommendation?.reasoning ?? []).slice(0, 3) : [], whyNotAsGood: isBest ? (recommendation?.risk_flags ?? []).slice(0, 3) : [] };
-    });
+
+    // 2) All remaining templates (override options for the coach)
+    const rest = templateLibrary
+      .filter((t) => !scoredBlockTypes.has(t.block_type))
+      .map((template) => ({
+        template, score: null as number | null, isBest: false,
+        whyItFits: [] as string[], whyNotAsGood: [] as string[],
+      }));
+
+    return [...scored, ...rest];
   }, [overview?.next_recommendation, templateLibrary]);
 
   const calendarNavigation = useCalendarNavigation(dispatch, calendarMonth, calendarVisualMode, selectedWeekStart, selectedWeekdayOffset, continuousWeekStarts, continuousMonthStarts);
