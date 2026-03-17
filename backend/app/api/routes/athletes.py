@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, delete
 from sqlalchemy.orm import Session, joinedload, aliased
 from typing import Union
 
@@ -546,6 +546,16 @@ def delete_athlete_target(
     if target is None:
         raise HTTPException(status_code=404, detail="Target not found")
     db.delete(target)
+    db.commit()
+
+
+@router.delete("/targets/all", status_code=status.HTTP_204_NO_CONTENT)
+def delete_all_targets(
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Bulk-delete every athlete target. One-time admin action."""
+    db.execute(delete(AthleteTarget))
     db.commit()
 
 
