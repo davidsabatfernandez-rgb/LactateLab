@@ -1468,6 +1468,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("gonzalez_rave_2022_im", "pla_2019_swim"),
         csv_examples=("3 x 400m LT1 c/30''", "1500m continuo aeróbico", "4 x 300m LT1 c/20''"),
         calentamiento_template="400m suave + 6×50m técnica (25m drill + 25m nado completo).",
+        calentamiento_min=12,
         fatigue_cost=3,
         min_spacing_days_after=1,
         dose_ladder=(
@@ -1497,6 +1498,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("gonzalez_rave_2022_im", "pla_2019_swim"),
         csv_examples=("10 x 100m CSS c/15''", "6 x 200m LT2 c/20''", "4 x 300m CSS c/30''"),
         calentamiento_template="400m suave + 4×50m drills técnicos + 2×100m progresivos.",
+        calentamiento_min=10,
         fatigue_cost=4,
         min_spacing_days_after=2,
         incompatible_adjacent_families=("css_threshold", "vo2_anaerobic", "anc_speed_combo"),
@@ -1528,6 +1530,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("gonzalez_rave_2022_im",),
         csv_examples=("3 x (4 x 100m ritmo prueba) c/20''", "2 x 600m open water pace", "8 x 50m salida + ritmo"),
         calentamiento_template="300m suave + 4×50m drills técnicos + 2×50m activación.",
+        calentamiento_min=8,
     ),
     WorkoutTemplate(
         template_id="swim_lt1_broken_sets",
@@ -1547,6 +1550,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("gonzalez_rave_2022_im", "pla_2019_swim"),
         csv_examples=("3 x (4 x 100m LT1) c/15''", "6 x 200m LT1 c/20''", "4 x 300m LT1 c/25''"),
         calentamiento_template="400m suave + 4×50m técnica variada (drill a elegir).",
+        calentamiento_min=10,
         fatigue_cost=3,
         min_spacing_days_after=1,
         dose_ladder=(
@@ -1576,6 +1580,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("gonzalez_rave_2023_altitude", "gonzalez_rave_2022_im"),
         csv_examples=("10 x 50 snorkel técnico", "6 x 100 pull + alineación", "8 x 75 un brazo + nado completo"),
         calentamiento_template="200m suave + 4×50m nado completo progresivo.",
+        calentamiento_min=7,
     ),
     WorkoutTemplate(
         template_id="swim_vo2_anaerobic",
@@ -1595,6 +1600,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("pla_2019_swim", "ronnestad_2016_block"),
         csv_examples=("16 x 50m VO2 c/30''", "10 x 100m fuertes c/45''", "8 x 75m VO2 c/40''"),
         calentamiento_template="400m suave + 4×50m drills + 4×50m progresivos hasta 85%.",
+        calentamiento_min=10,
         fatigue_cost=5,
         min_spacing_days_after=2,
         requires_fresh=True,
@@ -1617,6 +1623,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("gonzalez_rave_2022_im",),
         csv_examples=("12 x 25m rápidos con viraje", "8 x 50m salida + viraje", "16 x 15m breakout + transferencia"),
         calentamiento_template="300m suave + 4×50m drills + 2×50m activación progresiva.",
+        calentamiento_min=8,
     ),
     WorkoutTemplate(
         template_id="swim_open_water_specific",
@@ -1636,6 +1643,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("cejuela_2022_tri", "gonzalez_rave_2023_altitude"),
         csv_examples=("3 x 600m sighting controlado", "2 x 1000m open water pace", "20' continuo con cambios de orientación"),
         calentamiento_template="400m suave + 4×50m drills de alineación y sighting.",
+        calentamiento_min=10,
     ),
     WorkoutTemplate(
         template_id="swim_recovery_drills",
@@ -1693,6 +1701,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("gonzalez_rave_2022_im", "gonzalez_rave_2023_altitude"),
         csv_examples=("400 variado + 8 x 100 crol LT1", "3 x (200 estilos + 200 crol)", "1800m variado aeróbico"),
         calentamiento_template="300m suave + 4×50m técnica variada.",
+        calentamiento_min=8,
     ),
     WorkoutTemplate(
         template_id="swim_aec_base",
@@ -1712,6 +1721,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("gonzalez_rave_2022_im", "pla_2019_swim"),
         csv_examples=("3 x 500m aeróbico continuo", "2000m AEC fraccionado", "4 x 400m LT1 c/20''"),
         calentamiento_template="400m suave + 6×50m técnica (25m drill + 25m nado).",
+        calentamiento_min=12,
     ),
     WorkoutTemplate(
         template_id="swim_team_quality",
@@ -1731,6 +1741,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("gonzalez_rave_2022_im", "cejuela_2022_tri"),
         csv_examples=("Calentamiento + 12 x 100m CSS + técnica", "Club set: 20 x 50m ritmo", "Sesión compartida con bloque principal LT2"),
         calentamiento_template="300m suave + técnica ligera integrada.",
+        calentamiento_min=8,
     ),
     WorkoutTemplate(
         template_id="swim_anc_speed_combo",
@@ -1751,6 +1762,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("pla_2019_swim", "ronnestad_2016_block"),
         csv_examples=("12 x 25m ANC c/45''", "8 x 50m máximos c/1'", "2 x (6 x 25m ANC) c/40''"),
         calentamiento_template="400m suave + 4×50m drills + 4×25m activación progresiva.",
+        calentamiento_min=10,
         fatigue_cost=4,
     ),
     WorkoutTemplate(
@@ -1789,6 +1801,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("gonzalez_rave_2022_im", "cejuela_2022_tri"),
         csv_examples=("8 x 50m palas fuertes + 8 x 25m rápidos", "6 x 100m pull fuerte + 6 x 50m transfer", "12 x 25m resistencia + velocidad"),
         calentamiento_template="400m suave + 4×50m drills + 2×50m activación progresiva.",
+        calentamiento_min=10,
     ),
     WorkoutTemplate(
         template_id="strength_general_support",

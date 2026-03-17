@@ -303,9 +303,53 @@ def _build_library_main_steps(
         block_zone = _extract_zone_from_suffix(descending.group(2)) or zone
         return _build_descending_steps(durations_min=durations, zone=block_zone, rest_min=rest_min, start_order=start_order)
 
-    # ── 5. Simple repeat: N×T (no '+' in label, no parentheses) ──
+    # ── 5. Over/under: N×T' O/U → alternating sub-steps ──
+    over_under = re.match(r"^(\d+)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*'\s*O/U", label.strip(), re.IGNORECASE)
+    if over_under:
+        return _build_over_under_steps(
+            reps=int(over_under.group(1)),
+            block_min=float(over_under.group(2).replace(",", ".")),
+            zone=zone,
+            rest_min=rest_min,
+            start_order=start_order,
+        )
+
+    # ── 6. Fractioned continuous: "2000m AEC frac." ──
+    frac_match = re.match(r"^(\d+)\s*(m|km)\s+.*frac", label.strip(), re.IGNORECASE)
+    if frac_match:
+        total_m = float(frac_match.group(1)) * (1000 if frac_match.group(2).lower() == "km" else 1)
+        return _build_fractioned_distance_steps(
+            total_meters=total_m,
+            zone=zone,
+            rest_min=rest_min,
+            start_order=start_order,
+        )
+
+    # ── 7. Simple repeat: N×T (no '+' in label, no parentheses) ──
     reps_count = _infer_reps_count(label)
     if reps_count and useful_duration_min > 0:
+        # Check if label specifies distance (e.g. 4×800m, 3×2km)
+        dist_in_label = re.match(
+            r"^\d+\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(km|m)\b",
+            label.strip(),
+            re.IGNORECASE,
+        )
+        if dist_in_label:
+            val = float(dist_in_label.group(1).replace(",", "."))
+            unit = dist_in_label.group(2).lower()
+            meters = val * 1000 if unit == "km" else val
+            return [
+                _build_repeat_step(
+                    reps=reps_count,
+                    duration_s=meters,
+                    length_type="distance",
+                    zone=zone,
+                    rest_s=rest_min * 60,
+                    order=start_order,
+                    instructions=label,
+                )
+            ]
+
         per_rep_seconds = round((useful_duration_min / reps_count) * 60)
         children = [
             WorkoutStep(
@@ -344,18 +388,21 @@ def _build_library_main_steps(
             )
         ]
 
-    # ── 6. Fallback: single continuous / sequential parts ──
+    # ── 8. Fallback: single continuous / sequential parts ──
+    # If multiple blocks each with a zone suffix (e.g. "10'E1+30'E2+20'D2"),
+    # resolve per-block zone instead of using the template-level zone for all.
     steps: list[WorkoutStep] = []
     for index, part in enumerate(blocks):
         parsed_length = _parse_library_label_length(part)
+        block_zone = _extract_zone_from_suffix(part) or zone
         steps.append(
             WorkoutStep(
                 order=start_order + len(steps),
                 step_type="interval" if len(blocks) > 1 else "steady",
                 length_type=parsed_length["length_type"],
                 length_value=parsed_length["length_value"],
-                target=WorkoutTarget(target_type="other", label=zone),
-                intensity_label=zone,
+                target=WorkoutTarget(target_type="other", label=block_zone),
+                intensity_label=block_zone,
                 instructions=part,
             )
         )
@@ -686,6 +733,90 @@ def _build_descending_steps(
                 )
             )
     return steps
+
+
+def _build_over_under_steps(
+    *,
+    reps: int,
+    block_min: float,
+    zone: str,
+    rest_min: float,
+    start_order: int,
+) -> list[WorkoutStep]:
+    """Build over/under steps: each rep alternates 2min LT2 + 2min LT1 segments."""
+    segment_min = 2.0
+    n_segments = max(2, int(block_min / segment_min))
+    children: list[WorkoutStep] = []
+    for seg_i in range(n_segments):
+        is_over = seg_i % 2 == 0
+        seg_zone = "LT2" if is_over else "LT1"
+        seg_label = "Over (LT2)" if is_over else "Under (LT1)"
+        children.append(
+            WorkoutStep(
+                order=len(children) + 1,
+                step_type="interval",
+                length_type="time",
+                length_value=round(segment_min * 60),
+                target=WorkoutTarget(target_type="other", label=seg_zone),
+                intensity_label=seg_zone,
+                instructions=seg_label,
+            )
+        )
+    if rest_min > 0:
+        children.append(
+            WorkoutStep(
+                order=len(children) + 1,
+                step_type="recovery",
+                length_type="time",
+                length_value=round(rest_min * 60),
+                target=WorkoutTarget(target_type="easy", label="Suave"),
+                intensity_label="recovery",
+                instructions="Recuperación entre bloques O/U",
+            )
+        )
+    return [
+        WorkoutStep(
+            order=start_order,
+            step_type="repeat",
+            length_type="open",
+            repeat_count=reps,
+            target=WorkoutTarget(target_type="other", label=zone),
+            intensity_label=zone,
+            instructions=f"{reps}×{int(block_min)}' Over/Under",
+            children=children,
+        )
+    ]
+
+
+def _build_fractioned_distance_steps(
+    *,
+    total_meters: float,
+    zone: str,
+    rest_min: float,
+    start_order: int,
+) -> list[WorkoutStep]:
+    """Build fractioned distance steps: split large distance into manageable reps."""
+    if total_meters <= 400:
+        rep_m = total_meters
+    elif total_meters <= 1000:
+        rep_m = 200
+    elif total_meters <= 2000:
+        rep_m = 200
+    else:
+        rep_m = 250
+    n_reps = max(1, round(total_meters / rep_m))
+    rest_s = rest_min * 60 if rest_min > 0 else 15
+    return [
+        _build_repeat_step(
+            reps=n_reps,
+            duration_s=rep_m,
+            length_type="distance",
+            zone=zone,
+            rest_s=rest_s,
+            order=start_order,
+            instructions=f"{n_reps}×{int(rep_m)}m fraccionado",
+        )
+    ]
 
 
 def _parse_target(text: str | None) -> WorkoutTarget | None:
