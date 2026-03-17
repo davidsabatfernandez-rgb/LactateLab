@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -224,14 +224,14 @@ class PlanningPlannedSessionRead(BaseModel):
     publish_status: str = "draft"
     publish_provider: Optional[str] = None
     publish_error: Optional[str] = None
-    threshold_snapshot_date: Optional[str] = None
+    threshold_snapshot_date: Optional[datetime] = None
     targets_stale: bool = False
     target_mode: Optional[str] = None
     execution_status: str = "planned"
     linked_activity_id: Optional[int] = None
     actual_performance: Optional[dict] = None
     coach_feedback: Optional[str] = None
-    coach_feedback_at: Optional[str] = None
+    coach_feedback_at: Optional[datetime] = None
     execution_rating: Optional[str] = None
     payload: dict = {}
 
