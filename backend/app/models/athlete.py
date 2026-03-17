@@ -52,6 +52,10 @@ class Athlete(Base):
     """Si True, los umbrales de ciclismo se interpolan automáticamente desde running."""
     calendar_ical_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     """URL iCal secreta de Google Calendar (o similar) para sincronizar eventos personales."""
+    gcal_access_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    gcal_refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    gcal_token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    gcal_connected_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[date] = mapped_column(Date)
     coach_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
 
@@ -74,6 +78,10 @@ class Athlete(Base):
             and self.strava_refresh_token
             and self.strava_token_expires_at is not None
         )
+
+    @property
+    def gcal_connected(self) -> bool:
+        return bool(self.gcal_refresh_token and self.gcal_connected_at is not None)
 
     @property
     def garmin_connected(self) -> bool:

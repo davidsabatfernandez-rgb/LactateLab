@@ -27,6 +27,12 @@ from app.schemas.auth import (
     TokenResponse,
     UserRead,
 )
+from app.services.google_calendar import (
+    build_gcal_callback_redirect,
+    decode_gcal_state,
+    exchange_gcal_code,
+    persist_gcal_connection,
+)
 from app.services.strava import (
     build_callback_redirect,
     build_strava_start_payload,
@@ -335,6 +341,44 @@ def strava_callback(
 
     return RedirectResponse(
         build_callback_redirect("connected", return_path=state_payload.get("return_path")),
+        status_code=status.HTTP_302_FOUND,
+    )
+
+
+@router.get("/google-calendar/callback")
+def google_calendar_callback(
+    code: Optional[str] = Query(default=None),
+    state: Optional[str] = Query(default=None),
+    error: Optional[str] = Query(default=None),
+    _: Optional[str] = Query(default=None, alias="scope"),
+    db: Session = Depends(get_db),
+):
+    """Handle Google Calendar OAuth2 callback."""
+    if error:
+        return RedirectResponse(
+            build_gcal_callback_redirect("error", error, "/calendar"),
+            status_code=status.HTTP_302_FOUND,
+        )
+    if not code or not state:
+        return RedirectResponse(
+            build_gcal_callback_redirect("error", "missing_code_or_state", "/calendar"),
+            status_code=status.HTTP_302_FOUND,
+        )
+
+    return_path = "/calendar"
+    try:
+        state_payload = decode_gcal_state(state)
+        return_path = state_payload.get("return_path", "/calendar")
+        token_payload = exchange_gcal_code(code)
+        persist_gcal_connection(db, athlete_id=int(state_payload["athlete_id"]), token_payload=token_payload)
+    except ValueError as exc:
+        return RedirectResponse(
+            build_gcal_callback_redirect("error", str(exc), return_path),
+            status_code=status.HTTP_302_FOUND,
+        )
+
+    return RedirectResponse(
+        build_gcal_callback_redirect("connected", return_path=return_path),
         status_code=status.HTTP_302_FOUND,
     )
 

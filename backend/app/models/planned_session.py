@@ -65,6 +65,8 @@ class PlannedSession(Base):
     execution_rating: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     """Coach's assessment: excellent | good | acceptable | poor."""
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    gcal_event_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    """Google Calendar event ID for sync."""
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     athlete = relationship("Athlete", back_populates="planned_sessions")

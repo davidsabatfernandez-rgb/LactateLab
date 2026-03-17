@@ -127,6 +127,16 @@ export function WeekPage() {
   }, [data.token, athleteId, data.calendarWeek]);
 
   useEffect(() => {
+    // Detect Google Calendar OAuth callback redirect
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("google-calendar") === "connected") {
+      setCalendarConnected(true);
+      fetchCalendarEvents();
+      // Clean URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete("google-calendar");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    }
     api.calendarStatus(data.token, athleteId).then((res: { connected: boolean }) => {
       setCalendarConnected(res.connected);
       if (res.connected) fetchCalendarEvents();
