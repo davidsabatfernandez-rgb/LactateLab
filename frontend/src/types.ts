@@ -287,6 +287,7 @@ export type AthleteHealthActivity = {
   moving_time_seconds: number;
   average_heartrate?: number | null;
   average_watts?: number | null;
+  calories?: number | null;
   training_load?: number | null;
   training_effect?: number | null;
   source: string;

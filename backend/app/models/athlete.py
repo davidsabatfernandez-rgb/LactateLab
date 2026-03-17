@@ -50,6 +50,8 @@ class Athlete(Base):
     """ATL seed manual (puntos TSS). Mismo propósito que initial_ctl."""
     cycling_interpolated_from_running: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     """Si True, los umbrales de ciclismo se interpolan automáticamente desde running."""
+    calendar_ical_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    """URL iCal secreta de Google Calendar (o similar) para sincronizar eventos personales."""
     created_at: Mapped[date] = mapped_column(Date)
     coach_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
 

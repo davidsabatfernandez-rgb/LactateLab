@@ -56,6 +56,7 @@ class AthleteHealthActivityRead(BaseModel):
     moving_time_seconds: int
     average_heartrate: Optional[float] = None
     average_watts: Optional[float] = None
+    calories: Optional[float] = None
     source: str
 
 

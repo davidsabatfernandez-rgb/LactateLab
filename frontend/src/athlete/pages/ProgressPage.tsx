@@ -68,6 +68,23 @@ export function ProgressPage() {
   const lt1Hr = selectedView?.thresholds?.find((t) => t.name === "LT1")?.heart_rate ?? null;
   const lt2Hr = selectedView?.thresholds?.find((t) => t.name === "LT2")?.heart_rate ?? null;
 
+  // Extract real lactate curve data points from measurement_log
+  const realCurveData = useMemo(() => {
+    const log = selectedView?.measurement_log ?? [];
+    const points = log
+      .filter((entry) => entry.heart_rate_avg != null && entry.lactate_mmol != null && entry.lactate_mmol > 0)
+      .map((entry) => ({ hr: Math.round(entry.heart_rate_avg!), lactate: entry.lactate_mmol }))
+      .sort((a, b) => a.hr - b.hr);
+    return points.length >= 3 ? points : undefined;
+  }, [selectedView?.measurement_log]);
+
+  // Derive maxHr from real data or thresholds instead of hardcoding
+  const maxHr = useMemo(() => {
+    if (realCurveData?.length) return Math.max(...realCurveData.map((p) => p.hr)) + 10;
+    if (typeof lt2Hr === "number") return Math.round(lt2Hr + 25);
+    return 190;
+  }, [realCurveData, lt2Hr]);
+
   // Engagement metrics
   const consistency = useMemo(() => consistencyScore(weeklyVolume12, volumeDiscipline), [weeklyVolume12, volumeDiscipline]);
   const volChange = useMemo(() => volumeChange(weeklyVolume12, volumeDiscipline), [weeklyVolume12, volumeDiscipline]);
@@ -234,7 +251,8 @@ export function ProgressPage() {
         <SimpleLactateCurve
           lt1Hr={typeof lt1Hr === "number" ? lt1Hr : null}
           lt2Hr={typeof lt2Hr === "number" ? lt2Hr : null}
-          maxHr={190}
+          maxHr={maxHr}
+          dataPoints={realCurveData}
         />
         <MicroContent title="¿Qué significan LT1 y LT2?">
           <p><strong>LT1 (Umbral aeróbico)</strong> es la intensidad a la que el lactato empieza a subir por encima del reposo. Por debajo de este punto, puedes mantener el esfuerzo durante mucho tiempo.</p>

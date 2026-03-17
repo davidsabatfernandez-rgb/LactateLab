@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAthleteData } from "../context/AthleteDataContext";
 import { SessionCard } from "../components/SessionCard";
 import { SessionDetailModal } from "../components/SessionDetailModal";
@@ -10,6 +10,8 @@ import { resolveTrainingThreshold, type ResolvedTrainingThreshold } from "../../
 import type { AthleteHealthActivity, GarminActivity, PlanningPlannedSession, WorkoutDefinition, WorkoutStep } from "../../types";
 import { WorkoutStepEditor } from "../../components/WorkoutStepEditor";
 import { buildDemoActivity } from "../utils/demoActivity";
+import { api } from "../../lib/api";
+import CalendarImport from "../components/CalendarImport";
 
 type TimeAssignment = Record<number, string>;
 type CalendarMode = "week" | "month";
@@ -78,11 +80,7 @@ function activityMiniLabel(a: AthleteHealthActivity): string {
   return parts.join(" ");
 }
 
-const MOCK_PERSONAL_EVENTS: Array<{ dayOffset: number; time: string; label: string; source: "google" | "apple" }> = [
-  { dayOffset: 1, time: "09:00", label: "Reunión trabajo", source: "google" },
-  { dayOffset: 3, time: "13:00", label: "Comida equipo", source: "google" },
-  { dayOffset: 5, time: "18:00", label: "Cena familiar", source: "apple" },
-];
+type CalendarEvent = { summary: string; start: string | null; end: string | null; all_day: boolean };
 
 export function WeekPage() {
   const data = useAthleteData();
@@ -92,6 +90,8 @@ export function WeekPage() {
   const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(false);
   const [builderPresetDate, setBuilderPresetDate] = useState<string | null>(null);
   const [calendarConnected, setCalendarConnected] = useState(false);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
   const [editingTimeId, setEditingTimeId] = useState<number | null>(null);
   const [calMode, setCalMode] = useState<CalendarMode>("week");
 
@@ -107,6 +107,49 @@ export function WeekPage() {
   // Drag state
   const [dragSessionId, setDragSessionId] = useState<number | null>(null);
   const [dragOverIso, setDragOverIso] = useState<string | null>(null);
+
+  const athleteId = data.user.athlete_id!;
+
+  // ── Calendar sync: check status + fetch events ──
+  const fetchCalendarEvents = useCallback(async () => {
+    if (!data.calendarWeek.length) return;
+    const startDate = localIso(data.calendarWeek[0].date);
+    const endDate = localIso(data.calendarWeek[6].date);
+    setCalendarLoading(true);
+    try {
+      const events = await api.calendarEvents(data.token, athleteId, startDate, endDate);
+      setCalendarEvents(events);
+    } catch {
+      setCalendarEvents([]);
+    } finally {
+      setCalendarLoading(false);
+    }
+  }, [data.token, athleteId, data.calendarWeek]);
+
+  useEffect(() => {
+    api.calendarStatus(data.token, athleteId).then((res: { connected: boolean }) => {
+      setCalendarConnected(res.connected);
+      if (res.connected) fetchCalendarEvents();
+    }).catch(() => {});
+  }, [data.token, athleteId, fetchCalendarEvents]);
+
+  // Re-fetch events when week changes and calendar is connected
+  useEffect(() => {
+    if (calendarConnected && data.calendarWeek.length) fetchCalendarEvents();
+  }, [calendarConnected, data.calendarWeek, fetchCalendarEvents]);
+
+  const handleCalendarConnected = useCallback(() => {
+    setCalendarConnected(true);
+    fetchCalendarEvents();
+  }, [fetchCalendarEvents]);
+
+  const handleCalendarDisconnect = useCallback(async () => {
+    try {
+      await api.calendarDisconnect(data.token, athleteId);
+      setCalendarConnected(false);
+      setCalendarEvents([]);
+    } catch { /* ignore */ }
+  }, [data.token, athleteId]);
 
   const calendarWeekLabel = useMemo(() => {
     if (!data.calendarWeek.length) return "";
@@ -202,9 +245,13 @@ export function WeekPage() {
     return { z1: Math.round((totals.z1 / total) * 100), z2: Math.round((totals.z2 / total) * 100), z3: Math.round((totals.z3 / total) * 100), z4: Math.round((totals.z4 / total) * 100), z5: Math.round((totals.z5 / total) * 100) };
   }, [data.calendarWeek]);
 
-  function getPersonalEvents(dayIndex: number) {
-    if (!calendarConnected) return [];
-    return MOCK_PERSONAL_EVENTS.filter((e) => e.dayOffset === dayIndex);
+  function getPersonalEvents(dayIso: string): CalendarEvent[] {
+    if (!calendarConnected || !calendarEvents.length) return [];
+    return calendarEvents.filter((e) => {
+      if (!e.start) return false;
+      const eventDate = e.start.slice(0, 10); // YYYY-MM-DD
+      return eventDate === dayIso;
+    });
   }
 
   function handleTimeChange(sessionId: number, time: string) {
@@ -332,7 +379,16 @@ export function WeekPage() {
       {calendarConnected && (
         <div className="ath-cal-connected-badge">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Calendario sincronizado
+          Calendario sincronizado{calendarLoading ? " (cargando...)" : ""}
+          <button
+            type="button"
+            className="ath-cal-disconnect-btn"
+            onClick={handleCalendarDisconnect}
+            title="Desconectar calendario"
+            style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: "var(--ath-text-secondary)", fontSize: "0.75rem", textDecoration: "underline" }}
+          >
+            Desconectar
+          </button>
         </div>
       )}
 
@@ -340,7 +396,7 @@ export function WeekPage() {
       {calMode === "week" && (
         <div className="ath-week-grid">
           {data.calendarWeek.map((day, dayIndex) => {
-            const personalEvents = getPersonalEvents(dayIndex);
+            const personalEvents = getPersonalEvents(day.iso);
             const isDragOver = dragOverIso === day.iso;
             return (
               <div
@@ -365,12 +421,15 @@ export function WeekPage() {
                   </button>
                 </div>
 
-                {personalEvents.map((evt, i) => (
-                  <div key={i} className={`ath-week-personal-event ${evt.source}`}>
-                    <span className="ath-week-personal-time">{evt.time}</span>
-                    <span className="ath-week-personal-label">{evt.label}</span>
-                  </div>
-                ))}
+                {personalEvents.map((evt, i) => {
+                  const timeStr = evt.all_day ? "Todo el dia" : (evt.start ? new Date(evt.start).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) : "");
+                  return (
+                    <div key={i} className="ath-week-personal-event google">
+                      <span className="ath-week-personal-time">{timeStr}</span>
+                      <span className="ath-week-personal-label">{evt.summary}</span>
+                    </div>
+                  );
+                })}
 
                 <div className="ath-week-day-sessions">
                   {day.sessions.map((session) => (
@@ -594,31 +653,13 @@ export function WeekPage() {
       })()}
 
       {/* Calendar Import Modal */}
-      {showCalendarImport && (
-        <div className="ath-modal-backdrop" onClick={() => setShowCalendarImport(false)}>
-          <div className="ath-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="ath-modal-header">
-              <h3>Importar calendario</h3>
-              <button type="button" className="ath-modal-close" onClick={() => setShowCalendarImport(false)}>✕</button>
-            </div>
-            <div className="ath-modal-body">
-              <p className="ath-modal-desc">Sincroniza tu calendario personal para ver tus eventos junto a los entrenos.</p>
-              <button type="button" className="ath-cal-option" onClick={() => { setCalendarConnected(true); setShowCalendarImport(false); }}>
-                <div className="ath-cal-option-icon google">G</div>
-                <div className="ath-cal-option-info"><strong>Google Calendar</strong><span>Sincronizar eventos de Google</span></div>
-                <span className="ath-cal-option-action">Conectar</span>
-              </button>
-              <button type="button" className="ath-cal-option" onClick={() => { setCalendarConnected(true); setShowCalendarImport(false); }}>
-                <div className="ath-cal-option-icon apple">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                </div>
-                <div className="ath-cal-option-info"><strong>Apple Calendar</strong><span>Sincronizar eventos de iPhone</span></div>
-                <span className="ath-cal-option-action">Conectar</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CalendarImport
+        open={showCalendarImport}
+        onClose={() => setShowCalendarImport(false)}
+        athleteId={athleteId}
+        token={data.token}
+        onConnected={handleCalendarConnected}
+      />
 
       {/* Workout Builder Modal */}
       {showWorkoutBuilder && (

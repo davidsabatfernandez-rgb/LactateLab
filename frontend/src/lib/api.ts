@@ -707,6 +707,26 @@ export const api = {
       }>;
     }>(`/planning/planned-sessions/${sessionId}/lap-match`, { token }),
 
+  // ── Calendar Sync ──
+  calendarConnect: (token: string, athleteId: number, icalUrl: string) =>
+    request<{ athlete_id: number; connected: boolean }>(`/calendar/athletes/${athleteId}/connect`, {
+      token,
+      method: "POST",
+      body: JSON.stringify({ ical_url: icalUrl }),
+    }),
+  calendarEvents: (token: string, athleteId: number, startDate: string, endDate: string) =>
+    request<Array<{ summary: string; start: string | null; end: string | null; all_day: boolean }>>(
+      `/calendar/athletes/${athleteId}/events?start_date=${startDate}&end_date=${endDate}`,
+      { token },
+    ),
+  calendarDisconnect: (token: string, athleteId: number) =>
+    request<{ athlete_id: number; disconnected: boolean }>(`/calendar/athletes/${athleteId}/disconnect`, {
+      token,
+      method: "DELETE",
+    }),
+  calendarStatus: (token: string, athleteId: number) =>
+    request<{ athlete_id: number; connected: boolean }>(`/calendar/athletes/${athleteId}/status`, { token }),
+
   // ── Beta Signup (public, no auth) ──
   betaSignup: (email: string) =>
     request<{ status: string }>("/beta-signup", {

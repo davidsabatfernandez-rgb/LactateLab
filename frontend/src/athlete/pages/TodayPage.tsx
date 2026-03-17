@@ -232,7 +232,7 @@ export function TodayPage() {
     const todayActs = activities.filter((a) => a.started_at.slice(0, 10) === todayIso);
     let dailyExercise = 0;
     for (const a of todayActs) {
-      dailyExercise += exerciseCal(a.moving_time_seconds / 60, a.average_heartrate ?? 130, w, isMale);
+      dailyExercise += a.calories ?? exerciseCal(a.moving_time_seconds / 60, a.average_heartrate ?? 130, w, isMale);
     }
     dailyExercise = Math.max(0, dailyExercise);
     const todayWellness = wellness.find((p) => p.date === todayIso);
@@ -246,7 +246,7 @@ export function TodayPage() {
     const weekActs = activities.filter((a) => new Date(a.started_at) >= cutoff);
     let weeklyExercise = 0;
     for (const a of weekActs) {
-      weeklyExercise += exerciseCal(a.moving_time_seconds / 60, a.average_heartrate ?? 130, w, isMale);
+      weeklyExercise += a.calories ?? exerciseCal(a.moving_time_seconds / 60, a.average_heartrate ?? 130, w, isMale);
     }
     weeklyExercise = Math.max(0, weeklyExercise);
     const weekWellness = wellness.filter((p) => p.date >= cutoffIso);

@@ -151,6 +151,7 @@ def _normalize_activity(activity: dict[str, Any]) -> dict[str, Any]:
         "moving_time_seconds": int(activity.get("moving_time_seconds") or 0),
         "average_heartrate": _coerce_float(activity.get("average_heartrate")),
         "average_watts": _coerce_float(activity.get("average_watts")),
+        "calories": _coerce_float(activity.get("calories")),
         "training_load": _coerce_float(activity.get("training_load")),
         "training_effect": _coerce_float(activity.get("training_effect")),
         "source": "garmin",
