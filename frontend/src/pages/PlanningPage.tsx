@@ -1000,7 +1000,7 @@ function PlanningPageInner() {
 
   // ── Add session to day (from library or manual) ──
 
-  const handleAddSessionToDay = useCallback(async (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string }) => {
+  const handleAddSessionToDay = useCallback(async (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string; dose_step?: number | null }) => {
     if (!athleteId) {
       console.error("[AddSession] No athleteId available");
       return;
@@ -1016,7 +1016,7 @@ function PlanningPageInner() {
         objective: opts?.objective || template?.objective || "",
         session_family: opts?.session_family || template?.session_family || "manual",
         session_role: template ? "support" : "support",
-        dose_step: template?.dose_ladder?.[0] ? 0 : null,
+        dose_step: opts?.dose_step ?? (template?.dose_ladder?.[0] ? 0 : null),
         bla_check: opts?.bla_check ?? false,
       });
       // Optimistic update with API response

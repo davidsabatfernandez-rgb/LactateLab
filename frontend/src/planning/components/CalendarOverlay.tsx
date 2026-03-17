@@ -280,7 +280,7 @@ type CalendarOverlayProps = {
   shiftCalendarForward: () => void;
   handleContinuousWeekScroll: () => void;
   handleContinuousMonthScroll: () => void;
-  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string }) => Promise<void>;
+  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string; dose_step?: number | null }) => Promise<void>;
   onReviewSession?: (session: CalendarEntry) => void;
   // Compact header data (calendar-first redesign)
   compactHeader?: {
@@ -1030,7 +1030,7 @@ function QuickAddModal({
   openCalendarWorkoutLibrary: (date: string, discipline: "running" | "ciclismo" | "natación") => void;
   openLibraryWorkoutPreview: (template: PlanningWorkoutTemplate) => void;
   openCalendarMesocycleComposer: (date: string) => void;
-  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string }) => Promise<void>;
+  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string; dose_step?: number | null }) => Promise<void>;
   coachLibraries: import("../../types").CoachLibrary[];
   token: string;
   onOpenWeekEditor?: (lib?: import("../../types").CoachLibrary) => void;
@@ -1038,6 +1038,9 @@ function QuickAddModal({
   const [addingTemplate, setAddingTemplate] = useState<string | null>(null);
   const [expandedLayer, setExpandedLayer] = useState<WorkoutLibraryLayer | null>(null);
   const [blaCheck, setBlaCheck] = useState(false);
+  // Dose step selector: when a template with dose_ladder is picked, show step picker
+  const [dosePickerTemplate, setDosePickerTemplate] = useState<PlanningWorkoutTemplate | null>(null);
+  const [selectedDoseStep, setSelectedDoseStep] = useState<number>(0);
   const [manualMode, setManualMode] = useState(false);
   const [manualLabel, setManualLabel] = useState("");
 
@@ -1182,12 +1185,17 @@ function QuickAddModal({
                                 className="planning-accordion-item-add"
                                 disabled={isAdding}
                                 onClick={async () => {
-                                  setAddingTemplate(template.template_id);
-                                  try {
-                                    await onAddSessionToDay(calendarQuickAdd.date, quickAddDiscipline, template, undefined, { bla_check: blaCheck });
-                                    closeCalendarQuickAdd();
-                                  } catch {
-                                    setAddingTemplate(null);
+                                  if (template.dose_ladder?.length > 1) {
+                                    setDosePickerTemplate(template);
+                                    setSelectedDoseStep(0); // default = first step
+                                  } else {
+                                    setAddingTemplate(template.template_id);
+                                    try {
+                                      await onAddSessionToDay(calendarQuickAdd.date, quickAddDiscipline, template, undefined, { bla_check: blaCheck, dose_step: template.dose_ladder?.[0] ? 0 : null });
+                                      closeCalendarQuickAdd();
+                                    } catch {
+                                      setAddingTemplate(null);
+                                    }
                                   }
                                 }}
                               >
@@ -1283,6 +1291,49 @@ function QuickAddModal({
                 closeCalendarQuickAdd={closeCalendarQuickAdd}
               />
             </div>
+
+            {/* Dose step picker overlay */}
+            {dosePickerTemplate && (
+              <div className="dose-picker-overlay">
+                <div className="dose-picker-header">
+                  <button type="button" className="ghost-button" onClick={() => setDosePickerTemplate(null)}>← Volver</button>
+                  <strong>{dosePickerTemplate.public_label}</strong>
+                </div>
+                <p className="dose-picker-hint">Selecciona el peldaño de dosis</p>
+                <div className="dose-picker-list">
+                  {dosePickerTemplate.dose_ladder.map((step, idx) => (
+                    <button
+                      key={step.step}
+                      type="button"
+                      className={`dose-picker-step ${selectedDoseStep === idx ? "selected" : ""}`}
+                      onClick={() => setSelectedDoseStep(idx)}
+                    >
+                      <span className="dose-picker-step-num">{step.step}</span>
+                      <span className="dose-picker-step-body">
+                        <strong>{step.label}</strong>
+                        <small>{step.total_duration_min ? `${step.total_duration_min}'` : `${step.total_useful_time_min}' útil`} · {step.intensity_zone}{step.readiness_required !== "any" ? ` · ${step.readiness_required}` : ""}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="primary-button dose-picker-confirm"
+                  disabled={addingTemplate === dosePickerTemplate.template_id}
+                  onClick={async () => {
+                    setAddingTemplate(dosePickerTemplate.template_id);
+                    try {
+                      await onAddSessionToDay(calendarQuickAdd.date, quickAddDiscipline, dosePickerTemplate, undefined, { bla_check: blaCheck, dose_step: selectedDoseStep });
+                      closeCalendarQuickAdd();
+                    } catch {
+                      setAddingTemplate(null);
+                    }
+                  }}
+                >
+                  {addingTemplate === dosePickerTemplate.template_id ? "Añadiendo..." : `Añadir peldaño ${(dosePickerTemplate.dose_ladder[selectedDoseStep]?.step ?? 1)}`}
+                </button>
+              </div>
+            )}
           </div>
         ) : calendarQuickAdd.mode === "manual" ? (
           <ManualEntryForm
@@ -1426,7 +1477,7 @@ function ManualEntryForm({
   closeCalendarQuickAdd,
 }: {
   calendarQuickAdd: CalendarQuickAddState;
-  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string }) => Promise<void>;
+  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string; dose_step?: number | null }) => Promise<void>;
   closeCalendarQuickAdd: () => void;
 }) {
   const [saving, setSaving] = useState(false);
@@ -1524,7 +1575,7 @@ function CoachLibrariesAccordion({
   blaCheck: boolean;
   token: string;
   dispatch: (action: import("../context/PlanningContext").PlanningAction) => void;
-  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string }) => Promise<void>;
+  onAddSessionToDay: (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean; objective?: string; session_family?: string; dose_step?: number | null }) => Promise<void>;
   closeCalendarQuickAdd: () => void;
   onOpenWeekEditor?: (lib?: import("../../types").CoachLibrary) => void;
 }) {
