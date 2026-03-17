@@ -7,6 +7,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  closestCenter,
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
@@ -184,7 +185,7 @@ function SessionCardContent({
           ? { label: "SOPORTE", className: "role-support" }
           : session.sessionType === "test"
             ? { label: "TEST", className: "role-test" }
-            : { label: session.sessionType.toUpperCase(), className: "role-default" };
+            : { label: (session.sessionType ?? "").toUpperCase(), className: "role-default" };
 
   // Estimated TSS for planned session
   const estTSS = session.estimatedMinutes
@@ -989,7 +990,7 @@ function MonthGrid({
   const [overDayId, setOverDayId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -1045,6 +1046,7 @@ function MonthGrid({
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
@@ -1336,7 +1338,7 @@ function WeekGrid({
   const [overDayId, setOverDayId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -1394,6 +1396,7 @@ function WeekGrid({
     <>
       <DndContext
         sensors={sensors}
+        collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}

@@ -92,6 +92,10 @@ def planning_overview(
         overview = recommend_next_mesocycle(db, athlete_id, discipline=discipline)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("Planning overview crashed for athlete %s: %s", athlete_id, exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error interno en planificación: {exc}") from exc
 
     # Enrich with threshold staleness warnings
     try:
@@ -187,23 +191,28 @@ def create_triathlon_mesocycle(
     except Exception:
         pass
 
-    draft = build_triathlon_mesocycle_draft(
-        primary_discipline=weak_disc,
-        primary_block_type=primary_block,
-        secondary_discipline=secondary_disc or "ciclismo",
-        secondary_block_type=secondary_block,
-        swim_block_type=swim_block,
-        duration_weeks=duration_weeks,
-        structure=structure,
-        season_phase=season_phase,
-        start_date=body.start_date,
-        weakness_confidence=weakness.get("confianza", "moderate") if isinstance(weakness, dict) else "moderate",
-        current_ctl=current_ctl,
-        current_atl=current_atl,
-        ramp_rate=body.ramp_rate_pct,
-        custom_tss_split=body.custom_tss_split,
-        swim_mode=body.swim_mode,
-    )
+    try:
+        draft = build_triathlon_mesocycle_draft(
+            primary_discipline=weak_disc,
+            primary_block_type=primary_block,
+            secondary_discipline=secondary_disc or "ciclismo",
+            secondary_block_type=secondary_block,
+            swim_block_type=swim_block,
+            duration_weeks=duration_weeks,
+            structure=structure,
+            season_phase=season_phase,
+            start_date=body.start_date,
+            weakness_confidence=weakness.get("confianza", "moderate") if isinstance(weakness, dict) else "moderate",
+            current_ctl=current_ctl,
+            current_atl=current_atl,
+            ramp_rate=body.ramp_rate_pct,
+            custom_tss_split=body.custom_tss_split,
+            swim_mode=body.swim_mode,
+        )
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("Triathlon mesocycle build crashed for athlete %s: %s", athlete_id, exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error generando mesociclo triatlón: {exc}") from exc
 
     # Attach weakness and budget info
     draft["weakness_analysis"] = weakness
@@ -301,7 +310,11 @@ def planning_prepare_planned_session_publish(
     session = db.get(PlannedSession, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Sesión no encontrada.")
-    prepare_planned_session_for_publish(session, db=db)
+    try:
+        prepare_planned_session_for_publish(session, db=db)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("prepare_planned_session_for_publish failed for session %s: %s", session_id, exc)
     db.add(session)
     db.commit()
     db.refresh(session)
@@ -414,7 +427,11 @@ def update_target_mode(
 
     session.target_mode = body.target_mode
     # Regenerate workout with new target mode (skip coach-edited)
-    prepare_planned_session_for_publish(session, db=db, target_mode=body.target_mode)
+    try:
+        prepare_planned_session_for_publish(session, db=db, target_mode=body.target_mode)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("prepare_planned_session_for_publish failed for session %s: %s", session_id, exc)
     db.commit()
     db.refresh(session)
     return session
@@ -474,11 +491,18 @@ def coach_edit_planned_session(
         session.swapped_template_id = body.swapped_template_id
     if body.scheduled_date is not None:
         from datetime import date as date_type
-        session.scheduled_date = date_type.fromisoformat(body.scheduled_date)
+        try:
+            session.scheduled_date = date_type.fromisoformat(body.scheduled_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Formato de fecha inválido: {body.scheduled_date}")
         print(f"[coach-edit] scheduled_date updated to {session.scheduled_date}")
     if body.public_label is not None:
         session.public_label = body.public_label.strip()
-    prepare_planned_session_for_publish(session, db=db)
+    try:
+        prepare_planned_session_for_publish(session, db=db)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("prepare_planned_session_for_publish failed for session %s: %s", session_id, exc)
     db.commit()
     db.refresh(session)
     print(f"[coach-edit] after refresh: scheduled_date={session.scheduled_date}")
@@ -504,7 +528,10 @@ def athlete_edit_planned_session(
         session.athlete_note = body.athlete_note.strip() or None
     if body.scheduled_date is not None:
         from datetime import date as date_type
-        session.scheduled_date = date_type.fromisoformat(body.scheduled_date)
+        try:
+            session.scheduled_date = date_type.fromisoformat(body.scheduled_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Formato de fecha inválido: {body.scheduled_date}")
     if body.scheduled_time is not None:
         # Validate HH:MM format
         import re
@@ -532,10 +559,15 @@ def add_planned_session(
     """Añade una sesión planificada individual (desde biblioteca o manual)."""
     from datetime import date as date_type
 
+    try:
+        parsed_date = date_type.fromisoformat(body.scheduled_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Formato de fecha inválido: {body.scheduled_date}")
+
     session = PlannedSession(
         athlete_id=body.athlete_id,
         focus_block_id=None,
-        scheduled_date=date_type.fromisoformat(body.scheduled_date),
+        scheduled_date=parsed_date,
         discipline=body.discipline,
         week_index=0,
         day_offset=0,
@@ -557,7 +589,11 @@ def add_planned_session(
     db.add(session)
     db.flush()
     if body.template_id:
-        prepare_planned_session_for_publish(session, db=db)
+        try:
+            prepare_planned_session_for_publish(session, db=db)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("prepare_planned_session_for_publish failed for new session: %s", exc)
     db.commit()
     db.refresh(session)
     return session
@@ -603,7 +639,7 @@ def edit_workout_steps(
         update={
             "source_session_id": session.id,
             "source_payload": {
-                **body.workout.source_payload,
+                **(body.workout.source_payload or {}),
                 "coach_edited": True,
             },
         }
@@ -662,7 +698,11 @@ def republish_planned_session(
     session = db.get(PlannedSession, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Sesion no encontrada.")
-    prepare_planned_session_for_publish(session, db=db)
+    try:
+        prepare_planned_session_for_publish(session, db=db)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("prepare_planned_session_for_publish failed for session %s: %s", session_id, exc)
     session.targets_stale = False
     db.commit()
     db.refresh(session)

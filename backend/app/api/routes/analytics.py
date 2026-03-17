@@ -12,7 +12,12 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 @router.get("/dashboard", response_model=DashboardRead)
 def dashboard(db: Session = Depends(get_db), _: User = Depends(get_current_user)):
-    return dashboard_payload(db)
+    try:
+        return dashboard_payload(db)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("Dashboard crashed: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error interno en dashboard: {exc}") from exc
 
 
 @router.get("/compare")

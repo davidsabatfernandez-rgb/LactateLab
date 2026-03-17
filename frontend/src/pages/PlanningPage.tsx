@@ -242,14 +242,14 @@ function PlanningPageInner() {
       dispatch({ type: "SET_SELECTED_TEMPLATE_ID", payload: "" });
       return;
     }
-    const suggestedTemplateId = overview?.next_recommendation.template_id ?? "";
+    const suggestedTemplateId = overview?.next_recommendation?.template_id ?? "";
     if (selectedTemplateId && templateLibrary.some((t) => t.template_id === selectedTemplateId)) return;
     if (suggestedTemplateId && templateLibrary.some((t) => t.template_id === suggestedTemplateId)) {
       dispatch({ type: "SET_SELECTED_TEMPLATE_ID", payload: suggestedTemplateId });
       return;
     }
     dispatch({ type: "SET_SELECTED_TEMPLATE_ID", payload: templateLibrary[0].template_id });
-  }, [overview?.next_recommendation.template_id, selectedTemplateId, templateLibrary, dispatch]);
+  }, [overview?.next_recommendation?.template_id, selectedTemplateId, templateLibrary, dispatch]);
 
   const selectedObjectiveOptions = useMemo(() => objectiveOptionsForDiscipline(selectedDiscipline), [selectedDiscipline]);
   const selectedWeaknessOptions = useMemo(() => weaknessOptionsForDiscipline(selectedDiscipline), [selectedDiscipline]);
@@ -268,13 +268,13 @@ function PlanningPageInner() {
     dispatch({ type: "SET_WEEKS", payload: String(overview.next_recommendation.duration_weeks) });
     dispatch({
       type: "SET_BLOCK_INTENT",
-      payload: blockIntent || overview.current_block.recommendation || overview.next_recommendation.reasoning[0] || "Bloque provisional para empezar a trabajar la limitante principal.",
+      payload: blockIntent || overview?.current_block?.recommendation || overview?.next_recommendation?.reasoning?.[0] || "Bloque provisional para empezar a trabajar la limitante principal.",
     });
     dispatch({
       type: "SET_COACH_NOTES",
-      payload: coachNotes || overview.next_recommendation.control_points.join(" "),
+      payload: coachNotes || (overview?.next_recommendation?.control_points ?? []).join(" "),
     });
-  }, [overview?.current_block.recommendation, overview?.next_recommendation]);
+  }, [overview?.current_block?.recommendation, overview?.next_recommendation]);
 
   useEffect(() => {
     if (!selectedTemplate) return;
@@ -290,7 +290,7 @@ function PlanningPageInner() {
   const quickGuardrails = useMemo(() => {
     const recommendation = overview?.next_recommendation;
     return [
-      selectedTemplate?.entry_checks?.[0] ?? overview?.current_block.recommendation ?? "Mantén una única variable dominante por bloque para poder leer si el cambio fisiológico es real.",
+      selectedTemplate?.entry_checks?.[0] ?? overview?.current_block?.recommendation ?? "Mantén una única variable dominante por bloque para poder leer si el cambio fisiológico es real.",
       selectedDiscipline === "ciclismo"
         ? "En ciclismo, decide si quieres progresar por tiempo útil o por densidad antes de subir potencia objetivo."
         : selectedDiscipline === "natación"
@@ -300,11 +300,11 @@ function PlanningPageInner() {
         ? "Modo agresivo: deja una semana final de descarga clara para no arrastrar fatiga al siguiente bloque."
         : "Modo controlado: busca comparabilidad de lactato y una respuesta limpia al final del ciclo."),
     ];
-  }, [overview?.current_block.recommendation, overview?.next_recommendation, priority, selectedDiscipline, selectedTemplate]);
+  }, [overview?.current_block?.recommendation, overview?.next_recommendation, priority, selectedDiscipline, selectedTemplate]);
 
   const microcycle = useMemo(() => buildMicrocycle(Number(weeks) || 4, selectedDiscipline, blockObjective, density), [weeks, selectedDiscipline, blockObjective, density]);
   const durationFeedback = useMemo(() => durationInterpretation(selectedTemplate, Number(weeks) || 0), [selectedTemplate, weeks]);
-  const phaseOptions = useMemo(() => phaseOptionsForRecommendation(selectedTemplate?.block_type || overview?.next_recommendation.recommended_block_type), [overview?.next_recommendation.recommended_block_type, selectedTemplate?.block_type]);
+  const phaseOptions = useMemo(() => phaseOptionsForRecommendation(selectedTemplate?.block_type || overview?.next_recommendation?.recommended_block_type), [overview?.next_recommendation?.recommended_block_type, selectedTemplate?.block_type]);
 
   useEffect(() => {
     if (!phaseOptions.includes(blockPhase)) dispatch({ type: "SET_BLOCK_PHASE", payload: phaseOptions[0] ?? "base" });
@@ -338,34 +338,34 @@ function PlanningPageInner() {
         meta: disciplineLabel(block.priority_discipline || selectedDiscipline),
       });
     });
-    const target = overview?.next_recommendation.next_target;
+    const target = overview?.next_recommendation?.next_target;
     if (target?.target_date) {
       items.push({ id: `target-${target.target_date}-${target.objective}`, tone: "warning", kind: "target", date: target.target_date, title: target.objective || "Objetivo", subtitle: `Objetivo ${disciplineLabel(selectedDiscipline).toLowerCase()}`, meta: target.target_metric || target.distance_label || "Objetivo abierto" });
     }
     return items.sort((a, b) => dateValue(a.date) - dateValue(b.date));
-  }, [overview?.detected_mesocycles, overview?.next_recommendation.next_target, overview?.planned_blocks, selectedDiscipline]);
+  }, [overview?.detected_mesocycles, overview?.next_recommendation?.next_target, overview?.planned_blocks, selectedDiscipline]);
 
   const draftCalendarSource = useMemo<PlanningCalendarSource>(() => {
-    const durationWeeks = Number(weeks) || overview?.next_recommendation.duration_weeks || 4;
+    const durationWeeks = Number(weeks) || overview?.next_recommendation?.duration_weeks || 4;
     return {
       id: "draft", kind: "draft", focusBlockId: null, startDate: blockStartDate,
       endDate: addDays(blockStartDate, durationWeeks * 7 - 1), discipline: selectedDiscipline,
-      templateId: selectedTemplate?.template_id || overview?.next_recommendation.template_id || null,
-      blockType: selectedTemplate?.block_type || overview?.next_recommendation.recommended_block_type || null,
-      status: "draft", title: selectedTemplate?.public_label || overview?.next_recommendation.recommended_block_label || "Borrador",
-      objective: blockObjective, energySystemFocus: selectedTemplate?.primary_focus || overview?.next_recommendation.primary_focus || null,
+      templateId: selectedTemplate?.template_id || overview?.next_recommendation?.template_id || null,
+      blockType: selectedTemplate?.block_type || overview?.next_recommendation?.recommended_block_type || null,
+      status: "draft", title: selectedTemplate?.public_label || overview?.next_recommendation?.recommended_block_label || "Borrador",
+      objective: blockObjective, energySystemFocus: selectedTemplate?.primary_focus || overview?.next_recommendation?.primary_focus || null,
       phase: blockPhase, intent: blockIntent || selectedTemplate?.summary || null, notes: coachNotes || null, density,
     };
-  }, [blockIntent, blockObjective, blockPhase, blockStartDate, coachNotes, density, overview?.next_recommendation.duration_weeks, overview?.next_recommendation.primary_focus, overview?.next_recommendation.recommended_block_label, selectedDiscipline, selectedTemplate?.primary_focus, selectedTemplate?.public_label, selectedTemplate?.summary, weeks]);
+  }, [blockIntent, blockObjective, blockPhase, blockStartDate, coachNotes, density, overview?.next_recommendation?.duration_weeks, overview?.next_recommendation?.primary_focus, overview?.next_recommendation?.recommended_block_label, selectedDiscipline, selectedTemplate?.primary_focus, selectedTemplate?.public_label, selectedTemplate?.summary, weeks]);
 
   const ribbonCards = useMemo(() => {
     const items = [...timelineItems];
-    const nextTarget = overview?.next_recommendation.next_target;
+    const nextTarget = overview?.next_recommendation?.next_target;
     if (nextTarget?.target_date && !items.some((i) => i.kind === "target")) {
       items.push({ id: `target-${nextTarget.target_date}-${nextTarget.objective}`, tone: "warning", kind: "target", date: nextTarget.target_date, title: nextTarget.objective || "Objetivo", subtitle: "Objetivo", meta: nextTarget.target_metric || nextTarget.distance_label || "Objetivo abierto" });
     }
     return items.sort((a, b) => dateValue(a.date) - dateValue(b.date));
-  }, [draftCalendarSource, overview?.next_recommendation.next_target, timelineItems]);
+  }, [draftCalendarSource, overview?.next_recommendation?.next_target, timelineItems]);
 
   const calendarSources = useMemo<PlanningCalendarSource[]>(() => {
     const planned = (overview?.planned_blocks ?? []).map((block) => ({
@@ -744,16 +744,16 @@ function PlanningPageInner() {
     dispatch({ type: "SET_SAVE_MESSAGE", payload: null });
     dispatch({ type: "SET_SAVING", payload: true });
     try {
-      const durationWeeks = Number(weeks) || overview.next_recommendation.duration_weeks || 4;
+      const durationWeeks = Number(weeks) || overview?.next_recommendation?.duration_weeks || 4;
       const endDate = addDays(blockStartDate, durationWeeks * 7 - 1);
       await api.addFocusBlock(token, Number(athleteId), {
         start_date: blockStartDate, end_date: endDate,
         template_id: selectedTemplate?.template_id || null,
-        energy_system_focus: selectedTemplate?.primary_focus || energySystemFocusForRecommendation(overview.next_recommendation.recommended_block_type, overview.next_recommendation.primary_focus),
+        energy_system_focus: selectedTemplate?.primary_focus || energySystemFocusForRecommendation(overview?.next_recommendation?.recommended_block_type, overview?.next_recommendation?.primary_focus),
         block_objective: blockObjective, block_intent: blockIntent || selectedTemplate?.summary || null,
         priority_discipline: selectedDiscipline, phase: blockPhase,
-        target_event: overview.next_recommendation.next_target?.objective || null,
-        target_date: overview.next_recommendation.next_target?.target_date || null,
+        target_event: overview?.next_recommendation?.next_target?.objective || null,
+        target_date: overview?.next_recommendation?.next_target?.target_date || null,
         status: "active",
         coach_notes: [selectedTemplate ? `Plantilla: ${selectedTemplate.public_label}` : null, primaryWeakness ? `Limitante principal: ${primaryWeakness}` : null, secondaryWeakness ? `Limitante secundaria: ${secondaryWeakness}` : null, coachNotes || null].filter(Boolean).join(" · "),
       });
@@ -870,9 +870,9 @@ function PlanningPageInner() {
 
   // ── Display labels ──
 
-  const activeBlockLabel = overview?.current_block.energy_system_focus ? `${overview.current_block.energy_system_focus} · ${overview.current_block.block_objective}` : "Sin bloque activo";
-  const nextTargetPrimaryLabel = overview?.next_recommendation.next_target?.distance_label || overview?.next_recommendation.next_target?.objective || "Objetivo abierto";
-  const nextTargetLabel = overview?.next_recommendation.next_target ? [overview.next_recommendation.next_target.target_date ? formatDate(overview.next_recommendation.next_target.target_date) : "Sin fecha", overview.next_recommendation.next_target.target_metric ? `Ritmo objetivo ${overview.next_recommendation.next_target.target_metric}` : null].filter(Boolean).join(" · ") : "Sin fecha";
+  const activeBlockLabel = overview?.current_block?.energy_system_focus ? `${overview.current_block.energy_system_focus} · ${overview.current_block.block_objective}` : "Sin bloque activo";
+  const nextTargetPrimaryLabel = overview?.next_recommendation?.next_target?.distance_label || overview?.next_recommendation?.next_target?.objective || "Objetivo abierto";
+  const nextTargetLabel = overview?.next_recommendation?.next_target ? [overview?.next_recommendation?.next_target?.target_date ? formatDate(overview.next_recommendation.next_target.target_date) : "Sin fecha", overview?.next_recommendation?.next_target?.target_metric ? `Ritmo objetivo ${overview.next_recommendation.next_target.target_metric}` : null].filter(Boolean).join(" · ") : "Sin fecha";
   const selectedAthlete = useMemo(() => athletes.find((a) => String(a.id) === String(athleteId)) ?? null, [athleteId, athletes]);
   const visibleTargets = useMemo(() => {
     const today = formatDateKey(new Date());
@@ -988,21 +988,30 @@ function PlanningPageInner() {
   // ── Add session to day (from library or manual) ──
 
   const handleAddSessionToDay = useCallback(async (date: string, discipline: string, template: PlanningWorkoutTemplate | null, manualLabel?: string, opts?: { bla_check?: boolean }) => {
-    if (!athleteId) return;
+    if (!athleteId) {
+      console.error("[AddSession] No athleteId available");
+      return;
+    }
     const label = template?.public_label || manualLabel || "Sesión manual";
-    await api.addPlannedSession(token, {
-      athlete_id: Number(athleteId),
-      scheduled_date: date,
-      discipline,
-      template_id: template?.template_id ?? null,
-      public_label: label,
-      objective: template?.objective ?? "",
-      session_family: template?.session_family ?? "manual",
-      session_role: template ? "support" : "support",
-      dose_step: template?.dose_ladder?.[0] ? 0 : null,
-      bla_check: opts?.bla_check ?? false,
-    });
-    await loadPlanningContext(athleteId, selectedDiscipline);
+    try {
+      await api.addPlannedSession(token, {
+        athlete_id: Number(athleteId),
+        scheduled_date: date,
+        discipline,
+        template_id: template?.template_id ?? null,
+        public_label: label,
+        objective: template?.objective ?? "",
+        session_family: template?.session_family ?? "manual",
+        session_role: template ? "support" : "support",
+        dose_step: template?.dose_ladder?.[0] ? 0 : null,
+        bla_check: opts?.bla_check ?? false,
+      });
+      await loadPlanningContext(athleteId, selectedDiscipline);
+    } catch (err) {
+      console.error("[AddSession] Error adding session:", err);
+      await loadPlanningContext(athleteId, selectedDiscipline);
+      throw err;
+    }
   }, [athleteId, token, selectedDiscipline, loadPlanningContext]);
 
   // ── Render ──

@@ -26,16 +26,21 @@ def athlete_health_overview(
     user: User = Depends(get_current_user),
 ) -> AthleteHealthOverviewRead:
     athlete = _resolve_target_athlete(db, user, athlete_id)
-    return AthleteHealthOverviewRead(
-        **build_athlete_health_overview(
-            db,
-            athlete,
-            days=days,
-            include_activity=include_activity,
-            include_raw_wellness=include_raw_wellness,
-            refresh_live_health=refresh_live_health,
+    try:
+        return AthleteHealthOverviewRead(
+            **build_athlete_health_overview(
+                db,
+                athlete,
+                days=days,
+                include_activity=include_activity,
+                include_raw_wellness=include_raw_wellness,
+                refresh_live_health=refresh_live_health,
+            )
         )
-    )
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("Health overview crashed for athlete %s: %s", athlete_id, exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error interno en salud del atleta: {exc}") from exc
 
 
 @router.post("/athletes/{athlete_id}/wellness-checkins", response_model=WellnessCheckInRead, status_code=status.HTTP_201_CREATED)

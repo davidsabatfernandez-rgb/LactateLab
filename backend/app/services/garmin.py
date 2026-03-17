@@ -850,8 +850,8 @@ def sync_garmin_activities(db: Session, athlete: Athlete, days_back: int = 56) -
     from datetime import timedelta
     from app.models.garmin_activity import GarminActivity
 
-    end_date = datetime.utcnow().strftime("%Y-%m-%d")
-    start_date = (datetime.utcnow() - timedelta(days=days_back)).strftime("%Y-%m-%d")
+    end_date = datetime.utcnow().date()
+    start_date = (datetime.utcnow() - timedelta(days=days_back)).date()
 
     # Fetch from Garmin API (lightweight, no full detail needed for storage)
     activities = list_garmin_activities(db, athlete, start_date, end_date, include_full_detail=False)

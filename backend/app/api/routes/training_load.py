@@ -42,5 +42,10 @@ def get_training_load(
     except GarminRequestError as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
 
-    result = compute_training_load_series(db, athlete, activities, start_date, end_date)
+    try:
+        result = compute_training_load_series(db, athlete, activities, start_date, end_date)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("Training load computation crashed for athlete %s: %s", athlete_id, exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error calculando carga de entrenamiento: {exc}") from exc
     return result

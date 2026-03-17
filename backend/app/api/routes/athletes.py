@@ -88,8 +88,11 @@ def admin_cleanup_athlete(
 @router.post("/admin-fix-user-athlete")
 def admin_fix_user_athlete(
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    """Fix orphaned user-athlete links. No auth required (temporary)."""
+    """Fix orphaned user-athlete links. Requires coach role."""
+    if user.role != "coach":
+        raise HTTPException(status_code=403, detail="Solo el entrenador puede ejecutar esta acción.")
     from sqlalchemy import text
     # Fix users pointing to deleted athletes — find their correct athlete by email
     orphans = db.execute(text(
@@ -284,14 +287,22 @@ def add_focus_block(
     if block.status == "active":
         # Auto-generate zones if needed
         from app.services.zone_generator import ensure_zones_for_athlete
-        _zone_set, _zone_warning = ensure_zones_for_athlete(db, athlete_id, target_discipline)
+        try:
+            _zone_set, _zone_warning = ensure_zones_for_athlete(db, athlete_id, target_discipline)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("ensure_zones_for_athlete failed for athlete %s: %s", athlete_id, exc)
 
-        create_planned_sessions_for_block(
-            db,
-            athlete,
-            block,
-            target=_next_target_for_discipline(athlete, target_discipline),
-        )
+        try:
+            create_planned_sessions_for_block(
+                db,
+                athlete,
+                block,
+                target=_next_target_for_discipline(athlete, target_discipline),
+            )
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error("Failed to generate sessions for block %s: %s", block.id, exc, exc_info=True)
 
     db.commit()
     db.refresh(block)
@@ -332,12 +343,16 @@ def update_focus_block(
         setattr(block, field, value)
 
     if block.status == "active":
-        create_planned_sessions_for_block(
-            db,
-            athlete,
-            block,
-            target=_next_target_for_discipline(athlete, _effective_block_discipline(block, athlete)),
-        )
+        try:
+            create_planned_sessions_for_block(
+                db,
+                athlete,
+                block,
+                target=_next_target_for_discipline(athlete, _effective_block_discipline(block, athlete)),
+            )
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error("Failed to generate sessions for block %s: %s", block.id, exc, exc_info=True)
 
     db.commit()
     db.refresh(block)
@@ -787,7 +802,12 @@ def _regenerate_future_workouts(db: Session, athlete_id: int, discipline: str) -
             sp = existing.get("source_payload") or {}
             if sp.get("coach_edited"):
                 continue
-        prepare_planned_session_for_publish(session, db=db)
+        try:
+            prepare_planned_session_for_publish(session, db=db)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("prepare_planned_session_for_publish failed for session %s: %s", session.id, exc)
+            continue
         count += 1
 
     if count > 0:
@@ -1116,7 +1136,12 @@ def athlete_ai_interpretation(
         raise HTTPException(status_code=404, detail="Athlete not found")
     if athlete.sessions:
         recalculate_athlete(db, athlete_id)
-    analysis = athlete_analysis_payload(db, athlete_id)
+    try:
+        analysis = athlete_analysis_payload(db, athlete_id)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("athlete_analysis_payload crashed for athlete %s: %s", athlete_id, exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error interno en análisis del atleta: {exc}") from exc
     goal_used = payload.custom_goal or athlete.training_goal or "Sin objetivo definido"
     question_used = payload.question or ""
     model, interpretation = build_book_advisor_response(
@@ -1144,7 +1169,12 @@ def athlete_reasoning_interpretation(
     if athlete is None:
         raise HTTPException(status_code=404, detail="Athlete not found")
 
-    analysis = athlete_analysis_payload(db, athlete_id)
+    try:
+        analysis = athlete_analysis_payload(db, athlete_id)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("athlete_analysis_payload crashed for athlete %s: %s", athlete_id, exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error interno en análisis del atleta: {exc}") from exc
     goal_used = payload.custom_goal or athlete.training_goal or "Sin objetivo definido"
     prompt = build_athlete_prompt(
         analysis,

@@ -1802,7 +1802,7 @@ function buildSwimmingTargetInsight(params: {
     target.discipline === "triatlón"
       ? parseSwimPaceLabel(target.target_swim_pace_label)
       : parseSwimPaceLabel(target.target_pace_label);
-  const sampleCount = displayView.measurement_log.length;
+  const sampleCount = (displayView.measurement_log ?? []).length;
   const notes = [
     ...(target.discipline === "triatlón" ? ["Lectura aplicada solo al segmento de natación del triatlón objetivo."] : []),
     ...(target.notes ? [target.notes] : []),
@@ -2802,7 +2802,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       setCyclingPowerTarget(String(Math.round(ftpEstimate.value / 5) * 5));
       return;
     }
-    const firstEntry = view?.measurement_log.find((entry) => entry.power_watts !== null && entry.power_watts !== undefined);
+    const firstEntry = (view?.measurement_log ?? []).find((entry) => entry.power_watts !== null && entry.power_watts !== undefined);
     if (firstEntry?.power_watts) {
       setCyclingPowerTarget(String(Math.round(firstEntry.power_watts / 5) * 5));
     }
@@ -2926,7 +2926,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const vo2maxEstimate = estimatesByType.get("VO2max");
   const vlamaxEstimate = estimatesByType.get("VLAMAX");
   const hasHistoricalEvolution = ["LT1", "LT2", "lactate_anchor"].some(
-    (key) => (displayView.historical_evolution[key] ?? []).length > 0,
+    (key) => (displayView.historical_evolution?.[key] ?? []).length > 0,
   );
   function resolveViewThreshold(
     sourceView: DisciplineView,
@@ -2939,7 +2939,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const lt1 = resolveViewThreshold(displayView, "LT1", activeDiscipline);
   const lt2 = resolveViewThreshold(displayView, "LT2", activeDiscipline);
   const visibleThresholdCards = [lt1, lt2].filter(isDefined);
-  const cyclingEntries = displayView.measurement_log.filter(
+  const cyclingEntries = (displayView.measurement_log ?? []).filter(
     (entry) => entry.power_watts !== null && entry.power_watts !== undefined && entry.cadence !== null && entry.cadence !== undefined,
   );
   const comparableCyclingTarget =
@@ -3069,7 +3069,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const sectionLinks: AthleteDetailSectionLink[] = [
     { id: "thresholds", label: "Mapa de umbrales", shortLabel: "Umbrales" },
     ...(targetMovementInsight ? [{ id: "goal-gap", label: "Qué mover para el objetivo", shortLabel: "Objetivo" }] : []),
-    ...(activeDiscipline === "ciclismo" && displayView.measurement_log.length ? [{ id: "cycling-insights", label: "Insights de ciclismo", shortLabel: "Ciclismo" }] : []),
+    ...(activeDiscipline === "ciclismo" && (displayView.measurement_log ?? []).length ? [{ id: "cycling-insights", label: "Insights de ciclismo", shortLabel: "Ciclismo" }] : []),
     ...(dynamicThresholds ? [{ id: "dynamic-references", label: "Referencias dinámicas", shortLabel: "Dinámicas" }] : []),
     { id: "training-zones", label: "Zonas de entrenamiento", shortLabel: "Zonas" },
     { id: "estimates", label: "Referencias estimadas", shortLabel: "Estimadas" },
@@ -3097,9 +3097,9 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     },
     {
       label: "Muestras visibles",
-      value: `${displayView.measurement_log.length}`,
+      value: `${(displayView.measurement_log ?? []).length}`,
       detail: activeDiscipline === "ciclismo" ? "con potencia y lactato" : "muestras de lactato filtradas",
-      tone: displayView.measurement_log.length >= 6 ? "positive" : "warning",
+      tone: (displayView.measurement_log ?? []).length >= 6 ? "positive" : "warning",
     },
   ];
   function scrollToSection(sectionId: string) {
@@ -3243,7 +3243,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       disciplineKey === "ciclismo" && cyclingPowerSourceMode === "compare"
         ? Object.entries(availableSourceViews)
             .map(([sourceKey, sourceView]) => ({ sourceKey, sourceView }))
-            .filter(({ sourceView }) => sourceView.thresholds.length || sourceView.measurement_log.length)
+            .filter(({ sourceView }) => sourceView.thresholds.length || (sourceView.measurement_log ?? []).length)
         : [];
     const disciplineEstimates = latestEstimateByType(resolvedView.estimates);
     const disciplineLt1 = resolveViewThreshold(resolvedView, "LT1", disciplineKey);
@@ -6137,7 +6137,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
               <span className="eyebrow">Mediciones</span>
               <h2>Histórico de muestras de lactato</h2>
             </div>
-            <small className="muted">{displayView.measurement_log.length} muestras</small>
+            <small className="muted">{(displayView.measurement_log ?? []).length} muestras</small>
           </summary>
           <div className="measurement-log-body">
             <table>
@@ -6156,8 +6156,8 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                 </tr>
               </thead>
               <tbody>
-                {displayView.measurement_log.length ? (
-                  displayView.measurement_log.map((entry, index) => (
+                {(displayView.measurement_log ?? []).length ? (
+                  (displayView.measurement_log ?? []).map((entry, index) => (
                     <tr key={`${entry.interval_id}-${entry.session_id}-${entry.interval_label}-${index}`}>
                       <td>{entry.session_date}</td>
                       <td>{entry.interval_label}</td>

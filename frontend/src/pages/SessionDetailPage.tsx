@@ -88,7 +88,7 @@ export function SessionDetailPage({ analysis }: SessionDetailPageProps) {
       <div className="sd-split-section">
         <div className="sd-split-card">
           <h2>Interpretacion</h2>
-          {analysis.interpretation.map((comment) => (
+          {(analysis.interpretation ?? []).map((comment) => (
             <div key={comment} className="sd-list-item">
               <p>{comment}</p>
             </div>
@@ -96,7 +96,7 @@ export function SessionDetailPage({ analysis }: SessionDetailPageProps) {
         </div>
         <div className="sd-split-card">
           <h2>Confianza</h2>
-          {analysis.confidence_summary.map((item) => (
+          {(analysis.confidence_summary ?? []).map((item) => (
             <div key={item.label} className="sd-list-item">
               <strong>{item.label}</strong>
               <p>{Math.round(item.score * 100)}% · {item.level}</p>
@@ -109,7 +109,7 @@ export function SessionDetailPage({ analysis }: SessionDetailPageProps) {
       <div className="sd-split-section">
         <div className="sd-split-card">
           <h2>Umbrales detectados</h2>
-          {analysis.thresholds.map((threshold) => (
+          {(analysis.thresholds ?? []).map((threshold) => (
             <div key={threshold.name} className="sd-list-item">
               <strong>{threshold.name}</strong>
               <p>Metodo principal: {threshold.method}</p>
@@ -123,7 +123,7 @@ export function SessionDetailPage({ analysis }: SessionDetailPageProps) {
           <div className="sd-list-item">
             <p>La sesion queda preparada para superponerse con snapshots historicos del atleta.</p>
           </div>
-          {analysis.contextual_details.slice(0, 3).map((detail) => (
+          {(analysis.contextual_details ?? []).slice(0, 3).map((detail) => (
             <div key={detail.interval_id} className="sd-list-item">
               <strong>Bloque {detail.order_index}</strong>
               <p>{detail.measured_lactate.toFixed(1)} &#8594; {detail.contextual_lactate.toFixed(1)} mmol/L</p>

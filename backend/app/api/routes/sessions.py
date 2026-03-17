@@ -58,7 +58,11 @@ def create_session(payload: SessionCreate, db: Session = Depends(get_db), user: 
     db.add(session)
     db.commit()
     db.refresh(session)
-    recalculate_athlete(db, payload.athlete_id)
+    try:
+        recalculate_athlete(db, payload.athlete_id)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning("Recalculation failed for athlete %s after session change", payload.athlete_id)
     refreshed = db.scalar(_session_query().where(AthleteSession.id == session.id))
     return refreshed
 
@@ -101,7 +105,11 @@ def update_interval(interval_id: int, payload: SessionIntervalUpdate, db: Sessio
                     setattr(interval.lactate_sample, field, value)
 
     db.commit()
-    recalculate_athlete(db, interval.session.athlete_id)
+    try:
+        recalculate_athlete(db, interval.session.athlete_id)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning("Recalculation failed for athlete %s after session change", interval.session.athlete_id)
     refreshed = db.scalar(_session_query().where(AthleteSession.id == interval.session_id))
     return refreshed
 
@@ -117,7 +125,11 @@ def delete_interval_lactate_sample(interval_id: int, db: Session = Depends(get_d
     athlete_id = interval.session.athlete_id
     db.delete(interval.lactate_sample)
     db.commit()
-    recalculate_athlete(db, athlete_id)
+    try:
+        recalculate_athlete(db, athlete_id)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning("Recalculation failed for athlete %s after session change", athlete_id)
     db.commit()
 
 
@@ -131,7 +143,11 @@ def update_session(session_id: int, payload: SessionUpdate, db: Session = Depend
     athlete_id = session.athlete_id
     db.commit()
     db.refresh(session)
-    recalculate_athlete(db, athlete_id)
+    try:
+        recalculate_athlete(db, athlete_id)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning("Recalculation failed for athlete %s after session change", athlete_id)
     return session
 
 
@@ -143,7 +159,11 @@ def delete_session(session_id: int, db: Session = Depends(get_db), _: User = Dep
     athlete_id = session.athlete_id
     db.delete(session)
     db.commit()
-    recalculate_athlete(db, athlete_id)
+    try:
+        recalculate_athlete(db, athlete_id)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning("Recalculation failed for athlete %s after session change", athlete_id)
 
 
 @router.get("/{session_id}/analysis", response_model=SessionAnalysisRead)
@@ -151,7 +171,12 @@ def session_analysis(session_id: int, db: Session = Depends(get_db), _: User = D
     session = db.scalar(_session_query().where(AthleteSession.id == session_id))
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-    analysis = analyze_session(session)
+    try:
+        analysis = analyze_session(session)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("Session analysis crashed for session %s: %s", session_id, exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error en análisis de sesión: {exc}") from exc
     db.commit()
     return {"session": session, **analysis}
 

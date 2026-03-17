@@ -190,7 +190,7 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
       try {
         const result = (await api.athleteHealthOverview(token, user.athlete_id, 28, {
           includeActivity: false, includeRawWellness: false,
-          refreshLiveHealth: Boolean(analysis?.athlete.garmin_connected),
+          refreshLiveHealth: Boolean(analysis?.athlete?.garmin_connected),
         })) as AthleteHealthOverview;
         if (!cancelled) setHealth(result);
       } catch (e) {
@@ -201,7 +201,7 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
     }
     load();
     return () => { cancelled = true; };
-  }, [analysis?.athlete.garmin_connected, loading, token, user?.athlete_id]);
+  }, [analysis?.athlete?.garmin_connected, loading, token, user?.athlete_id]);
 
   // Load planned sessions (all disciplines — lightweight endpoint)
   useEffect(() => {
@@ -281,7 +281,7 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
     if (!disciplineSnapshots.length) return;
     if (!disciplineSnapshots.some((s) => s.discipline === selectedDiscipline)) {
       const activeBlock = analysis?.active_focus_block;
-      setSelectedDiscipline(activeBlock?.priority_discipline || analysis?.athlete.primary_discipline || disciplineSnapshots[0]?.discipline || "running");
+      setSelectedDiscipline(activeBlock?.priority_discipline || analysis?.athlete?.primary_discipline || disciplineSnapshots[0]?.discipline || "running");
     }
   }, [disciplineSnapshots, selectedDiscipline, analysis]);
 

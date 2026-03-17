@@ -27,6 +27,8 @@ import { SessionsPage } from "./pages/SessionsPage";
 import { StravaInformationPage } from "./pages/StravaInformationPage";
 import { VirtualRidePage } from "./pages/VirtualRidePage";
 import { LandingPage } from "./pages/LandingPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import { PageErrorBoundary } from "./components/PageErrorBoundary";
 import { ScienceAdvisor } from "./components/ScienceAdvisor";
 import { Athlete, AthleteAnalysis, AuthUser, DashboardData, SessionAnalysis, SessionSummary } from "./types";
 
@@ -101,11 +103,19 @@ function AthleteTargetsRoute({ token, onDataChanged }: { token: string; onDataCh
 function SessionDetailRoute({ token }: { token: string }) {
   const { sessionId } = useParams();
   const [analysis, setAnalysis] = useState<SessionAnalysis | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sessionId) return;
-    api.sessionAnalysis(token, sessionId).then((result) => setAnalysis(result as SessionAnalysis));
+    setError(null);
+    api.sessionAnalysis(token, sessionId)
+      .then((result) => setAnalysis(result as SessionAnalysis))
+      .catch((err) => setError(err instanceof Error ? err.message : "No se pudo cargar el análisis de la sesión."));
   }, [sessionId, token]);
+
+  if (error) {
+    return <div className="error">No se pudo cargar la sesión: {error}</div>;
+  }
 
   return <SessionDetailPage analysis={analysis} />;
 }
@@ -243,6 +253,9 @@ export default function App() {
     if (location.pathname === "/virtual-ride") {
       return <VirtualRidePage />;
     }
+    if (location.pathname === "/privacy") {
+      return <PrivacyPolicyPage />;
+    }
     if (location.pathname === "/login") {
       return <LoginForm onLogin={handleLogin} />;
     }
@@ -323,8 +336,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<CoachDashboardPage athletes={athletes} token={token} />} />
           <Route path="/coach" element={<CoachDashboardPage athletes={athletes} token={token} />} />
-          <Route path="/lab" element={<DashboardPage athletes={athletes} token={token} viewerId={authUser.id} />} />
-          <Route path="/planning" element={<PlanningPage token={token} />} />
+          <Route path="/lab" element={<PageErrorBoundary><DashboardPage athletes={athletes} token={token} viewerId={authUser.id} /></PageErrorBoundary>} />
+          <Route path="/planning" element={<PageErrorBoundary><PlanningPage token={token} /></PageErrorBoundary>} />
 
           <Route path="/library" element={<LibraryPage token={token} />} />
           <Route path="/library-generator" element={<LibraryGeneratorPage />} />
@@ -332,10 +345,10 @@ export default function App() {
           <Route path="/garmin-connect" element={<GarminConnectPage token={token} athletes={athletes} onDataChanged={() => refreshData(token)} />} />
           <Route path="/virtual-ride" element={<VirtualRidePage />} />
           <Route path="/athletes" element={<AthletesPage athletes={athletes} token={token} onRefresh={() => refreshData(token)} />} />
-          <Route path="/athletes/:athleteId" element={<AthleteDetailRoute token={token} onDataChanged={() => refreshData(token)} />} />
+          <Route path="/athletes/:athleteId" element={<PageErrorBoundary><AthleteDetailRoute token={token} onDataChanged={() => refreshData(token)} /></PageErrorBoundary>} />
           <Route path="/athletes/:athleteId/targets" element={<AthleteTargetsRoute token={token} onDataChanged={() => refreshData(token)} />} />
           <Route path="/sessions" element={<SessionsPage sessions={sessions} token={token} onRefresh={() => refreshData(token)} />} />
-          <Route path="/sessions/:sessionId" element={<SessionDetailRoute token={token} />} />
+          <Route path="/sessions/:sessionId" element={<PageErrorBoundary><SessionDetailRoute token={token} /></PageErrorBoundary>} />
         </Routes>
       </Layout>
       <ScienceAdvisor token={token} />
