@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, fields
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from statistics import mean, median
 from typing import Any, Optional
 
@@ -14,6 +14,17 @@ from app.models.metrics import DerivedMetric, PerformanceEstimate, Physiological
 from app.models.session import Session as AthleteSession, SessionInterval
 from app.services.dynamic_threshold_engine import build_dynamic_threshold_payload, config_from_settings, _accumulated_fatigue_penalty
 from app.services.prediction_engine import build_performance_estimates
+
+
+def _json_safe(obj: Any) -> Any:
+    """Recursively convert date/datetime objects to ISO strings for JSON columns."""
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(item) for item in obj]
+    return obj
 
 
 @dataclass
@@ -2583,7 +2594,7 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
             method="hybrid_threshold_engine_v2",
             confidence=round(mean([item.confidence for item in thresholds]), 2) if thresholds else 0.4,
             summary="Snapshot calculado desde contextualización conservadora, comparación de métodos y reglas longitudinales explicables.",
-            payload=analysis,
+            payload=_json_safe(analysis),
         )
         db.add(snapshot)
         db.flush()

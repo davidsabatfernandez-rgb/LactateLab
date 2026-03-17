@@ -805,7 +805,7 @@ def _next_target_summary(athlete: Athlete, discipline: str) -> Optional[dict[str
     return {
         "objective": next_target.objective,
         "discipline": next_target.discipline,
-        "target_date": next_target.target_date,
+        "target_date": next_target.target_date.isoformat() if hasattr(next_target.target_date, "isoformat") else next_target.target_date,
         "distance_label": next_target.distance_label,
         "priority_level": next_target.priority_level,
         "target_metric": target_metric,
