@@ -12,6 +12,7 @@ import { WeekPage } from "./athlete/pages/WeekPage";
 import { ProgressPage } from "./athlete/pages/ProgressPage";
 import { RecoveryPage } from "./athlete/pages/RecoveryPage";
 import { SettingsPage } from "./athlete/pages/SettingsPage";
+import { ObjectivesPage } from "./athlete/pages/ObjectivesPage";
 import { MyTestsPage } from "./athlete/pages/MyTestsPage";
 import { AthleteTargetsPage } from "./pages/AthleteTargetsPage";
 import { AthletesPage } from "./pages/AthletesPage";
@@ -320,6 +321,7 @@ export default function App() {
             <Route path="/athlete/progress" element={<ProgressPage />} />
             <Route path="/athlete/recovery" element={<RecoveryPage />} />
             <Route path="/athlete/tests" element={<MyTestsPage />} />
+            <Route path="/athlete/objectives" element={<ObjectivesPage />} />
             <Route path="/athlete/settings" element={<SettingsPage />} />
             <Route path="*" element={<TodayPage />} />
           </Routes>

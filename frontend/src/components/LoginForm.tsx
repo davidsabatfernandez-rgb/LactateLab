@@ -5,14 +5,6 @@ import { api } from "../lib/api";
 type LoginMode = "coach" | "athlete";
 type AuthView = "select" | "login" | "register" | "forgot" | "athlete-step1" | "athlete-step2" | "athlete-step3";
 
-type AthleteGoal = {
-  event_name: string;
-  target_date: string;
-  discipline: string;
-  target_value: string;
-  target_type: string;
-};
-
 type LoginFormProps = {
   onLogin: (email: string, password: string, mode: LoginMode) => Promise<void>;
 };
@@ -45,12 +37,6 @@ const LEVEL_OPTIONS = [
   { value: "competitive", label: "Competitivo" },
 ];
 
-const TARGET_TYPE_OPTIONS = [
-  { value: "time", label: "Tiempo" },
-  { value: "power", label: "Potencia" },
-  { value: "pace", label: "Ritmo" },
-];
-
 const selectStyle: React.CSSProperties = {
   width: "100%",
   padding: "0.55rem 0.75rem",
@@ -62,63 +48,12 @@ const selectStyle: React.CSSProperties = {
   outline: "none",
 };
 
-const goalCardStyle: React.CSSProperties = {
-  position: "relative",
-  border: "1px solid #e5e7eb",
-  borderRadius: "10px",
-  padding: "0.85rem",
-  backgroundColor: "#fafafa",
-  display: "flex",
-  flexDirection: "column",
-  gap: "0.5rem",
-};
-
-const goalRemoveBtnStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "0.5rem",
-  right: "0.6rem",
-  background: "none",
-  border: "none",
-  color: "#9ca3af",
-  cursor: "pointer",
-  fontSize: "1.1rem",
-  lineHeight: 1,
-  padding: "2px 6px",
-};
-
-const goalInputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "0.45rem 0.65rem",
-  borderRadius: "6px",
-  border: "1px solid #e5e7eb",
-  backgroundColor: "#fff",
-  color: "#1a1a1a",
-  fontSize: "0.9rem",
-  outline: "none",
-};
-
-const goalLabelStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "0.2rem",
-  fontSize: "0.82rem",
-  color: "#6b7280",
-};
-
-const goalRowStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "0.5rem",
-};
-
 const stepIndicatorStyle: React.CSSProperties = {
   fontSize: "0.78rem",
   color: "#9ca3af",
   letterSpacing: "0.03em",
   marginBottom: "0.15rem",
 };
-
-const EMPTY_GOAL: AthleteGoal = { event_name: "", target_date: "", discipline: "running", target_value: "", target_type: "time" };
 
 export function LoginForm({ onLogin }: LoginFormProps) {
   const [mode, setMode] = useState<LoginMode | null>(null);
@@ -158,7 +93,6 @@ export function LoginForm({ onLogin }: LoginFormProps) {
   // Athlete registration — step 2
   const [athDiscipline, setAthDiscipline] = useState("running");
   const [athLevel, setAthLevel] = useState("trained");
-  const [athGoals, setAthGoals] = useState<AthleteGoal[]>([{ ...EMPTY_GOAL }]);
 
   // Athlete registration — step 3
   const [athGarminEmail, setAthGarminEmail] = useState("");
@@ -202,9 +136,6 @@ export function LoginForm({ onLogin }: LoginFormProps) {
 
   function validateStep2(): boolean {
     if (!athDiscipline) { setAthError("Selecciona una disciplina."); return false; }
-    for (let i = 0; i < athGoals.length; i++) {
-      if (!athGoals[i].event_name.trim()) { setAthError(`El objetivo ${i + 1} necesita un nombre de evento.`); return false; }
-    }
     return true;
   }
 
@@ -218,17 +149,6 @@ export function LoginForm({ onLogin }: LoginFormProps) {
     if (validateStep2()) setAuthView("athlete-step3");
   }
 
-  function addGoal() {
-    setAthGoals([...athGoals, { ...EMPTY_GOAL }]);
-  }
-
-  function removeGoal(idx: number) {
-    setAthGoals(athGoals.filter((_, i) => i !== idx));
-  }
-
-  function updateGoal(idx: number, field: keyof AthleteGoal, value: string) {
-    setAthGoals(athGoals.map((g, i) => (i === idx ? { ...g, [field]: value } : g)));
-  }
 
   async function submitAthleteRegistration(skipGarmin: boolean) {
     setAthError(null);
@@ -242,15 +162,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
         weight_kg: Number(athWeight),
         primary_discipline: athDiscipline,
         athlete_level: athLevel || undefined,
-        goals: athGoals
-          .filter((g) => g.event_name.trim())
-          .map((g) => ({
-            event_name: g.event_name,
-            target_date: g.target_date || undefined,
-            discipline: g.discipline,
-            target_value: g.target_value || undefined,
-            target_type: g.target_type || undefined,
-          })),
+        goals: [],
       };
       if (athDob) payload.date_of_birth = athDob;
       if (!skipGarmin && athGarminEmail.trim()) {
@@ -551,15 +463,15 @@ export function LoginForm({ onLogin }: LoginFormProps) {
           </div>
         )}
 
-        {/* -- View: Athlete Step 2 — Sport & Goals -- */}
+        {/* -- View: Athlete Step 2 — Sport -- */}
         {authView === "athlete-step2" && (
           <div className="lf-view lf-view-form">
             <div className="lf-form-header">
               <button type="button" className="lf-back-btn" onClick={goBack}>&larr;</button>
               <div>
                 <p style={stepIndicatorStyle}>Paso 2 de 3</p>
-                <h2>Deporte y objetivos</h2>
-                <small>Tu disciplina y las competiciones que preparas.</small>
+                <h2>Tu deporte</h2>
+                <small>Selecciona tu disciplina y nivel actual.</small>
               </div>
             </div>
             <label>
@@ -578,91 +490,6 @@ export function LoginForm({ onLogin }: LoginFormProps) {
                 ))}
               </select>
             </label>
-
-            {/* Goals list */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
-              <span style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1a1a1a" }}>Objetivos</span>
-              {athGoals.map((goal, idx) => (
-                <div key={idx} style={goalCardStyle}>
-                  {athGoals.length > 1 && (
-                    <button type="button" style={goalRemoveBtnStyle} onClick={() => removeGoal(idx)} title="Eliminar objetivo">
-                      &times;
-                    </button>
-                  )}
-                  <label style={goalLabelStyle}>
-                    <span>Nombre del evento</span>
-                    <input
-                      style={goalInputStyle}
-                      value={goal.event_name}
-                      onChange={(e) => updateGoal(idx, "event_name", e.target.value)}
-                      placeholder="Maratón Valencia"
-                    />
-                  </label>
-                  <div style={goalRowStyle}>
-                    <label style={goalLabelStyle}>
-                      <span>Fecha objetivo</span>
-                      <input
-                        type="date"
-                        style={goalInputStyle}
-                        value={goal.target_date}
-                        onChange={(e) => updateGoal(idx, "target_date", e.target.value)}
-                      />
-                    </label>
-                    <label style={goalLabelStyle}>
-                      <span>Disciplina</span>
-                      <select
-                        style={{ ...goalInputStyle, padding: "0.45rem 0.5rem" }}
-                        value={goal.discipline}
-                        onChange={(e) => updateGoal(idx, "discipline", e.target.value)}
-                      >
-                        {DISCIPLINE_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                  <div style={goalRowStyle}>
-                    <label style={goalLabelStyle}>
-                      <span>Objetivo</span>
-                      <input
-                        style={goalInputStyle}
-                        value={goal.target_value}
-                        onChange={(e) => updateGoal(idx, "target_value", e.target.value)}
-                        placeholder="3:30:00"
-                      />
-                    </label>
-                    <label style={goalLabelStyle}>
-                      <span>Tipo</span>
-                      <select
-                        style={{ ...goalInputStyle, padding: "0.45rem 0.5rem" }}
-                        value={goal.target_type}
-                        onChange={(e) => updateGoal(idx, "target_type", e.target.value)}
-                      >
-                        {TARGET_TYPE_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={addGoal}
-                style={{
-                  alignSelf: "flex-start",
-                  background: "none",
-                  border: "1px dashed #d1d5db",
-                  borderRadius: "8px",
-                  padding: "0.4rem 0.85rem",
-                  color: "#6b7280",
-                  fontSize: "0.85rem",
-                  cursor: "pointer",
-                }}
-              >
-                + Añadir objetivo
-              </button>
-            </div>
 
             {athError && <p className="lf-error">{athError}</p>}
             <button type="button" className="lf-submit-btn" onClick={goToStep3}>

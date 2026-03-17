@@ -7338,3 +7338,288 @@
   .ath-tests-modal__thresholds { flex-direction: column; }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   OBJECTIVES PAGE
+   ═══════════════════════════════════════════════════════════════ */
+
+.ath-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.ath-page-title {
+  font-family: var(--ath-font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ath-text);
+  margin: 0;
+}
+.ath-page-subtitle {
+  font-size: 0.85rem;
+  color: var(--ath-text-muted);
+  margin: 4px 0 0;
+}
+
+.ath-obj-add-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--ath-accent);
+  background: var(--ath-accent);
+  color: #fff;
+  border-radius: var(--ath-radius-sm);
+  font-family: var(--ath-font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+.ath-obj-add-btn:hover { opacity: 0.85; }
+
+.ath-obj-loading {
+  color: var(--ath-text-muted);
+  font-size: 14px;
+}
+
+/* Messages */
+.ath-obj-msg {
+  padding: 10px 14px;
+  border-radius: var(--ath-radius-sm);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.ath-obj-msg-error {
+  background: var(--ath-red-bg);
+  color: var(--ath-red);
+}
+.ath-obj-msg-success {
+  background: var(--ath-green-bg);
+  color: var(--ath-green);
+}
+
+/* Form card */
+.ath-obj-form-card {
+  background: var(--ath-bg-card);
+  border: 1px solid var(--ath-border);
+  border-radius: var(--ath-radius-md);
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--ath-shadow-sm);
+}
+.ath-obj-form-title {
+  font-family: var(--ath-font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ath-text);
+  margin: 0 0 20px;
+}
+.ath-obj-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.ath-obj-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ath-obj-field-full {
+  grid-column: 1 / -1;
+}
+.ath-obj-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ath-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.ath-obj-input {
+  padding: 8px 10px;
+  border: 1px solid var(--ath-border);
+  border-radius: var(--ath-radius-sm);
+  background: var(--ath-bg);
+  color: var(--ath-text);
+  font-family: var(--ath-font);
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ath-obj-input:focus {
+  outline: none;
+  border-color: var(--ath-accent);
+  box-shadow: var(--ath-shadow-ring);
+}
+.ath-obj-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ath-obj-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+.ath-obj-form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+.ath-obj-save-btn {
+  padding: 10px 20px;
+  border: none;
+  background: var(--ath-accent);
+  color: #fff;
+  border-radius: var(--ath-radius-sm);
+  font-family: var(--ath-font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.ath-obj-save-btn:hover { opacity: 0.85; }
+.ath-obj-save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ath-obj-cancel-btn {
+  padding: 10px 20px;
+  border: 1px solid var(--ath-border);
+  background: none;
+  color: var(--ath-text-secondary);
+  border-radius: var(--ath-radius-sm);
+  font-family: var(--ath-font);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ath-obj-cancel-btn:hover {
+  background: var(--ath-bg-hover);
+  color: var(--ath-text);
+}
+
+/* Empty state */
+.ath-obj-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--ath-text-muted);
+  font-size: 14px;
+}
+.ath-obj-empty p { margin: 4px 0; }
+
+/* Card list */
+.ath-obj-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ath-obj-card {
+  background: var(--ath-bg-card);
+  border: 1px solid var(--ath-border);
+  border-radius: var(--ath-radius-md);
+  padding: 16px 20px;
+  box-shadow: var(--ath-shadow-sm);
+  transition: box-shadow 0.15s ease;
+  position: relative;
+}
+.ath-obj-card:hover {
+  box-shadow: var(--ath-shadow-md);
+}
+.ath-obj-card-past {
+  opacity: 0.55;
+}
+.ath-obj-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.ath-obj-card-name {
+  font-family: var(--ath-font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ath-text);
+}
+.ath-obj-priority-badge {
+  padding: 2px 10px;
+  border-radius: var(--ath-radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ath-obj-priority-alta {
+  background: var(--ath-red-bg);
+  color: var(--ath-red);
+}
+.ath-obj-priority-media {
+  background: var(--ath-amber-bg);
+  color: var(--ath-amber);
+}
+.ath-obj-priority-baja {
+  background: var(--ath-blue-bg);
+  color: var(--ath-blue);
+}
+.ath-obj-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--ath-text-secondary);
+  margin-bottom: 6px;
+}
+.ath-obj-card-discipline {
+  font-weight: 500;
+}
+.ath-obj-card-countdown {
+  font-weight: 600;
+  color: var(--ath-text-muted);
+}
+.ath-obj-soon {
+  color: var(--ath-amber);
+}
+.ath-obj-past {
+  color: var(--ath-text-muted);
+}
+.ath-obj-card-ref {
+  font-size: 13px;
+  color: var(--ath-accent);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.ath-obj-card-notes {
+  font-size: 13px;
+  color: var(--ath-text-muted);
+  font-style: italic;
+  margin-bottom: 4px;
+}
+.ath-obj-delete-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  padding: 4px 10px;
+  border: 1px solid var(--ath-border);
+  background: none;
+  color: var(--ath-text-muted);
+  border-radius: var(--ath-radius-sm);
+  font-family: var(--ath-font);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  opacity: 0;
+}
+.ath-obj-card:hover .ath-obj-delete-btn {
+  opacity: 1;
+}
+.ath-obj-delete-btn:hover {
+  background: var(--ath-red-bg);
+  color: var(--ath-red);
+  border-color: var(--ath-red);
+}
+.ath-obj-delete-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .ath-page-header { flex-direction: column; }
+  .ath-obj-form-grid { grid-template-columns: 1fr; }
+  .ath-obj-delete-btn { opacity: 1; }
+}
+

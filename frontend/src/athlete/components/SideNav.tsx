@@ -47,6 +47,18 @@ const tabs = [
     ),
   },
   {
+    id: "objectives",
+    path: "/athlete/objectives",
+    label: "Objetivos",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="6" />
+        <circle cx="12" cy="12" r="2" />
+      </svg>
+    ),
+  },
+  {
     id: "tests",
     path: "/athlete/tests",
     label: "Mis Tests",
