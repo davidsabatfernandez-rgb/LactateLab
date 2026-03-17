@@ -290,7 +290,17 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
     [disciplineSnapshots, selectedDiscipline],
   );
 
-  const weeklyTotal = useMemo(() => disciplineSnapshots.reduce((sum, s) => sum + s.weeklySessions, 0), [disciplineSnapshots]);
+  // Count Garmin activities in last 7 days (real training, not planned sessions)
+  const weeklyTotal = useMemo(() => {
+    const activities = health?.recent_activities ?? [];
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+    const recent = activities.filter((a) => new Date(a.started_at) >= cutoff);
+    // Use Garmin activity count if available, else fall back to planned sessions
+    return recent.length > 0
+      ? recent.length
+      : disciplineSnapshots.reduce((sum, s) => sum + s.weeklySessions, 0);
+  }, [health?.recent_activities, disciplineSnapshots]);
   const monthlyTotal = useMemo(() => disciplineSnapshots.reduce((sum, s) => sum + s.monthlySessions, 0), [disciplineSnapshots]);
 
   // Wellness

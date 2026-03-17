@@ -296,7 +296,7 @@ export default function App() {
 
   if (authUser?.role === "athlete") {
     return (
-      <AthleteLayout onLogout={handleLogout} fullName={authUser.full_name}>
+      <AthleteLayout onLogout={handleLogout} fullName={authUser.full_name} themeMode={themeMode} onToggleTheme={() => setThemeMode((c) => (c === "dark" ? "light" : "dark"))}>
         <AthleteDataProvider user={authUser} token={token}>
           <Routes>
             <Route path="/athlete/today" element={<TodayPage />} />

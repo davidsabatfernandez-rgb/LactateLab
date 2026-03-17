@@ -524,6 +524,8 @@ def _normalize_activity(
         "total_elevation_gain_m": _coerce_float(summary.get("elevationGain")) or _coerce_float(summary_dto.get("elevationGain")),
         "average_cadence": _coerce_float(summary.get("averageRunCadence")) or _coerce_float(summary.get("averageBikeCadence")) or _coerce_float(summary_dto.get("averageRunCadence")),
         "max_watts": _coerce_float(summary.get("maxPower")) or _coerce_float(summary_dto.get("maxPower")),
+        "training_load": _coerce_float(summary.get("activityTrainingLoad")) or _coerce_float(summary_dto.get("activityTrainingLoad")),
+        "training_effect": _coerce_float(summary.get("trainingEffect")) or _coerce_float(summary_dto.get("trainingEffect")),
         "start_latlng": _normalize_latlng(metadata_dto.get("startCoordinate")),
         "end_latlng": _normalize_latlng(metadata_dto.get("endCoordinate")),
         "device_name": metadata_dto.get("deviceName"),

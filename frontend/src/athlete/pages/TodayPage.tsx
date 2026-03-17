@@ -93,11 +93,16 @@ export function TodayPage() {
       const dayActs = activities.filter((a) => a.started_at.slice(0, 10) === iso);
       let load = 0;
       for (const a of dayActs) {
-        // Simplified TRIMP: duration_min × HR_factor
-        const durMin = a.moving_time_seconds / 60;
-        const hr = a.average_heartrate ?? 130;
-        const hrFactor = Math.max(0.5, (hr - 60) / 100); // normalized intensity
-        load += durMin * hrFactor;
+        if (a.training_load != null && a.training_load > 0) {
+          // Use Garmin's native training load when available
+          load += a.training_load;
+        } else {
+          // Fallback: simplified TRIMP when Garmin doesn't provide load
+          const durMin = a.moving_time_seconds / 60;
+          const hr = a.average_heartrate ?? 130;
+          const hrFactor = Math.max(0.5, (hr - 60) / 100);
+          load += durMin * hrFactor;
+        }
       }
       days.push({ date: iso, label: dayLabel, load: Math.round(load) });
     }

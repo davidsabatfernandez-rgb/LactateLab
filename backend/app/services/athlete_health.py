@@ -129,7 +129,7 @@ def build_athlete_health_overview(
         "sleep_breakdown": sleep_breakdown,
         "performance_metrics": performance_metrics,
         "health_days": health_days,
-        "recent_activities": activities[:8],
+        "recent_activities": activities,
         "activity_calendar": calendar,
         "raw_wellness": raw_wellness,
         "notes": notes,
@@ -151,6 +151,8 @@ def _normalize_activity(activity: dict[str, Any]) -> dict[str, Any]:
         "moving_time_seconds": int(activity.get("moving_time_seconds") or 0),
         "average_heartrate": _coerce_float(activity.get("average_heartrate")),
         "average_watts": _coerce_float(activity.get("average_watts")),
+        "training_load": _coerce_float(activity.get("training_load")),
+        "training_effect": _coerce_float(activity.get("training_effect")),
         "source": "garmin",
     }
 
