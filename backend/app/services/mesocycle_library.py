@@ -501,6 +501,9 @@ def mesocycle_template_by_id(template_id: str | None) -> Optional[MesocycleTempl
 
 
 def templates_for_discipline(discipline: str) -> list[MesocycleTemplate]:
+    if discipline == "triathlon":
+        # Triathlon coaches need access to all discipline-specific templates
+        return list(TEMPLATES)
     discipline_templates = [template for template in TEMPLATES if template.discipline == discipline]
     shared_templates = [template for template in TEMPLATES if template.discipline == "all"]
     return [*discipline_templates, *shared_templates]

@@ -972,11 +972,11 @@ function PlanningPageInner() {
     const candidateOrder = recommendation?.candidates_scored ?? [];
 
     // 1) Scored candidates first (system recommendation)
-    const scoredBlockTypes = new Set<string>();
+    const scoredTemplateIds = new Set<string>();
     const scored = candidateOrder.map<CalendarMesocycleOption | null>((candidate) => {
       const template = templateLibrary.find((i) => i.block_type === candidate.block_type);
       if (!template) return null;
-      scoredBlockTypes.add(candidate.block_type);
+      scoredTemplateIds.add(template.template_id);
       const isBest = template.template_id === recommendation?.template_id || candidate.block_type === recommendation?.recommended_block_type;
       return {
         template, score: candidate.score ?? null, isBest,
@@ -987,7 +987,7 @@ function PlanningPageInner() {
 
     // 2) All remaining templates (override options for the coach)
     const rest = templateLibrary
-      .filter((t) => !scoredBlockTypes.has(t.block_type))
+      .filter((t) => !scoredTemplateIds.has(t.template_id))
       .map((template) => ({
         template, score: null as number | null, isBest: false,
         whyItFits: [] as string[], whyNotAsGood: [] as string[],
