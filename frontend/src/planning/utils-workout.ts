@@ -133,66 +133,75 @@ export function buildSyntheticCalendarSessions(source: PlanningCalendarSource) {
   return sessions.sort((a, b) => dateValue(a.date) - dateValue(b.date));
 }
 
+function mapPlannedSessionToCalendar(session: PlanningPlannedSession): CalendarSession {
+  // Derive compliance from backend execution_status when available
+  let compliance: ComplianceStatus | null = null;
+  const execStatus = session.execution_status;
+  if (execStatus === "completed") {
+    compliance = { status: "completed", reasons: [] };
+  } else if (execStatus === "partial") {
+    compliance = { status: "partial", reasons: ["Sesion parcialmente completada"] };
+  } else if (execStatus === "skipped") {
+    compliance = { status: "missed", reasons: ["Sesion marcada como no realizada"] };
+  }
+
+  // Build garminActivity from actual_performance if available
+  let garminActivity: GarminCalendarActivity | null = null;
+  const perf = session.actual_performance;
+  if (perf && session.linked_activity_id) {
+    garminActivity = {
+      provider_activity_id: session.linked_activity_id,
+      sport_type: session.discipline,
+      started_at: perf.started_at || session.scheduled_date,
+      distance_m: perf.distance_m || 0,
+      moving_time_seconds: perf.duration_s || 0,
+      average_heartrate: perf.avg_hr ?? null,
+      max_heartrate: null,
+      average_watts: perf.avg_power ?? null,
+    };
+  }
+
+  return {
+    id: `planned-session-${session.id}`,
+    date: session.scheduled_date,
+    discipline: session.discipline,
+    title: session.public_label,
+    sessionType: session.session_role,
+    objective: session.objective,
+    description: [session.coach_note, session.expected_signal].filter(Boolean).join(" "),
+    dose: session.dose_prescription,
+    confidence: session.confidence >= 0.85 ? "alta" : "media",
+    estimatedMinutes: typeof session.payload?.total_duration_min === "number"
+      ? Number(session.payload.total_duration_min)
+      : estimateMinutesFromDose(session.dose_prescription),
+    rawId: session.id,
+    blaCheck: session.bla_check,
+    publishStatus: session.publish_status,
+    publishError: session.publish_error,
+    targetsStale: session.targets_stale,
+    thresholdSnapshotDate: session.threshold_snapshot_date,
+    garminActivity,
+    compliance,
+    coachFeedback: session.coach_feedback ?? null,
+    coachFeedbackAt: session.coach_feedback_at ?? null,
+    executionRating: session.execution_rating ?? null,
+  };
+}
+
 export function buildPersistedCalendarSessions(source: PlanningCalendarSource, plannedSessions: PlanningPlannedSession[]) {
   if (source.kind !== "planned" || !source.focusBlockId) return null;
   const selected = plannedSessions
     .filter((session) => session.focus_block_id === source.focusBlockId || session.focus_block_id == null)
-    .map<CalendarSession>((session) => {
-      // Derive compliance from backend execution_status when available
-      let compliance: ComplianceStatus | null = null;
-      const execStatus = session.execution_status;
-      if (execStatus === "completed") {
-        compliance = { status: "completed", reasons: [] };
-      } else if (execStatus === "partial") {
-        compliance = { status: "partial", reasons: ["Sesion parcialmente completada"] };
-      } else if (execStatus === "skipped") {
-        compliance = { status: "missed", reasons: ["Sesion marcada como no realizada"] };
-      }
-
-      // Build garminActivity from actual_performance if available
-      let garminActivity: GarminCalendarActivity | null = null;
-      const perf = session.actual_performance;
-      if (perf && session.linked_activity_id) {
-        garminActivity = {
-          provider_activity_id: session.linked_activity_id,
-          sport_type: session.discipline,
-          started_at: perf.started_at || session.scheduled_date,
-          distance_m: perf.distance_m || 0,
-          moving_time_seconds: perf.duration_s || 0,
-          average_heartrate: perf.avg_hr ?? null,
-          max_heartrate: null,
-          average_watts: perf.avg_power ?? null,
-        };
-      }
-
-      return {
-        id: `planned-session-${session.id}`,
-        date: session.scheduled_date,
-        discipline: session.discipline,
-        title: session.public_label,
-        sessionType: session.session_role,
-        objective: session.objective,
-        description: [session.coach_note, session.expected_signal].filter(Boolean).join(" "),
-        dose: session.dose_prescription,
-        confidence: session.confidence >= 0.85 ? "alta" : "media",
-        estimatedMinutes: typeof session.payload?.total_duration_min === "number"
-          ? Number(session.payload.total_duration_min)
-          : estimateMinutesFromDose(session.dose_prescription),
-        rawId: session.id,
-        blaCheck: session.bla_check,
-        publishStatus: session.publish_status,
-        publishError: session.publish_error,
-        targetsStale: session.targets_stale,
-        thresholdSnapshotDate: session.threshold_snapshot_date,
-        garminActivity,
-        compliance,
-        coachFeedback: session.coach_feedback ?? null,
-        coachFeedbackAt: session.coach_feedback_at ?? null,
-        executionRating: session.execution_rating ?? null,
-      };
-    });
+    .map(mapPlannedSessionToCalendar);
 
   return selected.length ? selected.sort((a, b) => dateValue(a.date) - dateValue(b.date)) : null;
+}
+
+export function buildPersistedCalendarSessionsRaw(plannedSessions: PlanningPlannedSession[]) {
+  if (!plannedSessions.length) return [];
+  return plannedSessions
+    .map(mapPlannedSessionToCalendar)
+    .sort((a, b) => dateValue(a.date) - dateValue(b.date));
 }
 
 // ── Workout template resolution ──

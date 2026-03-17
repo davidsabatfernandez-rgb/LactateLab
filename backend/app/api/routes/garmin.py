@@ -36,6 +36,16 @@ def connect_athlete_garmin(
     except GarminRequestError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
+    # Auto-sync last 7 days right after connecting (best-effort)
+    if connected.garmin_connected:
+        try:
+            import logging
+            logging.getLogger(__name__).info("Auto-syncing 7 days after Garmin connect for athlete %s", connected.id)
+            sync_garmin_activities(db, connected, days_back=7)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("Auto-sync after connect failed for athlete %s: %s", connected.id, exc)
+
     return GarminConnectResponse(
         athlete_id=connected.id,
         garmin_user_id=connected.garmin_user_id or 0,

@@ -41,8 +41,8 @@ import {
 } from "../planning/utils";
 import {
   BLOCK_LABELS, buildDraftWorkoutPreviewSelection, buildLibraryWorkoutPreview,
-  buildMicrocycle, buildPersistedCalendarSessions, buildPlannedWorkoutPreviewSelection,
-  buildSyntheticCalendarSessions, buildSyntheticCalendarWorkoutPreview,
+  buildMicrocycle, buildPersistedCalendarSessions, buildPersistedCalendarSessionsRaw,
+  buildPlannedWorkoutPreviewSelection, buildSyntheticCalendarWorkoutPreview,
   computeSessionCompliance, defaultPhaseForRecommendation, detectedBlockTitle,
   durationInterpretation, energySystemFocusForRecommendation, garminSportToDiscipline,
   objectiveFromTemplate, objectiveOptionsForDiscipline,
@@ -426,14 +426,19 @@ function PlanningPageInner() {
 
   const plannedSessions = useMemo(() => {
     const persisted = buildPersistedCalendarSessions(selectedCalendarSource, overview?.planned_sessions ?? []);
-    return persisted ?? buildSyntheticCalendarSessions(selectedCalendarSource);
+    if (persisted) return persisted;
+    // No active focus block — still show manual/unlinked sessions
+    const allSessions = overview?.planned_sessions ?? [];
+    const unlinked = allSessions.filter((s) => s.focus_block_id == null);
+    if (!unlinked.length) return [];
+    return buildPersistedCalendarSessionsRaw(unlinked);
   }, [overview?.planned_sessions, selectedCalendarSource]);
 
   const overlayEntries = useMemo<CalendarEntry[]>(
     () => overlaySources.flatMap((source) => {
       const dov = disciplineOverviews[source.discipline];
       const persisted = buildPersistedCalendarSessions(source, dov?.planned_sessions ?? []);
-      const sessions = persisted ?? buildSyntheticCalendarSessions(source);
+      const sessions = persisted ?? [];
       return sessions.map((session) => ({ ...session, layerDiscipline: source.discipline, isOverlay: true }));
     }),
     [disciplineOverviews, overlaySources],

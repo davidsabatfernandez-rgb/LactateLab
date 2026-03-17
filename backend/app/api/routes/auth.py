@@ -249,7 +249,6 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
         if athlete is None:
             import logging
             logging.getLogger(__name__).warning("User %s has orphaned athlete_id=%s, attempting fix", user.email, user.athlete_id)
-            # Try matching by name first, then fall back to most recent athlete for this user's coach
             from sqlalchemy import text
             row = db.execute(text(
                 "SELECT id FROM athletes ORDER BY id DESC LIMIT 1"
@@ -260,7 +259,26 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
                 db.commit()
                 db.refresh(user)
                 logging.getLogger(__name__).info("Fixed user %s: athlete_id %s -> %s", user.email, user.athlete_id, row[0])
+        else:
+            # Auto-sync today's Garmin activities if connected and stale (>20 min)
+            _auto_sync_today(db, athlete)
     return user
+
+
+def _auto_sync_today(db: Session, athlete: "Athlete") -> None:
+    """Sync only today's Garmin activities if last sync was >20 min ago. Best-effort."""
+    if not athlete.garmin_connected:
+        return
+    from datetime import datetime, timedelta
+    stale_threshold = datetime.utcnow() - timedelta(minutes=20)
+    if athlete.garmin_last_sync_at and athlete.garmin_last_sync_at >= stale_threshold:
+        return
+    try:
+        from app.services.garmin import sync_garmin_activities
+        sync_garmin_activities(db, athlete, days_back=1)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning("Auto-sync today failed for athlete %s", athlete.id)
 
 
 @router.get("/strava/start", response_model=StravaConnectStartResponse)

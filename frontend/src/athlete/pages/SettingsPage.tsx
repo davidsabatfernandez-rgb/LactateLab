@@ -74,13 +74,16 @@ export function SettingsPage() {
     } catch (e: any) {
       const msg = e?.message ?? String(e);
       const lmsg = msg.toLowerCase();
-      if (lmsg.includes("mfa") || lmsg.includes("verification") || lmsg.includes("unauthorized")) {
+      if (lmsg.includes("mfa") || lmsg.includes("verification")) {
         setGarminStep("mfa");
         if (wasMfa && garminForm.mfa_code) {
           setGarminError("El código no funcionó. Garmin envía un código nuevo cada intento — usa el último código recibido por email.");
         } else {
           setGarminError("Garmin requiere verificación. Revisa tu email para obtener el código.");
         }
+      } else if (lmsg.includes("garmin connect activado") || lmsg.includes("configuración inicial")) {
+        setGarminStep("error");
+        setGarminError("Tu cuenta de Garmin no tiene Garmin Connect configurado. Entra en connect.garmin.com desde un navegador, inicia sesión y completa la configuración. Después vuelve aquí e inténtalo de nuevo.");
       } else {
         setGarminStep("error");
         setGarminError(msg);

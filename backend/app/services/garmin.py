@@ -169,6 +169,31 @@ def get_garmin_activity_detail(
     return activity
 
 
+def _classify_garmin_error(exc: Exception) -> GarminRequestError:
+    """Classify a garth/requests exception into a user-friendly GarminRequestError."""
+    msg = str(exc).lower()
+    # Check preauthorized 401 FIRST (URL contains 'mfa' in accepts-mfa-tokens param)
+    if "preauthorized" in msg and "401" in msg:
+        return GarminRequestError(
+            "Tu cuenta de Garmin no tiene Garmin Connect activado. "
+            "Entra en https://connect.garmin.com desde un navegador, "
+            "inicia sesión y completa la configuración inicial. "
+            "Después vuelve a intentar la conexión aquí.",
+            status_code=422,
+        )
+    if "mfa" in msg or "verification" in msg:
+        return GarminRequestError(
+            "Garmin requiere verificación MFA. Introduce el código que has recibido por email.",
+            status_code=401,
+        )
+    if "401" in msg and "unauthorized" in msg:
+        return GarminRequestError(
+            "Credenciales de Garmin incorrectas. Verifica tu email y contraseña.",
+            status_code=401,
+        )
+    return GarminRequestError(f"Garmin login failed: {exc}", status_code=502)
+
+
 @contextmanager
 def _garmin_session(
     *,
@@ -207,22 +232,10 @@ def _garmin_session(
             raise  # re-raise our own MFA error
         except garth_error as exc:
             _log.warning("Garmin login failed (GarthException) for %s: %s", email, exc)
-            msg = str(exc).lower()
-            if "mfa" in msg or "verification" in msg or "unauthorized" in msg:
-                raise GarminRequestError(
-                    "Garmin requiere verificación MFA. Introduce el código que has recibido por email.",
-                    status_code=401,
-                ) from exc
-            raise GarminRequestError(f"Garmin login failed: {exc}", status_code=502) from exc
+            raise _classify_garmin_error(exc) from exc
         except Exception as exc:  # pragma: no cover - defensive for library edge cases
             _log.warning("Garmin login failed (generic) for %s: %s", email, exc)
-            msg = str(exc).lower()
-            if "mfa" in msg or "verification" in msg or "unauthorized" in msg:
-                raise GarminRequestError(
-                    "Garmin requiere verificación MFA. Introduce el código que has recibido por email.",
-                    status_code=401,
-                ) from exc
-            raise GarminRequestError(f"Garmin login failed: {exc}", status_code=502) from exc
+            raise _classify_garmin_error(exc) from exc
 
         yield garth
 

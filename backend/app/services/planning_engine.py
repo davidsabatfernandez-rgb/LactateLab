@@ -1970,6 +1970,8 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
         template_summary = template.summary
         recommended_block_label = template.public_label
     else:
+        primary_focus = BLOCK_TAXONOMY[recommended_type].public_label
+        secondary_focus = reference_estimate or ""
         entry_checks = []
         exit_checks = []
         key_session_families = []
