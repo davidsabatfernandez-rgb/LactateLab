@@ -747,6 +747,17 @@
   color: var(--c-faint);
 }
 
+.lp-foot__link {
+  font-size: 12px;
+  color: var(--c-faint);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.lp-foot__link:hover {
+  color: var(--c-dark);
+}
+
 /* ═══ RESPONSIVE ════════════════════════════ */
 
 /* ═══ VIDEO HERO BG ═════════════════════════ */

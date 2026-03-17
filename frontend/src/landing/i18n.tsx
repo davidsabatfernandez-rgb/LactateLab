@@ -214,6 +214,7 @@ const T: Record<Lang, Record<string, string>> = {
 
     // Footer
     foot_tagline: "Ciencia aplicada al rendimiento.",
+    foot_privacy: "Politica de Privacidad",
 
     // Zones
     z1: "Recuperación", z2: "Base", z3: "Tempo", z4: "Umbral", z5: "VO2max",
@@ -412,6 +413,7 @@ const T: Record<Lang, Record<string, string>> = {
     cta_placeholder: "you@email.com",
 
     foot_tagline: "Science applied to performance.",
+    foot_privacy: "Privacy Policy",
     z1: "Recovery", z2: "Base", z3: "Tempo", z4: "Threshold", z5: "VO2max",
   },
 
@@ -541,6 +543,7 @@ const T: Record<Lang, Record<string, string>> = {
     cta_placeholder: "du@email.com",
 
     foot_tagline: "Wissenschaft für Leistung.",
+    foot_privacy: "Datenschutzrichtlinie",
     z1: "Erholung", z2: "Grundlage", z3: "Tempo", z4: "Schwelle", z5: "VO2max",
   },
 
@@ -670,6 +673,7 @@ const T: Record<Lang, Record<string, string>> = {
     cta_placeholder: "deg@email.com",
 
     foot_tagline: "Vitenskap for prestasjon.",
+    foot_privacy: "Personvernerklaering",
     z1: "Restitusjon", z2: "Grunnlag", z3: "Tempo", z4: "Terskel", z5: "VO2max",
   },
 
@@ -799,6 +803,7 @@ const T: Record<Lang, Record<string, string>> = {
     cta_placeholder: "vous@email.com",
 
     foot_tagline: "La science au service de la performance.",
+    foot_privacy: "Politique de confidentialite",
     z1: "Récupération", z2: "Base", z3: "Tempo", z4: "Seuil", z5: "VO2max",
   },
 };

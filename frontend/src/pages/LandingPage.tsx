@@ -519,6 +519,7 @@ function LandingInner() {
         <div className="lp-w lp-foot__inner">
           <span className="lp-foot__brand">PeakAerobic</span>
           <span className="lp-foot__line">{t("foot_tagline")}</span>
+          <a href="/privacy" className="lp-foot__link">{t("foot_privacy")}</a>
         </div>
       </footer>
     </div>
