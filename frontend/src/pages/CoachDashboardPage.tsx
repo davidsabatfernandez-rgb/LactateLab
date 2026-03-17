@@ -405,20 +405,117 @@ export function CoachDashboardPage({ athletes, token }: CoachDashboardPageProps)
     let cancelled = false;
     setLoading(true);
 
-    Promise.allSettled(
-      athletes.map((a) =>
-        api.athleteAnalysis(token, a.id).then((result) => ({ id: a.id, analysis: result as AthleteAnalysis })),
-      ),
-    ).then((results) => {
+    type DashboardSummaryItem = {
+      athlete_id: number;
+      discipline_views: Record<string, {
+        lt1_pace: number | null; lt1_power: number | null; lt1_hr: number | null; lt1_lactate: number | null;
+        lt2_pace: number | null; lt2_power: number | null; lt2_hr: number | null; lt2_lactate: number | null;
+        confidence: number | null; last_test_date: string | null;
+      }>;
+      active_focus_block: { energy_system_focus: string; block_objective: string; start_date: string; end_date: string; phase?: string | null } | null;
+      recent_sessions: Array<{ performed_at: string; discipline: string }>;
+      confidence_summary: Array<{ label: string; score: number }> | null;
+    };
+
+    api.dashboardSummary(token).then((data) => {
       if (cancelled) return;
+      const items = data as DashboardSummaryItem[];
       const map: Record<number, AthleteAnalysis> = {};
-      for (const r of results) {
-        if (r.status === "fulfilled") {
-          map[r.value.id] = r.value.analysis;
+      for (const item of items) {
+        // Map lightweight summary into the AthleteAnalysis shape that buildAthleteCard expects
+        const disciplineViews: Record<string, import("../types").DisciplineView> = {};
+        for (const [disc, view] of Object.entries(item.discipline_views)) {
+          const thresholds: import("../types").Threshold[] = [];
+          if (view.lt1_lactate != null || view.lt1_pace != null || view.lt1_power != null || view.lt1_hr != null) {
+            thresholds.push({
+              name: "LT1",
+              lactate: view.lt1_lactate,
+              pace_seconds_per_km: view.lt1_pace,
+              power_watts: view.lt1_power,
+              heart_rate: view.lt1_hr,
+              method: "snapshot",
+              confidence: view.confidence ?? 0,
+              rationale: "",
+              methods_compared: [],
+              agreement_score: 0,
+              evidence_level: "",
+            });
+          }
+          if (view.lt2_lactate != null || view.lt2_pace != null || view.lt2_power != null || view.lt2_hr != null) {
+            thresholds.push({
+              name: "LT2",
+              lactate: view.lt2_lactate,
+              pace_seconds_per_km: view.lt2_pace,
+              power_watts: view.lt2_power,
+              heart_rate: view.lt2_hr,
+              method: "snapshot",
+              confidence: view.confidence ?? 0,
+              rationale: "",
+              methods_compared: [],
+              agreement_score: 0,
+              evidence_level: "",
+            });
+          }
+          disciplineViews[disc] = {
+            discipline: disc,
+            latest_snapshot_date: view.last_test_date,
+            thresholds,
+            zones: [],
+            estimates: [],
+            recent_sessions: [],
+            curve_history: {},
+            historical_evolution: {},
+            power_bests: [],
+            measurement_log: [],
+          };
         }
+
+        const confSummary = (item.confidence_summary ?? []).map((c) => ({
+          label: c.label,
+          score: c.score,
+          level: c.score >= 0.7 ? "high" : c.score >= 0.5 ? "medium" : "low",
+          explanation: "",
+        }));
+
+        const recentSessions = item.recent_sessions.map((s, i) => ({
+          id: -(i + 1),  // placeholder id
+          athlete_id: item.athlete_id,
+          performed_at: s.performed_at,
+          discipline: s.discipline,
+          session_type: "",
+          goal: "",
+        }));
+
+        map[item.athlete_id] = {
+          athlete: athletes.find((a) => a.id === item.athlete_id)!,
+          thresholds: [],
+          zones: [],
+          estimates: [],
+          trends: [],
+          recent_sessions: recentSessions,
+          curve_history: {},
+          automated_comments: [],
+          interpretation: [],
+          confidence_summary: confSummary,
+          historical_evolution: {},
+          discipline_views: disciplineViews,
+          active_focus_block: item.active_focus_block ? {
+            id: 0,
+            athlete_id: item.athlete_id,
+            energy_system_focus: item.active_focus_block.energy_system_focus,
+            block_objective: item.active_focus_block.block_objective,
+            start_date: item.active_focus_block.start_date,
+            end_date: item.active_focus_block.end_date,
+            status: "active",
+            phase: item.active_focus_block.phase,
+          } : null,
+          focus_block_evaluations: [],
+        } as AthleteAnalysis;
       }
       setAnalysisMap(map);
       setLoading(false);
+    }).catch(() => {
+      if (!cancelled) setLoading(false);
     });
 
     return () => {

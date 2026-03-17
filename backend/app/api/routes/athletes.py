@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import select, func, and_
+from sqlalchemy.orm import Session, joinedload, aliased
 from typing import Union
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.athlete import Athlete, AthleteFocusBlock, AthleteTarget, AthleteWeightHistory
+from app.models.metrics import PhysiologicalSnapshot
 from app.models.planned_session import PlannedSession
+from app.models.session import Session as SessionModel
 from app.models.training_zone import TrainingZone, TrainingZoneSet
 from app.models.user import User
 from app.schemas.ai import (
@@ -156,6 +158,145 @@ def _normalized_target_payload(payload: Union[AthleteTargetCreate, AthleteTarget
 def list_athletes(db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     athletes = db.scalars(select(Athlete).options(joinedload(Athlete.weights), joinedload(Athlete.focus_blocks), joinedload(Athlete.targets)).order_by(Athlete.name)).unique().all()
     return athletes
+
+
+@router.get("/dashboard-summary")
+def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Lightweight batch endpoint for the coach dashboard.
+
+    Returns summary data for ALL athletes in a single request by reading
+    existing computed data from the database — no heavy recalculations.
+    """
+    athletes = (
+        db.scalars(
+            select(Athlete)
+            .options(
+                joinedload(Athlete.weights),
+                joinedload(Athlete.focus_blocks),
+                joinedload(Athlete.targets),
+            )
+            .order_by(Athlete.name)
+        )
+        .unique()
+        .all()
+    )
+
+    athlete_ids = [a.id for a in athletes]
+    if not athlete_ids:
+        return []
+
+    # ── Latest snapshot per athlete+discipline (subquery for max id) ──
+    latest_snap_subq = (
+        select(
+            PhysiologicalSnapshot.athlete_id,
+            PhysiologicalSnapshot.discipline,
+            func.max(PhysiologicalSnapshot.id).label("max_id"),
+        )
+        .where(PhysiologicalSnapshot.athlete_id.in_(athlete_ids))
+        .group_by(PhysiologicalSnapshot.athlete_id, PhysiologicalSnapshot.discipline)
+        .subquery()
+    )
+    snapshots = db.scalars(
+        select(PhysiologicalSnapshot).join(
+            latest_snap_subq,
+            PhysiologicalSnapshot.id == latest_snap_subq.c.max_id,
+        )
+    ).all()
+    # Index: athlete_id -> discipline -> snapshot
+    snap_map: dict[int, dict[str, PhysiologicalSnapshot]] = {}
+    for s in snapshots:
+        snap_map.setdefault(s.athlete_id, {})[s.discipline] = s
+
+    # ── Active focus blocks ──
+    active_blocks = db.scalars(
+        select(AthleteFocusBlock).where(
+            AthleteFocusBlock.athlete_id.in_(athlete_ids),
+            AthleteFocusBlock.status == "active",
+        )
+    ).all()
+    block_map: dict[int, AthleteFocusBlock] = {}
+    for b in active_blocks:
+        # Keep the first (most recent by default ordering) active block per athlete
+        if b.athlete_id not in block_map:
+            block_map[b.athlete_id] = b
+
+    # ── Recent sessions (last 5 per athlete) ──
+    # Use a window function to rank sessions per athlete
+    row_num = func.row_number().over(
+        partition_by=SessionModel.athlete_id,
+        order_by=SessionModel.performed_at.desc(),
+    ).label("rn")
+    ranked_subq = (
+        select(
+            SessionModel.id,
+            SessionModel.athlete_id,
+            SessionModel.performed_at,
+            SessionModel.discipline,
+            row_num,
+        )
+        .where(SessionModel.athlete_id.in_(athlete_ids))
+        .subquery()
+    )
+    recent_rows = db.execute(
+        select(
+            ranked_subq.c.athlete_id,
+            ranked_subq.c.performed_at,
+            ranked_subq.c.discipline,
+        ).where(ranked_subq.c.rn <= 5)
+    ).all()
+    sessions_map: dict[int, list[dict]] = {}
+    for row in recent_rows:
+        sessions_map.setdefault(row.athlete_id, []).append({
+            "performed_at": row.performed_at.isoformat() if row.performed_at else None,
+            "discipline": row.discipline,
+        })
+
+    # ── Build response ──
+    result = []
+    for athlete in athletes:
+        aid = athlete.id
+        disc_snaps = snap_map.get(aid, {})
+
+        discipline_views: dict[str, dict] = {}
+        confidence_scores: list[dict] = []
+        for disc, snap in disc_snaps.items():
+            discipline_views[disc] = {
+                "lt1_pace": snap.lt1_pace_seconds_per_km,
+                "lt1_power": snap.lt1_power_watts,
+                "lt1_hr": snap.lt1_heart_rate,
+                "lt1_lactate": snap.lt1_lactate,
+                "lt2_pace": snap.lt2_pace_seconds_per_km,
+                "lt2_power": snap.lt2_power_watts,
+                "lt2_hr": snap.lt2_heart_rate,
+                "lt2_lactate": snap.lt2_lactate,
+                "confidence": snap.confidence,
+                "last_test_date": snap.snapshot_date.isoformat() if snap.snapshot_date else None,
+            }
+            confidence_scores.append({
+                "label": disc,
+                "score": snap.confidence,
+            })
+
+        block = block_map.get(aid)
+        active_block_data = None
+        if block:
+            active_block_data = {
+                "energy_system_focus": block.energy_system_focus,
+                "block_objective": block.block_objective,
+                "start_date": block.start_date.isoformat() if block.start_date else None,
+                "end_date": block.end_date.isoformat() if block.end_date else None,
+                "phase": block.phase,
+            }
+
+        result.append({
+            "athlete_id": aid,
+            "discipline_views": discipline_views,
+            "active_focus_block": active_block_data,
+            "recent_sessions": sessions_map.get(aid, []),
+            "confidence_summary": confidence_scores if confidence_scores else None,
+        })
+
+    return result
 
 
 @router.post("", response_model=AthleteRead, status_code=status.HTTP_201_CREATED)

@@ -370,6 +370,7 @@ export const api = {
     ),
   dashboard: (token: string) => request("/analytics/dashboard", { token }),
   athletes: (token: string) => request("/athletes", { token }),
+  dashboardSummary: (token: string) => request("/athletes/dashboard-summary", { token }),
   createAthlete: (token: string, payload: unknown) =>
     request("/athletes", { token, method: "POST", body: JSON.stringify(payload) }),
   generateDemoAthlete: (token: string) =>
@@ -727,7 +728,22 @@ export const api = {
       method: "DELETE",
     }),
   calendarStatus: (token: string, athleteId: number) =>
-    request<{ athlete_id: number; connected: boolean }>(`/calendar/athletes/${athleteId}/status`, { token }),
+    request<{ athlete_id: number; connected: boolean; provider?: string | null }>(`/calendar/athletes/${athleteId}/status`, { token }),
+  calendarGoogleStart: (token: string, athleteId: number) =>
+    request<{ authorize_url: string; athlete_id: number; already_connected: boolean }>(
+      `/calendar/athletes/${athleteId}/google/start`,
+      { token, method: "POST" },
+    ),
+  calendarGoogleDisconnect: (token: string, athleteId: number) =>
+    request<{ athlete_id: number; disconnected: boolean }>(
+      `/calendar/athletes/${athleteId}/google/disconnect`,
+      { token, method: "DELETE" },
+    ),
+  calendarGoogleSyncPlanned: (token: string, athleteId: number) =>
+    request<{ synced: number; errors: number }>(
+      `/calendar/athletes/${athleteId}/google/sync-planned`,
+      { token, method: "POST" },
+    ),
 
   // ── Beta Signup (public, no auth) ──
   betaSignup: (email: string) =>
