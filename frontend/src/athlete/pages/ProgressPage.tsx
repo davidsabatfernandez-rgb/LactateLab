@@ -248,12 +248,18 @@ export function ProgressPage() {
       {/* ── Simplified Lactate Curve ────────────────────── */}
       <section className="ath-trend-section">
         <h3 className="ath-section-title">Tu curva de lactato — {disciplineLabel(trendDiscipline)}</h3>
-        <SimpleLactateCurve
-          lt1Hr={typeof lt1Hr === "number" ? lt1Hr : null}
-          lt2Hr={typeof lt2Hr === "number" ? lt2Hr : null}
-          maxHr={maxHr}
-          dataPoints={realCurveData}
-        />
+        {realCurveData ? (
+          <SimpleLactateCurve
+            lt1Hr={typeof lt1Hr === "number" ? lt1Hr : null}
+            lt2Hr={typeof lt2Hr === "number" ? lt2Hr : null}
+            maxHr={maxHr}
+            dataPoints={realCurveData}
+          />
+        ) : (
+          <p style={{ color: "var(--ath-text-muted, #888)", fontSize: "0.9rem", padding: "24px 0" }}>
+            Aún no tienes tests de lactato registrados. Cuando tu entrenador suba un test, tu curva aparecerá aquí.
+          </p>
+        )}
         <MicroContent title="¿Qué significan LT1 y LT2?">
           <p><strong>LT1 (Umbral aeróbico)</strong> es la intensidad a la que el lactato empieza a subir por encima del reposo. Por debajo de este punto, puedes mantener el esfuerzo durante mucho tiempo.</p>
           <p><strong>LT2 (Umbral anaeróbico)</strong> es donde el lactato se acumula más rápido de lo que tu cuerpo puede eliminar. Es tu límite sostenible — por encima de él, la fatiga llega rápido.</p>
