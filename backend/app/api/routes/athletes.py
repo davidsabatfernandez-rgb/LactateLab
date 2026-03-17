@@ -644,6 +644,16 @@ def threshold_profile_for_zones(
         .order_by(PhysiologicalSnapshot.snapshot_date.desc())
     ).first()
 
+    # Fallback: if no exact discipline match, search any snapshot for this athlete.
+    # Handles triathlon athletes (sessions stored as "running"/"ciclismo" but
+    # primary_discipline is "triatlón") and discipline naming mismatches.
+    if snapshot is None:
+        snapshot = db.scalars(
+            select(PhysiologicalSnapshot)
+            .where(PhysiologicalSnapshot.athlete_id == athlete_id)
+            .order_by(PhysiologicalSnapshot.snapshot_date.desc())
+        ).first()
+
     if snapshot is None:
         return ThresholdProfileForZones(
             source="none",
@@ -780,12 +790,18 @@ def check_zone_staleness(
     if active is None:
         return ZoneStalenessCheck(is_stale=False, reason="No hay zonas activas")
 
-    # 2. Get current snapshot
+    # 2. Get current snapshot (with fallback to any discipline for triathlon athletes)
     snapshot = db.scalars(
         select(PhysiologicalSnapshot)
         .where(PhysiologicalSnapshot.athlete_id == athlete_id, PhysiologicalSnapshot.discipline == discipline)
         .order_by(PhysiologicalSnapshot.snapshot_date.desc())
     ).first()
+    if snapshot is None:
+        snapshot = db.scalars(
+            select(PhysiologicalSnapshot)
+            .where(PhysiologicalSnapshot.athlete_id == athlete_id)
+            .order_by(PhysiologicalSnapshot.snapshot_date.desc())
+        ).first()
     if snapshot is None:
         return ZoneStalenessCheck(is_stale=False, reason="Sin datos de umbral")
 

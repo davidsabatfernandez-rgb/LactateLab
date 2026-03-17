@@ -21,7 +21,7 @@ import { Link } from "react-router-dom";
 import { CurveChart } from "../components/CurveChart";
 import { GeneratePhysiologyReportButton } from "../components/GeneratePhysiologyReportButton";
 import { PhysiologyReportPreview } from "../components/PhysiologyReportPreview";
-import { TrainingZonesEditor, TrainingZonesDisplay } from "../components/TrainingZonesEditor";
+import { TrainingZonesEditor, TrainingZonesDisplay, suggestZonesFromProfile } from "../components/TrainingZonesEditor";
 import "../components/training-zones.css";
 import { BetaImplementations } from "../components/BetaImplementations";
 import "../components/beta-implementations.css";
@@ -2298,8 +2298,8 @@ function formatPaceDelta(delta: number): string {
   return `${sign}${Math.floor(abs / 60)}:${String(Math.round(abs % 60)).padStart(2, "0")}/km`;
 }
 
-function StalenessReviewBanner({ staleness, onReview, onDismiss }: {
-  staleness: StalenessData; onReview: () => void; onDismiss: () => void;
+function StalenessReviewBanner({ staleness, onReview, onAutoRecalculate, autoRecalculating, onDismiss }: {
+  staleness: StalenessData; onReview: () => void; onAutoRecalculate: () => void; autoRecalculating: boolean; onDismiss: () => void;
 }) {
   const deltas: string[] = [];
   if (staleness.lt2_pace_delta_seconds != null && staleness.lt2_pace_delta_seconds !== 0)
@@ -2332,10 +2332,15 @@ function StalenessReviewBanner({ staleness, onReview, onDismiss }: {
           {staleness.reason}
         </div>
       )}
-      <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
-        <button type="button" className="tz-suggest-btn" onClick={onReview}
+      <div style={{ display: "flex", gap: 8, marginTop: 2, flexWrap: "wrap" }}>
+        <button type="button" className="tz-suggest-btn" onClick={onAutoRecalculate}
+          disabled={autoRecalculating}
           style={{ fontSize: "0.8rem", padding: "5px 14px" }}>
-          Revisar y actualizar
+          {autoRecalculating ? "Recalculando..." : "Recalcular zonas"}
+        </button>
+        <button type="button" className="tz-edit-btn" onClick={onReview}
+          style={{ fontSize: "0.78rem", padding: "4px 10px" }}>
+          Revisar manualmente
         </button>
         <button type="button" className="tz-edit-btn" onClick={onDismiss}
           style={{ fontSize: "0.78rem", padding: "4px 10px", opacity: 0.7 }}>
@@ -2354,6 +2359,7 @@ function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: num
   const [staleness, setStaleness] = useState<StalenessData | null>(null);
   const [stalenessDismissed, setStalenessDismissed] = useState(false);
   const [sessionsUpdatedMsg, setSessionsUpdatedMsg] = useState<string | null>(null);
+  const [autoRecalculating, setAutoRecalculating] = useState(false);
 
   const loadZones = useCallback(() => {
     setLoading(true);
@@ -2363,6 +2369,55 @@ function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: num
       .catch(() => setZoneSets([]))
       .finally(() => setLoading(false));
   }, [token, athleteId, discipline]);
+
+  const handleAutoRecalculate = useCallback(async () => {
+    setAutoRecalculating(true);
+    try {
+      const profile = await api.thresholdProfileForZones(token, athleteId, discipline) as import("../types").ThresholdProfileForZones;
+      if (!profile || profile.source === "none") {
+        setSessionsUpdatedMsg("Sin datos de umbral para recalcular.");
+        setTimeout(() => setSessionsUpdatedMsg(null), 4000);
+        return;
+      }
+      const suggested = suggestZonesFromProfile(profile, discipline);
+      const zoneName = `Zonas ${discipline} — ${new Date().toLocaleDateString("es-ES", { month: "short", year: "numeric" })} (auto)`;
+      const payload = {
+        discipline,
+        name: zoneName,
+        threshold_source: profile.source ?? "manual",
+        threshold_context: {
+          lt1_lactate: profile.lt1?.lactate,
+          lt1_pace: profile.lt1?.pace_label,
+          lt1_hr: profile.lt1?.heart_rate,
+          lt2_lactate: profile.lt2?.lactate,
+          lt2_pace: profile.lt2?.pace_label,
+          lt2_hr: profile.lt2?.heart_rate,
+          practical_lt1: profile.practical_lt1 ? {
+            lactate: profile.practical_lt1.lactate,
+            pace: profile.practical_lt1.pace_label,
+            hr: profile.practical_lt1.heart_rate,
+          } : undefined,
+          practical_lt2: profile.practical_lt2 ? {
+            lactate: profile.practical_lt2.lactate,
+            pace: profile.practical_lt2.pace_label,
+            hr: profile.practical_lt2.heart_rate,
+          } : undefined,
+          source: profile.source,
+        },
+        zones: suggested.map(({ key: _key, ...rest }) => rest),
+      };
+      await api.createTrainingZoneSet(token, athleteId, payload);
+      setSessionsUpdatedMsg("Zonas recalculadas desde umbrales actuales.");
+      setTimeout(() => setSessionsUpdatedMsg(null), 5000);
+      setStalenessDismissed(true);
+      loadZones();
+    } catch (err) {
+      setSessionsUpdatedMsg(`Error al recalcular: ${err instanceof Error ? err.message : "error desconocido"}`);
+      setTimeout(() => setSessionsUpdatedMsg(null), 5000);
+    } finally {
+      setAutoRecalculating(false);
+    }
+  }, [token, athleteId, discipline, loadZones]);
 
   useEffect(() => { loadZones(); }, [loadZones]);
 
@@ -2446,6 +2501,8 @@ function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: num
         <StalenessReviewBanner
           staleness={staleness}
           onReview={() => { setEditingSet(null); setEditing(true); }}
+          onAutoRecalculate={handleAutoRecalculate}
+          autoRecalculating={autoRecalculating}
           onDismiss={() => setStalenessDismissed(true)}
         />
       )}

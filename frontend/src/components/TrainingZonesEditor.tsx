@@ -88,7 +88,7 @@ function sourceColor(source: string) {
 
 // ── Suggested zones from thresholds ────────────────────────────────────────
 
-function suggestZonesFromProfile(profile: ThresholdProfileForZones, discipline: string): ZoneDraft[] {
+export function suggestZonesFromProfile(profile: ThresholdProfileForZones, discipline: string): ZoneDraft[] {
   // Fisiológicos (2.0/4.0 mmol) — para E1/E2 y VO2max/ANC
   const lt1Pace = profile.lt1?.pace_seconds_per_km ?? null;
   const lt2Pace = profile.lt2?.pace_seconds_per_km ?? null;
