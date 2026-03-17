@@ -220,11 +220,14 @@ export default function App() {
     return () => clearInterval(interval);
   }, [token]);
 
+  // Force light theme on unauthenticated screens (login, landing, register)
+  const effectiveTheme = token ? themeMode : "light";
+
   useEffect(() => {
-    document.documentElement.dataset.theme = themeMode;
-    document.documentElement.style.colorScheme = themeMode === "dark" ? "dark" : "light";
-    localStorage.setItem("lactate-theme", themeMode);
-  }, [themeMode]);
+    document.documentElement.dataset.theme = effectiveTheme;
+    document.documentElement.style.colorScheme = effectiveTheme === "dark" ? "dark" : "light";
+    if (token) localStorage.setItem("lactate-theme", effectiveTheme);
+  }, [effectiveTheme, token]);
 
   async function handleLogin(email: string, password: string, mode: "coach" | "athlete") {
     const result = await api.login(email, password);
