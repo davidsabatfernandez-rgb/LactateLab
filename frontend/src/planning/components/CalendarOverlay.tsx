@@ -487,6 +487,36 @@ export function CalendarOverlay({
     loadPlanningContext(String(athleteId), selectedDiscipline, { background: true }).catch(() => {});
   }, [activePlannedPreviewSession, athleteId, dispatch, loadPlanningContext, selectedDiscipline, token]);
 
+  const handleSelectDoseStep = useCallback(async (stepNumber: number, label: string) => {
+    const sessionId = activePlannedPreviewSession?.id;
+    if (!sessionId || !athleteId) return;
+    // Optimistic: update preview immediately with new step data
+    if (openWorkoutPreview) {
+      const step = openWorkoutPreview.template.dose_ladder.find((s) => s.step === stepNumber);
+      if (step) {
+        dispatch({
+          type: "SET_OPEN_WORKOUT_PREVIEW",
+          payload: {
+            ...openWorkoutPreview,
+            selection: {
+              ...openWorkoutPreview.selection,
+              label: step.label,
+              totalDurationMin: step.total_duration_min,
+              usefulDurationMin: step.total_useful_time_min,
+              restMin: step.rest_min,
+              intensityZone: step.intensity_zone,
+              readiness: step.readiness_required,
+            },
+          },
+        });
+      }
+    }
+    // Persist via API
+    await api.coachEditSession(token, sessionId, { dose_step_override: stepNumber });
+    // Background sync to rebuild structured workout with new dose
+    loadPlanningContext(String(athleteId), selectedDiscipline, { background: true }).catch(() => {});
+  }, [activePlannedPreviewSession, athleteId, dispatch, loadPlanningContext, openWorkoutPreview, selectedDiscipline, token]);
+
   // Lock body overflow when overlay is open
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -854,6 +884,7 @@ export function CalendarOverlay({
             ),
           } : null}
           workoutDefinition={editableWorkoutDefinition}
+          onSelectDoseStep={activePlannedPreviewSession ? handleSelectDoseStep : undefined}
           onRenameSession={activePlannedPreviewSession ? handleRenameSession : undefined}
           onSaveCoachNote={activePlannedPreviewSession ? handleSaveCoachNote : undefined}
           coachNote={activePlannedPreviewSession?.coach_note ?? null}

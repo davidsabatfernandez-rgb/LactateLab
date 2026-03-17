@@ -505,6 +505,18 @@ def coach_edit_planned_session(
         session.coach_note = body.coach_note
     if body.dose_step_override is not None:
         session.dose_step_override = body.dose_step_override
+        # Update dose_prescription label from template library
+        template_id = session.swapped_template_id or session.workout_template_id
+        if template_id:
+            try:
+                from app.services.workout_library import WORKOUT_TEMPLATES
+                tmpl = next((t for t in WORKOUT_TEMPLATES if t.template_id == template_id), None)
+                if tmpl and tmpl.dose_ladder:
+                    step = next((s for s in tmpl.dose_ladder if s.step == body.dose_step_override), None)
+                    if step:
+                        session.dose_prescription = step.label
+            except Exception:
+                pass
     if body.swapped_template_id is not None:
         session.swapped_template_id = body.swapped_template_id
     if body.scheduled_date is not None:
