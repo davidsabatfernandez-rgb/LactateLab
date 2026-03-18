@@ -577,8 +577,13 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
               </button>
             ) : null}
             {canEdit && (
-              <button type="button" className={`wpm-action-btn ${editMode ? "active" : ""}`} onClick={() => setEditMode((v) => !v)}>
-                {editMode ? "Vista previa" : "Editar"}
+              <button type="button" className={`wpm-action-btn ${!editMode ? "active" : ""}`} onClick={() => setEditMode(false)}>
+                Info
+              </button>
+            )}
+            {canEdit && (
+              <button type="button" className={`wpm-action-btn ${editMode ? "active" : ""}`} onClick={() => setEditMode(true)}>
+                Editar
               </button>
             )}
             {onChangeTargetMode && !editMode && (
