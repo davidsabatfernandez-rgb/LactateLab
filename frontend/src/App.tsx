@@ -31,6 +31,9 @@ import { SessionsPage } from "./pages/SessionsPage";
 import { StravaInformationPage } from "./pages/StravaInformationPage";
 import { VirtualRidePage } from "./pages/VirtualRidePage";
 import { LandingPage } from "./pages/LandingPage";
+import { CoachLandingPage } from "./pages/CoachLandingPage";
+import { ResourcesPage } from "./pages/ResourcesPage";
+import { ArticlePage } from "./pages/ArticlePage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import { PageErrorBoundary } from "./components/PageErrorBoundary";
 import { ScienceAdvisor } from "./components/ScienceAdvisor";
@@ -281,6 +284,15 @@ export default function App() {
     }
     if (location.pathname === "/privacy") {
       return <PrivacyPolicyPage />;
+    }
+    if (location.pathname === "/coach") {
+      return <CoachLandingPage />;
+    }
+    if (location.pathname === "/resources") {
+      return <ResourcesPage />;
+    }
+    if (location.pathname.startsWith("/resources/")) {
+      return <ArticlePage />;
     }
     if (location.pathname === "/login") {
       return <LoginForm onLogin={handleLogin} />;

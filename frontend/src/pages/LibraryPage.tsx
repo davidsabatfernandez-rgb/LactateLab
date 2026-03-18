@@ -496,19 +496,24 @@ export function LibraryPage({ token }: LibraryPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [collapsedZones, setCollapsedZones] = useState<Set<string>>(new Set());
   const [selectedPreview, setSelectedPreview] = useState<LibraryPreviewSelection | null>(null);
   const [showRawInformation, setShowRawInformation] = useState(false);
   const [structuredWorkoutPreview, setStructuredWorkoutPreview] = useState<WorkoutDefinition | null>(null);
   const [structuredWorkoutLoading, setStructuredWorkoutLoading] = useState(false);
   const [structuredWorkoutError, setStructuredWorkoutError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<Partial<PlanningWorkoutTemplate> | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [modalEditing, setModalEditing] = useState(false);
+  const [modalEditDraft, setModalEditDraft] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    setExpanded(null);
+    setExpanded(new Set());
     setSelectedPreview(null);
     api.generalPlanningWorkoutLibrary(token, discipline)
       .then((result) => {
@@ -540,6 +545,8 @@ export function LibraryPage({ token }: LibraryPageProps) {
     setStructuredWorkoutPreview(null);
     setStructuredWorkoutError(null);
     setStructuredWorkoutLoading(false);
+    setModalEditing(false);
+    setModalEditDraft(null);
   }, [selectedPreview]);
 
   const filtered = useMemo(() => {
@@ -716,7 +723,11 @@ export function LibraryPage({ token }: LibraryPageProps) {
   }
 
   function toggleExpand(id: string) {
-    setExpanded((prev) => (prev === id ? null : id));
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   }
 
   function setDiscipline(d: string) {
@@ -738,6 +749,176 @@ export function LibraryPage({ token }: LibraryPageProps) {
       restMin: step.rest_min,
       intensityZone: step.intensity_zone,
       readiness: step.readiness_required,
+    });
+  }
+
+  function startEditing(t: PlanningWorkoutTemplate) {
+    setEditingId(t.template_id);
+    setEditDraft({
+      public_label: t.public_label,
+      summary: t.summary,
+      objective: t.objective,
+      dose_guidance: t.dose_guidance,
+      fatigue_cost: t.fatigue_cost,
+      calentamiento_min: t.calentamiento_min,
+      calentamiento_template: t.calentamiento_template,
+      enfriamiento_min: t.enfriamiento_min,
+      enfriamiento_template: t.enfriamiento_template,
+      coach_tips: [...t.coach_tips],
+      csv_examples: [...t.csv_examples],
+      dose_ladder: t.dose_ladder.map((s) => ({ ...s })),
+    });
+  }
+
+  function cancelEditing() {
+    setEditingId(null);
+    setEditDraft(null);
+  }
+
+  async function saveEditing(templateId: string) {
+    if (!editDraft) return;
+    setSaving(true);
+    try {
+      await api.saveWorkoutTemplateOverride(token, templateId, editDraft as Record<string, unknown>);
+      // Refresh library
+      const result = await api.generalPlanningWorkoutLibrary(token, discipline);
+      setLibrary(result as PlanningWorkoutTemplate[]);
+      setEditingId(null);
+      setEditDraft(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function resetOverride(templateId: string) {
+    setSaving(true);
+    try {
+      await api.deleteWorkoutTemplateOverride(token, templateId);
+      const result = await api.generalPlanningWorkoutLibrary(token, discipline);
+      setLibrary(result as PlanningWorkoutTemplate[]);
+      setEditingId(null);
+      setEditDraft(null);
+    } catch {
+      // No override to delete — that's fine
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function updateDoseStep(index: number, field: string, value: string | number) {
+    if (!editDraft?.dose_ladder) return;
+    const updated = editDraft.dose_ladder.map((s, i) =>
+      i === index ? { ...s, [field]: value } : s,
+    );
+    setEditDraft({ ...editDraft, dose_ladder: updated });
+  }
+
+  function addDoseStep() {
+    if (!editDraft) return;
+    const ladder = editDraft.dose_ladder ?? [];
+    const lastStep = ladder[ladder.length - 1];
+    setEditDraft({
+      ...editDraft,
+      dose_ladder: [
+        ...ladder,
+        {
+          step: (lastStep?.step ?? 0) + 1,
+          label: "",
+          total_useful_time_min: lastStep?.total_useful_time_min ?? 20,
+          rest_min: lastStep?.rest_min ?? 2,
+          intensity_zone: lastStep?.intensity_zone ?? "LT1",
+          readiness_required: lastStep?.readiness_required ?? "any",
+          notes: "",
+          total_duration_min: lastStep?.total_duration_min ?? 0,
+        },
+      ],
+    });
+  }
+
+  function removeDoseStep(index: number) {
+    if (!editDraft?.dose_ladder) return;
+    setEditDraft({
+      ...editDraft,
+      dose_ladder: editDraft.dose_ladder.filter((_, i) => i !== index),
+    });
+  }
+
+  function startModalEdit(t: PlanningWorkoutTemplate) {
+    setModalEditing(true);
+    setModalEditDraft({
+      public_label: t.public_label,
+      summary: t.summary,
+      objective: t.objective,
+      dose_guidance: t.dose_guidance,
+      fatigue_cost: t.fatigue_cost,
+      calentamiento_min: t.calentamiento_min,
+      calentamiento_template: t.calentamiento_template,
+      enfriamiento_min: t.enfriamiento_min,
+      enfriamiento_template: t.enfriamiento_template,
+      coach_tips: [...t.coach_tips],
+      dose_ladder: t.dose_ladder.map((s) => ({ ...s })),
+    });
+  }
+
+  function cancelModalEdit() {
+    setModalEditing(false);
+    setModalEditDraft(null);
+  }
+
+  async function saveModalEdit(templateId: string) {
+    if (!modalEditDraft) return;
+    setSaving(true);
+    try {
+      await api.saveWorkoutTemplateOverride(token, templateId, modalEditDraft);
+      const result = await api.generalPlanningWorkoutLibrary(token, discipline);
+      setLibrary(result as PlanningWorkoutTemplate[]);
+      setModalEditing(false);
+      setModalEditDraft(null);
+      setSelectedPreview(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function updateModalDoseStep(index: number, field: string, value: string | number) {
+    if (!modalEditDraft?.dose_ladder) return;
+    const ladder = modalEditDraft.dose_ladder as Record<string, unknown>[];
+    const updated = ladder.map((s, i) => (i === index ? { ...s, [field]: value } : s));
+    setModalEditDraft({ ...modalEditDraft, dose_ladder: updated });
+  }
+
+  function addModalDoseStep() {
+    if (!modalEditDraft) return;
+    const ladder = (modalEditDraft.dose_ladder ?? []) as Record<string, unknown>[];
+    const last = ladder[ladder.length - 1];
+    setModalEditDraft({
+      ...modalEditDraft,
+      dose_ladder: [
+        ...ladder,
+        {
+          step: ((last?.step as number) ?? 0) + 1,
+          label: "",
+          total_useful_time_min: (last?.total_useful_time_min as number) ?? 20,
+          rest_min: (last?.rest_min as number) ?? 2,
+          intensity_zone: (last?.intensity_zone as string) ?? "LT1",
+          readiness_required: (last?.readiness_required as string) ?? "any",
+          notes: "",
+          total_duration_min: (last?.total_duration_min as number) ?? 0,
+        },
+      ],
+    });
+  }
+
+  function removeModalDoseStep(index: number) {
+    if (!modalEditDraft?.dose_ladder) return;
+    const ladder = modalEditDraft.dose_ladder as Record<string, unknown>[];
+    setModalEditDraft({
+      ...modalEditDraft,
+      dose_ladder: ladder.filter((_, i) => i !== index),
     });
   }
 
@@ -877,7 +1058,7 @@ export function LibraryPage({ token }: LibraryPageProps) {
                 {!collapsed && (
                   <div className="library-zone-rows">
                     {templates.map((t) => {
-                      const isOpen = expanded === t.template_id;
+                      const isOpen = expanded.has(t.template_id);
                       const dur = durationLabel(t);
                       const steps = t.dose_ladder.length > 0 ? t.dose_ladder : null;
                       return (
@@ -891,7 +1072,10 @@ export function LibraryPage({ token }: LibraryPageProps) {
                               {roleLabel(t.session_role)}
                             </span>
                             <span className="lib-row-copy">
-                              <span className="lib-name">{t.public_label}</span>
+                              <span className="lib-name">
+                                {t.public_label}
+                                {t.has_override && <span className="lib-override-dot" title="Editado por entrenador" />}
+                              </span>
                               <span className="lib-subtitle">{t.objective}</span>
                             </span>
                             <span className="lib-meta">
@@ -934,8 +1118,109 @@ export function LibraryPage({ token }: LibraryPageProps) {
                           </div>
 
                           {/* Detalle expandido */}
-                          {isOpen && (
+                          {isOpen && editingId === t.template_id && editDraft ? (
+                            <div className="library-row-detail lib-edit-mode">
+                              <div className="lib-edit-toolbar">
+                                <span className="lib-edit-badge">Editando</span>
+                                <button type="button" className="btn btn-sm" onClick={cancelEditing} disabled={saving}>Cancelar</button>
+                                <button type="button" className="btn btn-sm btn-primary" onClick={() => saveEditing(t.template_id)} disabled={saving}>
+                                  {saving ? "Guardando…" : "Guardar"}
+                                </button>
+                                {t.has_override && (
+                                  <button type="button" className="btn btn-sm btn-muted" onClick={() => resetOverride(t.template_id)} disabled={saving}>
+                                    Restaurar original
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className="lib-edit-grid">
+                                <label className="lib-edit-field">
+                                  <small>Nombre</small>
+                                  <input value={editDraft.public_label ?? ""} onChange={(e) => setEditDraft({ ...editDraft, public_label: e.target.value })} />
+                                </label>
+                                <label className="lib-edit-field">
+                                  <small>Objetivo</small>
+                                  <input value={editDraft.objective ?? ""} onChange={(e) => setEditDraft({ ...editDraft, objective: e.target.value })} />
+                                </label>
+                                <label className="lib-edit-field full">
+                                  <small>Resumen</small>
+                                  <textarea rows={2} value={editDraft.summary ?? ""} onChange={(e) => setEditDraft({ ...editDraft, summary: e.target.value })} />
+                                </label>
+                                <label className="lib-edit-field full">
+                                  <small>Guía de dosis</small>
+                                  <input value={editDraft.dose_guidance ?? ""} onChange={(e) => setEditDraft({ ...editDraft, dose_guidance: e.target.value })} />
+                                </label>
+                                <label className="lib-edit-field">
+                                  <small>Fatiga (1-5)</small>
+                                  <input type="number" min={1} max={5} value={editDraft.fatigue_cost ?? 3}
+                                    onChange={(e) => setEditDraft({ ...editDraft, fatigue_cost: Number(e.target.value) })} />
+                                </label>
+                                <label className="lib-edit-field">
+                                  <small>Calentamiento (min)</small>
+                                  <input type="number" min={0} value={editDraft.calentamiento_min ?? 0}
+                                    onChange={(e) => setEditDraft({ ...editDraft, calentamiento_min: Number(e.target.value) })} />
+                                </label>
+                                <label className="lib-edit-field full">
+                                  <small>Calentamiento (descripción)</small>
+                                  <input value={editDraft.calentamiento_template ?? ""}
+                                    onChange={(e) => setEditDraft({ ...editDraft, calentamiento_template: e.target.value })} />
+                                </label>
+                                <label className="lib-edit-field">
+                                  <small>Enfriamiento (min)</small>
+                                  <input type="number" min={0} value={editDraft.enfriamiento_min ?? 0}
+                                    onChange={(e) => setEditDraft({ ...editDraft, enfriamiento_min: Number(e.target.value) })} />
+                                </label>
+                                <label className="lib-edit-field full">
+                                  <small>Enfriamiento (descripción)</small>
+                                  <input value={editDraft.enfriamiento_template ?? ""}
+                                    onChange={(e) => setEditDraft({ ...editDraft, enfriamiento_template: e.target.value })} />
+                                </label>
+                              </div>
+
+                              {/* Dose ladder editor */}
+                              <div className="lib-edit-ladder">
+                                <div className="lib-edit-ladder-header">
+                                  <small>Escalera de dosis</small>
+                                  <button type="button" className="btn btn-sm" onClick={addDoseStep}>+ Paso</button>
+                                </div>
+                                {(editDraft.dose_ladder ?? []).map((s, i) => (
+                                  <div key={i} className="lib-edit-step-row">
+                                    <span className="lib-edit-step-num">P{s.step}</span>
+                                    <input className="lib-edit-step-label" placeholder="Label" value={s.label}
+                                      onChange={(e) => updateDoseStep(i, "label", e.target.value)} />
+                                    <input className="lib-edit-step-num-input" type="number" title="Trabajo útil (min)"
+                                      value={s.total_useful_time_min} onChange={(e) => updateDoseStep(i, "total_useful_time_min", Number(e.target.value))} />
+                                    <input className="lib-edit-step-num-input" type="number" title="Descanso (min)" step="0.25"
+                                      value={s.rest_min} onChange={(e) => updateDoseStep(i, "rest_min", Number(e.target.value))} />
+                                    <select title="Zona" value={s.intensity_zone}
+                                      onChange={(e) => updateDoseStep(i, "intensity_zone", e.target.value)}>
+                                      {["REC", "BASE", "LT1", "SUB-T", "LT2", "VO2", "ANC", "ANP", "RACE"].map((z) => (
+                                        <option key={z} value={z}>{z}</option>
+                                      ))}
+                                    </select>
+                                    <select title="Readiness" value={s.readiness_required}
+                                      onChange={(e) => updateDoseStep(i, "readiness_required", e.target.value)}>
+                                      <option value="any">any</option>
+                                      <option value="medium">medium</option>
+                                      <option value="fresh">fresh</option>
+                                    </select>
+                                    <input className="lib-edit-step-num-input" type="number" title="Duración total (min)"
+                                      value={s.total_duration_min} onChange={(e) => updateDoseStep(i, "total_duration_min", Number(e.target.value))} />
+                                    <input className="lib-edit-step-notes" placeholder="Notas" value={s.notes}
+                                      onChange={(e) => updateDoseStep(i, "notes", e.target.value)} />
+                                    <button type="button" className="btn btn-sm btn-muted" onClick={() => removeDoseStep(i)} title="Eliminar paso">×</button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : isOpen && (
                             <div className="library-row-detail">
+                              <div className="lib-detail-actions">
+                                <button type="button" className="btn btn-sm" onClick={() => startEditing(t)}>Editar</button>
+                                {t.has_override && (
+                                  <span className="lib-override-badge">Editado</span>
+                                )}
+                              </div>
                               <p className="lib-detail-summary">{t.summary}</p>
 
                               <div className="lib-detail-grid">
@@ -1031,6 +1316,15 @@ export function LibraryPage({ token }: LibraryPageProps) {
                 <span className={`library-preview-source ${workoutPreview.selection.source}`}>
                   {workoutPreview.selection.source === "dose" ? "dose_ladder" : "csv_example"}
                 </span>
+                {!modalEditing && (
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => startModalEdit(workoutPreview.template)}
+                  >
+                    Editar plantilla
+                  </button>
+                )}
                 <button
                   type="button"
                   className={`ghost-button library-workout-raw-toggle ${showRawInformation ? "active" : ""}`}
@@ -1171,6 +1465,125 @@ export function LibraryPage({ token }: LibraryPageProps) {
                 </div>
               </div>
             </div>
+
+            {modalEditing && modalEditDraft && (
+              <section className="library-workout-panel lib-modal-edit-panel">
+                <div className="lib-modal-edit-toolbar">
+                  <span className="lib-edit-badge">Editando plantilla</span>
+                  <button type="button" className="btn btn-sm" onClick={cancelModalEdit} disabled={saving}>Cancelar</button>
+                  <button type="button" className="btn btn-sm btn-primary" onClick={() => saveModalEdit(workoutPreview.template.template_id)} disabled={saving}>
+                    {saving ? "Guardando…" : "Guardar"}
+                  </button>
+                  {workoutPreview.template.has_override && (
+                    <button type="button" className="btn btn-sm btn-muted" onClick={async () => {
+                      setSaving(true);
+                      try {
+                        await api.deleteWorkoutTemplateOverride(token, workoutPreview.template.template_id);
+                        const result = await api.generalPlanningWorkoutLibrary(token, discipline);
+                        setLibrary(result as PlanningWorkoutTemplate[]);
+                        cancelModalEdit();
+                        setSelectedPreview(null);
+                      } catch { /* no override */ }
+                      finally { setSaving(false); }
+                    }} disabled={saving}>
+                      Restaurar original
+                    </button>
+                  )}
+                </div>
+
+                <div className="lib-modal-edit-fields">
+                  <label className="lib-edit-field">
+                    <small>Nombre</small>
+                    <input value={(modalEditDraft.public_label as string) ?? ""} onChange={(e) => setModalEditDraft({ ...modalEditDraft, public_label: e.target.value })} />
+                  </label>
+                  <label className="lib-edit-field">
+                    <small>Objetivo</small>
+                    <input value={(modalEditDraft.objective as string) ?? ""} onChange={(e) => setModalEditDraft({ ...modalEditDraft, objective: e.target.value })} />
+                  </label>
+                  <label className="lib-edit-field">
+                    <small>Fatiga (1-5)</small>
+                    <input type="number" min={1} max={5} value={(modalEditDraft.fatigue_cost as number) ?? 3}
+                      onChange={(e) => setModalEditDraft({ ...modalEditDraft, fatigue_cost: Number(e.target.value) })} />
+                  </label>
+                  <label className="lib-edit-field">
+                    <small>Calentamiento (min)</small>
+                    <input type="number" min={0} value={(modalEditDraft.calentamiento_min as number) ?? 0}
+                      onChange={(e) => setModalEditDraft({ ...modalEditDraft, calentamiento_min: Number(e.target.value) })} />
+                  </label>
+                  <label className="lib-edit-field full">
+                    <small>Calentamiento (descripción)</small>
+                    <input value={(modalEditDraft.calentamiento_template as string) ?? ""}
+                      onChange={(e) => setModalEditDraft({ ...modalEditDraft, calentamiento_template: e.target.value })} />
+                  </label>
+                  <label className="lib-edit-field">
+                    <small>Enfriamiento (min)</small>
+                    <input type="number" min={0} value={(modalEditDraft.enfriamiento_min as number) ?? 0}
+                      onChange={(e) => setModalEditDraft({ ...modalEditDraft, enfriamiento_min: Number(e.target.value) })} />
+                  </label>
+                  <label className="lib-edit-field full">
+                    <small>Enfriamiento (descripción)</small>
+                    <input value={(modalEditDraft.enfriamiento_template as string) ?? ""}
+                      onChange={(e) => setModalEditDraft({ ...modalEditDraft, enfriamiento_template: e.target.value })} />
+                  </label>
+                  <label className="lib-edit-field full">
+                    <small>Guía de dosis</small>
+                    <input value={(modalEditDraft.dose_guidance as string) ?? ""}
+                      onChange={(e) => setModalEditDraft({ ...modalEditDraft, dose_guidance: e.target.value })} />
+                  </label>
+                  <label className="lib-edit-field full">
+                    <small>Resumen</small>
+                    <textarea rows={2} value={(modalEditDraft.summary as string) ?? ""}
+                      onChange={(e) => setModalEditDraft({ ...modalEditDraft, summary: e.target.value })} />
+                  </label>
+                </div>
+
+                <div className="lib-edit-ladder">
+                  <div className="lib-edit-ladder-header">
+                    <small>Escalera de dosis ({((modalEditDraft.dose_ladder ?? []) as unknown[]).length} pasos)</small>
+                    <button type="button" className="btn btn-sm" onClick={addModalDoseStep}>+ Paso</button>
+                  </div>
+                  <div className="lib-modal-edit-ladder-labels">
+                    <span />
+                    <span>Label</span>
+                    <span>Útil</span>
+                    <span>Desc.</span>
+                    <span>Zona</span>
+                    <span>Ready</span>
+                    <span>Total</span>
+                    <span>Notas</span>
+                    <span />
+                  </div>
+                  {((modalEditDraft.dose_ladder ?? []) as Record<string, unknown>[]).map((s, i) => (
+                    <div key={i} className="lib-edit-step-row">
+                      <span className="lib-edit-step-num">P{s.step as number}</span>
+                      <input className="lib-edit-step-label" placeholder="Label" value={(s.label as string) ?? ""}
+                        onChange={(e) => updateModalDoseStep(i, "label", e.target.value)} />
+                      <input className="lib-edit-step-num-input" type="number" title="Trabajo útil (min)"
+                        value={s.total_useful_time_min as number} onChange={(e) => updateModalDoseStep(i, "total_useful_time_min", Number(e.target.value))} />
+                      <input className="lib-edit-step-num-input" type="number" title="Descanso (min)" step="0.25"
+                        value={s.rest_min as number} onChange={(e) => updateModalDoseStep(i, "rest_min", Number(e.target.value))} />
+                      <select title="Zona" value={(s.intensity_zone as string) ?? "LT1"}
+                        onChange={(e) => updateModalDoseStep(i, "intensity_zone", e.target.value)}>
+                        {["REC", "BASE", "LT1", "SUB-T", "LT2", "VO2", "ANC", "ANP", "RACE"].map((z) => (
+                          <option key={z} value={z}>{z}</option>
+                        ))}
+                      </select>
+                      <select title="Readiness" value={(s.readiness_required as string) ?? "any"}
+                        onChange={(e) => updateModalDoseStep(i, "readiness_required", e.target.value)}>
+                        <option value="any">any</option>
+                        <option value="medium">medium</option>
+                        <option value="fresh">fresh</option>
+                      </select>
+                      <input className="lib-edit-step-num-input" type="number" title="Duración total (min)"
+                        value={s.total_duration_min as number} onChange={(e) => updateModalDoseStep(i, "total_duration_min", Number(e.target.value))} />
+                      <input className="lib-edit-step-notes" placeholder="Notas" value={(s.notes as string) ?? ""}
+                        onChange={(e) => updateModalDoseStep(i, "notes", e.target.value)} />
+                      <button type="button" className="btn btn-sm btn-muted" onClick={() => removeModalDoseStep(i)} title="Eliminar paso">×</button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {showRawInformation && structuredWorkoutJson && (
               <section className="library-workout-panel library-workout-raw-panel">

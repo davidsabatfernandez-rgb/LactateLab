@@ -153,6 +153,99 @@ function IconGarmin() {
   );
 }
 
+function IconThreshold() {
+  return (
+    <svg viewBox="0 0 48 48" width="48" height="48" fill="none" strokeLinecap="round">
+      <path d="M6 38 C14 36, 20 32, 26 22 C30 14, 34 8, 42 6" stroke="#d26a36" strokeWidth="2.5" />
+      <line x1="18" y1="6" x2="18" y2="42" stroke="#22c55e" strokeWidth="1.5" strokeDasharray="4 3" opacity=".6" />
+      <line x1="32" y1="6" x2="32" y2="42" stroke="#f97316" strokeWidth="1.5" strokeDasharray="4 3" opacity=".6" />
+      <text x="18" y="46" textAnchor="middle" fill="#22c55e" fontSize="7" fontWeight="700" fontFamily="Space Grotesk">LT1</text>
+      <text x="32" y="46" textAnchor="middle" fill="#f97316" fontSize="7" fontWeight="700" fontFamily="Space Grotesk">LT2</text>
+    </svg>
+  );
+}
+
+function IconTracking() {
+  return (
+    <svg viewBox="0 0 48 48" width="48" height="48" fill="none" strokeLinecap="round">
+      <path d="M6 36 L14 30 L22 28 L30 22 L38 16 L44 12" stroke="#d26a36" strokeWidth="2.5" />
+      {[6,14,22,30,38,44].map((x,i) => <circle key={i} cx={x} cy={36-i*4.8} r="3" fill="#fff" stroke="#d26a36" strokeWidth="2" />)}
+      <path d="M30 22 L38 16 L44 12" stroke="#d26a36" strokeWidth="2.5" strokeDasharray="4 3" opacity=".5" />
+    </svg>
+  );
+}
+
+function IconEngine() {
+  return (
+    <svg viewBox="0 0 48 48" width="48" height="48" fill="none" strokeLinecap="round">
+      <rect x="4" y="8" width="40" height="32" rx="4" stroke="#d26a36" strokeWidth="2" />
+      <path d="M4 18 L44 18" stroke="#d26a36" strokeWidth="1" opacity=".3" />
+      <rect x="10" y="23" width="8" height="6" rx="2" fill="#d26a36" opacity=".15" />
+      <rect x="20" y="23" width="8" height="6" rx="2" fill="#d26a36" opacity=".3" />
+      <rect x="30" y="23" width="8" height="6" rx="2" fill="#d26a36" opacity=".5" />
+      <rect x="10" y="31" width="8" height="5" rx="2" fill="#22c55e" opacity=".2" />
+      <rect x="20" y="31" width="8" height="5" rx="2" fill="#22c55e" opacity=".35" />
+      <path d="M12 12 L18 12" stroke="#d26a36" strokeWidth="2" opacity=".5" />
+    </svg>
+  );
+}
+
+function IconRace() {
+  return (
+    <svg viewBox="0 0 48 48" width="48" height="48" fill="none" strokeLinecap="round">
+      <circle cx="24" cy="24" r="18" stroke="#d26a36" strokeWidth="2" />
+      <path d="M24 10 L24 24 L34 28" stroke="#d26a36" strokeWidth="2.5" />
+      <circle cx="24" cy="24" r="2.5" fill="#d26a36" />
+      <path d="M14 40 L14 44" stroke="#d26a36" strokeWidth="1.5" opacity=".3" />
+      <path d="M34 40 L34 44" stroke="#d26a36" strokeWidth="1.5" opacity=".3" />
+    </svg>
+  );
+}
+
+function IconRun() {
+  return (
+    <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="#d26a36" strokeWidth="2" strokeLinecap="round">
+      <circle cx="28" cy="8" r="4" />
+      <path d="M18 44 L22 30 L28 24 L34 28 L38 20" />
+      <path d="M14 36 L22 30" />
+      <path d="M28 24 L24 16" />
+    </svg>
+  );
+}
+
+function IconBike() {
+  return (
+    <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="#d26a36" strokeWidth="2" strokeLinecap="round">
+      <circle cx="14" cy="32" r="8" />
+      <circle cx="36" cy="32" r="8" />
+      <path d="M14 32 L22 16 L30 32" />
+      <path d="M30 32 L36 32" />
+      <path d="M22 16 L32 16" />
+    </svg>
+  );
+}
+
+function IconSwim() {
+  return (
+    <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="#d26a36" strokeWidth="2" strokeLinecap="round">
+      <circle cx="34" cy="14" r="4" />
+      <path d="M30 20 L24 28 L18 24" />
+      <path d="M24 28 L28 36" />
+      <path d="M6 34 Q12 28 18 34 Q24 40 30 34 Q36 28 42 34" strokeWidth="2.2" />
+    </svg>
+  );
+}
+
+function IconTri() {
+  return (
+    <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="#d26a36" strokeWidth="2" strokeLinecap="round">
+      <path d="M8 38 L24 10 L40 38 Z" />
+      <circle cx="24" cy="22" r="4" fill="rgba(210,106,54,0.15)" />
+      <path d="M16 32 L32 32" strokeWidth="1.5" opacity=".4" />
+    </svg>
+  );
+}
+
 function IconCoachDash() {
   return (
     <svg viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="#d26a36" strokeWidth="2" strokeLinecap="round">
@@ -193,8 +286,7 @@ function LandingInner() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [activeAthleteTab, setActiveAthleteTab] = useState(0);
-  const [activeCoachTab, setActiveCoachTab] = useState(0);
+
 
   async function handleBeta(e: React.FormEvent) {
     e.preventDefault();
@@ -211,22 +303,7 @@ function LandingInner() {
     }
   }
 
-  const athleteTabs = [
-    { key: "today", icon: <IconPlan />, title: t("ap_today_title"), desc: t("ap_today_desc") },
-    { key: "week", icon: <IconWorkout />, title: t("ap_week_title"), desc: t("ap_week_desc") },
-    { key: "progress", icon: <IconDynamic />, title: t("ap_progress_title"), desc: t("ap_progress_desc") },
-    { key: "zones", icon: <IconPredict />, title: t("ap_zones_title"), desc: t("ap_zones_desc") },
-    { key: "recovery", icon: <IconRecovery />, title: t("ap_recovery_title"), desc: t("ap_recovery_desc") },
-    { key: "garmin", icon: <IconGarmin />, title: t("ap_garmin_title"), desc: t("ap_garmin_desc") },
-  ];
 
-  const coachTabs = [
-    { key: "dashboard", icon: <IconCoachDash />, title: t("cp_dash_title"), desc: t("cp_dash_desc") },
-    { key: "analysis", icon: <IconCurve />, title: t("cp_analysis_title"), desc: t("cp_analysis_desc") },
-    { key: "planning", icon: <IconPlan />, title: t("cp_planning_title"), desc: t("cp_planning_desc") },
-    { key: "zones", icon: <IconPredict />, title: t("cp_zones_title"), desc: t("cp_zones_desc") },
-    { key: "library", icon: <IconWorkout />, title: t("cp_library_title"), desc: t("cp_library_desc") },
-  ];
 
   return (
     <div className="lp">
@@ -237,8 +314,9 @@ function LandingInner() {
           <div className="lp-nav__right">
             <a href="#demo" className="lp-nav__link">{t("nav_demo")}</a>
             <a href="#athlete-portal" className="lp-nav__link">{t("nav_athlete")}</a>
-            <a href="#coach-portal" className="lp-nav__link">{t("nav_coach")}</a>
-            <a href="#motor" className="lp-nav__link">{t("nav_science")}</a>
+            <a href="/coach" className="lp-nav__link">{t("nav_coach")}</a>
+            <a href="#pricing" className="lp-nav__link">{t("nav_pricing")}</a>
+            <a href="/resources" className="lp-nav__link">{t("foot_resources")}</a>
             <LangSwitch />
             <button className="lp-nav__enter" onClick={() => navigate("/login")} type="button">{t("nav_enter")}</button>
           </div>
@@ -258,7 +336,6 @@ function LandingInner() {
             <p className="lp-hero__sub">{t("hero_sub")}</p>
             <div className="lp-hero__acts">
               <a href="#athlete-portal" className="lp-btn-solid lp-btn--athlete">{t("hero_cta_athlete")}</a>
-              <a href="#coach-portal" className="lp-btn-solid lp-btn--coach">{t("hero_cta_coach")}</a>
               <a href="#demo" className="lp-btn-ghost">{t("hero_cta")}</a>
             </div>
             <div className="lp-hero__proof">
@@ -281,24 +358,78 @@ function LandingInner() {
         </div>
       </section>
 
-      {/* ══ HOW IT WORKS ══ */}
+      {/* ══ UPGRADE — Pro+ / Elite marketing ══ */}
       <AnimSection>
-        <section className="lp-section lp-how" id="how">
+        <section className="lp-section lp-section--dark lp-upgrade" id="upgrade">
           <div className="lp-w">
-            <p className="lp-ey">{t("how_ey")}</p>
-            <h2 className="lp-h2">{t("how_h2")}</h2>
-            <div className="lp-how__steps">
-              {[
-                { num: "1", title: t("how_s1_title"), desc: t("how_s1_desc") },
-                { num: "2", title: t("how_s2_title"), desc: t("how_s2_desc") },
-                { num: "3", title: t("how_s3_title"), desc: t("how_s3_desc") },
-              ].map((s) => (
-                <div key={s.num} className="lp-how__step">
-                  <span className="lp-how__num">{s.num}</span>
-                  <h3 className="lp-how__step-title">{s.title}</h3>
-                  <p className="lp-how__step-desc">{s.desc}</p>
+            <p className="lp-ey lp-ey--light">{t("up_ey")}</p>
+            <h2 className="lp-h2 lp-h2--light">{t("up_h2")}</h2>
+            <p className="lp-sub lp-sub--light">{t("up_sub")}</p>
+
+            {/* Pain points */}
+            <div className="lp-upgrade__pains">
+              {(["1","2","3"] as const).map(n => (
+                <div key={n} className="lp-upgrade__pain">
+                  <div className="lp-upgrade__pain-icon">
+                    {n === "1" && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"><path d="M12 2v10l4 4"/><circle cx="12" cy="12" r="10"/></svg>}
+                    {n === "2" && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>}
+                    {n === "3" && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
+                  </div>
+                  <h3 className="lp-upgrade__pain-title">{t(`up_pain_${n}_title`)}</h3>
+                  <p className="lp-upgrade__pain-text">{t(`up_pain_${n}_text`)}</p>
                 </div>
               ))}
+            </div>
+
+            {/* Hook callout */}
+            <div className="lp-upgrade__hook">
+              <span className="lp-upgrade__hook-text">{t("up_hook")}</span>
+            </div>
+
+            {/* Stats bar */}
+            <div className="lp-upgrade__stats">
+              {(["1","2","3"] as const).map(n => (
+                <div key={n} className="lp-upgrade__stat">
+                  <span className="lp-upgrade__stat-val">{t(`up_stat_${n}`)}</span>
+                  <span className="lp-upgrade__stat-label">{t(`up_stat_${n}_label`)}</span>
+                </div>
+              ))}
+            </div>
+            <p className="lp-upgrade__stat-note">{t("up_stat_note")}</p>
+
+            {/* Two plans side by side */}
+            <div className="lp-upgrade__plans">
+              {/* Pro+ */}
+              <div className="lp-upgrade__plan lp-upgrade__plan--proplus">
+                <span className="lp-upgrade__plan-badge">Pro+</span>
+                <h3 className="lp-upgrade__plan-title">{t("up_proplus_title")}</h3>
+                <p className="lp-upgrade__plan-desc">{t("up_proplus_desc")}</p>
+                <ul className="lp-upgrade__plan-list">
+                  {(["up_proplus_b1","up_proplus_b2","up_proplus_b3","up_proplus_b4"] as const).map(k => (
+                    <li key={k}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d26a36" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      {t(k)}
+                    </li>
+                  ))}
+                </ul>
+                <button className="lp-btn-solid lp-btn--coach lp-upgrade__cta" onClick={() => navigate("/register")} type="button">{t("up_proplus_cta")}</button>
+              </div>
+
+              {/* Elite */}
+              <div className="lp-upgrade__plan lp-upgrade__plan--elite">
+                <span className="lp-upgrade__plan-badge lp-upgrade__plan-badge--elite">Elite</span>
+                <h3 className="lp-upgrade__plan-title">{t("up_elite_title")}</h3>
+                <p className="lp-upgrade__plan-desc">{t("up_elite_desc")}</p>
+                <ul className="lp-upgrade__plan-list">
+                  {(["up_elite_b1","up_elite_b2","up_elite_b3","up_elite_b4"] as const).map(k => (
+                    <li key={k}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c9a44c" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      {t(k)}
+                    </li>
+                  ))}
+                </ul>
+                <button className="lp-btn-solid lp-btn--elite lp-upgrade__cta" type="button">{t("up_elite_cta")}</button>
+              </div>
             </div>
           </div>
         </section>
@@ -329,6 +460,355 @@ function LandingInner() {
               ))}
             </div>
             <p className="lp-pred__inputs">{t("pred_inputs")}</p>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* ══ FEATURE SHOWCASE — alternating photo sections ══ */}
+      <AnimSection>
+        <section className="lp-section" id="features">
+          <div className="lp-w">
+            <p className="lp-ey">{t("feat_ey")}</p>
+            <h2 className="lp-h2">{t("feat_h2")}</h2>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* Feature 1 — Threshold detection */}
+      <AnimSection>
+        <section className="lp-section lp-showcase">
+          <div className="lp-w lp-showcase__row">
+            <div className="lp-showcase__text">
+              <span className="lp-showcase__num">01</span>
+              <h3 className="lp-showcase__title">{t("feat_1_title")}</h3>
+              <p className="lp-showcase__desc">{t("feat_1_desc")}</p>
+              <ul className="lp-showcase__bullets">
+                <li>{t("feat_1_b1")}</li>
+                <li>{t("feat_1_b2")}</li>
+                <li>{t("feat_1_b3")}</li>
+              </ul>
+            </div>
+            <div className="lp-showcase__visual">
+              <div className="lp-showcase__screen">
+                {/* Lactate curve with LT1/LT2 markers — hi-fi mockup */}
+                <div className="lp-showcase__screen-bar">
+                  <span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" />
+                  <span className="lp-showcase__screen-title">Análisis de lactato — Running</span>
+                </div>
+                <div className="lp-showcase__screen-body">
+                  <svg viewBox="0 0 400 180" className="lp-showcase__chart" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                      <linearGradient id="sc1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d26a36" stopOpacity=".12" /><stop offset="100%" stopColor="#d26a36" stopOpacity="0" /></linearGradient>
+                    </defs>
+                    {[30,60,90,120,150].map(y => <line key={y} x1="40" y1={y} x2="380" y2={y} stroke="#e5e7eb" strokeWidth=".5" />)}
+                    <path d="M50 155 C80 153, 120 148, 170 140 C220 125, 260 100, 300 65 C330 40, 350 22, 370 15 L370 160 L50 160 Z" fill="url(#sc1)" />
+                    <path d="M50 155 C80 153, 120 148, 170 140 C220 125, 260 100, 300 65 C330 40, 350 22, 370 15" fill="none" stroke="#d26a36" strokeWidth="2.5" strokeLinecap="round" />
+                    {[[50,155],[90,152],[130,148],[170,140],[210,128],[250,108],[290,75],[330,42],[360,20]].map(([cx,cy],i) => (
+                      <circle key={i} cx={cx} cy={cy} r="4.5" fill="#fff" stroke="#d26a36" strokeWidth="2" />
+                    ))}
+                    <line x1="155" y1="10" x2="155" y2="160" stroke="#22c55e" strokeWidth="1.5" strokeDasharray="5 3" />
+                    <rect x="135" y="4" width="40" height="16" rx="4" fill="#22c55e" opacity=".15" />
+                    <text x="155" y="15" textAnchor="middle" fill="#22c55e" fontSize="10" fontWeight="700" fontFamily="Space Grotesk">LT1</text>
+                    <line x1="275" y1="10" x2="275" y2="160" stroke="#f97316" strokeWidth="1.5" strokeDasharray="5 3" />
+                    <rect x="255" y="4" width="40" height="16" rx="4" fill="#f97316" opacity=".15" />
+                    <text x="275" y="15" textAnchor="middle" fill="#f97316" fontSize="10" fontWeight="700" fontFamily="Space Grotesk">LT2</text>
+                    {/* Confidence badge */}
+                    <rect x="310" y="50" width="72" height="20" rx="6" fill="#0e1e24" opacity=".9" />
+                    <text x="346" y="63" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="600" fontFamily="Space Grotesk">Conf: 0.87</text>
+                    {/* Axis labels */}
+                    <text x="36" y="155" textAnchor="end" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">1</text>
+                    <text x="36" y="120" textAnchor="end" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">2</text>
+                    <text x="36" y="90" textAnchor="end" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">4</text>
+                    <text x="36" y="60" textAnchor="end" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">6</text>
+                    <text x="36" y="30" textAnchor="end" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">8</text>
+                    <text x="210" y="176" textAnchor="middle" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">mmol/L</text>
+                  </svg>
+                  <div className="lp-showcase__screen-footer">
+                    <span className="lp-showcase__badge lp-showcase__badge--green">LT1: 5:12/km</span>
+                    <span className="lp-showcase__badge lp-showcase__badge--orange">LT2: 4:24/km</span>
+                    <span className="lp-showcase__badge lp-showcase__badge--dark">Confianza: 0.87</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* Feature 2 — Dynamic tracking (reversed) */}
+      <AnimSection>
+        <section className="lp-section lp-section--warm lp-showcase">
+          <div className="lp-w lp-showcase__row lp-showcase__row--reverse">
+            <div className="lp-showcase__text">
+              <span className="lp-showcase__num">02</span>
+              <h3 className="lp-showcase__title">{t("feat_2_title")}</h3>
+              <p className="lp-showcase__desc">{t("feat_2_desc")}</p>
+              <ul className="lp-showcase__bullets">
+                <li>{t("feat_2_b1")}</li>
+                <li>{t("feat_2_b2")}</li>
+                <li>{t("feat_2_b3")}</li>
+              </ul>
+            </div>
+            <div className="lp-showcase__visual">
+              <div className="lp-showcase__screen">
+                <div className="lp-showcase__screen-bar">
+                  <span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" />
+                  <span className="lp-showcase__screen-title">Evolución LT2 — 6 meses</span>
+                </div>
+                <div className="lp-showcase__screen-body">
+                  <svg viewBox="0 0 400 160" className="lp-showcase__chart" preserveAspectRatio="xMidYMid meet">
+                    {[40,70,100,130].map(y => <line key={y} x1="40" y1={y} x2="380" y2={y} stroke="#e5e7eb" strokeWidth=".5" />)}
+                    {/* LT2 trend */}
+                    <path d="M60 130 L110 124 L160 116 L210 108 L260 98 L310 88 L360 76" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" />
+                    {[60,110,160,210,260,310,360].map((x,i) => <circle key={i} cx={x} cy={130-i*9} r="5" fill="#fff" stroke="#f97316" strokeWidth="2" />)}
+                    {/* LT1 trend */}
+                    <path d="M60 140 L110 136 L160 132 L210 127 L260 122 L310 117 L360 110" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" opacity=".7" />
+                    {[60,110,160,210,260,310,360].map((x,i) => <circle key={`lt1-${i}`} cx={x} cy={140-i*4.3} r="3.5" fill="#fff" stroke="#22c55e" strokeWidth="1.5" />)}
+                    {/* Month labels */}
+                    {["Oct","Nov","Dic","Ene","Feb","Mar","Abr"].map((m,i) => (
+                      <text key={m} x={60+i*50} y="155" textAnchor="middle" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">{m}</text>
+                    ))}
+                    {/* Legend */}
+                    <circle cx="310" cy="30" r="4" fill="#f97316" /><text x="318" y="34" fill="#5e7078" fontSize="8" fontFamily="Space Grotesk">LT2</text>
+                    <circle cx="345" cy="30" r="4" fill="#22c55e" /><text x="353" y="34" fill="#5e7078" fontSize="8" fontFamily="Space Grotesk">LT1</text>
+                  </svg>
+                  <div className="lp-showcase__screen-footer">
+                    <span className="lp-showcase__badge lp-showcase__badge--orange">LT2: 4:24 → 4:08/km</span>
+                    <span className="lp-showcase__badge lp-showcase__badge--green">-16s en 6 meses</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* Feature 3 — Planning engine */}
+      <AnimSection>
+        <section className="lp-section lp-showcase">
+          <div className="lp-w lp-showcase__row">
+            <div className="lp-showcase__text">
+              <span className="lp-showcase__num">03</span>
+              <h3 className="lp-showcase__title">{t("feat_3_title")}</h3>
+              <p className="lp-showcase__desc">{t("feat_3_desc")}</p>
+              <ul className="lp-showcase__bullets">
+                <li>{t("feat_3_b1")}</li>
+                <li>{t("feat_3_b2")}</li>
+                <li>{t("feat_3_b3")}</li>
+              </ul>
+            </div>
+            <div className="lp-showcase__visual">
+              <div className="lp-showcase__screen">
+                <div className="lp-showcase__screen-bar">
+                  <span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" />
+                  <span className="lp-showcase__screen-title">Planificación — Semana 2/4</span>
+                </div>
+                <div className="lp-showcase__screen-body">
+                  <div className="lp-showcase__calendar">
+                    <div className="lp-showcase__cal-header">
+                      {["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"].map(d => (
+                        <span key={d} className="lp-showcase__cal-day-label">{d}</span>
+                      ))}
+                    </div>
+                    <div className="lp-showcase__cal-grid">
+                      {[
+                        { type: "rest", label: "Descanso" },
+                        { type: "key", label: "4×6' intervalos", badge: "CALIDAD" },
+                        { type: "easy", label: "40' rodaje suave" },
+                        { type: "rest", label: "Descanso" },
+                        { type: "key", label: "5×4' ritmo fuerte", badge: "CALIDAD" },
+                        { type: "long", label: "1h30 tirada larga", badge: "LARGO" },
+                        { type: "rest", label: "Descanso" },
+                      ].map((d, i) => (
+                        <div key={i} className={`lp-showcase__cal-cell lp-showcase__cal-cell--${d.type}`}>
+                          {d.badge && <span className={`lp-showcase__cal-badge lp-showcase__cal-badge--${d.type}`}>{d.badge}</span>}
+                          <span className="lp-showcase__cal-label">{d.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="lp-showcase__cal-meta">
+                      <span className="lp-showcase__badge lp-showcase__badge--dark">Base aeróbica</span>
+                      <span className="lp-showcase__badge lp-showcase__badge--orange">Semana de carga</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* Feature 4 — Race predictions & Garmin (reversed) */}
+      <AnimSection>
+        <section className="lp-section lp-section--warm lp-showcase">
+          <div className="lp-w lp-showcase__row lp-showcase__row--reverse">
+            <div className="lp-showcase__text">
+              <span className="lp-showcase__num">04</span>
+              <h3 className="lp-showcase__title">{t("feat_4_title")}</h3>
+              <p className="lp-showcase__desc">{t("feat_4_desc")}</p>
+              <ul className="lp-showcase__bullets">
+                <li>{t("feat_4_b1")}</li>
+                <li>{t("feat_4_b2")}</li>
+                <li>{t("feat_4_b3")}</li>
+              </ul>
+            </div>
+            <div className="lp-showcase__visual">
+              <div className="lp-showcase__screen">
+                <div className="lp-showcase__screen-bar">
+                  <span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" />
+                  <span className="lp-showcase__screen-title">Predicciones — Running</span>
+                </div>
+                <div className="lp-showcase__screen-body">
+                  <div className="lp-showcase__predictions">
+                    {[
+                      { dist: "5K", time: "19:42", pace: "3:56/km" },
+                      { dist: "10K", time: "41:08", pace: "4:07/km" },
+                      { dist: "Half", time: "1:31:24", pace: "4:20/km" },
+                      { dist: "Marathon", time: "3:12:40", pace: "4:34/km" },
+                    ].map(p => (
+                      <div key={p.dist} className="lp-showcase__pred-row">
+                        <span className="lp-showcase__pred-dist">{p.dist}</span>
+                        <span className="lp-showcase__pred-time">{p.time}</span>
+                        <span className="lp-showcase__pred-pace">{p.pace}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="lp-showcase__garmin-push">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><path d="M5 13l4 4L19 7" /></svg>
+                    <span>Push to Garmin Connect</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* Feature 5 — Training Load CTL/ATL/TSB */}
+      <AnimSection>
+        <section className="lp-section lp-showcase">
+          <div className="lp-w lp-showcase__row">
+            <div className="lp-showcase__text">
+              <span className="lp-showcase__num">05</span>
+              <h3 className="lp-showcase__title">{t("feat_5_title")}</h3>
+              <p className="lp-showcase__desc">{t("feat_5_desc")}</p>
+              <ul className="lp-showcase__bullets">
+                <li>{t("feat_5_b1")}</li>
+                <li>{t("feat_5_b2")}</li>
+                <li>{t("feat_5_b3")}</li>
+              </ul>
+            </div>
+            <div className="lp-showcase__visual">
+              <div className="lp-showcase__screen">
+                <div className="lp-showcase__screen-bar">
+                  <span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" />
+                  <span className="lp-showcase__screen-title">Training Load — 90 days</span>
+                </div>
+                <div className="lp-showcase__screen-body">
+                  <div className="lp-showcase__kpi-row">
+                    <div className="lp-showcase__kpi">
+                      <span className="lp-showcase__kpi-label">CTL</span>
+                      <span className="lp-showcase__kpi-val" style={{color:"#22c55e"}}>62</span>
+                    </div>
+                    <div className="lp-showcase__kpi">
+                      <span className="lp-showcase__kpi-label">ATL</span>
+                      <span className="lp-showcase__kpi-val" style={{color:"#ef4444"}}>78</span>
+                    </div>
+                    <div className="lp-showcase__kpi">
+                      <span className="lp-showcase__kpi-label">TSB</span>
+                      <span className="lp-showcase__kpi-val" style={{color:"#3b82f6"}}>-16</span>
+                    </div>
+                    <div className="lp-showcase__kpi">
+                      <span className="lp-showcase__kpi-label">A:C</span>
+                      <span className="lp-showcase__kpi-val" style={{color:"#f59e0b"}}>1.26</span>
+                    </div>
+                  </div>
+                  <svg viewBox="0 0 400 140" className="lp-showcase__chart" preserveAspectRatio="xMidYMid meet">
+                    {[30,55,80,105,130].map(y => <line key={y} x1="40" y1={y} x2="380" y2={y} stroke="#e5e7eb" strokeWidth=".5" />)}
+                    {[42,56,35,68,0,82,45,60,48,72,0,55,65,40,78,50,0,90,48,62,38,85,0,70,55,48,75,60,0,88].map((v, i) => (
+                      <rect key={i} x={44 + i * 11.2} y={130 - v * 0.9} width="7" height={v * 0.9} rx="1.5" fill="#d26a36" opacity={v === 0 ? 0 : 0.2} />
+                    ))}
+                    <path d="M50 115 C80 112, 110 108, 140 103 C170 98, 200 93, 230 88 C260 82, 290 78, 320 74 C340 71, 360 69, 375 67" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" />
+                    <path d="M50 110 C70 95, 90 108, 110 85 C130 100, 150 78, 170 90 C190 72, 210 88, 230 65 C250 80, 270 60, 290 70 C310 55, 330 62, 350 48 C360 52, 370 45, 375 42" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" opacity=".85" />
+                    <path d="M50 105 C80 100, 110 106, 140 95 C170 102, 200 90, 230 96 C260 88, 290 92, 320 85 C340 88, 360 82, 375 80" fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="5 3" opacity=".7" />
+                    {["Ene","Feb","Mar"].map((m,i) => (
+                      <text key={m} x={90 + i * 120} y="140" textAnchor="middle" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">{m}</text>
+                    ))}
+                    <line x1="270" y1="18" x2="284" y2="18" stroke="#22c55e" strokeWidth="2" />
+                    <text x="288" y="22" fill="#5e7078" fontSize="7" fontFamily="Space Grotesk">CTL</text>
+                    <line x1="310" y1="18" x2="324" y2="18" stroke="#ef4444" strokeWidth="2" />
+                    <text x="328" y="22" fill="#5e7078" fontSize="7" fontFamily="Space Grotesk">ATL</text>
+                    <line x1="348" y1="18" x2="362" y2="18" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="3 2" />
+                    <text x="366" y="22" fill="#5e7078" fontSize="7" fontFamily="Space Grotesk">TSB</text>
+                  </svg>
+                  <div className="lp-showcase__screen-footer">
+                    <span className="lp-showcase__badge lp-showcase__badge--green">Fitness: +18 en 90d</span>
+                    <span className="lp-showcase__badge lp-showcase__badge--orange">ACWR: 1.26 — Zona alta</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* Feature 6 — VO2max & Metabolic Profile (reversed) */}
+      <AnimSection>
+        <section className="lp-section lp-section--warm lp-showcase">
+          <div className="lp-w lp-showcase__row lp-showcase__row--reverse">
+            <div className="lp-showcase__text">
+              <span className="lp-showcase__num">06</span>
+              <h3 className="lp-showcase__title">{t("feat_6_title")}</h3>
+              <p className="lp-showcase__desc">{t("feat_6_desc")}</p>
+              <ul className="lp-showcase__bullets">
+                <li>{t("feat_6_b1")}</li>
+                <li>{t("feat_6_b2")}</li>
+                <li>{t("feat_6_b3")}</li>
+              </ul>
+            </div>
+            <div className="lp-showcase__visual">
+              <div className="lp-showcase__screen">
+                <div className="lp-showcase__screen-bar">
+                  <span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" />
+                  <span className="lp-showcase__screen-title">Capacity Profile — Running</span>
+                </div>
+                <div className="lp-showcase__screen-body">
+                  <div className="lp-showcase__kpi-row">
+                    <div className="lp-showcase__kpi">
+                      <span className="lp-showcase__kpi-label">VO2max</span>
+                      <span className="lp-showcase__kpi-val" style={{color:"#d26a36"}}>54.2</span>
+                      <span className="lp-showcase__kpi-unit">ml/kg/min</span>
+                    </div>
+                    <div className="lp-showcase__kpi">
+                      <span className="lp-showcase__kpi-label">VLamax</span>
+                      <span className="lp-showcase__kpi-val" style={{color:"#8b5cf6"}}>0.42</span>
+                      <span className="lp-showcase__kpi-unit">mmol/L/s</span>
+                    </div>
+                    <div className="lp-showcase__kpi">
+                      <span className="lp-showcase__kpi-label">FU @ LT2</span>
+                      <span className="lp-showcase__kpi-val" style={{color:"#22c55e"}}>82%</span>
+                      <span className="lp-showcase__kpi-unit">VO2max</span>
+                    </div>
+                  </div>
+                  <svg viewBox="0 0 400 120" className="lp-showcase__chart" preserveAspectRatio="xMidYMid meet">
+                    <text x="50" y="28" fill="#5e7078" fontSize="9" fontFamily="Space Grotesk" fontWeight="600">Aerobic</text>
+                    <rect x="120" y="18" width="240" height="16" rx="4" fill="#e5e7eb" opacity=".5" />
+                    <rect x="120" y="18" width="192" height="16" rx="4" fill="#22c55e" opacity=".7" />
+                    <text x="318" y="30" fill="#22c55e" fontSize="9" fontWeight="700" fontFamily="Space Grotesk">HIGH</text>
+                    <text x="50" y="56" fill="#5e7078" fontSize="9" fontFamily="Space Grotesk" fontWeight="600">Glycolytic</text>
+                    <rect x="120" y="46" width="240" height="16" rx="4" fill="#e5e7eb" opacity=".5" />
+                    <rect x="120" y="46" width="120" height="16" rx="4" fill="#8b5cf6" opacity=".6" />
+                    <text x="246" y="58" fill="#8b5cf6" fontSize="9" fontWeight="700" fontFamily="Space Grotesk">MODERATE</text>
+                    <text x="50" y="84" fill="#5e7078" fontSize="9" fontFamily="Space Grotesk" fontWeight="600">LT1/LT2</text>
+                    <rect x="120" y="74" width="240" height="16" rx="4" fill="#e5e7eb" opacity=".5" />
+                    <rect x="120" y="74" width="204" height="16" rx="4" fill="#f59e0b" opacity=".6" />
+                    <text x="330" y="86" fill="#f59e0b" fontSize="9" fontWeight="700" fontFamily="Space Grotesk">0.85</text>
+                    <rect x="130" y="98" width="140" height="20" rx="6" fill="#0e1e24" opacity=".9" />
+                    <text x="200" y="112" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="600" fontFamily="Space Grotesk">Diesel — Long distance</text>
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </AnimSection>
@@ -368,6 +848,147 @@ function LandingInner() {
         </section>
       </AnimSection>
 
+      {/* ══ SOCIAL PROOF ══ */}
+      <AnimSection>
+        <section className="lp-section lp-section--warm" id="proof">
+          <div className="lp-w">
+            <p className="lp-ey">{t("proof_ey")}</p>
+            <h2 className="lp-h2">{t("proof_h2")}</h2>
+            <div className="lp-proof__grid">
+              {(["1","2","3"] as const).map(n => (
+                <div key={n} className="lp-proof__card">
+                  <div className="lp-proof__avatar">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                      <circle cx="20" cy="20" r="20" fill="rgba(210,106,54,0.1)" />
+                      <circle cx="20" cy="16" r="6" fill="rgba(210,106,54,0.25)" />
+                      <path d="M8 36 Q8 26 20 26 Q32 26 32 36" fill="rgba(210,106,54,0.15)" />
+                    </svg>
+                  </div>
+                  <blockquote className="lp-proof__text">"{t(`proof_${n}_text`)}"</blockquote>
+                  <span className="lp-proof__role">{t(`proof_${n}_role`)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* ══ PRICING ══ */}
+      <AnimSection>
+        <section className="lp-section" id="pricing">
+          <div className="lp-w">
+            <p className="lp-ey">{t("price_ey")}</p>
+            <h2 className="lp-h2">{t("price_h2")}</h2>
+            <p className="lp-sub">{t("price_sub")}</p>
+
+            <div className="lp-pricing__grid lp-pricing__grid--four">
+              {/* Starter (Free) */}
+              <div className="lp-pricing__card">
+                <span className="lp-pricing__plan-name">{t("price_free_name")}</span>
+                <div className="lp-pricing__price">
+                  <span className="lp-pricing__amount">{t("price_free_amount")}</span>
+                  <span className="lp-pricing__period">/{t("price_period")}</span>
+                </div>
+                <p className="lp-pricing__plan-desc">{t("price_free_desc")}</p>
+                <ul className="lp-pricing__features">
+                  {(["price_free_f1","price_free_f2","price_free_f3","price_free_f4","price_free_f5","price_free_f6"] as const).map(k => (
+                    <li key={k}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      {t(k)}
+                    </li>
+                  ))}
+                </ul>
+                <button className="lp-btn-solid lp-pricing__cta" onClick={() => navigate("/register")} type="button">{t("price_free_cta")}</button>
+              </div>
+
+              {/* Pro */}
+              <div className="lp-pricing__card lp-pricing__card--pro">
+                <span className="lp-pricing__plan-name">{t("price_pro_name")}</span>
+                <div className="lp-pricing__price">
+                  <span className="lp-pricing__amount">{t("price_pro_amount")}</span>
+                  <span className="lp-pricing__period">/{t("price_period")}</span>
+                </div>
+                <p className="lp-pricing__plan-desc">{t("price_pro_desc")}</p>
+                <ul className="lp-pricing__features">
+                  {(["price_pro_f1","price_pro_f2","price_pro_f3","price_pro_f4","price_pro_f5","price_pro_f6"] as const).map(k => (
+                    <li key={k}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d26a36" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      {t(k)}
+                    </li>
+                  ))}
+                </ul>
+                <button className="lp-btn-solid lp-btn--coach lp-pricing__cta" onClick={() => navigate("/register")} type="button">{t("price_pro_cta")}</button>
+              </div>
+
+              {/* Pro+ */}
+              <div className="lp-pricing__card lp-pricing__card--proplus">
+                <span className="lp-pricing__plan-name">{t("price_proplus_name")}</span>
+                <div className="lp-pricing__price">
+                  <span className="lp-pricing__amount">{t("price_proplus_amount")}</span>
+                  <span className="lp-pricing__period">/{t("price_period")}</span>
+                </div>
+                <p className="lp-pricing__plan-desc">{t("price_proplus_desc")}</p>
+                <span className="lp-pricing__pack-note">{t("price_proplus_pack")}</span>
+                <ul className="lp-pricing__features">
+                  {(["price_proplus_f1","price_proplus_f2","price_proplus_f3","price_proplus_f4","price_proplus_f5","price_proplus_f6"] as const).map(k => (
+                    <li key={k}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      {t(k)}
+                    </li>
+                  ))}
+                </ul>
+                <button className="lp-btn-solid lp-btn--proplus lp-pricing__cta" onClick={() => navigate("/register")} type="button">{t("price_proplus_cta")}</button>
+              </div>
+
+              {/* Elite */}
+              <div className="lp-pricing__card lp-pricing__card--elite">
+                <span className="lp-pricing__badge-elite">{t("price_elite_badge")}</span>
+                <span className="lp-pricing__plan-name">{t("price_elite_name")}</span>
+                <div className="lp-pricing__price">
+                  <span className="lp-pricing__amount">{t("price_elite_amount")}</span>
+                  <span className="lp-pricing__period">/{t("price_period")}</span>
+                </div>
+                <p className="lp-pricing__plan-desc">{t("price_elite_desc")}</p>
+                <ul className="lp-pricing__features">
+                  {(["price_elite_f1","price_elite_f2","price_elite_f3","price_elite_f4","price_elite_f5","price_elite_f6"] as const).map(k => (
+                    <li key={k}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c9a44c" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      {t(k)}
+                    </li>
+                  ))}
+                </ul>
+                <button className="lp-btn-solid lp-btn--elite lp-pricing__cta" type="button">{t("price_elite_cta")}</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* ══ SPORT COVERAGE ══ */}
+      <AnimSection>
+        <section className="lp-section lp-section--warm" id="sports">
+          <div className="lp-w">
+            <p className="lp-ey">{t("sport_ey")}</p>
+            <h2 className="lp-h2">{t("sport_h2")}</h2>
+            <div className="lp-sports__grid">
+              {[
+                { icon: <IconRun />, title: t("sport_run_title"), events: t("sport_run_events"), desc: t("sport_run_desc") },
+                { icon: <IconBike />, title: t("sport_bike_title"), events: t("sport_bike_events"), desc: t("sport_bike_desc") },
+                { icon: <IconSwim />, title: t("sport_swim_title"), events: t("sport_swim_events"), desc: t("sport_swim_desc") },
+                { icon: <IconTri />, title: t("sport_tri_title"), events: t("sport_tri_events"), desc: t("sport_tri_desc") },
+              ].map((s, i) => (
+                <div key={i} className="lp-sports__card">
+                  <div className="lp-sports__icon">{s.icon}</div>
+                  <h3 className="lp-sports__title">{s.title}</h3>
+                  <span className="lp-sports__events">{s.events}</span>
+                  <p className="lp-sports__desc">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
       {/* ══ ATHLETE PORTAL ══ */}
       <AnimSection>
         <section className="lp-section lp-section--dark" id="athlete-portal">
@@ -376,134 +997,161 @@ function LandingInner() {
             <h2 className="lp-h2 lp-h2--light">{t("ap_h2")}</h2>
             <p className="lp-sub lp-sub--light">{t("ap_sub")}</p>
 
-            <div className="lp-portal">
-              <div className="lp-portal__tabs">
-                {athleteTabs.map((tab, i) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    className={`lp-portal__tab ${i === activeAthleteTab ? "lp-portal__tab--on" : ""}`}
-                    onClick={() => setActiveAthleteTab(i)}
-                  >
+            <div className="lp-app-frame">
+              <div className="lp-app-frame__topbar">
+                <div className="lp-app-frame__logo">
+                  <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="#d26a36" strokeWidth="2.5"/><path d="M10 20 L16 10 L22 20" stroke="#d26a36" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+                  <span>PeakAerobic</span>
+                </div>
+                <div className="lp-app-frame__user">
+                  <span>{"Mar\u00eda S."}</span>
+                  <div className="lp-app-frame__avatar">MS</div>
+                </div>
+              </div>
+
+              <div className="lp-app-frame__main">
+                <div className="lp-app-frame__col lp-app-frame__col--wide">
+                  <div className="lp-app-frame__card">
+                    <div className="lp-app-frame__card-header">
+                      <span className="lp-app-frame__card-title">{t("ap_today_title")}</span>
+                      <span className="lp-app-frame__card-phase">Base — Sem 2/4</span>
+                    </div>
+                    <div className="lp-app-frame__session">
+                      <span className="lp-app-frame__badge">CALIDAD</span>
+                      <span className="lp-app-frame__workout-name">4x6{"'"} LT2 cruise intervals</span>
+                    </div>
+                    <div className="lp-app-frame__session-meta">
+                      <span>Zona LT2</span><span>52 min</span><span>TSS 68</span>
+                    </div>
+                    <div className="lp-app-frame__steps">
+                      {[
+                        { label: "Calentamiento", dur: "15'", zone: "Z1-Z2", color: "#22c55e" },
+                        { label: "4x6' LT2", dur: "24'", zone: "LT2", color: "#F59E0B" },
+                        { label: "Rec 3'", dur: "12'", zone: "Z1", color: "#10B981" },
+                        { label: "Vuelta calma", dur: "10'", zone: "Z1", color: "#22c55e" },
+                      ].map(s => (
+                        <div key={s.label} className="lp-app-frame__step">
+                          <span className="lp-app-frame__step-bar" style={{ background: s.color }} />
+                          <span className="lp-app-frame__step-label">{s.label}</span>
+                          <span className="lp-app-frame__step-dur">{s.dur}</span>
+                          <span className="lp-app-frame__step-zone">{s.zone}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="lp-app-frame__card lp-app-frame__card--wellness">
+                    <div className="lp-app-frame__wellness">
+                      <svg viewBox="0 0 80 80" width="64" height="64" className="lp-app-frame__readiness-ring">
+                        <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
+                        <circle cx="40" cy="40" r="32" fill="none" stroke="#22c55e" strokeWidth="5" strokeDasharray="146 201" strokeLinecap="round" transform="rotate(-90 40 40)" />
+                        <text x="40" y="44" textAnchor="middle" fill="#fff" fontSize="18" fontWeight="800" fontFamily="Space Grotesk">72</text>
+                      </svg>
+                      <div className="lp-app-frame__wellness-grid">
+                        {[
+                          { val: "6.8h", lbl: "Sleep" },
+                          { val: "48ms", lbl: "HRV" },
+                          { val: "28", lbl: "Stress" },
+                          { val: "74%", lbl: "Battery" },
+                        ].map(m => (
+                          <div key={m.lbl} className="lp-app-frame__wellness-item">
+                            <span className="lp-app-frame__wellness-val">{m.val}</span>
+                            <span className="lp-app-frame__wellness-lbl">{m.lbl}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lp-app-frame__col lp-app-frame__col--narrow">
+                  <div className="lp-app-frame__card">
+                    <div className="lp-app-frame__card-header">
+                      <span className="lp-app-frame__card-title">{t("ap_zones_title")}</span>
+                      <span className="lp-app-frame__card-phase">Running</span>
+                    </div>
+                    <div className="lp-app-frame__zones">
+                      <div className="lp-app-frame__zones-header">
+                        <span></span><span></span><span>FC</span><span>Ritmo</span>
+                      </div>
+                      {[
+                        { name: "REC", hr: "< 130", pace: "> 6:10", color: "#10B981" },
+                        { name: "BASE", hr: "130-145", pace: "5:30-6:10", color: "#22c55e" },
+                        { name: "LT1", hr: "145-156", pace: "4:50-5:30", color: "#3B82F6" },
+                        { name: "SUB-T", hr: "156-164", pace: "4:30-4:50", color: "#8B5CF6" },
+                        { name: "LT2", hr: "164-172", pace: "4:10-4:30", color: "#F59E0B" },
+                        { name: "VO2", hr: "172-184", pace: "3:50-4:10", color: "#EF4444" },
+                        { name: "ANC", hr: "> 184", pace: "< 3:50", color: "#DC2626" },
+                      ].map(z => (
+                        <div key={z.name} className="lp-app-frame__zone-row">
+                          <span className="lp-app-frame__zone-pip" style={{ background: z.color }} />
+                          <span className="lp-app-frame__zone-name">{z.name}</span>
+                          <span className="lp-app-frame__zone-val">{z.hr}</span>
+                          <span className="lp-app-frame__zone-val">{z.pace}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="lp-app-frame__card">
+                    <div className="lp-app-frame__card-header">
+                      <span className="lp-app-frame__card-title">{t("ap_progress_title")}</span>
+                    </div>
+                    <svg viewBox="0 0 260 80" className="lp-app-frame__chart" preserveAspectRatio="xMidYMid meet">
+                      {[15,35,55].map(y => <line key={y} x1="10" y1={y} x2="250" y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth=".5" />)}
+                      <path d="M20 65 L60 60 L100 54 L140 48 L180 41 L220 33 L245 28" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
+                      {[20,60,100,140,180,220,245].map((x,i) => <circle key={`lt2-${i}`} cx={x} cy={65-i*6.2} r="3" fill="#0e1e24" stroke="#f97316" strokeWidth="1.5" />)}
+                      <path d="M20 72 L60 69 L100 66 L140 63 L180 59 L220 56 L245 52" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" opacity=".6" />
+                      {["Oct","Nov","Dic","Ene","Feb","Mar","Abr"].map((m,i) => (
+                        <text key={m} x={20+i*37.5} y="78" textAnchor="middle" fill="rgba(255,255,255,0.25)" fontSize="6" fontFamily="Space Grotesk">{m}</text>
+                      ))}
+                    </svg>
+                    <div className="lp-app-frame__chart-legend">
+                      <span style={{color:"#f97316"}}>LT2 4:24/km</span>
+                      <span style={{color:"#22c55e"}}>LT1 5:12/km</span>
+                      <span style={{color:"rgba(255,255,255,0.4)"}}>-14s en 6 meses</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lp-app-frame__bottomnav">
+                {[
+                  { id: "today", label: "Hoy", active: true, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+                  { id: "week", label: "Semana", active: false, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
+                  { id: "progress", label: "Progreso", active: false, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> },
+                  { id: "recovery", label: "Recuperaci\u00f3n", active: false, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> },
+                ].map(tab => (
+                  <div key={tab.id} className={`lp-app-frame__nav-btn ${tab.active ? "lp-app-frame__nav-btn--active" : ""}`}>
                     {tab.icon}
-                    <span className="lp-portal__tab-title">{tab.title}</span>
-                  </button>
+                    <span>{tab.label}</span>
+                  </div>
                 ))}
               </div>
-              <div className="lp-portal__content">
-                <div className="lp-portal__card">
-                  <div className="lp-portal__card-icon">{athleteTabs[activeAthleteTab].icon}</div>
-                  <h3 className="lp-portal__card-title">{athleteTabs[activeAthleteTab].title}</h3>
-                  <p className="lp-portal__card-desc">{athleteTabs[activeAthleteTab].desc}</p>
-                </div>
-                <div className="lp-portal__mockup lp-portal__mockup--athlete" data-tab={athleteTabs[activeAthleteTab].key}>
-                  <AthleteTabMockup tab={athleteTabs[activeAthleteTab].key} />
-                </div>
-              </div>
             </div>
           </div>
         </section>
       </AnimSection>
 
-      {/* ══ COACH PORTAL ══ */}
+      {/* ══ FAQ ══ */}
       <AnimSection>
-        <section className="lp-section" id="coach-portal">
+        <section className="lp-section" id="faq">
           <div className="lp-w">
-            <p className="lp-ey">{t("cp_ey")}</p>
-            <h2 className="lp-h2">{t("cp_h2")}</h2>
-            <p className="lp-sub">{t("cp_sub")}</p>
-
-            <div className="lp-portal lp-portal--light">
-              <div className="lp-portal__tabs lp-portal__tabs--light">
-                {coachTabs.map((tab, i) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    className={`lp-portal__tab lp-portal__tab--light ${i === activeCoachTab ? "lp-portal__tab--on lp-portal__tab--light-on" : ""}`}
-                    onClick={() => setActiveCoachTab(i)}
-                  >
-                    {tab.icon}
-                    <span className="lp-portal__tab-title">{tab.title}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="lp-portal__content">
-                <div className="lp-portal__card lp-portal__card--light">
-                  <div className="lp-portal__card-icon">{coachTabs[activeCoachTab].icon}</div>
-                  <h3 className="lp-portal__card-title lp-portal__card-title--light">{coachTabs[activeCoachTab].title}</h3>
-                  <p className="lp-portal__card-desc lp-portal__card-desc--light">{coachTabs[activeCoachTab].desc}</p>
-                </div>
-                <div className="lp-portal__mockup" data-tab={coachTabs[activeCoachTab].key}>
-                  <CoachTabMockup tab={coachTabs[activeCoachTab].key} />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </AnimSection>
-
-      {/* ══ COMPARISON ══ */}
-      <AnimSection>
-        <section className="lp-section lp-section--warm" id="comparativa">
-          <div className="lp-w">
-            <p className="lp-ey">{t("cmp_ey")}</p>
-            <h2 className="lp-h2">{t("cmp_h2")}</h2>
-            <p className="lp-sub">{t("cmp_sub")}</p>
-
-            <div className="lp-compare lp-compare--4col">
-              <div className="lp-compare__head">
-                <div className="lp-compare__feature" />
-                <div className="lp-compare__col lp-compare__col--pa">{t("cmp_col_pa")}</div>
-                <div className="lp-compare__col">{t("cmp_col_tp")}</div>
-                <div className="lp-compare__col">{t("cmp_col_inscyd")}</div>
-                <div className="lp-compare__col">{t("cmp_col_intervals")}</div>
-              </div>
-              {(["c1","c2","c3","c4","c5","c6","c7"] as const).map((k) => (
-                <div key={k} className="lp-compare__row">
-                  <div className="lp-compare__feature">{t(`cmp_${k}`)}</div>
-                  <div className="lp-compare__col lp-compare__col--pa">
-                    <span className="lp-compare__yes" />
-                  </div>
-                  <div className="lp-compare__col">
-                    <span className={`lp-compare__${t(`cmp_${k}_tp`) === "yes" ? "yes" : t(`cmp_${k}_tp`) === "partial" ? "partial" : "no"}`} />
-                  </div>
-                  <div className="lp-compare__col">
-                    <span className={`lp-compare__${t(`cmp_${k}_inscyd`) === "yes" ? "yes" : t(`cmp_${k}_inscyd`) === "partial" ? "partial" : "no"}`} />
-                  </div>
-                  <div className="lp-compare__col">
-                    <span className={`lp-compare__${t(`cmp_${k}_intervals`) === "yes" ? "yes" : t(`cmp_${k}_intervals`) === "partial" ? "partial" : "no"}`} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="lp-compare__note">{t("cmp_note")}</p>
-          </div>
-        </section>
-      </AnimSection>
-
-      {/* ══ SCIENCE STRIP ══ */}
-      <AnimSection>
-        <section className="lp-strip">
-          <div className="lp-w">
-            <p className="lp-ey" style={{ textAlign: "center" }}>{t("sci_ey")}</p>
-            <h2 className="lp-h2" style={{ textAlign: "center" }}>{t("sci_h2")}</h2>
-            <p className="lp-sub" style={{ textAlign: "center", margin: "0 auto 40px" }}>{t("sci_sub")}</p>
-            <div className="lp-strip__grid">
-              {[
-                { key: "sci_s1" },
-                { key: "sci_s2" },
-                { key: "sci_s3" },
-              ].map((s) => (
-                <div key={s.key} className="lp-strip__item">
-                  <span className="lp-strip__detail">{t(s.key)}</span>
-                </div>
+            <p className="lp-ey">{t("faq_ey")}</p>
+            <h2 className="lp-h2">{t("faq_h2")}</h2>
+            <div className="lp-faq__list">
+              {(["1","2","3","4","5","6"] as const).map(n => (
+                <details key={n} className="lp-faq__item">
+                  <summary className="lp-faq__q">{t(`faq_q${n}`)}</summary>
+                  <p className="lp-faq__a">{t(`faq_a${n}`)}</p>
+                </details>
               ))}
             </div>
           </div>
         </section>
       </AnimSection>
 
-      {/* ══ BETA CTA ══ */}
+      {/* ══ CTA ══ */}
       <section className="lp-cta-section" id="acceso">
         <div className="lp-w lp-cta-section__inner">
           <h2 className="lp-h2">{t("cta_h2")}</h2>
@@ -524,6 +1172,7 @@ function LandingInner() {
         <div className="lp-w lp-foot__inner">
           <span className="lp-foot__brand">PeakAerobic</span>
           <span className="lp-foot__line">{t("foot_tagline")}</span>
+          <a href="/resources" className="lp-foot__link">{t("foot_resources")}</a>
           <a href="/privacy" className="lp-foot__link">{t("foot_privacy")}</a>
         </div>
       </footer>
@@ -531,217 +1180,8 @@ function LandingInner() {
   );
 }
 
-/* ── Athlete Portal tab mockups (SVG/CSS, no external images) ── */
-function AthleteTabMockup({ tab }: { tab: string }) {
-  if (tab === "today") return (
-    <div className="lp-mock">
-      <div className="lp-mock__header">
-        <div className="lp-mock__dot lp-mock__dot--green" />
-        <span className="lp-mock__title">Hoy - Martes 12 Mar</span>
-      </div>
-      <div className="lp-mock__session">
-        <span className="lp-mock__badge lp-mock__badge--key">KEY</span>
-        <span className="lp-mock__label">4x6' LT1 + 4x2' LT2</span>
-      </div>
-      <div className="lp-mock__row">
-        <div className="lp-mock__metric"><span className="lp-mock__metric-val">72</span><span className="lp-mock__metric-label">Readiness</span></div>
-        <div className="lp-mock__metric"><span className="lp-mock__metric-val">6.8h</span><span className="lp-mock__metric-label">Sleep</span></div>
-        <div className="lp-mock__metric"><span className="lp-mock__metric-val">48ms</span><span className="lp-mock__metric-label">HRV</span></div>
-      </div>
-      <div className="lp-mock__block-tag">Aerobic capacity - Week 2/4</div>
-    </div>
-  );
-  if (tab === "week") return (
-    <div className="lp-mock">
-      <div className="lp-mock__week-grid">
-        {["L","M","X","J","V","S","D"].map((d, i) => (
-          <div key={d} className={`lp-mock__day ${i === 1 ? "lp-mock__day--today" : ""}`}>
-            <span className="lp-mock__day-label">{d}</span>
-            <div className={`lp-mock__day-bar lp-mock__day-bar--${i < 5 ? ["rest","key","easy","rest","long"][i] : "rest"}`} />
-          </div>
-        ))}
-      </div>
-      <div className="lp-mock__week-summary">
-        <span>RUN 4h 20min</span>
-        <span>BIKE 2h 30min</span>
-      </div>
-    </div>
-  );
-  if (tab === "progress") return (
-    <div className="lp-mock">
-      <div className="lp-mock__header">
-        <span className="lp-mock__title">LT2 evolution</span>
-      </div>
-      <svg viewBox="0 0 200 60" className="lp-mock__chart">
-        <path d="M10 50 L40 46 L70 42 L100 38 L130 33 L160 28 L190 24" fill="none" stroke="#d26a36" strokeWidth="2" />
-        {[10,40,70,100,130,160,190].map((x,i) => <circle key={i} cx={x} cy={50-i*4.3} r="2.5" fill="#fff" stroke="#d26a36" strokeWidth="1.5" />)}
-      </svg>
-      <div className="lp-mock__row">
-        <span className="lp-mock__trend-up">LT2: 4:24/km</span>
-        <span className="lp-mock__trend-label">-14s in 8 weeks</span>
-      </div>
-    </div>
-  );
-  if (tab === "recovery") return (
-    <div className="lp-mock">
-      <div className="lp-mock__ring-row">
-        <svg viewBox="0 0 60 60" width="60" height="60">
-          <circle cx="30" cy="30" r="24" fill="none" stroke="#1a2f38" strokeWidth="4" opacity=".1" />
-          <circle cx="30" cy="30" r="24" fill="none" stroke="#22c55e" strokeWidth="4" strokeDasharray="110 151" strokeLinecap="round" transform="rotate(-90 30 30)" />
-          <text x="30" y="34" textAnchor="middle" fill="#fff" fontSize="14" fontWeight="700" fontFamily="Space Grotesk">72</text>
-        </svg>
-        <div className="lp-mock__ring-metrics">
-          <div className="lp-mock__mini-metric"><span className="lp-mock__mini-val">48ms</span> HRV</div>
-          <div className="lp-mock__mini-metric"><span className="lp-mock__mini-val">6.8h</span> Sleep</div>
-          <div className="lp-mock__mini-metric"><span className="lp-mock__mini-val">28</span> Stress</div>
-        </div>
-      </div>
-    </div>
-  );
-  if (tab === "zones") return (
-    <div className="lp-mock">
-      <div className="lp-mock__header">
-        <span className="lp-mock__title">Zonas de entrenamiento</span>
-      </div>
-      <div className="lp-mock__zones-list">
-        {[
-          { name: "REC", hr: "< 130", pace: "> 6:10", color: "#10B981" },
-          { name: "BASE", hr: "130–145", pace: "5:30–6:10", color: "#22c55e" },
-          { name: "LT1", hr: "145–156", pace: "4:50–5:30", color: "#3B82F6" },
-          { name: "SUB", hr: "156–164", pace: "4:30–4:50", color: "#8B5CF6" },
-          { name: "LT2", hr: "164–172", pace: "4:10–4:30", color: "#F59E0B" },
-          { name: "VO2MAX", hr: "172–184", pace: "3:50–4:10", color: "#EF4444" },
-          { name: "ANC", hr: "> 184", pace: "< 3:50", color: "#DC2626" },
-        ].map(z => (
-          <div key={z.name} className="lp-mock__zone-row">
-            <span className="lp-mock__zone-dot" style={{ background: z.color }} />
-            <span className="lp-mock__zone-name">{z.name}</span>
-            <span className="lp-mock__zone-hr">{z.hr} bpm</span>
-            <span className="lp-mock__zone-pace">{z.pace}/km</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-  // garmin
-  return (
-    <div className="lp-mock">
-      <div className="lp-mock__connect-row">
-        <div className="lp-mock__connect-icon">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#22c55e" strokeWidth="2"><path d="M5 13l4 4L19 7" /></svg>
-        </div>
-        <span className="lp-mock__connect-label">Garmin connected</span>
-      </div>
-      <div className="lp-mock__metrics-list">
-        {["HRV","Resting HR","Sleep","Stress","Body Battery"].map(m => (
-          <div key={m} className="lp-mock__metric-toggle">
-            <span>{m}</span>
-            <span className="lp-mock__toggle-on" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-/* ── Coach Portal tab mockups ── */
-function CoachTabMockup({ tab }: { tab: string }) {
-  if (tab === "dashboard") return (
-    <div className="lp-mock lp-mock--light">
-      <div className="lp-mock__athletes-grid">
-        {[
-          { name: "Ana G.", lt2: "4:24/km", conf: 0.87, color: "green" },
-          { name: "Carlos R.", lt2: "278W", conf: 0.72, color: "orange" },
-          { name: "Marta P.", lt2: "4:48/km", conf: 0.91, color: "green" },
-        ].map(a => (
-          <div key={a.name} className="lp-mock__athlete-card">
-            <div className="lp-mock__athlete-name">{a.name}</div>
-            <div className="lp-mock__athlete-lt2">LT2: {a.lt2}</div>
-            <div className={`lp-mock__athlete-conf lp-mock__athlete-conf--${a.color}`}>{a.conf}</div>
-          </div>
-        ))}
-      </div>
-      <div className="lp-mock__alert-bar">
-        <span className="lp-mock__alert-dot" />
-        Carlos R. - Stale data: 45 days without test
-      </div>
-    </div>
-  );
-  if (tab === "analysis") return (
-    <div className="lp-mock lp-mock--light">
-      <svg viewBox="0 0 200 70" className="lp-mock__chart">
-        <defs><linearGradient id="mcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d26a36" stopOpacity=".12" /><stop offset="100%" stopColor="#d26a36" stopOpacity="0" /></linearGradient></defs>
-        <path d="M10 60 C30 58, 50 55, 80 48 C110 38, 130 25, 160 12 L160 65 L10 65 Z" fill="url(#mcg)" />
-        <path d="M10 60 C30 58, 50 55, 80 48 C110 38, 130 25, 160 12" fill="none" stroke="#d26a36" strokeWidth="2" />
-        <line x1="60" y1="5" x2="60" y2="65" stroke="#22c55e" strokeWidth="1" strokeDasharray="3 2" opacity=".5" />
-        <line x1="120" y1="5" x2="120" y2="65" stroke="#f97316" strokeWidth="1" strokeDasharray="3 2" opacity=".5" />
-        <text x="60" y="10" textAnchor="middle" fill="#22c55e" fontSize="7" fontWeight="700">LT1</text>
-        <text x="120" y="10" textAnchor="middle" fill="#f97316" fontSize="7" fontWeight="700">LT2</text>
-      </svg>
-      <div className="lp-mock__row">
-        <span className="lp-mock__conf-badge">Conf: 0.87</span>
-        <span className="lp-mock__method-count">3 methods agree</span>
-      </div>
-    </div>
-  );
-  if (tab === "planning") return (
-    <div className="lp-mock lp-mock--light">
-      <div className="lp-mock__calendar-mini">
-        {[1,2,3,4].map(w => (
-          <div key={w} className="lp-mock__cal-week">
-            <span className="lp-mock__cal-week-label">W{w}</span>
-            <div className="lp-mock__cal-days">
-              {[0,1,2,3,4,5,6].map(d => (
-                <div key={d} className={`lp-mock__cal-dot ${(w < 4 && (d === 1 || d === 3 || d === 5)) ? "lp-mock__cal-dot--filled" : ""} ${w === 4 ? "lp-mock__cal-dot--recovery" : ""}`} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="lp-mock__block-tag lp-mock__block-tag--light">TSS 480 · CTL 62 · ATL 78</div>
-    </div>
-  );
-  if (tab === "library") return (
-    <div className="lp-mock lp-mock--light">
-      <div className="lp-mock__lib-list">
-        {[
-          { name: "4x6' LT1", zone: "Z2" },
-          { name: "5x4' Cruise intervals", zone: "Z4" },
-          { name: "3x20' Sub-threshold", zone: "Z3" },
-        ].map(w => (
-          <div key={w.name} className="lp-mock__lib-item">
-            <span className="lp-mock__lib-name">{w.name}</span>
-            <span className="lp-mock__lib-step">{w.zone}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-  // zones (coach)
-  return (
-    <div className="lp-mock lp-mock--light">
-      <div className="lp-mock__header">
-        <span className="lp-mock__title" style={{ color: "var(--c-text)" }}>Ana G. — Running zones</span>
-      </div>
-      <div className="lp-mock__zones-list lp-mock__zones-list--light">
-        {[
-          { name: "REC", hr: "< 128", pace: "> 6:20", color: "#10B981" },
-          { name: "BASE", hr: "128–142", pace: "5:40–6:20", color: "#22c55e" },
-          { name: "LT1", hr: "142–154", pace: "4:55–5:40", color: "#3B82F6" },
-          { name: "LT2", hr: "162–170", pace: "4:18–4:35", color: "#F59E0B" },
-          { name: "VO2MAX", hr: "170–182", pace: "3:55–4:18", color: "#EF4444" },
-        ].map(z => (
-          <div key={z.name} className="lp-mock__zone-row">
-            <span className="lp-mock__zone-dot" style={{ background: z.color }} />
-            <span className="lp-mock__zone-name" style={{ color: "var(--c-text)" }}>{z.name}</span>
-            <span className="lp-mock__zone-hr">{z.hr} bpm</span>
-            <span className="lp-mock__zone-pace">{z.pace}/km</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+
 
 /* ── Export with LangProvider wrapper ── */
 export function LandingPage() {

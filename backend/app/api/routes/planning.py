@@ -34,6 +34,7 @@ from app.schemas.planning import (
     TriathlonMesocycleRequest,
     TriathlonMesocycleDraftRead,
     WorkoutStepsEditRequest,
+    WorkoutTemplateOverrideUpdate,
 )
 from app.models.coach_template import CoachLibrary, CoachWorkoutTemplate, CoachPlan, CoachPlanDay
 from app.schemas.workout_definition import WorkoutDefinition
@@ -281,9 +282,75 @@ def planning_workout_library(
 @router.get("/workout-library", response_model=list[PlanningWorkoutTemplateRead])
 def planning_general_workout_library(
     discipline: str,
-    _: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    return workout_library_payload(discipline)
+    return workout_library_payload(discipline, db=db, user_id=user.id)
+
+
+@router.patch("/workout-library/{template_id}/override")
+def save_workout_template_override(
+    template_id: str,
+    body: WorkoutTemplateOverrideUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Guarda (upsert) un override de template. Solo se guardan los campos no-null."""
+    import json as _json
+    from app.services.workout_library import WORKOUT_TEMPLATES
+    if not any(t.template_id == template_id for t in WORKOUT_TEMPLATES):
+        raise HTTPException(status_code=404, detail=f"Template '{template_id}' not found")
+
+    override_data = body.model_dump(exclude_none=True)
+    if not override_data:
+        raise HTTPException(status_code=400, detail="No fields to override")
+
+    # Convert dose_ladder Pydantic models to plain dicts
+    if "dose_ladder" in override_data:
+        override_data["dose_ladder"] = [
+            s.model_dump() if hasattr(s, "model_dump") else s
+            for s in override_data["dose_ladder"]
+        ]
+
+    from app.models.coach_template import WorkoutTemplateOverride
+    existing = (
+        db.query(WorkoutTemplateOverride)
+        .filter_by(user_id=user.id, template_id=template_id)
+        .first()
+    )
+    if existing:
+        current = _json.loads(existing.overrides) if isinstance(existing.overrides, str) else (existing.overrides or {})
+        current.update(override_data)
+        existing.overrides = _json.dumps(current)
+    else:
+        existing = WorkoutTemplateOverride(
+            user_id=user.id,
+            template_id=template_id,
+            overrides=_json.dumps(override_data),
+        )
+        db.add(existing)
+    db.commit()
+    return {"status": "ok", "template_id": template_id, "overridden_fields": list(override_data.keys())}
+
+
+@router.delete("/workout-library/{template_id}/override")
+def delete_workout_template_override(
+    template_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Elimina el override y vuelve al template por defecto."""
+    from app.models.coach_template import WorkoutTemplateOverride
+    existing = (
+        db.query(WorkoutTemplateOverride)
+        .filter_by(user_id=user.id, template_id=template_id)
+        .first()
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="No override found")
+    db.delete(existing)
+    db.commit()
+    return {"status": "ok", "template_id": template_id}
 
 
 @router.get("/athletes/{athlete_id}/mesocycle-draft", response_model=PlanningMesocycleDraftRead)

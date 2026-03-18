@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -85,3 +85,28 @@ class CoachPlanDay(Base):
 
     user = relationship("User")
     plan = relationship("CoachPlan", back_populates="days")
+
+
+class WorkoutTemplateOverride(Base):
+    """Override de un template de la biblioteca de entrenos.
+
+    Almacena un JSON con los campos modificados por el entrenador.
+    Se mergea sobre los defaults del código al cargar templates.
+    """
+
+    __tablename__ = "workout_template_overrides"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    template_id: Mapped[str] = mapped_column(String(100), index=True)
+    overrides: Mapped[str] = mapped_column(Text, default="{}")
+    """JSON dict con los campos sobrescritos."""
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+    )
+
+    user = relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "template_id", name="uq_override_user_template"),
+    )

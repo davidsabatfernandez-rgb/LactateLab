@@ -960,6 +960,7 @@ export type PlanningWorkoutTemplate = {
   enfriamiento_template: string;
   coach_tips: string[];
   dose_ladder: DoseStepItem[];
+  has_override?: boolean;
 };
 
 export type AlternativeSession = {

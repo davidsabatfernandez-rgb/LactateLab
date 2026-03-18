@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import dataclasses
+import json
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 
 @dataclass(frozen=True)
@@ -3615,6 +3617,77 @@ def templates_for_discipline_library(discipline: str) -> list[WorkoutTemplate]:
             item.public_label,
         ),
     )
+
+
+# ── Override resolution layer ─────────────────────────────────────────────
+
+
+def _apply_override(template: WorkoutTemplate, overrides: dict[str, Any]) -> WorkoutTemplate:
+    """Return a new WorkoutTemplate with DB overrides merged on top of code defaults."""
+    if not overrides:
+        return template
+    kwargs: dict[str, Any] = {}
+    for field in dataclasses.fields(template):
+        if field.name in overrides:
+            val = overrides[field.name]
+            if field.name == "dose_ladder":
+                val = tuple(DoseStep(**s) for s in val)
+            elif isinstance(getattr(template, field.name), tuple):
+                val = tuple(val)
+            kwargs[field.name] = val
+        else:
+            kwargs[field.name] = getattr(template, field.name)
+    return WorkoutTemplate(**kwargs)
+
+
+def load_overrides_map(db: Any, user_id: int) -> dict[str, dict]:
+    """Returns {template_id: overrides_dict} for the user."""
+    from app.models.coach_template import WorkoutTemplateOverride
+    rows = db.query(WorkoutTemplateOverride).filter_by(user_id=user_id).all()
+    result: dict[str, dict] = {}
+    for row in rows:
+        data = row.overrides if isinstance(row.overrides, dict) else json.loads(row.overrides or "{}")
+        result[row.template_id] = data
+    return result
+
+
+def get_resolved_templates(
+    db: Optional[Any] = None, user_id: Optional[int] = None
+) -> tuple[WorkoutTemplate, ...]:
+    """Return WORKOUT_TEMPLATES with DB overrides applied (if db/user_id provided)."""
+    if db is None or user_id is None:
+        return WORKOUT_TEMPLATES
+    overrides_map = load_overrides_map(db, user_id)
+    if not overrides_map:
+        return WORKOUT_TEMPLATES
+    return tuple(
+        _apply_override(t, overrides_map.get(t.template_id, {}))
+        for t in WORKOUT_TEMPLATES
+    )
+
+
+def templates_for_discipline_library_resolved(
+    discipline: str, db: Any | None = None, user_id: int | None = None
+) -> list[WorkoutTemplate]:
+    """Like templates_for_discipline_library but with DB overrides applied."""
+    all_templates = get_resolved_templates(db, user_id)
+    templates = [t for t in all_templates if t.discipline in {discipline, "all"}]
+    return sorted(
+        templates,
+        key=lambda item: (
+            min(BLOCK_ORDER.get(bt, 99) for bt in item.compatible_block_types),
+            ROLE_ORDER.get(item.session_role, 99),
+            -item.confidence,
+            item.public_label,
+        ),
+    )
+
+
+def get_overrides_set(db: Any, user_id: int) -> set[str]:
+    """Return set of template_ids that have overrides for this user."""
+    from app.models.coach_template import WorkoutTemplateOverride
+    rows = db.query(WorkoutTemplateOverride.template_id).filter_by(user_id=user_id).all()
+    return {r.template_id for r in rows}
 
 
 def build_mesocycle_draft(

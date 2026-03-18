@@ -134,6 +134,22 @@ class PlanningWorkoutTemplateRead(BaseModel):
     enfriamiento_template: str = ""
     coach_tips: list[str] = []
     dose_ladder: list[DoseStepRead] = []
+    has_override: bool = False
+
+
+class WorkoutTemplateOverrideUpdate(BaseModel):
+    dose_ladder: Optional[list[DoseStepRead]] = None
+    calentamiento_min: Optional[int] = None
+    calentamiento_template: Optional[str] = None
+    enfriamiento_min: Optional[int] = None
+    enfriamiento_template: Optional[str] = None
+    coach_tips: Optional[list[str]] = None
+    csv_examples: Optional[list[str]] = None
+    fatigue_cost: Optional[int] = None
+    public_label: Optional[str] = None
+    objective: Optional[str] = None
+    dose_guidance: Optional[str] = None
+    summary: Optional[str] = None
 
 
 class AlternativeSessionRead(BaseModel):

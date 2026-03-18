@@ -459,7 +459,7 @@ export function LactateDemo() {
       <div className="lp-w">
         <p className="lp-ey">{t("demo_eyebrow")}</p>
         <h2 className="lp-h2">{t("demo_title")}</h2>
-        <p className="lp-sub">{t("demo_sub")}</p>
+        <p className="lp-sub" dangerouslySetInnerHTML={{ __html: t("demo_sub") }} />
 
         <div className="ld-container">
           {/* ── Input panel ── */}

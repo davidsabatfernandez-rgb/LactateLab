@@ -31,8 +31,10 @@ from app.services.workout_library import (
     build_mesocycle_draft,
     builder_variables_for_template,
     evidence_for_ids,
+    get_overrides_set,
     templates_for_block,
     templates_for_discipline_library,
+    templates_for_discipline_library_resolved,
     variants_for_template,
 )
 
@@ -715,7 +717,7 @@ def _estimate_level(recent_sessions: int) -> tuple[str, int, int]:
     return "3+1", 3, 1
 
 
-def _serialize_workout_template(template) -> dict[str, Any]:
+def _serialize_workout_template(template, *, has_override: bool = False) -> dict[str, Any]:
     return {
         "template_id": template.template_id,
         "discipline": template.discipline,
@@ -778,11 +780,23 @@ def _serialize_workout_template(template) -> dict[str, Any]:
             }
             for step in template.dose_ladder
         ],
+        "has_override": has_override,
     }
 
 
-def workout_library_payload(discipline: str) -> list[dict[str, Any]]:
-    return [_serialize_workout_template(template) for template in templates_for_discipline_library(discipline)]
+def workout_library_payload(
+    discipline: str, db: Any = None, user_id: int | None = None,
+) -> list[dict[str, Any]]:
+    overrides_set: set[str] = set()
+    if db is not None and user_id is not None:
+        overrides_set = get_overrides_set(db, user_id)
+        templates = templates_for_discipline_library_resolved(discipline, db, user_id)
+    else:
+        templates = templates_for_discipline_library(discipline)
+    return [
+        _serialize_workout_template(t, has_override=t.template_id in overrides_set)
+        for t in templates
+    ]
 
 
 def _next_target_summary(athlete: Athlete, discipline: str) -> Optional[dict[str, Any]]:
@@ -2122,7 +2136,7 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
     }
 
     recommended_workouts = [_serialize_workout_template(template) for template in templates_for_block(selected_discipline, recommended_type)]
-    workout_library = [_serialize_workout_template(template) for template in templates_for_discipline_library(selected_discipline)]
+    workout_library = workout_library_payload(selected_discipline, db=db)
     mesocycle_draft = build_mesocycle_draft(
         discipline=selected_discipline,
         block_type=recommended_type,

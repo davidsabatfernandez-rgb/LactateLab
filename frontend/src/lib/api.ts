@@ -488,6 +488,10 @@ export const api = {
     request(`/planning/athletes/${athleteId}/workout-library${discipline ? `?discipline=${encodeURIComponent(discipline)}` : ""}`, { token }),
   generalPlanningWorkoutLibrary: (token: string, discipline: string) =>
     request(`/planning/workout-library?discipline=${encodeURIComponent(discipline)}`, { token }),
+  saveWorkoutTemplateOverride: (token: string, templateId: string, data: Record<string, unknown>) =>
+    request(`/planning/workout-library/${encodeURIComponent(templateId)}/override`, { token, method: "PATCH", body: JSON.stringify(data) }),
+  deleteWorkoutTemplateOverride: (token: string, templateId: string) =>
+    request(`/planning/workout-library/${encodeURIComponent(templateId)}/override`, { token, method: "DELETE" }),
   planningWorkoutLibraryStructuredPreview: (
     token: string,
     options: {
