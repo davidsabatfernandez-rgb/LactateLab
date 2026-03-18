@@ -126,6 +126,14 @@
   border-color: rgba(14, 30, 36, 0.22);
 }
 
+/* ── Dual-path hero buttons ── */
+.lp-btn--athlete {
+  background: var(--c-green);
+}
+.lp-btn--coach {
+  background: var(--c-accent);
+}
+
 /* ═══ TYPOGRAPHY helpers ═══════════════════ */
 
 .lp-ey {
@@ -1471,10 +1479,10 @@
 
 .lp-hero__proof-val {
   font-family: var(--ff-display);
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--c-dark);
-  letter-spacing: -0.02em;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-muted);
+  letter-spacing: 0.01em;
 }
 
 .lp-hero__proof-label {
@@ -2135,12 +2143,17 @@
 /* ═══ COMPARISON TABLE ═════════════════════ */
 
 .lp-compare {
-  max-width: 680px;
+  max-width: 880px;
   margin: 0 auto;
   border: 1px solid var(--c-border);
   border-radius: 16px;
   overflow: hidden;
   background: var(--c-surface);
+}
+
+.lp-compare--4col .lp-compare__head,
+.lp-compare--4col .lp-compare__row {
+  grid-template-columns: 1fr 100px 100px 100px 100px;
 }
 
 .lp-compare__head {
@@ -2257,6 +2270,51 @@
   transform: translate(-50%, -50%);
 }
 
+/* ── Zone mockups (athlete + coach portals) ── */
+
+.lp-mock__zones-list {
+  display: grid;
+  gap: 4px;
+}
+
+.lp-mock__zones-list--light .lp-mock__zone-hr,
+.lp-mock__zones-list--light .lp-mock__zone-pace {
+  color: var(--c-muted);
+}
+
+.lp-mock__zone-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.lp-mock__zone-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.lp-mock__zone-name {
+  font-weight: 700;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  min-width: 52px;
+}
+
+.lp-mock__zone-hr,
+.lp-mock__zone-pace {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-mock__zone-hr {
+  min-width: 70px;
+}
+
 .lp-compare__note {
   text-align: center;
   font-size: 12px;
@@ -2293,6 +2351,8 @@
   .lp-portal__tab { min-width: 80px; padding: 10px 12px; }
   .lp-compare__head,
   .lp-compare__row { grid-template-columns: 1fr 80px 80px; padding: 10px 14px; }
+  .lp-compare--4col .lp-compare__head,
+  .lp-compare--4col .lp-compare__row { grid-template-columns: 1fr 70px 70px 70px 70px; }
   .lp-compare__feature { font-size: 12px; }
 }
 
@@ -2314,6 +2374,8 @@
   .lp-mock__row { flex-wrap: wrap; }
   .lp-compare__head,
   .lp-compare__row { grid-template-columns: 1fr 60px 60px; padding: 8px 12px; }
+  .lp-compare--4col .lp-compare__head,
+  .lp-compare--4col .lp-compare__row { grid-template-columns: 1fr 55px 55px 55px 55px; }
   .lp-compare__feature { font-size: 11px; }
   .lp-compare__yes, .lp-compare__no, .lp-compare__partial { width: 16px; height: 16px; }
 }
@@ -2373,6 +2435,8 @@
   /* Comparison table */
   .lp-compare__head,
   .lp-compare__row { grid-template-columns: 1fr 50px 50px; padding: 6px 10px; }
+  .lp-compare--4col .lp-compare__head,
+  .lp-compare--4col .lp-compare__row { grid-template-columns: 1fr 44px 44px 44px 44px; }
   .lp-compare__feature { font-size: 10px; }
   .lp-compare__head .lp-compare__col { font-size: 9px; }
 

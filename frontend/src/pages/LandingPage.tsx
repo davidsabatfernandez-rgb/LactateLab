@@ -215,6 +215,7 @@ function LandingInner() {
     { key: "today", icon: <IconPlan />, title: t("ap_today_title"), desc: t("ap_today_desc") },
     { key: "week", icon: <IconWorkout />, title: t("ap_week_title"), desc: t("ap_week_desc") },
     { key: "progress", icon: <IconDynamic />, title: t("ap_progress_title"), desc: t("ap_progress_desc") },
+    { key: "zones", icon: <IconPredict />, title: t("ap_zones_title"), desc: t("ap_zones_desc") },
     { key: "recovery", icon: <IconRecovery />, title: t("ap_recovery_title"), desc: t("ap_recovery_desc") },
     { key: "garmin", icon: <IconGarmin />, title: t("ap_garmin_title"), desc: t("ap_garmin_desc") },
   ];
@@ -223,8 +224,8 @@ function LandingInner() {
     { key: "dashboard", icon: <IconCoachDash />, title: t("cp_dash_title"), desc: t("cp_dash_desc") },
     { key: "analysis", icon: <IconCurve />, title: t("cp_analysis_title"), desc: t("cp_analysis_desc") },
     { key: "planning", icon: <IconPlan />, title: t("cp_planning_title"), desc: t("cp_planning_desc") },
+    { key: "zones", icon: <IconPredict />, title: t("cp_zones_title"), desc: t("cp_zones_desc") },
     { key: "library", icon: <IconWorkout />, title: t("cp_library_title"), desc: t("cp_library_desc") },
-    { key: "advisor", icon: <IconScience />, title: t("cp_advisor_title"), desc: t("cp_advisor_desc") },
   ];
 
   return (
@@ -250,31 +251,27 @@ function LandingInner() {
         <div className="lp-w lp-hero__grid">
           <div className="lp-hero__left">
             <p className="lp-hero__kicker">{t("hero_kicker")}</p>
-            <span className="lp-hero__badge">{t("hero_badge")}</span>
             <h1 className="lp-hero__h1">
               {t("hero_h1_1")}<br />
-              {t("hero_h1_2")}<br />
-              <em>{t("hero_h1_3")}</em> {t("hero_h1_4")}
+              {t("hero_h1_2")} <em>{t("hero_h1_3")}</em>{t("hero_h1_4")}
             </h1>
             <p className="lp-hero__sub">{t("hero_sub")}</p>
             <div className="lp-hero__acts">
-              <a href="#demo" className="lp-btn-solid">{t("hero_cta")}</a>
-              <a href="#motor" className="lp-btn-ghost">{t("hero_cta2")}</a>
+              <a href="#athlete-portal" className="lp-btn-solid lp-btn--athlete">{t("hero_cta_athlete")}</a>
+              <a href="#coach-portal" className="lp-btn-solid lp-btn--coach">{t("hero_cta_coach")}</a>
+              <a href="#demo" className="lp-btn-ghost">{t("hero_cta")}</a>
             </div>
             <div className="lp-hero__proof">
               <div className="lp-hero__proof-item">
-                <span className="lp-hero__proof-val">3</span>
-                <span className="lp-hero__proof-label">{t("hero_proof_methods")}</span>
+                <span className="lp-hero__proof-val">{t("hero_proof_methods")}</span>
               </div>
               <div className="lp-hero__proof-sep" />
               <div className="lp-hero__proof-item">
-                <span className="lp-hero__proof-val">3</span>
-                <span className="lp-hero__proof-label">{t("hero_proof_blocks")}</span>
+                <span className="lp-hero__proof-val">{t("hero_proof_blocks")}</span>
               </div>
               <div className="lp-hero__proof-sep" />
               <div className="lp-hero__proof-item">
-                <span className="lp-hero__proof-val">0.25-0.95</span>
-                <span className="lp-hero__proof-label">{t("hero_proof_confidence")}</span>
+                <span className="lp-hero__proof-val">{t("hero_proof_confidence")}</span>
               </div>
             </div>
           </div>
@@ -453,11 +450,13 @@ function LandingInner() {
             <h2 className="lp-h2">{t("cmp_h2")}</h2>
             <p className="lp-sub">{t("cmp_sub")}</p>
 
-            <div className="lp-compare">
+            <div className="lp-compare lp-compare--4col">
               <div className="lp-compare__head">
                 <div className="lp-compare__feature" />
-                <div className="lp-compare__col lp-compare__col--pa">PeakAerobic</div>
-                <div className="lp-compare__col">{t("cmp_others")}</div>
+                <div className="lp-compare__col lp-compare__col--pa">{t("cmp_col_pa")}</div>
+                <div className="lp-compare__col">{t("cmp_col_tp")}</div>
+                <div className="lp-compare__col">{t("cmp_col_inscyd")}</div>
+                <div className="lp-compare__col">{t("cmp_col_intervals")}</div>
               </div>
               {(["c1","c2","c3","c4","c5","c6","c7"] as const).map((k) => (
                 <div key={k} className="lp-compare__row">
@@ -466,7 +465,13 @@ function LandingInner() {
                     <span className="lp-compare__yes" />
                   </div>
                   <div className="lp-compare__col">
-                    <span className={`lp-compare__${t(`cmp_${k}_others`) === "partial" ? "partial" : "no"}`} />
+                    <span className={`lp-compare__${t(`cmp_${k}_tp`) === "yes" ? "yes" : t(`cmp_${k}_tp`) === "partial" ? "partial" : "no"}`} />
+                  </div>
+                  <div className="lp-compare__col">
+                    <span className={`lp-compare__${t(`cmp_${k}_inscyd`) === "yes" ? "yes" : t(`cmp_${k}_inscyd`) === "partial" ? "partial" : "no"}`} />
+                  </div>
+                  <div className="lp-compare__col">
+                    <span className={`lp-compare__${t(`cmp_${k}_intervals`) === "yes" ? "yes" : t(`cmp_${k}_intervals`) === "partial" ? "partial" : "no"}`} />
                   </div>
                 </div>
               ))}
@@ -593,6 +598,31 @@ function AthleteTabMockup({ tab }: { tab: string }) {
       </div>
     </div>
   );
+  if (tab === "zones") return (
+    <div className="lp-mock">
+      <div className="lp-mock__header">
+        <span className="lp-mock__title">Zonas de entrenamiento</span>
+      </div>
+      <div className="lp-mock__zones-list">
+        {[
+          { name: "REC", hr: "< 130", pace: "> 6:10", color: "#10B981" },
+          { name: "BASE", hr: "130–145", pace: "5:30–6:10", color: "#22c55e" },
+          { name: "LT1", hr: "145–156", pace: "4:50–5:30", color: "#3B82F6" },
+          { name: "SUB", hr: "156–164", pace: "4:30–4:50", color: "#8B5CF6" },
+          { name: "LT2", hr: "164–172", pace: "4:10–4:30", color: "#F59E0B" },
+          { name: "VO2MAX", hr: "172–184", pace: "3:50–4:10", color: "#EF4444" },
+          { name: "ANC", hr: "> 184", pace: "< 3:50", color: "#DC2626" },
+        ].map(z => (
+          <div key={z.name} className="lp-mock__zone-row">
+            <span className="lp-mock__zone-dot" style={{ background: z.color }} />
+            <span className="lp-mock__zone-name">{z.name}</span>
+            <span className="lp-mock__zone-hr">{z.hr} bpm</span>
+            <span className="lp-mock__zone-pace">{z.pace}/km</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   // garmin
   return (
     <div className="lp-mock">
@@ -687,15 +717,27 @@ function CoachTabMockup({ tab }: { tab: string }) {
       </div>
     </div>
   );
-  // advisor
+  // zones (coach)
   return (
     <div className="lp-mock lp-mock--light">
-      <div className="lp-mock__chat">
-        <div className="lp-mock__chat-q">Should I increase LT2 volume after 3 weeks of threshold work?</div>
-        <div className="lp-mock__chat-a">
-          Based on the athlete's current thresholds and training history, the data suggests maintaining the current load for one more week before progressing...
-          <span className="lp-mock__chat-cite">[scientific evidence]</span>
-        </div>
+      <div className="lp-mock__header">
+        <span className="lp-mock__title" style={{ color: "var(--c-text)" }}>Ana G. — Running zones</span>
+      </div>
+      <div className="lp-mock__zones-list lp-mock__zones-list--light">
+        {[
+          { name: "REC", hr: "< 128", pace: "> 6:20", color: "#10B981" },
+          { name: "BASE", hr: "128–142", pace: "5:40–6:20", color: "#22c55e" },
+          { name: "LT1", hr: "142–154", pace: "4:55–5:40", color: "#3B82F6" },
+          { name: "LT2", hr: "162–170", pace: "4:18–4:35", color: "#F59E0B" },
+          { name: "VO2MAX", hr: "170–182", pace: "3:55–4:18", color: "#EF4444" },
+        ].map(z => (
+          <div key={z.name} className="lp-mock__zone-row">
+            <span className="lp-mock__zone-dot" style={{ background: z.color }} />
+            <span className="lp-mock__zone-name" style={{ color: "var(--c-text)" }}>{z.name}</span>
+            <span className="lp-mock__zone-hr">{z.hr} bpm</span>
+            <span className="lp-mock__zone-pace">{z.pace}/km</span>
+          </div>
+        ))}
       </div>
     </div>
   );
