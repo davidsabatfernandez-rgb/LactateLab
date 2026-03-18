@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { TrainingZonesEditor, TrainingZonesDisplay } from "../../components/TrainingZonesEditor";
+import { TrainingZonesEditor, TrainingZonesDisplay, suggestZonesFromProfile } from "../../components/TrainingZonesEditor";
 import "../../components/training-zones.css";
 import { WorkoutPreviewModal } from "../../components/WorkoutPreviewModal";
 import { api } from "../../lib/api";
+import { buildProfileFromAnalysis } from "../../lib/trainingThresholds";
 import type {
   Athlete,
   AthleteAnalysis,
@@ -67,16 +68,21 @@ type StalenessResult = {
   lt1_pace_delta_seconds: number | null; lt1_hr_delta: number | null; lt1_power_delta: number | null;
 };
 
-function DisciplineZoneCard({ athleteId, discipline, token, onEdit, onCreateNew }: {
+function DisciplineZoneCard({ athleteId, discipline, token, onEdit, onCreateNew, analysis }: {
   athleteId: number;
   discipline: string;
   token: string;
   onEdit: (zoneSet: TrainingZoneSet) => void;
   onCreateNew: () => void;
+  analysis?: AthleteAnalysis | null;
 }) {
   const [zoneSets, setZoneSets] = useState<TrainingZoneSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [staleness, setStaleness] = useState<StalenessResult | null>(null);
+  const [calculating, setCalculating] = useState(false);
+  const [calcMsg, setCalcMsg] = useState<string | null>(null);
+
+  const localProfile = useMemo(() => buildProfileFromAnalysis(analysis, discipline), [analysis, discipline]);
 
   const loadZones = useCallback(() => {
     setLoading(true);
@@ -94,6 +100,35 @@ function DisciplineZoneCard({ athleteId, discipline, token, onEdit, onCreateNew 
       .catch(() => setStaleness(null));
   }, [token, athleteId, discipline]);
 
+  const handleAutoCalc = useCallback(async () => {
+    const profile = localProfile;
+    if (!profile) return;
+    setCalculating(true);
+    try {
+      const suggested = suggestZonesFromProfile(profile, discipline);
+      const zoneName = `Zonas ${discipline} — ${new Date().toLocaleDateString("es-ES", { month: "short", year: "numeric" })} (auto)`;
+      await api.createTrainingZoneSet(token, athleteId, {
+        discipline,
+        name: zoneName,
+        threshold_source: profile.source ?? "manual",
+        threshold_context: {
+          lt1_lactate: profile.lt1?.lactate, lt1_pace: profile.lt1?.pace_label, lt1_hr: profile.lt1?.heart_rate,
+          lt2_lactate: profile.lt2?.lactate, lt2_pace: profile.lt2?.pace_label, lt2_hr: profile.lt2?.heart_rate,
+          source: profile.source,
+        },
+        zones: suggested.map(({ key: _key, ...rest }) => rest),
+      });
+      setCalcMsg("Zonas calculadas");
+      setTimeout(() => setCalcMsg(null), 4000);
+      loadZones();
+    } catch {
+      setCalcMsg("Error al calcular zonas");
+      setTimeout(() => setCalcMsg(null), 4000);
+    } finally {
+      setCalculating(false);
+    }
+  }, [localProfile, discipline, token, athleteId, loadZones]);
+
   const activeSet = zoneSets.find((zs) => zs.is_active) ?? null;
   const discLabel = discipline === "ciclismo" ? "Ciclismo" : discipline === "natación" ? "Natación" : "Carrera a pie";
   const discAccent = discipline === "running" ? "#22c55e" : discipline === "ciclismo" ? "#f59e0b" : "#0ea5e9";
@@ -108,6 +143,10 @@ function DisciplineZoneCard({ athleteId, discipline, token, onEdit, onCreateNew 
           <span className="zones-ok-badge">OK</span>
         ) : null}
       </div>
+
+      {calcMsg && (
+        <div style={{ fontSize: "0.78rem", color: "#3a9a5b", padding: "4px 0" }}>{calcMsg}</div>
+      )}
 
       {loading ? (
         <p className="zones-discipline-loading">Cargando...</p>
@@ -137,10 +176,24 @@ function DisciplineZoneCard({ athleteId, discipline, token, onEdit, onCreateNew 
         {activeSet ? (
           <>
             <button type="button" className="tz-edit-btn" onClick={() => onEdit(activeSet)}>Editar</button>
-            <button type="button" className="tz-suggest-btn" onClick={onCreateNew}>Nuevo conjunto</button>
+            {localProfile && (
+              <button type="button" className="tz-suggest-btn" onClick={handleAutoCalc} disabled={calculating} style={{ fontWeight: 600 }}>
+                {calculating ? "Recalculando..." : "Recalcular zonas"}
+              </button>
+            )}
+            <button type="button" className="tz-edit-btn" onClick={onCreateNew}>Nuevo conjunto</button>
           </>
         ) : (
-          <button type="button" className="tz-suggest-btn" onClick={onCreateNew}>Crear zonas</button>
+          <>
+            {localProfile && (
+              <button type="button" className="tz-suggest-btn" onClick={handleAutoCalc} disabled={calculating} style={{ fontWeight: 600 }}>
+                {calculating ? "Calculando..." : "Calcular zonas"}
+              </button>
+            )}
+            <button type="button" className={localProfile ? "tz-edit-btn" : "tz-suggest-btn"} onClick={onCreateNew}>
+              {localProfile ? "Crear manualmente" : "Crear zonas"}
+            </button>
+          </>
         )}
         {zoneSets.filter((zs) => !zs.is_active).length > 0 ? (
           <details className="zones-archived-detail">
@@ -162,15 +215,21 @@ function DisciplineZoneCard({ athleteId, discipline, token, onEdit, onCreateNew 
   );
 }
 
-function CalendarZonesTab({ athleteId, disciplines, token, athleteName }: {
+function CalendarZonesTab({ athleteId, disciplines, token, athleteName, analysis }: {
   athleteId: string | null;
   disciplines: string[];
   token: string;
   athleteName: string;
+  analysis?: AthleteAnalysis | null;
 }) {
   const [editingDiscipline, setEditingDiscipline] = useState<string | null>(null);
   const [editingSet, setEditingSet] = useState<TrainingZoneSet | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const editProfile = useMemo(
+    () => editingDiscipline ? buildProfileFromAnalysis(analysis, editingDiscipline) : null,
+    [analysis, editingDiscipline],
+  );
 
   if (!athleteId) {
     return <div className="planning-calendar-tab-empty"><p>Selecciona un atleta para ver sus zonas.</p></div>;
@@ -184,6 +243,7 @@ function CalendarZonesTab({ athleteId, disciplines, token, athleteName }: {
           discipline={editingDiscipline}
           token={token}
           existingSet={editingSet}
+          prebuiltProfile={editProfile}
           onSave={() => { setEditingDiscipline(null); setEditingSet(null); setRefreshKey((k) => k + 1); }}
           onCancel={() => { setEditingDiscipline(null); setEditingSet(null); }}
         />
@@ -206,6 +266,7 @@ function CalendarZonesTab({ athleteId, disciplines, token, athleteName }: {
           athleteId={Number(athleteId)}
           discipline={disc}
           token={token}
+          analysis={analysis}
           onEdit={(zs) => { setEditingSet(zs); setEditingDiscipline(disc); }}
           onCreateNew={() => { setEditingSet(null); setEditingDiscipline(disc); }}
         />
@@ -603,6 +664,7 @@ export function CalendarOverlay({
           disciplines={allDisciplines}
           token={token}
           athleteName={overview?.athlete_name ?? "Atleta"}
+          analysis={state.athleteAnalysis}
         />
       );
     }
