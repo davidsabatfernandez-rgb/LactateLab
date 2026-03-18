@@ -736,6 +736,32 @@ def threshold_profile_for_zones(
                 snapshot_date=str(snapshot.snapshot_date),
             )
 
+    # Real thresholds (detected from curve shape)
+    real = payload.get("real_thresholds")
+    if real:
+        lt1_real = real.get("lt1_real") or real.get("lt1_practical_real")
+        lt2_real = real.get("lt2_real") or real.get("lt2_practical_real")
+        if lt1_real or lt2_real:
+            def _item_from_real(r: dict) -> ThresholdItemForZones:
+                pace = r.get("pace_seconds_per_km")
+                return ThresholdItemForZones(
+                    lactate=r.get("lactate", 0),
+                    pace_seconds_per_km=pace,
+                    heart_rate=r.get("heart_rate"),
+                    power_watts=r.get("power_watts"),
+                    pace_label=_pace_label(pace),
+                )
+            return ThresholdProfileForZones(
+                lt1=_item_from_real(lt1_real) if lt1_real else None,
+                lt2=_item_from_real(lt2_real) if lt2_real else None,
+                practical_lt1=practical_lt1_item,
+                practical_lt2=practical_lt2_item,
+                source="real",
+                source_label="Umbral real (forma de curva)",
+                confidence=real.get("data_quality", {}).get("signal_score"),
+                snapshot_date=str(snapshot.snapshot_date),
+            )
+
     # Fallback: session analysis thresholds
     thresholds = payload.get("thresholds", [])
     lt1_th = next((t for t in thresholds if t.get("name", "").lower().startswith("lt1")), None)
@@ -811,6 +837,12 @@ def check_zone_staleness(
     chronic = dynamic.get("chronic", {})
     current_prac_lt2 = chronic.get("practical_lt2", {})
     current_prac_lt1 = chronic.get("practical_lt1", {})
+
+    # Fallback to real thresholds if no dynamic practical thresholds
+    if not current_prac_lt2 and not current_prac_lt1:
+        real = payload.get("real_thresholds", {})
+        current_prac_lt2 = real.get("lt2_practical_real") or real.get("lt2_real") or {}
+        current_prac_lt1 = real.get("lt1_practical_real") or real.get("lt1_real") or {}
 
     if not current_prac_lt2 and not current_prac_lt1:
         return ZoneStalenessCheck(is_stale=False, reason="Sin umbrales prácticos actuales")
