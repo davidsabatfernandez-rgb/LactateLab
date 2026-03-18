@@ -762,31 +762,64 @@ def threshold_profile_for_zones(
                 snapshot_date=str(snapshot.snapshot_date),
             )
 
-    # Fallback: session analysis thresholds
+    # Fallback: session analysis thresholds from payload
     thresholds = payload.get("thresholds", [])
     lt1_th = next((t for t in thresholds if t.get("name", "").lower().startswith("lt1")), None)
     lt2_th = next((t for t in thresholds if t.get("name", "").lower().startswith("lt2")), None)
+    if lt1_th or lt2_th:
+        return ThresholdProfileForZones(
+            lt1=ThresholdItemForZones(
+                lactate=lt1_th.get("lactate", 2.0),
+                pace_seconds_per_km=lt1_th.get("pace_seconds_per_km"),
+                heart_rate=lt1_th.get("heart_rate"),
+                power_watts=lt1_th.get("power_watts"),
+                pace_label=_pace_label(lt1_th.get("pace_seconds_per_km")),
+            ) if lt1_th else None,
+            lt2=ThresholdItemForZones(
+                lactate=lt2_th.get("lactate", 4.0),
+                pace_seconds_per_km=lt2_th.get("pace_seconds_per_km"),
+                heart_rate=lt2_th.get("heart_rate"),
+                power_watts=lt2_th.get("power_watts"),
+                pace_label=_pace_label(lt2_th.get("pace_seconds_per_km")),
+            ) if lt2_th else None,
+            practical_lt1=practical_lt1_item,
+            practical_lt2=practical_lt2_item,
+            source="analysis",
+            source_label="Análisis de sesión",
+            confidence=lt2_th.get("confidence") if lt2_th else None,
+            snapshot_date=str(snapshot.snapshot_date),
+        )
+
+    # Last resort: use snapshot model columns directly (always populated when snapshot exists)
+    has_lt1 = snapshot.lt1_pace_seconds_per_km or snapshot.lt1_power_watts or snapshot.lt1_heart_rate
+    has_lt2 = snapshot.lt2_pace_seconds_per_km or snapshot.lt2_power_watts or snapshot.lt2_heart_rate
+    if has_lt1 or has_lt2:
+        return ThresholdProfileForZones(
+            lt1=ThresholdItemForZones(
+                lactate=snapshot.lt1_lactate or 2.0,
+                pace_seconds_per_km=snapshot.lt1_pace_seconds_per_km,
+                heart_rate=snapshot.lt1_heart_rate,
+                power_watts=snapshot.lt1_power_watts,
+                pace_label=_pace_label(snapshot.lt1_pace_seconds_per_km),
+            ) if has_lt1 else None,
+            lt2=ThresholdItemForZones(
+                lactate=snapshot.lt2_lactate or 4.0,
+                pace_seconds_per_km=snapshot.lt2_pace_seconds_per_km,
+                heart_rate=snapshot.lt2_heart_rate,
+                power_watts=snapshot.lt2_power_watts,
+                pace_label=_pace_label(snapshot.lt2_pace_seconds_per_km),
+            ) if has_lt2 else None,
+            practical_lt1=practical_lt1_item,
+            practical_lt2=practical_lt2_item,
+            source="snapshot",
+            source_label="Último test registrado",
+            confidence=snapshot.confidence,
+            snapshot_date=str(snapshot.snapshot_date),
+        )
+
     return ThresholdProfileForZones(
-        lt1=ThresholdItemForZones(
-            lactate=lt1_th.get("lactate", 2.0),
-            pace_seconds_per_km=lt1_th.get("pace_seconds_per_km"),
-            heart_rate=lt1_th.get("heart_rate"),
-            power_watts=lt1_th.get("power_watts"),
-            pace_label=_pace_label(lt1_th.get("pace_seconds_per_km")),
-        ) if lt1_th else None,
-        lt2=ThresholdItemForZones(
-            lactate=lt2_th.get("lactate", 4.0),
-            pace_seconds_per_km=lt2_th.get("pace_seconds_per_km"),
-            heart_rate=lt2_th.get("heart_rate"),
-            power_watts=lt2_th.get("power_watts"),
-            pace_label=_pace_label(lt2_th.get("pace_seconds_per_km")),
-        ) if lt2_th else None,
-        practical_lt1=practical_lt1_item,
-        practical_lt2=practical_lt2_item,
-        source="analysis",
-        source_label="Análisis de sesión",
-        confidence=lt2_th.get("confidence") if lt2_th else None,
-        snapshot_date=str(snapshot.snapshot_date),
+        source="none",
+        source_label="Sin datos de umbral",
     )
 
 
