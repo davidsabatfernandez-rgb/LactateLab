@@ -369,7 +369,7 @@ function LandingInner() {
             {/* Pain points */}
             <div className="lp-upgrade__pains">
               {(["1","2","3"] as const).map(n => (
-                <div key={n} className="lp-upgrade__pain">
+                <div key={n} className={`lp-upgrade__pain lp-upgrade__pain--${n}`}>
                   <div className="lp-upgrade__pain-icon">
                     {n === "1" && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"><path d="M12 2v10l4 4"/><circle cx="12" cy="12" r="10"/></svg>}
                     {n === "2" && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>}
