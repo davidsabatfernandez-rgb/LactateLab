@@ -16,6 +16,13 @@ from app.services.garmin import GarminRequestError, connect_garmin_account, get_
 router = APIRouter(prefix="/garmin", tags=["garmin"])
 
 
+def _garmin_http_status(exc: GarminRequestError) -> int:
+    """Map Garmin errors to HTTP status codes that won't trigger auth logout on the frontend."""
+    if exc.status_code in (401, 403):
+        return 502  # Bad Gateway — upstream (Garmin) auth failed, not our auth
+    return exc.status_code
+
+
 @router.post("/athletes/{athlete_id}/connect", response_model=GarminConnectResponse)
 def connect_athlete_garmin(
     athlete_id: int,
@@ -76,7 +83,7 @@ def preview_athlete_garmin_activities(
             activity_limit=activity_limit,
         )
     except GarminRequestError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+        raise HTTPException(status_code=_garmin_http_status(exc), detail=str(exc)) from exc
 
     return GarminActivitiesPreviewResponse(
         athlete_id=athlete.id,
@@ -100,7 +107,7 @@ def get_athlete_garmin_activity_detail(
     try:
         activity = get_garmin_activity_detail(db, athlete, activity_id)
     except GarminRequestError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+        raise HTTPException(status_code=_garmin_http_status(exc), detail=str(exc)) from exc
 
     return GarminActivityRead(**activity)
 
@@ -141,7 +148,7 @@ def push_planned_workout_to_garmin(
             scheduled_date=scheduled_date,
         )
     except GarminRequestError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+        raise HTTPException(status_code=_garmin_http_status(exc), detail=str(exc)) from exc
 
     # Update publish status
     planned.publish_status = "published"
@@ -209,7 +216,7 @@ def sync_athlete_garmin(
     try:
         result = sync_garmin_activities(db, athlete, days_back=days_back)
     except GarminRequestError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+        raise HTTPException(status_code=_garmin_http_status(exc), detail=str(exc)) from exc
 
     # Enrich with synced flag and last_sync_at
     result["synced"] = True

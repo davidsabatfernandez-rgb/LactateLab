@@ -40,7 +40,9 @@ def get_training_load(
             include_full_detail=True,
         )
     except GarminRequestError as e:
-        raise HTTPException(status_code=e.status_code, detail=str(e))
+        # Don't return 401/403 for Garmin failures — frontend would interpret as session expiry
+        http_status = 502 if e.status_code in (401, 403) else e.status_code
+        raise HTTPException(status_code=http_status, detail=str(e))
 
     try:
         result = compute_training_load_series(db, athlete, activities, start_date, end_date)
