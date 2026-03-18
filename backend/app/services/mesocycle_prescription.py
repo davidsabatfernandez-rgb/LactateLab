@@ -1099,6 +1099,90 @@ def _ensure_zones_exist(
     return False, warnings
 
 
+def _check_cross_discipline_conflicts(
+    db: Session,
+    athlete_id: int,
+    new_sessions: list[dict],
+    new_discipline: str,
+    library: dict,
+) -> list[str]:
+    """Check new sessions against existing planned sessions from other disciplines.
+
+    Detects conflicts per Olbrecht, Millet 2002, Hausswirth 2013:
+    - KEY sessions from different disciplines on consecutive days
+    - Two fatigue_cost≥4 sessions from different disciplines within 1 day
+    Returns list of warning strings (non-blocking).
+    """
+    from sqlalchemy import select as sa_select
+
+    if not new_sessions:
+        return []
+
+    dates = [s["scheduled_date"] for s in new_sessions]
+    min_date = min(dates) - timedelta(days=1)
+    max_date = max(dates) + timedelta(days=1)
+
+    # Fetch existing planned sessions from OTHER disciplines in the date range
+    existing = list(db.scalars(
+        sa_select(PlannedSession).where(
+            PlannedSession.athlete_id == athlete_id,
+            PlannedSession.discipline != new_discipline,
+            PlannedSession.scheduled_date >= min_date,
+            PlannedSession.scheduled_date <= max_date,
+            PlannedSession.status != "cancelled",
+        )
+    ).all())
+
+    if not existing:
+        return []
+
+    # Build lookup: date → list of (discipline, session_role, fatigue_cost)
+    existing_by_date: dict[date, list[tuple[str, str, int]]] = {}
+    for ex in existing:
+        fc = 3  # default
+        tmpl = library.get(ex.workout_template_id)
+        if tmpl:
+            fc = tmpl.fatigue_cost
+        existing_by_date.setdefault(ex.scheduled_date, []).append(
+            (ex.discipline, ex.session_role, fc)
+        )
+
+    warnings: list[str] = []
+    for sess in new_sessions:
+        sdate = sess["scheduled_date"]
+        sess_role = sess["session_role"]
+        tmpl = library.get(sess["template_id"])
+        new_fc = tmpl.fatigue_cost if tmpl else 3
+
+        # Check same day: two high-fatigue sessions from different disciplines
+        for ex_disc, ex_role, ex_fc in existing_by_date.get(sdate, []):
+            if new_fc >= 4 and ex_fc >= 4:
+                warnings.append(
+                    f"{sdate}: sesión de alta fatiga ({sess['public_label']}, "
+                    f"fc={new_fc}) + {ex_disc} (fc={ex_fc}) el mismo día. "
+                    "Olbrecht: evitar 2 sesiones duras cross-disciplina el mismo día."
+                )
+            if sess_role == "key" and ex_role == "key":
+                warnings.append(
+                    f"{sdate}: KEY de {new_discipline} + KEY de {ex_disc} "
+                    "el mismo día. Considerar separar ≥1 día."
+                )
+
+        # Check adjacent days: KEY from different disciplines
+        if sess_role == "key":
+            for delta in (-1, 1):
+                adj_date = sdate + timedelta(days=delta)
+                for ex_disc, ex_role, ex_fc in existing_by_date.get(adj_date, []):
+                    if ex_role == "key" and ex_fc >= 4 and new_fc >= 4:
+                        warnings.append(
+                            f"{sdate}: KEY {new_discipline} (fc={new_fc}) a 1 día "
+                            f"de KEY {ex_disc} (fc={ex_fc}, {adj_date}). "
+                            "Millet 2002: ≥48h entre sesiones KEY cross-disciplina."
+                        )
+
+    return warnings
+
+
 def create_planned_sessions_for_block(
     db: Session,
     athlete: Athlete,
@@ -1140,6 +1224,13 @@ def create_planned_sessions_for_block(
 
     db.execute(delete(PlannedSession).where(PlannedSession.focus_block_id == block.id))
 
+    # ── P5: Cross-discipline fatigue check for triathletes ─────────────
+    all_draft_sessions = [s for w in draft["weeks"] for s in w["sessions"]]
+    library = {t.template_id: t for t in WORKOUT_TEMPLATES}
+    cross_disc_warnings = _check_cross_discipline_conflicts(
+        db, athlete.id, all_draft_sessions, discipline, library,
+    )
+
     created: list[PlannedSession] = []
     for week in draft["weeks"]:
         for session in week["sessions"]:
@@ -1171,6 +1262,7 @@ def create_planned_sessions_for_block(
                     "block_label": block_label,
                     "zone_warnings": zone_warnings if zone_warnings else None,
                     "zones_resolved": zones_ok,
+                    "cross_discipline_warnings": cross_disc_warnings if cross_disc_warnings else None,
                 },
             )
             db.add(planned_session)
