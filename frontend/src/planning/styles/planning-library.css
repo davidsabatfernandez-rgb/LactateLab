@@ -1937,6 +1937,42 @@
   color: var(--primary);
 }
 
+/* ── Training zones reference (sidebar) ── */
+
+.wpm-zones-grid {
+  display: grid;
+  gap: 3px;
+}
+
+.wpm-zone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(248, 245, 239, 0.4);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.wpm-zone-label {
+  font-weight: 600;
+  color: var(--primary);
+  border-left: 3px solid var(--muted, #999);
+  padding-left: 6px;
+  white-space: nowrap;
+}
+
+.wpm-zone-values {
+  display: flex;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* ── Dose ladder (sidebar) ── */
 
 .wpm-dose-ladder {

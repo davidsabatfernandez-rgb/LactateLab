@@ -831,6 +831,32 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
           </div>
 
           <aside className="wpm-sidebar">
+            {/* Training zones quick reference */}
+            {trainingZones && trainingZones.length > 0 && (
+              <div className="wpm-sidebar-section wpm-zones-ref">
+                <span className="eyebrow">Zonas activas</span>
+                <div className="wpm-zones-grid">
+                  {trainingZones.map((z) => (
+                    <div key={z.id} className="wpm-zone-row">
+                      <span className="wpm-zone-label" style={z.zone_color ? { borderLeftColor: z.zone_color } : undefined}>{z.zone_label}</span>
+                      <span className="wpm-zone-values">
+                        {z.hr_lower || z.hr_upper ? <span>{z.hr_lower ?? "–"}–{z.hr_upper ?? "–"} bpm</span> : null}
+                        {z.pace_lower_seconds || z.pace_upper_seconds ? (
+                          <span>
+                            {z.pace_upper_seconds ? `${Math.floor(z.pace_upper_seconds / 60)}:${String(Math.round(z.pace_upper_seconds % 60)).padStart(2, "0")}` : "–"}
+                            –
+                            {z.pace_lower_seconds ? `${Math.floor(z.pace_lower_seconds / 60)}:${String(Math.round(z.pace_lower_seconds % 60)).padStart(2, "0")}` : "–"}
+                            /km
+                          </span>
+                        ) : null}
+                        {z.power_lower || z.power_upper ? <span>{z.power_lower ?? "–"}–{z.power_upper ?? "–"} W</span> : null}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Control points */}
             {preview.template.control_points.length > 0 && (
               <div className="wpm-sidebar-section">
