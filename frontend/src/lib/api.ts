@@ -1,4 +1,19 @@
+const PRODUCTION_API = "https://lactate-lab-api.onrender.com/api";
+
+function isNativePlatform() {
+  try {
+    return typeof (window as any)?.Capacitor?.isNativePlatform === "function"
+      ? (window as any).Capacitor.isNativePlatform()
+      : false;
+  } catch { return false; }
+}
+
 function defaultApiUrls() {
+  // Native app (Capacitor): always use production API
+  if (isNativePlatform()) {
+    return [PRODUCTION_API];
+  }
+
   if (typeof window === "undefined") {
     return ["http://127.0.0.1:8000/api", "http://localhost:8000/api"];
   }

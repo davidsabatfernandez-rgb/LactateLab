@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me"
     jwt_expire_minutes: int = 1440
     access_token_algorithm: str = "HS256"
-    cors_origins_raw: str = Field(default="http://localhost:5173,http://127.0.0.1:5173", alias="CORS_ORIGINS")
+    cors_origins_raw: str = Field(default="http://localhost:5173,http://127.0.0.1:5173,capacitor://localhost,https://localhost", alias="CORS_ORIGINS")
     openrouter_api_key: str = ""
     openrouter_model: str = "google/gemma-3-12b-it:free"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
