@@ -389,6 +389,11 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
   const [strengthNoteEditing, setStrengthNoteEditing] = useState(false);
   const [strengthNoteSaving, setStrengthNoteSaving] = useState(false);
 
+  // Auto-switch to editor when workout definition becomes available
+  useEffect(() => {
+    if (workoutDefinition && onSaveWorkout) setEditMode(true);
+  }, [workoutDefinition, onSaveWorkout]);
+
   // Initialize strength note when modal opens
   useEffect(() => {
     if (coachNote != null) setStrengthNote(coachNote);

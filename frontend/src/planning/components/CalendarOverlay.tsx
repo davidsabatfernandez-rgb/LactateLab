@@ -496,6 +496,13 @@ export function CalendarOverlay({
       .catch(() => setActiveTrainingZones([]));
   }, [token, athleteId, selectedDiscipline]);
 
+  // ── Auto-fetch structured workout when a planned session preview opens ──
+  useEffect(() => {
+    if (activePlannedPreviewSession && !plannedSessionStructuredPreview && !plannedSessionStructuredPreviewLoading) {
+      regeneratePlannedSessionStructure(activePlannedPreviewSession.id);
+    }
+  }, [activePlannedPreviewSession, plannedSessionStructuredPreview, plannedSessionStructuredPreviewLoading, regeneratePlannedSessionStructure]);
+
   // ── Drag-and-drop: move session to a different day ──
   const handleMoveSession = useCallback(async (session: CalendarEntry, newDate: string) => {
     console.log("[DnD] handleMoveSession called:", { sessionId: session.id, rawId: session.rawId, newDate });
