@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 12 - Deja de copiar planes pro</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 68px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; }
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .ig-mockup {
+    width: 700px; background: #162a33; border-radius: 20px; padding: 40px; margin: 30px 0;
+    border: 2px solid #f7f6f420; position: relative;
+  }
+  .ig-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+  .ig-avatar { width: 50px; height: 50px; border-radius: 50%; background: #f7f6f430; }
+  .ig-name { font-size: 28px; font-weight: 700; }
+  .ig-content { font-size: 28px; color: #f7f6f480; line-height: 1.5; }
+  .ig-strike {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #ef444420; border-radius: 20px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 60px; font-weight: 700; color: #ef4444;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  .ig-strike.show { opacity: 1; }
+
+  .compare-container { display: flex; gap: 30px; width: 920px; margin: 20px 0; }
+  .compare-panel { flex: 1; background: #162a33; border-radius: 16px; padding: 25px; text-align: center; }
+  .compare-panel.pro { border: 2px solid #3b82f640; }
+  .compare-panel.you { border: 2px solid #d26a3640; }
+  .compare-label { font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700; margin-bottom: 10px; }
+
+  .zone-mismatch {
+    width: 860px; background: #ef444415; border-radius: 16px; padding: 30px;
+    margin: 15px 0; display: flex; justify-content: space-between; align-items: center;
+    opacity: 0; transform: translateX(-20px); transition: all 0.4s ease;
+    border-left: 5px solid #ef4444;
+  }
+  .zone-mismatch.show { opacity: 1; transform: translateX(0); }
+
+  .solution-card {
+    width: 860px; background: #22c55e15; border-radius: 16px; padding: 35px;
+    margin: 15px 0; border-left: 5px solid #22c55e;
+    opacity: 0; transition: all 0.5s ease;
+  }
+  .solution-card.show { opacity: 1; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <h1>Ese plan de <span class="accent">Ironman</span><br>de Instagram te va a<br><span class="red">sobreentrenar</span></h1>
+  <div style="font-size: 48px; margin-top: 40px; color: #f7f6f480; opacity:0; transition: opacity 0.5s;" id="s1sub">
+    Tu curva no es la de un pro.
+  </div>
+</div>
+
+<!-- Scene 2: Pro vs You curves -->
+<div class="scene" id="scene2">
+  <div class="compare-container">
+    <div class="compare-panel pro">
+      <div class="compare-label" style="color: #3b82f6;">PRO</div>
+      <svg width="400" height="250" viewBox="0 0 400 250">
+        <line x1="30" y1="220" x2="380" y2="220" stroke="#f7f6f415" stroke-width="1"/>
+        <!-- Pro curve: flat, high threshold -->
+        <path fill="none" stroke="#3b82f6" stroke-width="4" stroke-linecap="round"
+          d="M 40,200 C 100,198 160,195 220,188 C 270,180 310,155 350,100 C 370,70 380,45 385,30"/>
+        <circle cx="40" cy="200" r="5" fill="#3b82f6"/>
+        <circle cx="140" cy="196" r="5" fill="#3b82f6"/>
+        <circle cx="230" cy="187" r="5" fill="#3b82f6"/>
+        <circle cx="310" cy="155" r="5" fill="#3b82f6"/>
+        <circle cx="360" cy="85" r="5" fill="#3b82f6"/>
+      </svg>
+      <div style="font-size: 32px; font-weight: 700; color: #3b82f6;">LT2: 3:20/km</div>
+      <div style="font-size: 24px; color: #f7f6f460;">15h/semana</div>
+    </div>
+    <div class="compare-panel you">
+      <div class="compare-label accent">TU</div>
+      <svg width="400" height="250" viewBox="0 0 400 250">
+        <line x1="30" y1="220" x2="380" y2="220" stroke="#f7f6f415" stroke-width="1"/>
+        <!-- Amateur curve: steep, low threshold -->
+        <path fill="none" stroke="#d26a36" stroke-width="4" stroke-linecap="round"
+          d="M 40,200 C 80,195 120,180 170,150 C 220,115 260,70 310,35 C 340,18 370,10 385,8"/>
+        <circle cx="40" cy="200" r="5" fill="#d26a36"/>
+        <circle cx="120" cy="180" r="5" fill="#d26a36"/>
+        <circle cx="200" cy="135" r="5" fill="#d26a36"/>
+        <circle cx="280" cy="55" r="5" fill="#d26a36"/>
+        <circle cx="360" cy="12" r="5" fill="#d26a36"/>
+      </svg>
+      <div style="font-size: 32px; font-weight: 700; color: #d26a36;">LT2: 4:30/km</div>
+      <div style="font-size: 24px; color: #f7f6f460;">8h/semana</div>
+    </div>
+  </div>
+  <h2 style="margin-top: 20px;">Mismo plan.<br><span class="red">Resultado diferente.</span></h2>
+</div>
+
+<!-- Scene 3: Zone mismatch -->
+<div class="scene" id="scene3">
+  <h2 style="margin-bottom: 30px;"><span class="red">Lo que le pasa a tu cuerpo</span></h2>
+  <div class="zone-mismatch" id="zm1">
+    <div style="font-size: 32px;">Su Z2 "facil"</div>
+    <div style="font-size: 32px; font-weight: 700; color: #ef4444;">= Tu Z4 (umbral)</div>
+  </div>
+  <div class="zone-mismatch" id="zm2">
+    <div style="font-size: 32px;">Su "tempo"</div>
+    <div style="font-size: 32px; font-weight: 700; color: #ef4444;">= Tu VO2max</div>
+  </div>
+  <div class="zone-mismatch" id="zm3">
+    <div style="font-size: 32px;">Su "long run"</div>
+    <div style="font-size: 32px; font-weight: 700; color: #ef4444;">= Tu "death march"</div>
+  </div>
+  <div class="zone-mismatch" id="zm4">
+    <div style="font-size: 32px;">Su semana de carga</div>
+    <div style="font-size: 32px; font-weight: 700; color: #ef4444;">= Tu sobreentrenamiento</div>
+  </div>
+  <div style="font-size: 48px; font-weight: 700; color: #ef4444; margin-top: 40px; text-align: center; opacity:0; transition: opacity 0.5s;" id="s3verdict">
+    CADA sesion esta mal
+  </div>
+</div>
+
+<!-- Scene 4: Solution -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom: 30px;">Tu plan debe partir<br>de <span class="accent">TU curva</span></h2>
+  <div class="solution-card" id="sc1">
+    <div style="font-size: 34px; font-weight: 700; color: #22c55e; margin-bottom: 10px;">Zonas desde tu LT1/LT2 real</div>
+    <div style="font-size: 28px; color: #f7f6f480;">No desde formulas genericas</div>
+  </div>
+  <div class="solution-card" id="sc2">
+    <div style="font-size: 34px; font-weight: 700; color: #22c55e; margin-bottom: 10px;">Bloque Olbrecht segun tu perfil</div>
+    <div style="font-size: 28px; color: #f7f6f480;">No el mismo bloque para todos</div>
+  </div>
+  <div class="solution-card" id="sc3">
+    <div style="font-size: 34px; font-weight: 700; color: #22c55e; margin-bottom: 10px;">Progresion adaptada a tu respuesta</div>
+    <div style="font-size: 28px; color: #f7f6f480;">No una escalera fija de 16 semanas</div>
+  </div>
+</div>
+
+<!-- Scene 5: CTA -->
+<div class="scene" id="scene5">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-top: 30px;">Deja de copiar.<br><span class="accent">Empieza a medir.</span></h2>
+  <div style="font-size: 36px; color: #d26a36; margin-top: 40px;">@peakaerobic</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 30000;
+const startTime = Date.now();
+const scenes = [
+  { id: 'scene1', start: 0, end: 6000 },
+  { id: 'scene2', start: 6000, end: 14000 },
+  { id: 'scene3', start: 14000, end: 21000 },
+  { id: 'scene4', start: 21000, end: 27000 },
+  { id: 'scene5', start: 27000, end: 30000 },
+];
+const events = [
+  { time: 3000, action: () => document.getElementById('s1sub').style.opacity = '1' },
+  { time: 14500, action: () => document.getElementById('zm1').classList.add('show') },
+  { time: 15500, action: () => document.getElementById('zm2').classList.add('show') },
+  { time: 16500, action: () => document.getElementById('zm3').classList.add('show') },
+  { time: 17500, action: () => document.getElementById('zm4').classList.add('show') },
+  { time: 19000, action: () => document.getElementById('s3verdict').style.opacity = '1' },
+  { time: 22000, action: () => document.getElementById('sc1').classList.add('show') },
+  { time: 23500, action: () => document.getElementById('sc2').classList.add('show') },
+  { time: 25000, action: () => document.getElementById('sc3').classList.add('show') },
+];
+let eventIndex = 0;
+function update() {
+  const elapsed = Date.now() - startTime;
+  document.getElementById('progressBar').style.width = Math.min(elapsed / DURATION * 100, 100) + '%';
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

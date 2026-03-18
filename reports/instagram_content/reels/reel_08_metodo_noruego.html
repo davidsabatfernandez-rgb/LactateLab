@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 08 - El Metodo Noruego</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; }
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .norway-stripe {
+    width: 200px; height: 8px; margin: 20px auto; display: flex;
+  }
+  .ns-red { flex: 2; background: #ba3a26; }
+  .ns-white { flex: 0.5; background: #fff; }
+  .ns-blue { flex: 1; background: #002868; }
+
+  .athlete-names {
+    display: flex; gap: 20px; margin-top: 30px; flex-wrap: wrap; justify-content: center;
+  }
+  .athlete-tag {
+    background: #f7f6f410; padding: 12px 24px; border-radius: 10px;
+    font-size: 30px; font-weight: 600; color: #f7f6f480;
+    opacity: 0; transition: all 0.4s ease;
+  }
+  .athlete-tag.show { opacity: 1; color: #f7f6f4; }
+
+  .lactate-live {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 140px; font-weight: 700;
+    text-align: center; margin: 20px 0;
+  }
+  .lactate-unit { font-size: 36px; color: #f7f6f460; }
+
+  .zone-band {
+    width: 800px; height: 80px; border-radius: 16px;
+    background: linear-gradient(90deg, #22c55e30, #22c55e50, #f9731630);
+    border: 2px solid #22c55e60;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 30px; margin: 20px 0;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 34px;
+  }
+
+  .interval-display {
+    display: flex; gap: 8px; align-items: flex-end; margin: 20px 0; height: 300px;
+  }
+  .interval-bar {
+    width: 50px; border-radius: 8px 8px 0 0;
+    transition: height 0.5s ease, background 0.3s;
+  }
+  .interval-label { font-size: 18px; text-align: center; margin-top: 5px; color: #f7f6f460; }
+
+  .zone-card {
+    width: 860px; background: #162a33; border-radius: 20px; padding: 35px;
+    margin: 15px 0; border-left: 6px solid #22c55e;
+    opacity: 0; transform: translateY(20px); transition: all 0.5s ease;
+  }
+  .zone-card.show { opacity: 1; transform: translateY(0); }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <div class="norway-stripe">
+    <div class="ns-red"></div><div class="ns-white"></div><div class="ns-blue"></div><div class="ns-white"></div><div class="ns-red"></div>
+  </div>
+  <h1 style="margin-top: 30px;">Por que los mejores<br>del mundo se pinchan<br>el dedo <span class="accent">entrenando</span></h1>
+</div>
+
+<!-- Scene 2: Names -->
+<div class="scene" id="scene2">
+  <h2>El secreto del<br><span class="accent">metodo noruego</span></h2>
+  <div class="norway-stripe">
+    <div class="ns-red"></div><div class="ns-white"></div><div class="ns-blue"></div><div class="ns-white"></div><div class="ns-red"></div>
+  </div>
+  <div class="athlete-names">
+    <div class="athlete-tag" id="at1">Jakob Ingebrigtsen</div>
+    <div class="athlete-tag" id="at2">Kristian Blummenfelt</div>
+    <div class="athlete-tag" id="at3">Gustav Iden</div>
+  </div>
+  <div style="font-size: 42px; margin-top: 40px; color: #f7f6f480; text-align: center;">
+    Todos miden lactato en<br>cada sesion clave
+  </div>
+</div>
+
+<!-- Scene 3: Interval simulation -->
+<div class="scene" id="scene3">
+  <h2>Intervalos guiados por lactato</h2>
+  <div class="lactate-live" id="lactateLive" style="color: #22c55e;">2.0</div>
+  <div class="lactate-unit">mmol/L</div>
+  <div class="zone-band">
+    <span style="color: #22c55e;">2.0</span>
+    <span style="color: #f7f6f4;">ZONA OBJETIVO</span>
+    <span style="color: #f97316;">3.5</span>
+  </div>
+  <div style="display: flex; gap: 15px; margin-top: 20px;">
+    <div id="phase1" style="padding: 15px 25px; border-radius: 10px; font-size: 32px; font-weight: 700; background: #22c55e20; color: #22c55e; opacity: 0.3; transition: opacity 0.3s;">TRABAJO</div>
+    <div id="phase2" style="padding: 15px 25px; border-radius: 10px; font-size: 32px; font-weight: 700; background: #3b82f620; color: #3b82f6; opacity: 0.3; transition: opacity 0.3s;">RECUP</div>
+    <div id="phase3" style="padding: 15px 25px; border-radius: 10px; font-size: 32px; font-weight: 700; background: #22c55e20; color: #22c55e; opacity: 0.3; transition: opacity 0.3s;">TRABAJO</div>
+    <div id="phase4" style="padding: 15px 25px; border-radius: 10px; font-size: 32px; font-weight: 700; background: #3b82f620; color: #3b82f6; opacity: 0.3; transition: opacity 0.3s;">RECUP</div>
+  </div>
+  <div style="font-size: 40px; margin-top: 40px; color: #f97316; font-weight: 700; opacity: 0; transition: opacity 0.5s;" id="neverAbove">
+    Nunca por encima de 3.5 mmol
+  </div>
+</div>
+
+<!-- Scene 4: Full session graph -->
+<div class="scene" id="scene4">
+  <h2>Control total de la sesion</h2>
+  <svg width="900" height="500" viewBox="0 0 900 500" style="margin: 20px 0;">
+    <rect x="60" y="150" width="800" height="200" fill="#22c55e10" stroke="#22c55e30" stroke-width="1" rx="8"/>
+    <text x="870" y="165" fill="#f97316" font-family="Space Grotesk" font-weight="700" font-size="22">3.5</text>
+    <text x="870" y="355" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="22">2.0</text>
+    <line x1="60" y1="30" x2="60" y2="450" stroke="#f7f6f415" stroke-width="1"/>
+    <line x1="60" y1="450" x2="860" y2="450" stroke="#f7f6f415" stroke-width="1"/>
+    <!-- Interval wave pattern -->
+    <path fill="none" stroke="#d26a36" stroke-width="4" stroke-linecap="round"
+      d="M 80,340 C 100,330 120,280 150,200 C 170,160 190,170 210,280 C 230,330 240,340 260,340
+         C 280,330 300,270 330,190 C 350,155 370,165 390,270 C 410,325 420,340 440,340
+         C 460,330 480,265 510,185 C 530,150 550,160 570,260 C 590,320 600,340 620,340
+         C 640,330 660,260 690,180 C 710,148 730,158 750,255 C 770,315 780,340 800,340
+         C 810,340 830,350 840,380"
+      stroke-dasharray="2000" stroke-dashoffset="2000" id="sessionCurve" style="transition: stroke-dashoffset 4s ease;"/>
+    <text x="400" y="480" fill="#f7f6f450" font-family="Source Sans 3" font-size="24" text-anchor="middle">Tiempo de sesion</text>
+  </svg>
+  <div style="font-size: 38px; color: #22c55e; font-weight: 700; text-align: center;">
+    Cada intervalo en la zona perfecta
+  </div>
+</div>
+
+<!-- Scene 5: PeakAerobic zones -->
+<div class="scene" id="scene5">
+  <h2>PeakAerobic calcula tus<br><span class="accent">zonas noruegas</span></h2>
+  <div class="zone-card" id="zc1">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-size: 34px; font-weight: 700; color: #22c55e;">Tu zona de trabajo</div>
+        <div style="font-size: 28px; color: #f7f6f480; margin-top: 5px;">Calculada desde tu LT2 real</div>
+      </div>
+      <div style="font-family: 'Space Grotesk'; font-size: 44px; font-weight: 700; color: #22c55e;">
+        4:05 - 4:20/km
+      </div>
+    </div>
+  </div>
+  <div class="zone-card" id="zc2" style="border-left-color: #3b82f6;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-size: 34px; font-weight: 700; color: #3b82f6;">Tu zona de recuperacion</div>
+        <div style="font-size: 28px; color: #f7f6f480; margin-top: 5px;">Para que baje a < 2.0 mmol</div>
+      </div>
+      <div style="font-family: 'Space Grotesk'; font-size: 44px; font-weight: 700; color: #3b82f6;">
+        5:00 - 5:30/km
+      </div>
+    </div>
+  </div>
+  <div class="zone-card" id="zc3" style="border-left-color: #f97316;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-size: 34px; font-weight: 700; color: #f97316;">Limite maximo</div>
+        <div style="font-size: 28px; color: #f7f6f480; margin-top: 5px;">No cruzar en intervalos</div>
+      </div>
+      <div style="font-family: 'Space Grotesk'; font-size: 44px; font-weight: 700; color: #f97316;">
+        3.5 mmol/L
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-top: 30px;">El metodo noruego.<br><span class="accent">Al alcance de todos.</span></h2>
+  <div style="font-size: 36px; color: #d26a36; margin-top: 40px;">@peakaerobic</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 45000;
+const startTime = Date.now();
+const scenes = [
+  { id: 'scene1', start: 0, end: 3500 },
+  { id: 'scene2', start: 3500, end: 7500 },
+  { id: 'scene3', start: 7500, end: 22000 },
+  { id: 'scene4', start: 22000, end: 30000 },
+  { id: 'scene5', start: 30000, end: 39000 },
+  { id: 'scene6', start: 39000, end: 45000 },
+];
+
+// Interval lactate simulation
+const intervalSequence = [
+  { time: 8000, value: 2.0, color: '#22c55e', phase: 'phase1' },
+  { time: 9000, value: 2.4, color: '#22c55e', phase: 'phase1' },
+  { time: 10000, value: 2.9, color: '#22c55e', phase: 'phase1' },
+  { time: 11000, value: 3.3, color: '#f97316', phase: 'phase1' },
+  { time: 12000, value: 2.8, color: '#22c55e', phase: 'phase2' },
+  { time: 13000, value: 2.2, color: '#22c55e', phase: 'phase2' },
+  { time: 14000, value: 2.5, color: '#22c55e', phase: 'phase3' },
+  { time: 15000, value: 3.0, color: '#22c55e', phase: 'phase3' },
+  { time: 16000, value: 3.4, color: '#f97316', phase: 'phase3' },
+  { time: 17000, value: 2.9, color: '#22c55e', phase: 'phase4' },
+  { time: 18000, value: 2.1, color: '#22c55e', phase: 'phase4' },
+];
+
+const events = [
+  { time: 4000, action: () => document.getElementById('at1').classList.add('show') },
+  { time: 5000, action: () => document.getElementById('at2').classList.add('show') },
+  { time: 6000, action: () => document.getElementById('at3').classList.add('show') },
+  { time: 19000, action: () => document.getElementById('neverAbove').style.opacity = '1' },
+  { time: 23000, action: () => document.getElementById('sessionCurve').style.strokeDashoffset = '0' },
+  { time: 31000, action: () => document.getElementById('zc1').classList.add('show') },
+  { time: 33000, action: () => document.getElementById('zc2').classList.add('show') },
+  { time: 35000, action: () => document.getElementById('zc3').classList.add('show') },
+];
+
+let eventIndex = 0;
+let intervalIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  document.getElementById('progressBar').style.width = Math.min(elapsed / DURATION * 100, 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  // Lactate live display
+  while (intervalIndex < intervalSequence.length && elapsed >= intervalSequence[intervalIndex].time) {
+    const iv = intervalSequence[intervalIndex];
+    const display = document.getElementById('lactateLive');
+    display.textContent = iv.value.toFixed(1);
+    display.style.color = iv.color;
+    // Highlight phase
+    ['phase1','phase2','phase3','phase4'].forEach(p => document.getElementById(p).style.opacity = '0.3');
+    document.getElementById(iv.phase).style.opacity = '1';
+    intervalIndex++;
+  }
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

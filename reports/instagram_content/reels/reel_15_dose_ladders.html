@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 15 - Dose Ladders</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; }
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .ladder-container {
+    width: 800px; margin: 20px 0;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  .ladder-step {
+    display: flex; align-items: center; gap: 20px;
+    padding: 20px 30px; border-radius: 14px;
+    background: #162a33;
+    border: 2px solid transparent;
+    opacity: 0; transform: translateX(-30px);
+    transition: all 0.5s ease;
+  }
+  .ladder-step.show { opacity: 1; transform: translateX(0); }
+  .ladder-step.active { border-color: #d26a36; background: #d26a3620; }
+  .ladder-step.next { border-color: #22c55e; background: #22c55e15; }
+  .ladder-step.down { border-color: #ef4444; background: #ef444415; }
+
+  .step-num {
+    width: 55px; height: 55px; border-radius: 50%;
+    background: #f7f6f410; display: flex;
+    align-items: center; justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 28px; color: #f7f6f460;
+    flex-shrink: 0;
+  }
+  .ladder-step.active .step-num { background: #d26a3640; color: #d26a36; }
+  .ladder-step.next .step-num { background: #22c55e40; color: #22c55e; }
+
+  .step-content { flex: 1; }
+  .step-workout { font-size: 32px; font-weight: 700; }
+  .step-detail { font-size: 24px; color: #f7f6f460; margin-top: 4px; }
+  .step-duration { font-size: 26px; font-weight: 600; color: #f7f6f480; }
+
+  .response-card {
+    width: 800px; background: #162a33; border-radius: 16px;
+    padding: 30px; margin: 12px 0;
+    display: flex; align-items: center; gap: 20px;
+    opacity: 0; transform: translateY(20px); transition: all 0.5s ease;
+  }
+  .response-card.show { opacity: 1; transform: translateY(0); }
+
+  .response-icon { font-size: 50px; width: 60px; text-align: center; }
+  .response-text { font-size: 34px; }
+  .response-action { font-size: 30px; font-weight: 700; margin-left: auto; }
+
+  .arrow-up { color: #22c55e; font-size: 60px; text-align: center; margin: 10px 0; opacity: 0; transition: opacity 0.5s; }
+  .arrow-up.show { opacity: 1; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    50% { box-shadow: 0 0 20px 5px rgba(34, 197, 94, 0.3); }
+  }
+  .glow-green { animation: pulseGlow 1.5s ease infinite; }
+
+  @keyframes pulseCurrent {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(210, 106, 54, 0); }
+    50% { box-shadow: 0 0 15px 3px rgba(210, 106, 54, 0.3); }
+  }
+  .glow-current { animation: pulseCurrent 1.5s ease infinite; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <h1>Tu atleta clavo<br>el entreno.</h1>
+  <h1 id="s1b" style="margin-top: 40px; opacity:0; transition: opacity 0.5s;"><span class="accent">Que sigue?</span></h1>
+  <div style="font-size: 44px; margin-top: 40px; color: #f7f6f460; opacity:0; transition: opacity 0.5s;" id="s1c">
+    La mayoria de coaches adivinan.
+  </div>
+</div>
+
+<!-- Scene 2: Ladder reveal -->
+<div class="scene" id="scene2">
+  <h2 style="margin-bottom: 20px;"><span class="accent">Dose Ladder</span></h2>
+  <div style="font-size: 36px; color: #f7f6f480; margin-bottom: 20px;">LT2 Cruise Intervals - Running</div>
+  <div class="ladder-container">
+    <div class="ladder-step" id="ls6">
+      <div class="step-num">6</div>
+      <div class="step-content"><div class="step-workout">3 x 12' @ LT2</div><div class="step-detail">3' recuperacion</div></div>
+      <div class="step-duration">60 min</div>
+    </div>
+    <div class="ladder-step" id="ls5">
+      <div class="step-num">5</div>
+      <div class="step-content"><div class="step-workout">4 x 8' @ LT2</div><div class="step-detail">3' recuperacion</div></div>
+      <div class="step-duration">55 min</div>
+    </div>
+    <div class="ladder-step" id="ls4">
+      <div class="step-num">4</div>
+      <div class="step-content"><div class="step-workout">4 x 6' @ LT2</div><div class="step-detail">2' recuperacion</div></div>
+      <div class="step-duration">50 min</div>
+    </div>
+    <div class="ladder-step" id="ls3">
+      <div class="step-num">3</div>
+      <div class="step-content"><div class="step-workout">3 x 8' @ LT2</div><div class="step-detail">3' recuperacion</div></div>
+      <div class="step-duration">48 min</div>
+    </div>
+    <div class="ladder-step" id="ls2">
+      <div class="step-num">2</div>
+      <div class="step-content"><div class="step-workout">4 x 5' @ LT2</div><div class="step-detail">2' recuperacion</div></div>
+      <div class="step-duration">45 min</div>
+    </div>
+    <div class="ladder-step" id="ls1">
+      <div class="step-num">1</div>
+      <div class="step-content"><div class="step-workout">3 x 5' @ LT2</div><div class="step-detail">3' recuperacion</div></div>
+      <div class="step-duration">40 min</div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 3: Current + Next -->
+<div class="scene" id="scene3">
+  <h2 style="margin-bottom: 20px;">Progresion automatica</h2>
+  <div class="ladder-container">
+    <div class="ladder-step show next glow-green" id="ns5">
+      <div class="step-num">5</div>
+      <div class="step-content"><div class="step-workout" style="color: #22c55e;">4 x 8' @ LT2</div><div class="step-detail" style="color: #22c55e80;">SIGUIENTE</div></div>
+      <div style="font-size: 36px; color: #22c55e; font-weight: 700;">&#9650;</div>
+    </div>
+    <div class="arrow-up show" style="color: #22c55e;">&#8593;</div>
+    <div class="ladder-step show active glow-current" id="ns4">
+      <div class="step-num">4</div>
+      <div class="step-content"><div class="step-workout" style="color: #d26a36;">4 x 6' @ LT2</div><div class="step-detail" style="color: #d26a3680;">ACTUAL - Completado OK</div></div>
+      <div style="font-size: 36px; color: #d26a36; font-weight: 700;">&#10003;</div>
+    </div>
+    <div class="ladder-step show" style="opacity: 0.4;" id="ns3">
+      <div class="step-num">3</div>
+      <div class="step-content"><div class="step-workout">3 x 8' @ LT2</div><div class="step-detail">Completado</div></div>
+    </div>
+  </div>
+  <div style="margin-top: 40px; font-size: 42px; font-weight: 700; text-align: center; color: #22c55e;">
+    Respuesta positiva = subir peldano
+  </div>
+</div>
+
+<!-- Scene 4: Response types -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom: 30px;">El sistema lee la respuesta</h2>
+  <div class="response-card" id="rc1" style="border-left: 5px solid #22c55e;">
+    <div class="response-icon" style="color: #22c55e;">&#10003;</div>
+    <div class="response-text">Respuesta <span class="green">positiva</span></div>
+    <div class="response-action green">SUBIR</div>
+  </div>
+  <div class="response-card" id="rc2" style="border-left: 5px solid #f97316;">
+    <div class="response-icon" style="color: #f97316;">&#8212;</div>
+    <div class="response-text">Respuesta <span style="color: #f97316;">neutra</span></div>
+    <div class="response-action" style="color: #f97316;">MANTENER</div>
+  </div>
+  <div class="response-card" id="rc3" style="border-left: 5px solid #ef4444;">
+    <div class="response-icon" style="color: #ef4444;">&#10007;</div>
+    <div class="response-text">Respuesta <span class="red">negativa</span></div>
+    <div class="response-action red">BAJAR</div>
+  </div>
+  <div style="margin-top: 50px; font-size: 44px; font-weight: 700; text-align: center; color: #d26a36; opacity:0; transition: opacity 0.5s;" id="s4verdict">
+    Sin adivinar. Sin sobreentrenar.<br>Progresion sistematica.
+  </div>
+</div>
+
+<!-- Scene 5: Protection -->
+<div class="scene" id="scene5">
+  <h2 style="margin-bottom: 30px;">Si la respuesta es <span class="red">negativa</span></h2>
+  <div class="ladder-container">
+    <div class="ladder-step show" style="opacity: 0.3;">
+      <div class="step-num">5</div>
+      <div class="step-content"><div class="step-workout">4 x 8' @ LT2</div></div>
+    </div>
+    <div class="ladder-step show active" style="opacity: 0.5; border-color: #ef4444;">
+      <div class="step-num">4</div>
+      <div class="step-content"><div class="step-workout" style="color: #ef4444;">4 x 6' @ LT2</div><div class="step-detail" style="color: #ef4444;">Fatiga detectada</div></div>
+      <div style="font-size: 36px; color: #ef4444; font-weight: 700;">&#10007;</div>
+    </div>
+    <div class="arrow-up show" style="color: #ef4444; transform: rotate(180deg);">&#8593;</div>
+    <div class="ladder-step show down glow-green" style="border-color: #22c55e; background: #22c55e15;">
+      <div class="step-num" style="background: #22c55e40; color: #22c55e;">3</div>
+      <div class="step-content"><div class="step-workout" style="color: #22c55e;">3 x 8' @ LT2</div><div class="step-detail" style="color: #22c55e80;">BAJAR = proteger</div></div>
+      <div style="font-size: 36px; color: #22c55e; font-weight: 700;">&#9660;</div>
+    </div>
+  </div>
+  <div style="font-size: 42px; font-weight: 700; color: #22c55e; text-align: center; margin-top: 40px;">
+    Bajar un peldano no es fallar.<br>Es entrenar inteligente.
+  </div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-top: 30px;">Progresion inteligente.<br><span class="accent">Basada en datos.</span></h2>
+  <div style="font-size: 36px; color: #d26a36; margin-top: 40px;">@peakaerobic</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 40000;
+const startTime = Date.now();
+const scenes = [
+  { id: 'scene1', start: 0, end: 6000 },
+  { id: 'scene2', start: 6000, end: 14000 },
+  { id: 'scene3', start: 14000, end: 22000 },
+  { id: 'scene4', start: 22000, end: 30000 },
+  { id: 'scene5', start: 30000, end: 37000 },
+  { id: 'scene6', start: 37000, end: 40000 },
+];
+const events = [
+  { time: 2000, action: () => document.getElementById('s1b').style.opacity = '1' },
+  { time: 4000, action: () => document.getElementById('s1c').style.opacity = '1' },
+  // Ladder reveal (bottom to top)
+  { time: 6500, action: () => document.getElementById('ls1').classList.add('show') },
+  { time: 7200, action: () => document.getElementById('ls2').classList.add('show') },
+  { time: 7900, action: () => document.getElementById('ls3').classList.add('show') },
+  { time: 8600, action: () => document.getElementById('ls4').classList.add('show') },
+  { time: 9300, action: () => document.getElementById('ls5').classList.add('show') },
+  { time: 10000, action: () => document.getElementById('ls6').classList.add('show') },
+  // Highlight current
+  { time: 11000, action: () => document.getElementById('ls4').classList.add('active', 'glow-current') },
+  { time: 12000, action: () => document.getElementById('ls5').classList.add('next', 'glow-green') },
+  // Response cards
+  { time: 23000, action: () => document.getElementById('rc1').classList.add('show') },
+  { time: 24500, action: () => document.getElementById('rc2').classList.add('show') },
+  { time: 26000, action: () => document.getElementById('rc3').classList.add('show') },
+  { time: 28000, action: () => document.getElementById('s4verdict').style.opacity = '1' },
+];
+let eventIndex = 0;
+function update() {
+  const elapsed = Date.now() - startTime;
+  document.getElementById('progressBar').style.width = Math.min(elapsed / DURATION * 100, 100) + '%';
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

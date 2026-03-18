@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El lactato NO es tu enemigo</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+.slide { width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 80px; position: relative; overflow: hidden; flex-shrink: 0; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+p, li { font-family: 'Source Sans 3', sans-serif; }
+.accent { color: #d26a36; }
+.accent-green { color: #22c55e; }
+.accent-orange { color: #f97316; }
+.slide-number { position: absolute; top: 40px; right: 50px; font-size: 20px; color: rgba(247,246,244,0.35); font-family: 'Space Grotesk', sans-serif; }
+.progress-dots { position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+.progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.25); }
+.progress-dots .dot.active { background: #d26a36; }
+.watermark { position: absolute; bottom: 44px; right: 50px; text-align: right; font-family: 'Space Grotesk', sans-serif; }
+.watermark .brand { font-size: 18px; font-weight: 600; color: rgba(247,246,244,0.3); }
+.watermark .sub { font-size: 12px; color: rgba(247,246,244,0.2); }
+.cta-box { background: linear-gradient(135deg, #d26a36, #e07b44); border-radius: 20px; padding: 30px 50px; text-align: center; }
+.card { background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2); border-radius: 20px; padding: 30px; width: 100%; }
+.ref { font-size: 16px; color: rgba(247,246,244,0.4); margin-top: 16px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <div class="slide-number">1/7</div>
+  <div style="text-align: center;">
+    <p style="font-size: 22px; text-transform: uppercase; letter-spacing: 4px; color: rgba(247,246,244,0.5); margin-bottom: 30px;">Desmontando mitos</p>
+    <h1 style="font-size: 68px; line-height: 1.1; margin-bottom: 30px;">El lactato <span class="accent">no</span> es un desecho.<br>Es combustible.</h1>
+    <p style="font-size: 26px; color: rgba(247,246,244,0.7); max-width: 700px; margin: 0 auto;">Lo que creías saber sobre el lactato probablemente está equivocado.</p>
+    <div style="margin-top: 50px;">
+      <svg width="140" height="100" viewBox="0 0 140 100">
+        <!-- Molecule simplified -->
+        <circle cx="50" cy="50" r="20" fill="none" stroke="#d26a36" stroke-width="2" opacity="0.6"/>
+        <text x="50" y="55" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="14" font-weight="600">La</text>
+        <line x1="70" y1="50" x2="85" y2="50" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+        <circle cx="105" cy="50" r="20" fill="none" stroke="#22c55e" stroke-width="2" opacity="0.6"/>
+        <text x="105" y="55" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="12" font-weight="600">ATP</text>
+      </svg>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: Mito refutado -->
+<div class="slide">
+  <div class="slide-number">2/7</div>
+  <h2 style="font-size: 44px; margin-bottom: 20px; text-align: center;">El mito del <span style="text-decoration: line-through; color: rgba(247,246,244,0.4);">ácido láctico</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 40px;">Refutado hace más de 20 años</p>
+  <div style="display: flex; gap: 30px; width: 100%; margin-bottom: 25px;">
+    <div class="card" style="flex: 1; border-color: rgba(255,80,80,0.3); background: rgba(255,50,50,0.04);">
+      <h2 style="font-size: 22px; color: rgba(255,100,100,0.7); text-align: center; margin-bottom: 15px;">LO QUE SE CREÍA</h2>
+      <div style="border-top: 1px solid rgba(255,80,80,0.2); padding-top: 15px;">
+        <p style="font-size: 19px; line-height: 2; color: rgba(247,246,244,0.6);">
+          El lactato es un desecho tóxico<br>
+          Causa fatiga muscular<br>
+          Produce "agujetas"<br>
+          Hay que eliminarlo cuanto antes<br>
+          El "ácido láctico" quema
+        </p>
+      </div>
+    </div>
+    <div class="card" style="flex: 1; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.04);">
+      <h2 style="font-size: 22px; color: #22c55e; text-align: center; margin-bottom: 15px;">LO QUE SABEMOS</h2>
+      <div style="border-top: 1px solid rgba(34,197,94,0.2); padding-top: 15px;">
+        <p style="font-size: 19px; line-height: 2; color: rgba(247,246,244,0.8);">
+          Es un intermediario metabólico<br>
+          Es combustible preferido del corazón<br>
+          El cerebro lo usa como energía<br>
+          Es un señalizador de adaptación<br>
+          El H+ (no el lactato) causa la fatiga
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="text-align: center; padding: 20px;">
+    <p style="font-size: 20px;">Nota: el "ácido láctico" <span class="accent">ni siquiera existe</span> a pH fisiológico. Se disocia instantáneamente en lactato + H+.</p>
+  </div>
+  <p class="ref">Robergs, R.A. et al. (2004). Biochemistry of exercise-induced metabolic acidosis. Am J Physiol, 287(3), R502-R516.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: Lactate Shuttle -->
+<div class="slide">
+  <div class="slide-number">3/7</div>
+  <h2 style="font-size: 42px; margin-bottom: 15px; text-align: center;">El <span class="accent">Lactate Shuttle</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 30px;">Brooks 2018: el lactato viaja entre células como combustible</p>
+  <div style="margin: 20px 0;">
+    <svg width="800" height="380" viewBox="0 0 800 380">
+      <!-- Fast fiber -->
+      <rect x="40" y="50" width="220" height="260" rx="20" fill="rgba(249,115,22,0.06)" stroke="#f97316" stroke-width="2"/>
+      <text x="150" y="85" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="20" font-weight="600">Fibra rápida (IIa/IIx)</text>
+      <text x="150" y="130" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="16">Glucosa</text>
+      <path d="M120 140 L180 140" stroke="rgba(247,246,244,0.3)" stroke-width="1"/>
+      <text x="150" y="165" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="16">Piruvato</text>
+      <path d="M120 175 L180 175" stroke="rgba(247,246,244,0.3)" stroke-width="1"/>
+      <text x="150" y="210" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="22" font-weight="700">LACTATO</text>
+      <text x="150" y="240" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">Sale via MCT4</text>
+      <path d="M150 255 L150 280" stroke="#f97316" stroke-width="2" marker-end="url(#arrDown)"/>
+      <defs><marker id="arrDown" markerWidth="8" markerHeight="8" refX="4" refY="7" orient="auto"><path d="M0,0 L4,8 L8,0" fill="#f97316"/></marker></defs>
+
+      <!-- Blood / transport -->
+      <rect x="290" y="120" width="220" height="140" rx="16" fill="rgba(210,106,54,0.08)" stroke="rgba(210,106,54,0.3)" stroke-width="2" stroke-dasharray="6,3"/>
+      <text x="400" y="165" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="18" font-weight="600">SANGRE</text>
+      <text x="400" y="195" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="16">Transporte de lactato</text>
+      <text x="400" y="220" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">a corazón, cerebro, músculo</text>
+      <!-- Arrows -->
+      <path d="M265 190 L288 190" stroke="#f97316" stroke-width="2" marker-end="url(#arrShuttle)"/>
+      <path d="M512 190 L535 190" stroke="#22c55e" stroke-width="2" marker-end="url(#arrShuttle2)"/>
+      <defs>
+        <marker id="arrShuttle" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#f97316"/></marker>
+        <marker id="arrShuttle2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#22c55e"/></marker>
+      </defs>
+
+      <!-- Slow fiber -->
+      <rect x="540" y="50" width="220" height="260" rx="20" fill="rgba(34,197,94,0.06)" stroke="#22c55e" stroke-width="2"/>
+      <text x="650" y="85" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="20" font-weight="600">Fibra lenta (I)</text>
+      <text x="650" y="130" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="16">Entra via MCT1</text>
+      <path d="M620 140 L680 140" stroke="rgba(247,246,244,0.3)" stroke-width="1"/>
+      <text x="650" y="170" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="22" font-weight="700">LACTATO</text>
+      <path d="M620 185 L680 185" stroke="rgba(247,246,244,0.3)" stroke-width="1"/>
+      <text x="650" y="210" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="16">Mitocondria</text>
+      <path d="M620 220 L680 220" stroke="rgba(247,246,244,0.3)" stroke-width="1"/>
+      <text x="650" y="250" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="24" font-weight="700">ATP</text>
+      <text x="650" y="280" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="15">Energía</text>
+
+      <!-- Bottom label -->
+      <text x="400" y="350" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="20" font-weight="600">LACTATE SHUTTLE (Brooks, 2018)</text>
+    </svg>
+  </div>
+  <p class="ref">Brooks, G.A. (2018). The Science and Translation of Lactate Shuttle Theory. Cell Metabolism, 27(4), 757-785.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: Corazón y cerebro -->
+<div class="slide">
+  <div class="slide-number">4/7</div>
+  <h2 style="font-size: 44px; margin-bottom: 15px; text-align: center;">Tu corazón y cerebro <span class="accent-green">prefieren</span> el lactato</h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 40px;">El lactato no es basura. Es el combustible preferido de tus órganos vitales.</p>
+  <div style="display: flex; gap: 30px; width: 100%; margin-bottom: 25px;">
+    <div class="card" style="flex: 1; text-align: center; border-color: rgba(255,80,80,0.2); background: rgba(255,50,50,0.04);">
+      <svg width="90" height="90" viewBox="0 0 90 90" style="margin-bottom: 15px;">
+        <path d="M45 75 C20 55 10 40 10 28 C10 18 18 10 28 10 C35 10 40 15 45 22 C50 15 55 10 62 10 C72 10 80 18 80 28 C80 40 70 55 45 75Z" fill="rgba(255,80,80,0.15)" stroke="rgba(255,80,80,0.5)" stroke-width="2"/>
+      </svg>
+      <h2 style="font-size: 26px; margin-bottom: 12px;">Corazón</h2>
+      <p style="font-size: 19px; line-height: 1.6; color: rgba(247,246,244,0.7);">El miocardio <span class="accent-green">prefiere lactato sobre glucosa</span> durante el ejercicio. Es su sustrato #1 a alta intensidad.</p>
+      <p class="ref" style="font-size: 14px;">Stanley, W.C. (1991). Myocardial lactate metabolism during exercise. Med Sci Sports Exerc.</p>
+    </div>
+    <div class="card" style="flex: 1; text-align: center; border-color: rgba(100,150,255,0.2); background: rgba(100,150,255,0.04);">
+      <svg width="90" height="90" viewBox="0 0 90 90" style="margin-bottom: 15px;">
+        <ellipse cx="45" cy="45" rx="35" ry="28" fill="rgba(100,150,255,0.1)" stroke="rgba(100,150,255,0.4)" stroke-width="2"/>
+        <path d="M25 45 Q35 30 45 45 Q55 30 65 45" fill="none" stroke="rgba(100,150,255,0.5)" stroke-width="1.5"/>
+      </svg>
+      <h2 style="font-size: 26px; margin-bottom: 12px;">Cerebro</h2>
+      <p style="font-size: 19px; line-height: 1.6; color: rgba(247,246,244,0.7);">El cerebro usa lactato como fuente energética alternativa a la glucosa. <span class="accent-green">Cruza la barrera hematoencefálica.</span></p>
+      <p class="ref" style="font-size: 14px;">van Hall, G. et al. (2009). Blood lactate is an important energy source for the human brain. J Cereb Blood Flow Metab.</p>
+    </div>
+  </div>
+  <div class="card" style="text-align: center;">
+    <p style="font-size: 22px; line-height: 1.6;">El lactato no es un enemigo que eliminar. Es un <span class="accent">puente metabólico</span> que conecta músculos, corazón y cerebro.</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: H+ causa fatiga -->
+<div class="slide">
+  <div class="slide-number">5/7</div>
+  <h2 style="font-size: 42px; margin-bottom: 15px; text-align: center;">La fatiga es por <span class="accent-orange">H+</span>, no por lactato</h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 35px;">El lactato es incluso un buffer contra la acidosis</p>
+  <div style="margin: 20px 0;">
+    <svg width="800" height="280" viewBox="0 0 800 280">
+      <!-- Equation -->
+      <rect x="100" y="30" width="600" height="70" rx="14" fill="rgba(210,106,54,0.06)" stroke="rgba(210,106,54,0.2)" stroke-width="1"/>
+      <text x="400" y="72" text-anchor="middle" fill="#f7f6f4" font-family="Space Grotesk" font-size="24">Glucosa → Piruvato → <tspan fill="#d26a36" font-weight="700">Lactato</tspan> + <tspan fill="#f97316" font-weight="700">H+</tspan></text>
+
+      <!-- H+ effects -->
+      <rect x="80" y="130" width="300" height="130" rx="16" fill="rgba(249,115,22,0.06)" stroke="rgba(249,115,22,0.3)" stroke-width="2"/>
+      <text x="230" y="165" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="22" font-weight="600">H+ (acidosis)</text>
+      <text x="230" y="195" text-anchor="middle" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="17">Inhibe enzimas contráctiles</text>
+      <text x="230" y="220" text-anchor="middle" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="17">Reduce fuerza muscular</text>
+      <text x="230" y="245" text-anchor="middle" fill="rgba(255,100,100,0.7)" font-family="Space Grotesk" font-size="18" font-weight="600">= FATIGA</text>
+
+      <!-- Lactate effects -->
+      <rect x="420" y="130" width="300" height="130" rx="16" fill="rgba(34,197,94,0.06)" stroke="rgba(34,197,94,0.3)" stroke-width="2"/>
+      <text x="570" y="165" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="22" font-weight="600">Lactato</text>
+      <text x="570" y="195" text-anchor="middle" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="17">Combustible para otros tejidos</text>
+      <text x="570" y="220" text-anchor="middle" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="17">Consume H+ al oxidarse</text>
+      <text x="570" y="245" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="18" font-weight="600">= BUFFER</text>
+    </svg>
+  </div>
+  <div class="card" style="text-align: center;">
+    <p style="font-size: 22px; line-height: 1.6;">El lactato <span class="accent-green">consume iones H+ cuando se oxida</span>. Es decir, el lactato ayuda a combatir la acidosis. Es parte de la solución, no del problema.</p>
+  </div>
+  <p class="ref">Robergs, R.A. et al. (2004). Biochemistry of exercise-induced metabolic acidosis. Am J Physiol Regul Integr Comp Physiol, 287(3), R502-R516.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: Entrenar para usar más -->
+<div class="slide">
+  <div class="slide-number">6/7</div>
+  <h2 style="font-size: 42px; margin-bottom: 15px; text-align: center;">Entrena para <span class="accent">USAR</span> más lactato</h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 35px;">No para evitarlo. Para aprovecharlo mejor.</p>
+  <div style="display: flex; flex-direction: column; gap: 20px; width: 100%; margin-bottom: 15px;">
+    <div class="card" style="display: flex; align-items: center; gap: 25px;">
+      <div style="width: 55px; height: 55px; border-radius: 50%; background: rgba(34,197,94,0.15); border: 2px solid #22c55e; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <span style="font-family: Space Grotesk; font-size: 20px; font-weight: 700; color: #22c55e;">MCT1</span>
+      </div>
+      <div>
+        <h2 style="font-size: 22px; margin-bottom: 4px;">Más transportadores de entrada</h2>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.7);">Volumen en Z2 → más MCT1 → más lactato entra en mitocondrias para oxidarse. Juel 2004.</p>
+      </div>
+    </div>
+    <div class="card" style="display: flex; align-items: center; gap: 25px;">
+      <div style="width: 55px; height: 55px; border-radius: 14px; background: rgba(210,106,54,0.15); border: 2px solid #d26a36; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <svg width="30" height="30" viewBox="0 0 30 30"><ellipse cx="15" cy="15" rx="12" ry="8" fill="none" stroke="#d26a36" stroke-width="2"/><line x1="15" y1="7" x2="15" y2="23" stroke="#d26a36" stroke-width="1.5"/></svg>
+      </div>
+      <div>
+        <h2 style="font-size: 22px; margin-bottom: 4px;">Más mitocondrias</h2>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.7);">Mayor densidad mitocondrial = más "hornos" para quemar lactato como combustible. Holloszy 1967.</p>
+      </div>
+    </div>
+    <div class="card" style="display: flex; align-items: center; gap: 25px;">
+      <div style="width: 55px; height: 55px; border-radius: 50%; background: rgba(249,115,22,0.15); border: 2px solid #f97316; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <span style="font-family: Space Grotesk; font-size: 20px; font-weight: 700; color: #f97316;">MCT4</span>
+      </div>
+      <div>
+        <h2 style="font-size: 22px; margin-bottom: 4px;">Más transportadores de salida</h2>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.7);">HIIT → más MCT4 → las fibras rápidas evacuan lactato más rápido. Thomas 2012.</p>
+      </div>
+    </div>
+    <div class="card" style="display: flex; align-items: center; gap: 25px;">
+      <div style="width: 55px; height: 55px; border-radius: 14px; background: rgba(100,150,255,0.15); border: 2px solid rgba(100,150,255,0.5); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <span style="font-family: Space Grotesk; font-size: 16px; font-weight: 700; color: rgba(100,180,255,0.8);">BUF</span>
+      </div>
+      <div>
+        <h2 style="font-size: 22px; margin-bottom: 4px;">Mayor capacidad buffer</h2>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.7);">Mejor tolerancia a H+. Más carnosina intramuscular. Edge 2006.</p>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7/7</div>
+  <div style="text-align: center; max-width: 800px;">
+    <p style="font-size: 22px; color: rgba(247,246,244,0.5); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 30px;">Cambia el paradigma</p>
+    <h1 style="font-size: 50px; line-height: 1.2; margin-bottom: 20px;">Entiende tu fisiología.<br><span class="accent">Entrena con ciencia.</span></h1>
+    <p style="font-size: 22px; color: rgba(247,246,244,0.6); margin-bottom: 35px;">El lactato es información. Tu curva de lactato te dice exactamente qué entrenar.</p>
+    <div class="cta-box" style="margin-bottom: 30px;">
+      <h2 style="font-size: 32px; color: #f7f6f4; margin-bottom: 10px;">PeakAerobic</h2>
+      <p style="font-size: 22px; color: rgba(247,246,244,0.9);">Analiza tu curva. Diagnostica tu perfil. Prescribe el bloque correcto.</p>
+    </div>
+    <p style="font-size: 18px; color: rgba(247,246,244,0.4); margin-top: 20px;">Brooks 2018 · Robergs 2004 · Stanley 1991 · van Hall 2009 · Juel 2004 · Thomas 2012</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

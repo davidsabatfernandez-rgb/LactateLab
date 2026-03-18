@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 11 - Cada cuanto deberias re-testar lactato</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 76px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 60px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+
+  .overlay-text { font-size: 48px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-red { background: #ef444440; color: #ef4444; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+  .badge-orange { background: #f9731640; color: #f97316; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  .grid-line { stroke: #f7f6f415; stroke-width: 1; }
+  .axis-label { font-family: 'Source Sans 3', sans-serif; font-size: 28px; fill: #f7f6f480; }
+
+  /* Calendar */
+  .calendar {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    width: 750px;
+    margin-top: 30px;
+  }
+
+  .cal-month {
+    width: 110px;
+    height: 110px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    background: #f7f6f408;
+    border: 2px solid #f7f6f420;
+    position: relative;
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+
+  .cal-month.show { opacity: 1; }
+
+  .cal-x {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    font-size: 70px;
+    color: #ef4444;
+    font-weight: 700;
+    transition: transform 0.3s ease;
+  }
+
+  .cal-month.crossed .cal-x { transform: translate(-50%, -50%) scale(1); }
+  .cal-month.crossed { border-color: #ef444450; background: #ef444410; }
+
+  /* Timeline blocks */
+  .block-timeline {
+    width: 800px;
+    margin-top: 30px;
+  }
+
+  .bt-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0;
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: all 0.4s ease;
+  }
+
+  .bt-row.show { opacity: 1; transform: translateX(0); }
+
+  .bt-block {
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 28px;
+    transition: width 1s ease;
+  }
+
+  .bt-test {
+    width: 50px;
+    height: 60px;
+    border-radius: 12px;
+    background: #d26a3640;
+    border: 3px solid #d26a36;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #d26a36;
+    flex-shrink: 0;
+  }
+
+  /* Trend chart */
+  .trend-container {
+    width: 800px;
+    height: 400px;
+    margin-top: 30px;
+  }
+
+  /* Alert box */
+  .alert-box {
+    width: 800px;
+    padding: 35px;
+    border-radius: 20px;
+    background: #ef444415;
+    border: 3px solid #ef444450;
+    margin-top: 30px;
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.5s ease;
+  }
+
+  .alert-box.show { opacity: 1; transform: scale(1); }
+
+  @keyframes pulseAlert {
+    0%, 100% { border-color: #ef444450; }
+    50% { border-color: #ef4444; }
+  }
+
+  .alert-pulse { animation: pulseAlert 1.5s ease infinite; }
+
+  /* Rule card */
+  .rule-card {
+    width: 800px;
+    padding: 40px;
+    border-radius: 20px;
+    background: #22c55e10;
+    border: 2px solid #22c55e40;
+    margin-top: 30px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.5s ease;
+  }
+
+  .rule-card.show { opacity: 1; transform: translateY(0); }
+
+  .feature-item {
+    display: flex; align-items: center; gap: 20px; font-size: 42px; font-weight: 600; margin: 15px 0;
+    opacity: 0; transform: translateX(-30px); transition: all 0.5s ease;
+  }
+  .feature-item.show { opacity: 1; transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">Te hiciste un test<br>hace <span class="red">6 meses</span><br><br><span class="accent">Ya no sirve.</span></h1>
+</div>
+
+<!-- Scene 2: Calendar with X -->
+<div class="scene" id="scene2">
+  <h2>6 meses sin testar</h2>
+  <div class="calendar">
+    <div class="cal-month" id="m1">ENE<div class="cal-x">X</div></div>
+    <div class="cal-month" id="m2">FEB<div class="cal-x">X</div></div>
+    <div class="cal-month" id="m3">MAR<div class="cal-x">X</div></div>
+    <div class="cal-month" id="m4">ABR<div class="cal-x">X</div></div>
+    <div class="cal-month" id="m5">MAY<div class="cal-x">X</div></div>
+    <div class="cal-month" id="m6">JUN<div class="cal-x">X</div></div>
+  </div>
+  <div class="overlay-text" id="calNote">Tus umbrales han cambiado. Tus zonas ya no son validas.</div>
+</div>
+
+<!-- Scene 3: Threshold trend chart -->
+<div class="scene" id="scene3">
+  <h2>Tus umbrales cambian con el entrenamiento</h2>
+  <div class="trend-container">
+    <svg width="800" height="400" viewBox="0 0 800 400">
+      <rect x="0" y="0" width="800" height="400" rx="20" fill="#f7f6f408" stroke="#f7f6f420" stroke-width="2"/>
+
+      <line class="grid-line" x1="60" y1="50" x2="60" y2="350"/>
+      <line class="grid-line" x1="60" y1="350" x2="750" y2="350"/>
+      <line class="grid-line" x1="60" y1="200" x2="750" y2="200"/>
+
+      <text class="axis-label" x="20" y="205">LT2</text>
+      <text class="axis-label" x="20" y="305">LT1</text>
+      <text class="axis-label" x="100" y="380">Sem 0</text>
+      <text class="axis-label" x="280" y="380">Sem 4</text>
+      <text class="axis-label" x="460" y="380">Sem 8</text>
+      <text class="axis-label" x="640" y="380">Sem 12</text>
+
+      <!-- LT2 trend line -->
+      <path id="trendLT2" fill="none" stroke="#ef4444" stroke-width="4" stroke-linecap="round"
+        d="M 120,220 L 300,200 L 480,180 L 660,160"
+        stroke-dasharray="800" stroke-dashoffset="800" style="transition: stroke-dashoffset 2s ease;"/>
+
+      <!-- LT1 trend line -->
+      <path id="trendLT1" fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round"
+        d="M 120,310 L 300,295 L 480,280 L 660,265"
+        stroke-dasharray="800" stroke-dashoffset="800" style="transition: stroke-dashoffset 2s ease;"/>
+
+      <!-- Test markers -->
+      <circle id="td1" cx="120" cy="220" r="10" fill="#ef4444" opacity="0" style="transition: opacity 0.3s;"/>
+      <circle id="td2" cx="300" cy="200" r="10" fill="#ef4444" opacity="0" style="transition: opacity 0.3s;"/>
+      <circle id="td3" cx="480" cy="180" r="10" fill="#ef4444" opacity="0" style="transition: opacity 0.3s;"/>
+      <circle id="td4" cx="660" cy="160" r="10" fill="#ef4444" opacity="0" style="transition: opacity 0.3s;"/>
+
+      <circle id="td5" cx="120" cy="310" r="10" fill="#22c55e" opacity="0" style="transition: opacity 0.3s;"/>
+      <circle id="td6" cx="300" cy="295" r="10" fill="#22c55e" opacity="0" style="transition: opacity 0.3s;"/>
+      <circle id="td7" cx="480" cy="280" r="10" fill="#22c55e" opacity="0" style="transition: opacity 0.3s;"/>
+      <circle id="td8" cx="660" cy="265" r="10" fill="#22c55e" opacity="0" style="transition: opacity 0.3s;"/>
+
+      <text id="trendLabel1" x="680" y="155" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="24" opacity="0" style="transition: opacity 0.5s;">LT2</text>
+      <text id="trendLabel2" x="680" y="260" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="24" opacity="0" style="transition: opacity 0.5s;">LT1</text>
+    </svg>
+  </div>
+  <div class="overlay-text" id="trendNote" style="font-size:40px;">Cada bloque modifica tu curva de lactato</div>
+</div>
+
+<!-- Scene 4: Block timeline + rule -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom:20px;">Regla practica</h2>
+  <div class="block-timeline">
+    <div class="bt-row" id="bt1">
+      <div class="bt-test">T1</div>
+      <div class="bt-block" id="btb1" style="background:#22c55e30; color:#22c55e; width:0;">Base (4-6 sem)</div>
+      <div class="bt-test">T2</div>
+    </div>
+    <div class="bt-row" id="bt2">
+      <div class="bt-test">T2</div>
+      <div class="bt-block" id="btb2" style="background:#f9731630; color:#f97316; width:0;">Umbral (4-6 sem)</div>
+      <div class="bt-test">T3</div>
+    </div>
+    <div class="bt-row" id="bt3">
+      <div class="bt-test">T3</div>
+      <div class="bt-block" id="btb3" style="background:#ef444430; color:#ef4444; width:0;">VO2 (4-6 sem)</div>
+      <div class="bt-test">T4</div>
+    </div>
+  </div>
+  <div class="rule-card" id="ruleCard">
+    <div style="font-family:'Space Grotesk'; font-size:44px; font-weight:700; color:#22c55e;">Re-testa al final de cada mesociclo</div>
+    <div style="font-size:36px; color:#f7f6f470; margin-top:15px;">4-8 semanas</div>
+  </div>
+</div>
+
+<!-- Scene 5: Alert + PA features -->
+<div class="scene" id="scene5">
+  <div class="alert-box alert-pulse" id="alertBox">
+    <div style="font-size:48px; font-weight:700; color:#ef4444;">56 dias sin test</div>
+    <div style="font-size:36px; color:#f7f6f480; margin-top:15px;">PeakAerobic te lo dice</div>
+  </div>
+  <div style="margin-top:40px;">
+    <div class="feature-item" id="af1"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Historial dinamico de umbrales</div>
+    <div class="feature-item" id="af2"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Tendencia automatica</div>
+    <div class="feature-item" id="af3"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Alerta cuando toca re-testar</div>
+  </div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Testea. Ajusta. Progresa.</h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Tu historial de umbrales en un click<br>Link en bio
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 45000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 3000 },
+  { id: 'scene2', start: 3000, end: 10000 },
+  { id: 'scene3', start: 10000, end: 17000 },
+  { id: 'scene4', start: 17000, end: 32000 },
+  { id: 'scene5', start: 32000, end: 38000 },
+  { id: 'scene6', start: 38000, end: 45000 },
+];
+
+const events = [
+  { time: 300, action: () => { document.getElementById('hook1').classList.add('show'); }},
+
+  { time: 3300, action: () => { ['m1','m2','m3','m4','m5','m6'].forEach(id => document.getElementById(id).classList.add('show')); }},
+  { time: 4000, action: () => { document.getElementById('m1').classList.add('crossed'); }},
+  { time: 4500, action: () => { document.getElementById('m2').classList.add('crossed'); }},
+  { time: 5000, action: () => { document.getElementById('m3').classList.add('crossed'); }},
+  { time: 5500, action: () => { document.getElementById('m4').classList.add('crossed'); }},
+  { time: 6000, action: () => { document.getElementById('m5').classList.add('crossed'); }},
+  { time: 6500, action: () => { document.getElementById('m6').classList.add('crossed'); }},
+  { time: 7500, action: () => { document.getElementById('calNote').classList.add('show'); }},
+
+  { time: 10500, action: () => {
+    document.getElementById('trendLT2').style.strokeDashoffset = '0';
+    document.getElementById('trendLT1').style.strokeDashoffset = '0';
+  }},
+  { time: 11000, action: () => { ['td1','td2','td3','td4','td5','td6','td7','td8'].forEach(id => document.getElementById(id).style.opacity = '1'); }},
+  { time: 12500, action: () => {
+    document.getElementById('trendLabel1').style.opacity = '1';
+    document.getElementById('trendLabel2').style.opacity = '1';
+  }},
+  { time: 14000, action: () => { document.getElementById('trendNote').classList.add('show'); }},
+
+  { time: 17500, action: () => { document.getElementById('bt1').classList.add('show'); }},
+  { time: 18000, action: () => { document.getElementById('btb1').style.width = '350px'; }},
+  { time: 20000, action: () => { document.getElementById('bt2').classList.add('show'); }},
+  { time: 20500, action: () => { document.getElementById('btb2').style.width = '350px'; }},
+  { time: 22500, action: () => { document.getElementById('bt3').classList.add('show'); }},
+  { time: 23000, action: () => { document.getElementById('btb3').style.width = '350px'; }},
+  { time: 25000, action: () => { document.getElementById('ruleCard').classList.add('show'); }},
+
+  { time: 32500, action: () => { document.getElementById('alertBox').classList.add('show'); }},
+  { time: 34000, action: () => { document.getElementById('af1').classList.add('show'); }},
+  { time: 35000, action: () => { document.getElementById('af2').classList.add('show'); }},
+  { time: 36000, action: () => { document.getElementById('af3').classList.add('show'); }},
+
+  { time: 38500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 39500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

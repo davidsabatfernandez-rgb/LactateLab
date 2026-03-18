@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>De test de lactato a sesión en tu Garmin — PeakAerobic</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide {
+    width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .slide-number {
+    position: absolute; top: 40px; right: 50px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; font-weight: 500; color: rgba(247,246,244,0.35); z-index: 10;
+  }
+  .progress-dots {
+    position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 10;
+  }
+  .progress-dots .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute; bottom: 44px; right: 50px; text-align: right; z-index: 10;
+  }
+  .watermark .brand {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+    font-size: 16px; color: rgba(210,106,54,0.35);
+  }
+  .watermark .sub {
+    font-family: 'Source Sans 3', sans-serif; font-weight: 300;
+    font-size: 11px; color: rgba(210,106,54,0.25); margin-top: 1px;
+  }
+  .tag {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    background: rgba(210,106,54,0.15); color: #d26a36;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 20px;
+  }
+  .divider {
+    width: 60px; height: 4px; background: #d26a36; border-radius: 2px;
+  }
+  .card {
+    background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px; padding: 40px 30px;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    padding: 40px 50px; border-radius: 20px; text-align: center;
+  }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+  .accent { color: #d26a36; }
+  .accent-green { color: #22c55e; }
+  .accent-orange { color: #f97316; }
+  .red { color: #ef4444; }
+  .content { padding: 80px 70px 80px 70px; height: 100%; display: flex; flex-direction: column; }
+
+  @media print {
+    .slide { page-break-after: always; }
+    body { padding: 0; gap: 0; background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; text-align: center; gap: 36px;">
+    <div class="tag">GARMIN CONNECT</div>
+    <h1 style="font-size: 62px; max-width: 820px;">
+      De tu test de lactato a tu <span class="accent">Garmin</span>. <span class="accent-green">60 segundos.</span>
+    </h1>
+    <div class="divider" style="margin: 0 auto;"></div>
+    <p style="font-size: 26px; font-weight: 300; max-width: 640px; color: rgba(247,246,244,0.7); line-height: 1.5;">
+      Sesiones individualizadas directamente<br>en tu muneca. Sin intermediarios.
+    </p>
+    <svg width="500" height="120" viewBox="0 0 500 120">
+      <!-- Pipeline: Test → Analysis → Plan → Garmin -->
+      <rect x="10" y="30" width="90" height="50" rx="10" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="55" y="52" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="12">TEST</text>
+      <text x="55" y="68" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="10">Lactato</text>
+      <line x1="105" y1="55" x2="125" y2="55" stroke="rgba(247,246,244,0.3)" stroke-width="2" marker-end="url(#arrPipe)"/>
+      <defs><marker id="arrPipe" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><path d="M0,0 L6,2.5 L0,5" fill="rgba(247,246,244,0.3)"/></marker></defs>
+
+      <rect x="130" y="30" width="90" height="50" rx="10" fill="rgba(210,106,54,0.15)" stroke="#d26a36" stroke-width="1.5"/>
+      <text x="175" y="52" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="600" font-size="12">ANALISIS</text>
+      <text x="175" y="68" text-anchor="middle" fill="rgba(210,106,54,0.6)" font-family="Source Sans 3" font-size="10">3 metodos</text>
+      <line x1="225" y1="55" x2="245" y2="55" stroke="rgba(247,246,244,0.3)" stroke-width="2" marker-end="url(#arrPipe)"/>
+
+      <rect x="250" y="30" width="90" height="50" rx="10" fill="rgba(249,115,22,0.15)" stroke="#f97316" stroke-width="1.5"/>
+      <text x="295" y="52" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="600" font-size="12">BLOQUE</text>
+      <text x="295" y="68" text-anchor="middle" fill="rgba(249,115,22,0.6)" font-family="Source Sans 3" font-size="10">Olbrecht</text>
+      <line x1="345" y1="55" x2="365" y2="55" stroke="rgba(247,246,244,0.3)" stroke-width="2" marker-end="url(#arrPipe)"/>
+
+      <rect x="370" y="30" width="120" height="50" rx="10" fill="rgba(239,68,68,0.15)" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="430" y="52" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="12">GARMIN</text>
+      <text x="430" y="68" text-anchor="middle" fill="rgba(239,68,68,0.6)" font-family="Source Sans 3" font-size="10">Push directo</text>
+
+      <text x="250" y="108" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">DE DATOS A RELOJ EN UN CLICK</text>
+    </svg>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: El flujo completo -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">EL FLUJO</div>
+    <h2 style="font-size: 42px; line-height: 1.15;">De test a reloj: <span class="accent">el pipeline completo</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+      <svg viewBox="0 0 900 500" width="940" height="520" style="align-self: center;">
+        <!-- Step 1: Test data -->
+        <rect x="100" y="20" width="700" height="70" rx="16" fill="rgba(34,197,94,0.08)" stroke="#22c55e" stroke-width="2"/>
+        <circle cx="140" cy="55" r="22" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="2"/>
+        <text x="140" y="60" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="18">1</text>
+        <text x="320" y="48" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="20">TEST DE LACTATO</text>
+        <text x="550" y="48" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">Datos de escalones: ritmo, FC, lactato</text>
+        <text x="550" y="70" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">Pega tus datos o importa desde archivo</text>
+
+        <!-- Arrow down -->
+        <line x1="450" y1="95" x2="450" y2="115" stroke="rgba(247,246,244,0.2)" stroke-width="2"/>
+        <polygon points="445,115 455,115 450,125" fill="rgba(247,246,244,0.2)"/>
+
+        <!-- Step 2: Analysis -->
+        <rect x="100" y="130" width="700" height="70" rx="16" fill="rgba(210,106,54,0.08)" stroke="#d26a36" stroke-width="2"/>
+        <circle cx="140" cy="165" r="22" fill="rgba(210,106,54,0.15)" stroke="#d26a36" stroke-width="2"/>
+        <text x="140" y="170" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="18">2</text>
+        <text x="320" y="158" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="20">PERFIL METABOLICO</text>
+        <text x="550" y="158" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">LT1, LT2, VLamax, VO2max estimado</text>
+        <text x="550" y="180" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">3 metodos cientificos + score de confianza</text>
+
+        <!-- Arrow down -->
+        <line x1="450" y1="205" x2="450" y2="225" stroke="rgba(247,246,244,0.2)" stroke-width="2"/>
+        <polygon points="445,225 455,225 450,235" fill="rgba(247,246,244,0.2)"/>
+
+        <!-- Step 3: Block selection -->
+        <rect x="100" y="240" width="700" height="70" rx="16" fill="rgba(249,115,22,0.08)" stroke="#f97316" stroke-width="2"/>
+        <circle cx="140" cy="275" r="22" fill="rgba(249,115,22,0.15)" stroke="#f97316" stroke-width="2"/>
+        <text x="140" y="280" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="700" font-size="18">3</text>
+        <text x="320" y="268" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="700" font-size="20">BLOQUE + SESIONES</text>
+        <text x="550" y="268" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">Motor Olbrecht selecciona bloque correcto</text>
+        <text x="550" y="290" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">Dose ladders progresivos + calentamiento/vuelta a calma</text>
+
+        <!-- Arrow down -->
+        <line x1="450" y1="315" x2="450" y2="335" stroke="rgba(247,246,244,0.2)" stroke-width="2"/>
+        <polygon points="445,335 455,335 450,345" fill="rgba(247,246,244,0.2)"/>
+
+        <!-- Step 4: Garmin push -->
+        <rect x="100" y="350" width="700" height="70" rx="16" fill="rgba(239,68,68,0.08)" stroke="#ef4444" stroke-width="2.5"/>
+        <circle cx="140" cy="385" r="22" fill="rgba(239,68,68,0.15)" stroke="#ef4444" stroke-width="2"/>
+        <text x="140" y="390" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="18">4</text>
+        <text x="320" y="378" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="20">GARMIN CONNECT</text>
+        <text x="550" y="378" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">Push directo via API de Garmin</text>
+        <text x="550" y="400" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">La sesion aparece en tu reloj lista para ejecutar</text>
+
+        <!-- Timing annotation -->
+        <rect x="300" y="445" width="300" height="40" rx="10" fill="rgba(34,197,94,0.1)" stroke="rgba(34,197,94,0.3)" stroke-width="1.5"/>
+        <text x="450" y="470" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="18">Todo en menos de 60 segundos</text>
+      </svg>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: Paso 1 — Pega tus datos -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">PASO 1</div>
+    <h2 style="font-size: 42px; line-height: 1.15;">Pega tus datos. <span class="accent">3 metodos</span> detectan tus umbrales.</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 220" width="940" height="240" style="align-self: center;">
+        <!-- Data input mockup -->
+        <rect x="80" y="20" width="340" height="180" rx="14" fill="rgba(247,246,244,0.03)" stroke="rgba(247,246,244,0.15)" stroke-width="1.5"/>
+        <text x="250" y="50" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Space Grotesk" font-weight="600" font-size="15">DATOS DEL TEST</text>
+        <!-- Table rows -->
+        <text x="110" y="80" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12">Escalon</text>
+        <text x="180" y="80" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12">Ritmo</text>
+        <text x="260" y="80" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12">FC</text>
+        <text x="330" y="80" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12">Lactato</text>
+        <line x1="100" y1="88" x2="400" y2="88" stroke="rgba(247,246,244,0.1)" stroke-width="1"/>
+        <text x="110" y="108" fill="rgba(34,197,94,0.7)" font-family="Source Sans 3" font-size="13">1</text>
+        <text x="180" y="108" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="13">6:00</text>
+        <text x="260" y="108" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="13">125</text>
+        <text x="330" y="108" fill="#22c55e" font-family="Source Sans 3" font-weight="600" font-size="13">0.8</text>
+        <text x="110" y="128" fill="rgba(34,197,94,0.7)" font-family="Source Sans 3" font-size="13">2</text>
+        <text x="180" y="128" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="13">5:30</text>
+        <text x="260" y="128" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="13">138</text>
+        <text x="330" y="128" fill="#22c55e" font-family="Source Sans 3" font-weight="600" font-size="13">1.1</text>
+        <text x="110" y="148" fill="rgba(34,197,94,0.7)" font-family="Source Sans 3" font-size="13">3</text>
+        <text x="180" y="148" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="13">5:00</text>
+        <text x="260" y="148" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="13">152</text>
+        <text x="330" y="148" fill="#d26a36" font-family="Source Sans 3" font-weight="600" font-size="13">1.8</text>
+        <text x="110" y="168" fill="rgba(34,197,94,0.7)" font-family="Source Sans 3" font-size="13">4</text>
+        <text x="180" y="168" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="13">4:30</text>
+        <text x="260" y="168" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="13">165</text>
+        <text x="330" y="168" fill="#ef4444" font-family="Source Sans 3" font-weight="600" font-size="13">3.4</text>
+        <text x="250" y="195" text-anchor="middle" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="11">...</text>
+
+        <!-- Arrow -->
+        <line x1="440" y1="110" x2="480" y2="110" stroke="rgba(247,246,244,0.3)" stroke-width="2" marker-end="url(#arrStep)"/>
+        <defs><marker id="arrStep" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="rgba(247,246,244,0.3)"/></marker></defs>
+
+        <!-- 3 methods -->
+        <rect x="500" y="20" width="340" height="180" rx="14" fill="rgba(210,106,54,0.06)" stroke="rgba(210,106,54,0.2)" stroke-width="1.5"/>
+        <text x="670" y="50" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="600" font-size="15">3 METODOS DE DETECCION</text>
+        <rect x="520" y="65" width="300" height="35" rx="8" fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.2)" stroke-width="1"/>
+        <text x="670" y="87" text-anchor="middle" fill="#22c55e" font-family="Source Sans 3" font-weight="500" font-size="14">Baseline Rise (Faude 2009)</text>
+        <rect x="520" y="108" width="300" height="35" rx="8" fill="rgba(210,106,54,0.08)" stroke="rgba(210,106,54,0.2)" stroke-width="1"/>
+        <text x="670" y="130" text-anchor="middle" fill="#d26a36" font-family="Source Sans 3" font-weight="500" font-size="14">Sustained Increase (Kindermann)</text>
+        <rect x="520" y="151" width="300" height="35" rx="8" fill="rgba(249,115,22,0.08)" stroke="rgba(249,115,22,0.2)" stroke-width="1"/>
+        <text x="670" y="173" text-anchor="middle" fill="#f97316" font-family="Source Sans 3" font-weight="500" font-size="14">ModDmax (Bishop 1998)</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px;">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          Tres metodos cientificos validados analizan tu curva de forma independiente. El resultado se <span class="accent" style="font-weight: 700;">agrega con mediana</span> para maxima robustez: tu LT1, LT2 y el score de confianza.
+        </p>
+      </div>
+      <p style="font-size: 20px; font-weight: 300; text-align: center; color: rgba(247,246,244,0.6);">
+        No dependes de <span class="accent" style="font-weight: 600;">un solo algoritmo</span>. Si un metodo falla, los otros lo compensan.
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Faude et al. (2009), Kindermann et al. (1979), Bishop et al. (1998).
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: Paso 2 — Motor fisiologico -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">PASO 2</div>
+    <h2 style="font-size: 42px; line-height: 1.15;">El motor fisiologico <span class="accent">diagnostica y prescribe</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+          <h3 style="font-size: 20px; color: #22c55e; margin-bottom: 16px;">Tu perfil metabolico</h3>
+          <ul style="font-size: 18px; font-weight: 300; line-height: 2.0; color: rgba(247,246,244,0.7); list-style: none; padding: 0;">
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #22c55e;">&#x2022;</span> LT1 a 5:15/km (FC 145)</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #22c55e;">&#x2022;</span> LT2 a 4:25/km (FC 168)</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #22c55e;">&#x2022;</span> VO2max: 58 ml/kg/min</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #22c55e;">&#x2022;</span> VLamax: moderada</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #22c55e;">&#x2022;</span> Confianza: 0.82 / 1.00</li>
+          </ul>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(210,106,54,0.3); background: rgba(210,106,54,0.06);">
+          <h3 style="font-size: 20px; color: #d26a36; margin-bottom: 16px;">Diagnostico</h3>
+          <ul style="font-size: 18px; font-weight: 300; line-height: 2.0; color: rgba(247,246,244,0.7); list-style: none; padding: 0;">
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #d26a36;">&#x2022;</span> Gap LT1: moderado</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #d26a36;">&#x2022;</span> Gap LT2: minimo</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #d26a36;">&#x2022;</span> Fase: specific (16 sem.)</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #d26a36;">&#x2022;</span> Evento: medio maraton</li>
+          </ul>
+          <div style="margin-top: 16px; padding: 12px 20px; background: rgba(210,106,54,0.15); border-radius: 10px;">
+            <p style="font-size: 18px; font-weight: 700; color: #d26a36;">
+              Bloque: THRESHOLD DEVELOPMENT
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 36px;">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          El motor evalua <span class="accent" style="font-weight: 700;">6 candidatos de bloque</span> (Olbrecht) y selecciona el que mejor encaja con tu perfil, fase de temporada y evento objetivo.
+        </p>
+      </div>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <div style="padding: 10px 20px; border-radius: 8px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2);">
+          <p style="font-size: 14px; font-weight: 500; color: #22c55e;">AEC</p>
+        </div>
+        <div style="padding: 10px 20px; border-radius: 8px; background: rgba(210,106,54,0.2); border: 2px solid #d26a36;">
+          <p style="font-size: 14px; font-weight: 700; color: #d26a36;">THR ←</p>
+        </div>
+        <div style="padding: 10px 20px; border-radius: 8px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2);">
+          <p style="font-size: 14px; font-weight: 500; color: #ef4444;">AEP</p>
+        </div>
+        <div style="padding: 10px 20px; border-radius: 8px; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2);">
+          <p style="font-size: 14px; font-weight: 500; color: #f97316;">ANC</p>
+        </div>
+        <div style="padding: 10px 20px; border-radius: 8px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.15);">
+          <p style="font-size: 14px; font-weight: 500; color: rgba(239,68,68,0.6);">ANP</p>
+        </div>
+        <div style="padding: 10px 20px; border-radius: 8px; background: rgba(247,246,244,0.05); border: 1px solid rgba(247,246,244,0.1);">
+          <p style="font-size: 14px; font-weight: 500; color: rgba(247,246,244,0.4);">COMP</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: Paso 3 — Sesiones con dose ladders -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">PASO 3</div>
+    <h2 style="font-size: 42px; line-height: 1.15;">Sesiones con <span class="accent">dose ladders</span> progresivos</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 300" width="940" height="320" style="align-self: center;">
+        <!-- Dose ladder visualization -->
+        <!-- Step 1 -->
+        <rect x="80" y="230" width="100" height="50" rx="10" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="130" y="252" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="14">Dose 1</text>
+        <text x="130" y="270" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="11">3x8' LT2</text>
+
+        <!-- Step 2 -->
+        <rect x="200" y="190" width="100" height="90" rx="10" fill="rgba(34,197,94,0.2)" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="250" y="215" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="14">Dose 2</text>
+        <text x="250" y="235" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="11">4x8' LT2</text>
+        <text x="250" y="255" text-anchor="middle" fill="rgba(34,197,94,0.5)" font-family="Source Sans 3" font-size="10">+1 rep</text>
+
+        <!-- Step 3 -->
+        <rect x="320" y="150" width="100" height="130" rx="10" fill="rgba(210,106,54,0.15)" stroke="#d26a36" stroke-width="1.5"/>
+        <text x="370" y="178" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="600" font-size="14">Dose 3</text>
+        <text x="370" y="198" text-anchor="middle" fill="rgba(210,106,54,0.6)" font-family="Source Sans 3" font-size="11">4x10' LT2</text>
+        <text x="370" y="218" text-anchor="middle" fill="rgba(210,106,54,0.5)" font-family="Source Sans 3" font-size="10">+duracion</text>
+
+        <!-- Step 4 -->
+        <rect x="440" y="110" width="100" height="170" rx="10" fill="rgba(210,106,54,0.2)" stroke="#d26a36" stroke-width="2"/>
+        <text x="490" y="140" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="14">Dose 4</text>
+        <text x="490" y="160" text-anchor="middle" fill="rgba(210,106,54,0.7)" font-family="Source Sans 3" font-size="11">5x10' LT2</text>
+        <text x="490" y="180" text-anchor="middle" fill="rgba(210,106,54,0.5)" font-family="Source Sans 3" font-size="10">+rep+dur</text>
+
+        <!-- Step 5 -->
+        <rect x="560" y="70" width="100" height="210" rx="10" fill="rgba(249,115,22,0.15)" stroke="#f97316" stroke-width="1.5"/>
+        <text x="610" y="100" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="600" font-size="14">Dose 5</text>
+        <text x="610" y="120" text-anchor="middle" fill="rgba(249,115,22,0.6)" font-family="Source Sans 3" font-size="11">3x15' LT2</text>
+        <text x="610" y="140" text-anchor="middle" fill="rgba(249,115,22,0.5)" font-family="Source Sans 3" font-size="10">continuo</text>
+
+        <!-- Step 6 -->
+        <rect x="680" y="35" width="100" height="245" rx="10" fill="rgba(239,68,68,0.12)" stroke="#ef4444" stroke-width="1.5"/>
+        <text x="730" y="65" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="14">Dose 6</text>
+        <text x="730" y="85" text-anchor="middle" fill="rgba(239,68,68,0.6)" font-family="Source Sans 3" font-size="11">2x20' LT2</text>
+        <text x="730" y="105" text-anchor="middle" fill="rgba(239,68,68,0.5)" font-family="Source Sans 3" font-size="10">maximo</text>
+
+        <!-- Progression arrow -->
+        <line x1="80" y1="290" x2="780" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5" marker-end="url(#arrDose)"/>
+        <defs><marker id="arrDose" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="rgba(247,246,244,0.2)"/></marker></defs>
+        <text x="430" y="302" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">PROGRESION DENTRO DEL MESOCICLO</text>
+      </svg>
+      <div style="display: flex; gap: 16px;">
+        <div class="card" style="flex: 1; padding: 24px;">
+          <h3 style="font-size: 18px; color: #22c55e; margin-bottom: 8px;">Calentamiento</h3>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            10-15 min progresivo bajo LT1. Incluido automaticamente en cada sesion.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px;">
+          <h3 style="font-size: 18px; color: #d26a36; margin-bottom: 8px;">Cuerpo principal</h3>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Intervalos/bloques a la intensidad prescrita segun el dose ladder del mesociclo.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px;">
+          <h3 style="font-size: 18px; color: #f97316; margin-bottom: 8px;">Vuelta a calma</h3>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            5-10 min a baja intensidad. Facilita aclaramiento de lactato y recuperacion.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: Paso 4 — Push a Garmin -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">PASO 4</div>
+    <h2 style="font-size: 42px; line-height: 1.15;">Push directo a <span class="accent">Garmin Connect</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 380" width="940" height="400" style="align-self: center;">
+        <!-- Garmin watch mockup -->
+        <!-- Watch body -->
+        <rect x="300" y="20" width="300" height="340" rx="40" fill="rgba(247,246,244,0.03)" stroke="rgba(247,246,244,0.2)" stroke-width="3"/>
+        <!-- Screen -->
+        <rect x="330" y="60" width="240" height="240" rx="20" fill="rgba(14,30,36,0.9)" stroke="rgba(247,246,244,0.1)" stroke-width="1.5"/>
+        <!-- Buttons -->
+        <rect x="600" y="110" width="20" height="40" rx="4" fill="rgba(247,246,244,0.1)"/>
+        <rect x="600" y="200" width="20" height="40" rx="4" fill="rgba(247,246,244,0.1)"/>
+        <rect x="600" y="250" width="20" height="30" rx="4" fill="rgba(247,246,244,0.1)"/>
+
+        <!-- Screen content: workout -->
+        <text x="450" y="95" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="16">ENTRENAMIENTO</text>
+        <line x1="350" y1="105" x2="550" y2="105" stroke="rgba(210,106,54,0.3)" stroke-width="1"/>
+
+        <!-- Warmup block -->
+        <rect x="350" y="115" width="200" height="30" rx="6" fill="rgba(34,197,94,0.15)"/>
+        <text x="370" y="135" fill="#22c55e" font-family="Source Sans 3" font-weight="600" font-size="12">CALENTAMIENTO</text>
+        <text x="530" y="135" text-anchor="end" fill="rgba(34,197,94,0.7)" font-family="Source Sans 3" font-size="11">10:00</text>
+
+        <!-- Main set -->
+        <rect x="350" y="150" width="200" height="50" rx="6" fill="rgba(210,106,54,0.2)" stroke="rgba(210,106,54,0.3)" stroke-width="1"/>
+        <text x="370" y="170" fill="#d26a36" font-family="Source Sans 3" font-weight="700" font-size="13">4 x 8:00 LT2</text>
+        <text x="370" y="190" fill="rgba(210,106,54,0.6)" font-family="Source Sans 3" font-size="11">Rec: 3:00 trote</text>
+
+        <!-- Cooldown -->
+        <rect x="350" y="205" width="200" height="30" rx="6" fill="rgba(34,197,94,0.1)"/>
+        <text x="370" y="225" fill="rgba(34,197,94,0.7)" font-family="Source Sans 3" font-weight="500" font-size="12">VUELTA A CALMA</text>
+        <text x="530" y="225" text-anchor="end" fill="rgba(34,197,94,0.5)" font-family="Source Sans 3" font-size="11">8:00</text>
+
+        <!-- Targets -->
+        <rect x="350" y="245" width="200" height="40" rx="6" fill="rgba(247,246,244,0.04)"/>
+        <text x="370" y="262" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="11">Ritmo: 4:20-4:30/km</text>
+        <text x="370" y="278" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="11">FC: 162-170 bpm</text>
+
+        <!-- Push indicator -->
+        <rect x="60" y="140" width="200" height="100" rx="14" fill="rgba(210,106,54,0.08)" stroke="rgba(210,106,54,0.25)" stroke-width="1.5"/>
+        <text x="160" y="170" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="16">PeakAerobic</text>
+        <line x1="260" y1="190" x2="300" y2="190" stroke="#d26a36" stroke-width="2.5" marker-end="url(#arrPush)"/>
+        <defs><marker id="arrPush" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#d26a36"/></marker></defs>
+        <text x="160" y="195" text-anchor="middle" fill="rgba(210,106,54,0.6)" font-family="Source Sans 3" font-size="13">API Push</text>
+        <text x="160" y="215" text-anchor="middle" fill="rgba(210,106,54,0.4)" font-family="Source Sans 3" font-size="11">Garmin Connect IQ</text>
+
+        <!-- Sync to watch -->
+        <text x="680" y="185" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Sync automatico</text>
+        <text x="680" y="205" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">a tu reloj via WiFi</text>
+        <line x1="625" y1="190" x2="605" y2="190" stroke="rgba(247,246,244,0.3)" stroke-width="1.5" marker-end="url(#arrSync)"/>
+        <defs><marker id="arrSync" markerWidth="6" markerHeight="5" refX="0" refY="2.5" orient="auto"><path d="M6,0 L0,2.5 L6,5" fill="rgba(247,246,244,0.3)"/></marker></defs>
+      </svg>
+      <div class="card" style="padding: 24px 36px;">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          La sesion aparece en Garmin Connect con <span class="accent" style="font-weight: 700;">pasos estructurados</span>: calentamiento, intervalos con targets de ritmo/FC, recuperaciones y vuelta a calma. Lista para ejecutar.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; gap: 40px;">
+    <div class="cta-box" style="max-width: 800px; width: 100%;">
+      <h2 style="font-size: 44px; color: #f7f6f4; margin-bottom: 20px; line-height: 1.2;">
+        De datos a reloj. Sin Excel. Sin adivinar.
+      </h2>
+      <div style="width: 60px; height: 4px; background: rgba(247,246,244,0.4); border-radius: 2px; margin: 0 auto 24px;"></div>
+      <p style="font-size: 22px; font-weight: 300; color: rgba(247,246,244,0.9); line-height: 1.5; margin-bottom: 28px;">
+        PeakAerobic convierte tu test de lactato en sesiones individualizadas y las envia directo a tu Garmin. <strong>La fisiologia guia cada paso del entrenamiento.</strong>
+      </p>
+      <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <div style="background: rgba(247,246,244,0.15); padding: 12px 28px; border-radius: 10px;">
+          <p style="font-size: 18px; font-weight: 600; color: #f7f6f4;">Test → Analisis → Plan → Garmin</p>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 32px; align-items: center;">
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #22c55e;">3</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Metodos de deteccion</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #d26a36;">6</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Bloques Olbrecht</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #ef4444;">1</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Click a Garmin</p>
+      </div>
+    </div>
+    <p style="font-size: 20px; font-weight: 500; color: #d26a36;">peakaerobic.com</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

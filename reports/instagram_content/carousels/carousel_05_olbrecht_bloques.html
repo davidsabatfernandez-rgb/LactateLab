@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Periodizacion por bloques: la ciencia detras de tu plan</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0e1e24; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; }
+  .slide { width: 1080px; height: 1080px; padding: 72px; position: relative; display: flex; flex-direction: column; justify-content: center; background: #0e1e24; margin-bottom: 4px; overflow: hidden; }
+  .slide::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #d26a36, #f97316); }
+  h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+  .slide-number { position: absolute; top: 36px; right: 48px; font-family: 'Space Grotesk', sans-serif; font-size: 18px; color: rgba(247,246,244,0.3); font-weight: 600; }
+  .progress-dots { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.2); }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark { position: absolute; bottom: 40px; right: 48px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; color: rgba(247,246,244,0.2); letter-spacing: 1px; }
+  .tag { display: inline-block; background: rgba(210,106,54,0.15); color: #d26a36; font-size: 16px; font-weight: 600; padding: 8px 20px; border-radius: 24px; margin-bottom: 28px; letter-spacing: 1px; text-transform: uppercase; }
+  .cover-title { font-size: 64px; font-weight: 700; line-height: 1.1; margin-bottom: 24px; }
+  .cover-title span { color: #d26a36; }
+  .cover-sub { font-size: 26px; font-weight: 300; color: rgba(247,246,244,0.7); line-height: 1.5; }
+  .section-title { font-size: 42px; font-weight: 700; margin-bottom: 32px; line-height: 1.2; }
+  .section-title span { color: #d26a36; }
+  .body-text { font-size: 24px; line-height: 1.7; color: rgba(247,246,244,0.85); }
+  .card { background: rgba(247,246,244,0.05); border: 1px solid rgba(247,246,244,0.08); border-radius: 16px; padding: 32px; margin-bottom: 20px; }
+  .card-label { font-family: 'Space Grotesk', sans-serif; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #d26a36; margin-bottom: 8px; }
+  .card-value { font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700; }
+  .card-desc { font-size: 20px; color: rgba(247,246,244,0.6); margin-top: 8px; }
+  .block-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+  .block-card { border-radius: 16px; padding: 28px; }
+  .block-card h3 { font-size: 24px; margin-bottom: 12px; }
+  .block-card p { font-size: 19px; line-height: 1.6; color: rgba(247,246,244,0.7); }
+  .formula-box { background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.25); border-radius: 16px; padding: 36px; margin: 24px 0; text-align: center; }
+  .formula-box .formula { font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 600; color: #d26a36; margin-bottom: 12px; }
+  .formula-box .formula-desc { font-size: 20px; color: rgba(247,246,244,0.6); }
+  .cta-box { background: linear-gradient(135deg, #d26a36, #f97316); border-radius: 20px; padding: 48px; text-align: center; }
+  .cta-box h2 { font-size: 44px; margin-bottom: 20px; color: #fff; }
+  .cta-box p { font-size: 24px; color: rgba(255,255,255,0.9); margin-bottom: 32px; }
+  .cta-box .cta-link { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: #fff; background: rgba(0,0,0,0.25); padding: 16px 40px; border-radius: 12px; display: inline-block; }
+  .citation { font-size: 16px; color: rgba(247,246,244,0.25); position: absolute; bottom: 70px; left: 72px; right: 120px; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="tag">Planificacion del entrenamiento</div>
+  <h1 class="cover-title">Periodizacion por<br>bloques: la <span>ciencia</span><br>detras de tu plan</h1>
+  <p class="cover-sub">Como organizar el entrenamiento en fases<br>concentradas para maximizar adaptaciones.</p>
+  <div class="progress-dots"><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 2: What is block periodization -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <h2 class="section-title">¿Que es la periodizacion <span>por bloques</span>?</h2>
+  <p class="body-text" style="margin-bottom: 24px;">La periodizacion por bloques organiza el entrenamiento en fases concentradas (mesociclos) que priorizan un numero reducido de cualidades fisiologicas en cada bloque.</p>
+  <div class="card">
+    <div class="card-label">Principio fundamental</div>
+    <p style="font-size: 24px; color: rgba(247,246,244,0.85); margin-top: 8px;">Issurin (2010) propuso que concentrar estimulos sobre capacidades especificas durante 2-4 semanas produce adaptaciones mas pronunciadas que distribuir multiples estimulos simultaneamente.</p>
+  </div>
+  <div class="card">
+    <div class="card-label">Aplicacion en resistencia</div>
+    <p style="font-size: 24px; color: rgba(247,246,244,0.85); margin-top: 8px;">Olbrecht (2000) adapto este principio a los deportes de resistencia, definiendo bloques basados en los sistemas energeticos: capacidad aerobica, potencia aerobica, capacidad anaerobica y potencia anaerobica.</p>
+  </div>
+  <div class="formula-box">
+    <div class="formula">Concentracion + Secuenciacion = Adaptacion optima</div>
+    <div class="formula-desc">Cada bloque construye sobre las adaptaciones del anterior</div>
+  </div>
+  <div class="citation">Issurin VB. New horizons for the methodology and physiology of training periodization. Sports Med, 2010 / Olbrecht J. The Science of Winning, 2000.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 3: The 4 blocks -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <h2 class="section-title">Los <span>4 bloques</span> de Olbrecht</h2>
+  <p class="body-text" style="margin-bottom: 16px;">Olbrecht (2000) clasifico los bloques de entrenamiento en cuatro tipos, basados en la interaccion entre VO2max y VLamax:</p>
+  <div class="block-grid">
+    <div class="block-card" style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);">
+      <h3 style="color: #22c55e;">Capacidad Aerobica (AEC)</h3>
+      <p>Volumen a baja intensidad. Objetivo: aumentar la base oxidativa y reducir la VLamax. Sesiones extensas por debajo de LT1.</p>
+    </div>
+    <div class="block-card" style="background: rgba(210,106,54,0.1); border: 1px solid rgba(210,106,54,0.3);">
+      <h3 style="color: #d26a36;">Potencia Aerobica (AEP)</h3>
+      <p>Intervalos a intensidad de LT2 y superior. Objetivo: elevar el VO2max y mejorar la potencia del sistema aerobico.</p>
+    </div>
+    <div class="block-card" style="background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.3);">
+      <h3 style="color: #f97316;">Capacidad Anaerobica (ANC)</h3>
+      <p>Estimulos glucoliticos moderados. Objetivo: elevar la VLamax cuando es insuficiente para el evento objetivo.</p>
+    </div>
+    <div class="block-card" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);">
+      <h3 style="color: #ef4444;">Potencia Anaerobica (ANP)</h3>
+      <p>Esfuerzos maximales cortos. Objetivo: maximizar la produccion de potencia pico y la tolerancia al lactato.</p>
+    </div>
+  </div>
+  <div class="citation">Olbrecht J. The Science of Winning. F&G Partners, 2000.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 4: Sequencing -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <h2 class="section-title">La <span>secuencia</span> importa</h2>
+  <p class="body-text" style="margin-bottom: 20px;">La investigacion sugiere que el orden de los bloques debe respetar la logica fisiologica: las capacidades construyen la base sobre la que se desarrollan las potencias.</p>
+  <svg width="936" height="400" viewBox="0 0 936 400">
+    <rect x="0" y="0" width="936" height="400" rx="12" fill="rgba(247,246,244,0.03)"/>
+    <text x="468" y="35" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Space Grotesk" font-size="18" font-weight="600">SECUENCIA TIPICA DE BLOQUES (EVENTO LARGO)</text>
+    <!-- Timeline -->
+    <line x1="80" y1="200" x2="860" y2="200" stroke="rgba(247,246,244,0.2)" stroke-width="2"/>
+    <!-- Block 1: AEC -->
+    <rect x="80" y="100" width="180" height="80" rx="12" fill="rgba(34,197,94,0.15)" stroke="rgba(34,197,94,0.4)" stroke-width="2"/>
+    <text x="170" y="135" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="20" font-weight="700">AEC</text>
+    <text x="170" y="160" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">Cap. Aerobica</text>
+    <circle cx="170" cy="200" r="8" fill="#22c55e"/>
+    <text x="170" y="240" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">3-6 semanas</text>
+    <!-- Block 2: AEP -->
+    <rect x="310" y="100" width="180" height="80" rx="12" fill="rgba(210,106,54,0.15)" stroke="rgba(210,106,54,0.4)" stroke-width="2"/>
+    <text x="400" y="135" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="20" font-weight="700">AEP</text>
+    <text x="400" y="160" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">Pot. Aerobica</text>
+    <circle cx="400" cy="200" r="8" fill="#d26a36"/>
+    <text x="400" y="240" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">3-4 semanas</text>
+    <!-- Block 3: Competition specific -->
+    <rect x="540" y="100" width="180" height="80" rx="12" fill="rgba(249,115,22,0.15)" stroke="rgba(249,115,22,0.4)" stroke-width="2"/>
+    <text x="630" y="135" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="20" font-weight="700">Especifico</text>
+    <text x="630" y="160" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">Competicion</text>
+    <circle cx="630" cy="200" r="8" fill="#f97316"/>
+    <text x="630" y="240" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">3-4 semanas</text>
+    <!-- Taper -->
+    <rect x="770" y="100" width="90" height="80" rx="12" fill="rgba(239,68,68,0.15)" stroke="rgba(239,68,68,0.4)" stroke-width="2"/>
+    <text x="815" y="135" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-size="20" font-weight="700">Taper</text>
+    <text x="815" y="160" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">Puesta a punto</text>
+    <circle cx="815" cy="200" r="8" fill="#ef4444"/>
+    <text x="815" y="240" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">1-2 sem</text>
+    <!-- Note -->
+    <rect x="100" y="280" width="736" height="80" rx="12" fill="rgba(210,106,54,0.06)"/>
+    <text x="468" y="315" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="19">La seleccion del bloque depende del perfil metabolico del atleta:</text>
+    <text x="468" y="345" text-anchor="middle" fill="#d26a36" font-family="Source Sans 3" font-size="19" font-weight="600">VO2max, VLamax, umbrales de lactato y fase de la temporada</text>
+  </svg>
+  <div class="citation">Olbrecht J. The Science of Winning, 2000 / Issurin VB. New horizons for the methodology and physiology of training periodization. Sports Med, 2010.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 5: How to choose the block -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <h2 class="section-title">¿Como elegir el <span>bloque correcto</span>?</h2>
+  <p class="body-text" style="margin-bottom: 24px;">Segun Olbrecht (2000), la seleccion del bloque se basa en identificar el factor limitante del rendimiento del atleta en su evento objetivo:</p>
+  <div class="card" style="border-left: 4px solid #22c55e;">
+    <div class="card-label" style="color: #22c55e;">Factor limitante: Base aerobica insuficiente</div>
+    <p style="font-size: 21px; color: rgba(247,246,244,0.8); margin-top: 8px;">Indicadores: LT1 bajo en relacion al VO2max, ratio LT1/LT2 bajo, VLamax relativamente alta. Prescripcion: bloque de Capacidad Aerobica.</p>
+  </div>
+  <div class="card" style="border-left: 4px solid #d26a36;">
+    <div class="card-label" style="color: #d26a36;">Factor limitante: Techo aerobico bajo</div>
+    <p style="font-size: 21px; color: rgba(247,246,244,0.8); margin-top: 8px;">Indicadores: buena base aerobica pero LT2 estancado, gap minimo entre LT1 y LT2. Prescripcion: bloque de Potencia Aerobica.</p>
+  </div>
+  <div class="card" style="border-left: 4px solid #f97316;">
+    <div class="card-label" style="color: #f97316;">Factor limitante: Capacidad glucolitica insuficiente</div>
+    <p style="font-size: 21px; color: rgba(247,246,244,0.8); margin-top: 8px;">Indicadores: VLamax muy baja para el evento (ej. distancias cortas), falta de potencia final. Prescripcion: bloque de Capacidad Anaerobica.</p>
+  </div>
+  <p class="body-text" style="margin-top: 16px; font-size: 20px; text-align: center; color: rgba(247,246,244,0.55);">El test de lactato es la herramienta clave para identificar el factor limitante.</p>
+  <div class="citation">Olbrecht J. The Science of Winning, 2000 / Faude O et al. Sports Med, 2009.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 6: Wave principle -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <h2 class="section-title">El principio de <span>onda</span> dentro del bloque</h2>
+  <p class="body-text" style="margin-bottom: 20px;">Dentro de cada bloque, la carga sigue un patron ondulatorio para gestionar la fatiga y permitir la supercompensacion. La investigacion apoya ciclos de carga-recuperacion de 3-4 semanas.</p>
+  <svg width="936" height="380" viewBox="0 0 936 380">
+    <rect x="0" y="0" width="936" height="380" rx="12" fill="rgba(247,246,244,0.03)"/>
+    <text x="468" y="35" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Space Grotesk" font-size="18" font-weight="600">PATRON DE CARGA EN UN MESOCICLO DE 4 SEMANAS</text>
+    <!-- Axes -->
+    <line x1="100" y1="320" x2="860" y2="320" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+    <line x1="100" y1="60" x2="100" y2="320" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+    <text x="60" y="190" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14" transform="rotate(-90,60,190)">Carga</text>
+    <!-- Week bars -->
+    <rect x="150" y="160" width="130" height="160" rx="8" fill="rgba(210,106,54,0.25)"/>
+    <text x="215" y="140" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="18" font-weight="600">Carga</text>
+    <text x="215" y="350" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="16">Semana 1</text>
+    <rect x="320" y="110" width="130" height="210" rx="8" fill="rgba(210,106,54,0.35)"/>
+    <text x="385" y="90" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="18" font-weight="600">Progresion</text>
+    <text x="385" y="350" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="16">Semana 2</text>
+    <rect x="490" y="80" width="130" height="240" rx="8" fill="rgba(249,115,22,0.4)"/>
+    <text x="555" y="65" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="18" font-weight="600">Pico</text>
+    <text x="555" y="350" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="16">Semana 3</text>
+    <rect x="660" y="220" width="130" height="100" rx="8" fill="rgba(34,197,94,0.3)"/>
+    <text x="725" y="205" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="18" font-weight="600">Recuperacion</text>
+    <text x="725" y="350" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="16">Semana 4</text>
+  </svg>
+  <p class="body-text" style="margin-top: 12px; font-size: 20px; text-align: center; color: rgba(247,246,244,0.55);">La semana de recuperacion es esencial para consolidar las adaptaciones del bloque.</p>
+  <div class="citation">Issurin VB. Sports Med, 2010 / Olbrecht J. The Science of Winning, 2000.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div style="flex: 1; display: flex; align-items: center;">
+    <div class="cta-box" style="width: 100%;">
+      <h2>Planificacion basada en ciencia.<br>Automatizada.</h2>
+      <p>PeakAerobic selecciona el bloque de entrenamiento adecuado<br>a partir de tu perfil metabolico y fase de temporada.</p>
+      <div class="cta-link">peakaerobic.com</div>
+    </div>
+  </div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+</body>
+</html>

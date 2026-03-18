@@ -1,0 +1,219 @@
+<!-- VOICEOVER SCRIPT (for AI voice generation):
+Scene 1 (0-4s): "Llevas cuarenta y cinco minutos en Excel. Un polinomio. Una gráfica. Y todavía no sabes tus zonas."
+Scene 2 (4-10s): "Así se ve el análisis de lactato en Excel. Datos dispersos, un ajuste polinómico manual, cálculos de zona a mano. Y ni siquiera sabes si es correcto."
+Scene 3 (10-16s): "Los problemas: un solo método de detección. Sin puntuación de confianza. Sin detección de outliers. Sin prescripción de entrenamiento."
+Scene 4 (16-22s): "PeakAerobic: sesenta segundos. Subes los datos. Tres métodos científicos se ejecutan en paralelo. Dashboard limpio con zonas, confianza y prescripción."
+Scene 5 (22-27s): "Tres métodos cruzados. Score de confianza. Detección automática de outliers. Y prescripción de entrenamiento basada en Olbrecht."
+Scene 6 (27-30s): "Deja Excel. Usa ciencia. PeakAerobic."
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Excel para análisis de lactato es una pérdida de tiempo</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #fff; position: relative; }
+.scene { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.15; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.2; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f97316; }
+.overlay-text { font-size: 52px; font-weight: 600; text-align: center; opacity: 0; transition: opacity 0.5s ease; }
+.overlay-text.show { opacity: 1; }
+.progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; z-index: 100; width: 0%; }
+.watermark { position: absolute; top: 60px; right: 60px; font-size: 32px; color: #d26a3660; font-family: 'Space Grotesk', sans-serif; }
+.sub { font-size: 44px; color: #ffffffaa; margin-top: 30px; text-align: center; line-height: 1.4; }
+.ref { font-size: 30px; color: #ffffff55; margin-top: 20px; font-style: italic; }
+svg { max-width: 900px; }
+.badge { background: #d26a36; color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 42px; font-weight: 700; padding: 20px 50px; border-radius: 20px; margin-top: 40px; }
+.cta-handle { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-top: 30px; }
+.problem-list { margin-top: 40px; width: 100%; max-width: 900px; }
+.problem-item { font-size: 48px; font-weight: 600; color: #ffffffcc; padding: 24px 0; border-bottom: 2px solid #ffffff15; display: flex; align-items: center; opacity: 0; transition: opacity 0.4s ease; }
+.problem-item.show { opacity: 1; }
+.problem-item .num { color: #ef4444; font-family: 'Space Grotesk', sans-serif; font-weight: 700; margin-right: 24px; font-size: 52px; min-width: 60px; }
+.excel-mock { background: #1a3a22; border: 3px solid #22c55e33; border-radius: 16px; padding: 30px; width: 100%; max-width: 900px; margin-top: 40px; }
+.excel-row { display: flex; gap: 8px; margin: 8px 0; }
+.excel-cell { background: #0e1e24; border: 1px solid #ffffff22; padding: 12px 16px; font-size: 28px; color: #ffffff88; font-family: monospace; flex: 1; text-align: center; border-radius: 4px; }
+.excel-cell.header { background: #22c55e15; color: #22c55e88; font-weight: 700; }
+.excel-cell.formula { color: #ef444488; font-size: 22px; }
+.timer-circle { width: 200px; height: 200px; border-radius: 50%; border: 8px solid #d26a36; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-top: 40px; }
+.feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 40px; width: 100%; max-width: 900px; }
+.feature-box { background: #d26a3615; border: 2px solid #d26a3644; border-radius: 16px; padding: 28px; text-align: center; }
+.feature-box h3 { font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700; color: #d26a36; margin-bottom: 8px; }
+.feature-box p { font-size: 30px; color: #ffffffaa; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene 1: Hook -->
+<div class="scene active" id="scene1">
+  <h1>Llevas <span class="red">45 minutos</span> en Excel.</h1>
+  <p class="sub" style="margin-top:50px;">Un polinomio. Una gráfica.<br>Y todavía no sabes tus zonas.</p>
+</div>
+
+<!-- Scene 2: Excel mockup -->
+<div class="scene" id="scene2">
+  <h2 style="font-size:52px;">Análisis de lactato en <span class="red">Excel</span></h2>
+  <div class="excel-mock">
+    <div class="excel-row">
+      <div class="excel-cell header">Paso</div>
+      <div class="excel-cell header">Ritmo</div>
+      <div class="excel-cell header">Lactato</div>
+      <div class="excel-cell header">FC</div>
+    </div>
+    <div class="excel-row">
+      <div class="excel-cell">1</div>
+      <div class="excel-cell">5:30</div>
+      <div class="excel-cell">1.2</div>
+      <div class="excel-cell">142</div>
+    </div>
+    <div class="excel-row">
+      <div class="excel-cell">2</div>
+      <div class="excel-cell">5:10</div>
+      <div class="excel-cell">1.5</div>
+      <div class="excel-cell">151</div>
+    </div>
+    <div class="excel-row">
+      <div class="excel-cell">3</div>
+      <div class="excel-cell">4:50</div>
+      <div class="excel-cell">2.1</div>
+      <div class="excel-cell">162</div>
+    </div>
+    <div class="excel-row">
+      <div class="excel-cell">4</div>
+      <div class="excel-cell">4:30</div>
+      <div class="excel-cell">3.8</div>
+      <div class="excel-cell">174</div>
+    </div>
+    <div class="excel-row">
+      <div class="excel-cell formula">=LINEST(C2:C5,A2:A5^{1,2,3})</div>
+      <div class="excel-cell formula" style="color:#ef444466;">???</div>
+      <div class="excel-cell formula" style="color:#ef444466;">ZONAS?</div>
+      <div class="excel-cell formula" style="color:#ef444466;">...</div>
+    </div>
+  </div>
+  <p class="sub" style="font-size:36px;margin-top:20px;color:#ef444488;">Manual. Lento. Sin validación.</p>
+</div>
+
+<!-- Scene 3: Problems -->
+<div class="scene" id="scene3">
+  <h2>Los <span class="red">problemas</span>:</h2>
+  <div class="problem-list">
+    <div class="problem-item" id="p1"><span class="num">1</span>Un solo método de detección</div>
+    <div class="problem-item" id="p2"><span class="num">2</span>Sin puntuación de confianza</div>
+    <div class="problem-item" id="p3"><span class="num">3</span>Sin detección de outliers</div>
+    <div class="problem-item" id="p4"><span class="num">4</span>Sin prescripción de entreno</div>
+  </div>
+</div>
+
+<!-- Scene 4: PeakAerobic timer -->
+<div class="scene" id="scene4">
+  <h2>PeakAerobic: <span class="accent">60 segundos</span></h2>
+  <div class="timer-circle" id="timerCircle">60s</div>
+  <svg viewBox="0 0 800 300" style="margin-top:40px;">
+    <!-- Clean dashboard mockup -->
+    <rect x="40" y="20" width="720" height="260" rx="16" fill="#0e1e24" stroke="#d26a3644" stroke-width="3"/>
+    <!-- Clean curve -->
+    <polyline points="100,220 200,215 320,200 440,170 540,120 660,50" fill="none" stroke="#d26a36" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="100" cy="220" r="6" fill="#d26a36"/>
+    <circle cx="200" cy="215" r="6" fill="#d26a36"/>
+    <circle cx="320" cy="200" r="6" fill="#d26a36"/>
+    <circle cx="440" cy="170" r="6" fill="#d26a36"/>
+    <circle cx="540" cy="120" r="6" fill="#d26a36"/>
+    <circle cx="660" cy="50" r="6" fill="#d26a36"/>
+    <!-- LT1 line -->
+    <line x1="280" y1="30" x2="280" y2="250" stroke="#22c55e" stroke-width="2" stroke-dasharray="6,4"/>
+    <text x="280" y="268" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="20" font-weight="700">LT1</text>
+    <!-- LT2 line -->
+    <line x1="500" y1="30" x2="500" y2="250" stroke="#ef4444" stroke-width="2" stroke-dasharray="6,4"/>
+    <text x="500" y="268" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-size="20" font-weight="700">LT2</text>
+    <!-- Confidence badge -->
+    <rect x="580" y="220" width="150" height="40" rx="8" fill="#22c55e33"/>
+    <text x="655" y="247" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="22" font-weight="700">Conf: 0.91</text>
+  </svg>
+</div>
+
+<!-- Scene 5: Features -->
+<div class="scene" id="scene5">
+  <h2 style="font-size:52px;"><span class="accent">Ciencia</span>, no hojas de cálculo</h2>
+  <div class="feature-grid">
+    <div class="feature-box">
+      <h3>3 Métodos</h3>
+      <p>Baseline Rise<br>Sustained Increase<br>ModDmax</p>
+    </div>
+    <div class="feature-box">
+      <h3>Confianza</h3>
+      <p>Score cruzado<br>entre métodos</p>
+    </div>
+    <div class="feature-box">
+      <h3>Outliers</h3>
+      <p>Detección LOO<br>automática</p>
+    </div>
+    <div class="feature-box">
+      <h3>Prescripción</h3>
+      <p>Olbrecht<br>automático</p>
+    </div>
+  </div>
+  <p class="ref" style="margin-top:30px;">Faude 2009, Bishop 1998, Billat 2003</p>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <h1>Deja <span class="red">Excel</span>.<br>Usa <span class="accent">ciencia</span>.</h1>
+  <div class="cta-handle">@peakaerobic</div>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 4000 },
+  { id: 'scene2', start: 4000, end: 10000 },
+  { id: 'scene3', start: 10000, end: 16000 },
+  { id: 'scene4', start: 16000, end: 22000 },
+  { id: 'scene5', start: 22000, end: 27000 },
+  { id: 'scene6', start: 27000, end: 30000 }
+];
+const events = [
+  { time: 11000, action: () => document.getElementById('p1').classList.add('show') },
+  { time: 12200, action: () => document.getElementById('p2').classList.add('show') },
+  { time: 13400, action: () => document.getElementById('p3').classList.add('show') },
+  { time: 14600, action: () => document.getElementById('p4').classList.add('show') }
+];
+const eventsTriggered = new Set();
+const startTime = performance.now();
+
+function tick() {
+  const elapsed = performance.now() - startTime;
+  const progress = Math.min(elapsed / DURATION, 1);
+  document.getElementById('progressBar').style.width = (progress * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+
+  events.forEach((e, i) => {
+    if (elapsed >= e.time && !eventsTriggered.has(i)) {
+      eventsTriggered.add(i);
+      e.action();
+    }
+  });
+
+  if (progress < 1) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

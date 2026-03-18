@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 08 - Predice tu maraton desde tu lactato</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px; height: 1920px;
+    background: #0e1e24; overflow: hidden;
+    font-family: 'Source Sans 3', sans-serif;
+    color: #f7f6f4; position: relative;
+  }
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 58px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; }
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; z-index: 50; }
+
+  .question-mark {
+    font-family: 'Space Grotesk', sans-serif; font-size: 120px; font-weight: 700;
+    color: #f7f6f430; position: absolute;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .blinking { animation: blink 1s ease infinite; }
+
+  .input-card {
+    width: 860px; padding: 40px; border-radius: 24px;
+    display: flex; align-items: center; gap: 30px;
+    margin: 20px 0;
+    opacity: 0; transform: translateX(-40px); transition: all 0.6s ease;
+  }
+  .input-card.show { opacity: 1; transform: translateX(0); }
+  .input-card.vo2 { background: #d26a3615; border: 3px solid #d26a3640; }
+  .input-card.vla { background: #22c55e15; border: 3px solid #22c55e40; }
+
+  .input-icon {
+    width: 100px; height: 100px; border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px; font-weight: 700; flex-shrink: 0;
+  }
+  .input-icon.vo2 { background: #d26a3630; color: #d26a36; }
+  .input-icon.vla { background: #22c55e30; color: #22c55e; }
+
+  .input-info { flex: 1; }
+  .input-label { font-size: 30px; color: #f7f6f480; }
+  .input-name { font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; }
+  .input-value { font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; flex-shrink: 0; }
+
+  .level-bar {
+    width: 600px; height: 20px; background: #162a33; border-radius: 10px;
+    margin-top: 15px; overflow: hidden;
+  }
+  .level-fill { height: 100%; border-radius: 10px; width: 0%; transition: width 1.5s ease; }
+  .level-fill.vo2 { background: linear-gradient(90deg, #d26a3660, #d26a36); }
+  .level-fill.vla { background: linear-gradient(90deg, #22c55e60, #22c55e); }
+
+  /* Calculation gears */
+  .calc-container { position: relative; width: 500px; height: 500px; margin: 30px auto; }
+
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes spinReverse { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+
+  .gear {
+    position: absolute; border-radius: 50%; border: 6px dashed;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  .gear.show { opacity: 1; }
+  .gear1 { width: 220px; height: 220px; top: 40px; left: 40px; border-color: #d26a3660; color: #d26a36; font-size: 22px; animation: spin 4s linear infinite; }
+  .gear2 { width: 180px; height: 180px; top: 200px; right: 40px; border-color: #22c55e60; color: #22c55e; font-size: 22px; animation: spinReverse 3s linear infinite; }
+  .gear3 { width: 240px; height: 240px; bottom: 20px; left: 100px; border-color: #f9731660; color: #f97316; font-size: 20px; animation: spin 5s linear infinite; }
+
+  .gear-center {
+    animation: none; font-size: 20px; text-align: center; line-height: 1.3;
+  }
+  .gear1 .gear-center { animation: spinReverse 4s linear infinite; }
+  .gear2 .gear-center { animation: spin 3s linear infinite; }
+  .gear3 .gear-center { animation: spinReverse 5s linear infinite; }
+
+  .formula-text {
+    font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 600;
+    color: #f7f6f480; text-align: center; margin-top: 20px;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  .formula-text.show { opacity: 1; }
+
+  /* Result */
+  .result-time {
+    font-family: 'Space Grotesk', sans-serif; font-size: 180px; font-weight: 700;
+    color: #22c55e; opacity: 0; transform: scale(0.3);
+    transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .result-time.show { opacity: 1; transform: scale(1); }
+
+  .result-label {
+    font-size: 44px; color: #f7f6f480; margin-bottom: 20px;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  .result-label.show { opacity: 1; }
+
+  .result-badge {
+    display: inline-block; padding: 16px 40px; border-radius: 50px;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 40px;
+    background: #22c55e30; color: #22c55e; margin-top: 30px;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  .result-badge.show { opacity: 1; }
+
+  .precision-text {
+    font-size: 34px; color: #f7f6f460; text-align: center; margin-top: 30px;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  .precision-text.show { opacity: 1; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 44px; font-weight: 600; text-align: center; opacity: 0; transition: opacity 0.6s; }
+  .cta-text.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <div style="font-size: 48px; color: #f7f6f460; margin-bottom: 20px; opacity:0; transition: opacity 0.4s;" id="hookPre">Puedes correr</div>
+  <h1 id="hookTime" style="opacity:0; transition: all 0.6s cubic-bezier(0.175,0.885,0.32,1.275); transform: scale(0.5);">
+    SUB-3:00<span class="blinking" style="color: #d26a36;">?</span>
+  </h1>
+</div>
+
+<!-- Scene 2: Inputs -->
+<div class="scene" id="scene2">
+  <h2 style="margin-bottom: 30px;">Tus datos fisiologicos</h2>
+  <div class="input-card vo2" id="ic1">
+    <div class="input-icon vo2">O2</div>
+    <div class="input-info">
+      <div class="input-label">Estimado desde FC + ritmo (Swain + ACSM)</div>
+      <div class="input-name" style="color: #d26a36;">VO2max</div>
+      <div class="level-bar"><div class="level-fill vo2" id="vo2bar"></div></div>
+    </div>
+    <div class="input-value" style="color: #d26a36;" id="vo2val">0</div>
+  </div>
+  <div class="input-card vla" id="ic2">
+    <div class="input-icon vla">La</div>
+    <div class="input-info">
+      <div class="input-label">Estimada desde curva de lactato (Mader 2003)</div>
+      <div class="input-name" style="color: #22c55e;">VLamax</div>
+      <div class="level-bar"><div class="level-fill vla" id="vlbar"></div></div>
+    </div>
+    <div class="input-value" style="color: #22c55e;" id="vlval">0</div>
+  </div>
+</div>
+
+<!-- Scene 3: Calculation -->
+<div class="scene" id="scene3">
+  <h2 style="margin-bottom: 10px;">Calculando...</h2>
+  <div class="calc-container">
+    <div class="gear gear1" id="g1"><div class="gear-center">VO2max<br>62</div></div>
+    <div class="gear gear2" id="g2"><div class="gear-center">VLamax<br>0.38</div></div>
+    <div class="gear gear3" id="g3"><div class="gear-center">di Prampero<br>1986</div></div>
+  </div>
+  <div class="formula-text" id="ftext">v = f(VO2max, VLamax, economia) &rarr; tiempo</div>
+</div>
+
+<!-- Scene 4: Result -->
+<div class="scene" id="scene4">
+  <div class="result-label" id="rlabel">Tu prediccion de maraton</div>
+  <div class="result-time" id="rtime">2:54</div>
+  <div class="result-badge" id="rbadge">SUB-3:00 CONFIRMADO</div>
+  <div class="precision-text" id="rprec">Precision: +/- 3% con datos de lactato reales</div>
+</div>
+
+<!-- Scene 5: CTA -->
+<div class="scene" id="scene5">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Predicciones desde<br>tu fisiologia</h2>
+  <div class="cta-text" id="cta5" style="font-size: 36px; color: #d26a36;">@peakaerobic</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 30000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 3500 },
+  { id: 'scene2', start: 3500, end: 12000 },
+  { id: 'scene3', start: 12000, end: 18000 },
+  { id: 'scene4', start: 18000, end: 26000 },
+  { id: 'scene5', start: 26000, end: 30000 },
+];
+
+let vo2AnimStart = 0;
+let vlAnimStart = 0;
+let vo2Anim = false;
+let vlAnim = false;
+
+const events = [
+  // Scene 1
+  { time: 200, action: () => document.getElementById('hookPre').style.opacity = '1' },
+  { time: 600, action: () => {
+    const h = document.getElementById('hookTime');
+    h.style.opacity = '1'; h.style.transform = 'scale(1)';
+  }},
+
+  // Scene 2 - VO2max
+  { time: 4000, action: () => { document.getElementById('ic1').classList.add('show'); vo2AnimStart = Date.now(); vo2Anim = true; }},
+  // VLamax
+  { time: 7000, action: () => { document.getElementById('ic2').classList.add('show'); vlAnimStart = Date.now(); vlAnim = true; }},
+
+  // Scene 3 - Gears
+  { time: 12500, action: () => document.getElementById('g1').classList.add('show') },
+  { time: 13200, action: () => document.getElementById('g2').classList.add('show') },
+  { time: 13900, action: () => document.getElementById('g3').classList.add('show') },
+  { time: 15000, action: () => document.getElementById('ftext').classList.add('show') },
+
+  // Scene 4 - Result
+  { time: 18500, action: () => document.getElementById('rlabel').classList.add('show') },
+  { time: 19500, action: () => document.getElementById('rtime').classList.add('show') },
+  { time: 21000, action: () => document.getElementById('rbadge').classList.add('show') },
+  { time: 23000, action: () => document.getElementById('rprec').classList.add('show') },
+
+  // Scene 5
+  { time: 26500, action: () => document.getElementById('cta5').classList.add('show') },
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  document.getElementById('progressBar').style.width = Math.min(elapsed / DURATION * 100, 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  // VO2max counter animation
+  if (vo2Anim) {
+    const p = Math.min((Date.now() - vo2AnimStart) / 2000, 1);
+    const val = Math.round(p * 62);
+    document.getElementById('vo2val').textContent = val;
+    document.getElementById('vo2bar').style.width = (val / 80 * 100) + '%';
+    if (p >= 1) vo2Anim = false;
+  }
+
+  // VLamax counter animation
+  if (vlAnim) {
+    const p = Math.min((Date.now() - vlAnimStart) / 2000, 1);
+    const val = (p * 0.38).toFixed(2);
+    document.getElementById('vlval').textContent = val;
+    document.getElementById('vlbar').style.width = (p * 0.38 / 0.8 * 100) + '%';
+    if (p >= 1) vlAnim = false;
+  }
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

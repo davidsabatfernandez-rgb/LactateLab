@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 04 - El metodo noruego NO es lo que crees</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+
+  .overlay-text { font-size: 52px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  .scene-hook .subtitle { font-size: 58px; color: #d26a36; font-weight: 700; font-family: 'Space Grotesk', sans-serif; margin-top: 30px; opacity: 0; transform: translateY(40px); }
+  .scene-hook .subtitle.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-red { background: #ef444440; color: #ef4444; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+  .badge-orange { background: #f9731640; color: #f97316; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  /* Pyramid */
+  .pyramid-container {
+    width: 800px;
+    margin-top: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pyramid-level {
+    height: 90px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 34px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s ease;
+  }
+
+  .pyramid-level.show { opacity: 1; transform: translateY(0); }
+
+  .pyr-top { width: 300px; background: #ef444430; border: 2px solid #ef4444; color: #ef4444; }
+  .pyr-mid { width: 500px; background: #f9731620; border: 2px solid #f9731650; color: #f97316; }
+  .pyr-bot { width: 750px; background: #22c55e20; border: 2px solid #22c55e50; color: #22c55e; }
+
+  /* Instagram mock */
+  .ig-post {
+    width: 700px;
+    background: #f7f6f408;
+    border: 2px solid #f7f6f420;
+    border-radius: 20px;
+    padding: 40px;
+    margin-top: 30px;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.5s ease;
+  }
+
+  .ig-post.show { opacity: 1; transform: scale(1); }
+
+  .ig-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+
+  .ig-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #f7f6f420;
+  }
+
+  .ig-name { font-weight: 700; font-size: 28px; color: #f7f6f480; }
+  .ig-text { font-size: 36px; line-height: 1.5; }
+
+  /* Threshold diagram */
+  .threshold-diagram {
+    width: 800px;
+    height: 300px;
+    margin-top: 30px;
+    position: relative;
+  }
+
+  /* Block cards */
+  .block-row {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .block-card {
+    padding: 20px 30px;
+    border-radius: 16px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 32px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.4s ease;
+  }
+
+  .block-card.show { opacity: 1; transform: translateY(0); }
+
+  .block-aec { background: #22c55e20; border: 2px solid #22c55e50; color: #22c55e; }
+  .block-thr { background: #f9731620; border: 2px solid #f9731650; color: #f97316; }
+  .block-aep { background: #ef444420; border: 2px solid #ef444450; color: #ef4444; }
+
+  .feature-item {
+    display: flex; align-items: center; gap: 20px; font-size: 44px; font-weight: 600; margin: 15px 0;
+    opacity: 0; transform: translateX(-30px); transition: all 0.5s ease;
+  }
+  .feature-item.show { opacity: 1; transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">El metodo noruego<br><span class="red">NO</span> es hacer umbrales<br>todos los dias</h1>
+</div>
+
+<!-- Scene 2: What you see on social -->
+<div class="scene" id="scene2">
+  <h2>Lo que ves en redes</h2>
+  <div class="ig-post" id="igPost">
+    <div class="ig-header">
+      <div class="ig-avatar"></div>
+      <div class="ig-name">@running_coach_pro</div>
+    </div>
+    <div class="ig-text">
+      "Metodo noruego:<br>
+      <span style="color:#f97316">4x8' a umbral, todos los dias</span><br>
+      Copia esto y mejora"
+    </div>
+  </div>
+  <div class="badge badge-red" id="wrongBadge" style="opacity:0; transition: opacity 0.5s; font-size:42px;">MAL</div>
+</div>
+
+<!-- Scene 3: Seiler Pyramid -->
+<div class="scene" id="scene3">
+  <h2>Lo que dice la ciencia</h2>
+  <div style="font-size:36px; color:#f7f6f470; margin-top:10px; opacity:0; transition: opacity 0.5s;" id="seilerRef">Seiler 2010</div>
+  <div class="pyramid-container">
+    <div class="pyramid-level pyr-top" id="pyr1">20% sobre LT2</div>
+    <div class="pyramid-level pyr-mid" id="pyr2" style="text-decoration: line-through; color: #f9731660;">Zona media: EVITAR</div>
+    <div class="pyramid-level pyr-bot" id="pyr3">80% bajo LT1</div>
+  </div>
+  <div class="overlay-text" id="pyramidNote">80% baja intensidad. 20% alta. Zona media minimizada.</div>
+</div>
+
+<!-- Scene 4: The key -->
+<div class="scene" id="scene4">
+  <h2>La clave</h2>
+  <div style="margin-top:40px;">
+    <svg width="800" height="350" viewBox="0 0 800 350">
+      <rect x="0" y="0" width="800" height="350" rx="20" fill="#f7f6f408" stroke="#f7f6f420" stroke-width="2"/>
+      <!-- Intensity bar -->
+      <rect x="60" y="80" width="680" height="60" rx="10" fill="#f7f6f410"/>
+      <!-- Below LT1 -->
+      <rect id="zoneLow" x="60" y="80" width="0" height="60" rx="10" fill="#22c55e40" style="transition: width 1s ease;"/>
+      <!-- Gray zone -->
+      <rect id="zoneGray" x="430" y="80" width="0" height="60" rx="10" fill="#f9731630" style="transition: width 1s ease;"/>
+      <!-- Above LT2 -->
+      <rect id="zoneHigh" x="600" y="80" width="0" height="60" rx="10" fill="#ef444440" style="transition: width 1s ease;"/>
+
+      <!-- LT1 marker -->
+      <line id="lt1Mark" x1="430" y1="70" x2="430" y2="150" stroke="#22c55e" stroke-width="3" opacity="0" style="transition: opacity 0.5s;"/>
+      <text id="lt1Text" x="430" y="55" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="28" opacity="0" style="transition: opacity 0.5s;">LT1</text>
+
+      <!-- LT2 marker -->
+      <line id="lt2Mark" x1="600" y1="70" x2="600" y2="150" stroke="#ef4444" stroke-width="3" opacity="0" style="transition: opacity 0.5s;"/>
+      <text id="lt2Text" x="600" y="55" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="28" opacity="0" style="transition: opacity 0.5s;">LT2</text>
+
+      <!-- Question -->
+      <text id="keyQ" x="400" y="230" text-anchor="middle" fill="#f7f6f4" font-family="Space Grotesk" font-weight="700" font-size="36" opacity="0" style="transition: opacity 0.5s;">Donde estan TUS umbrales?</text>
+      <text id="keyA" x="400" y="280" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="32" opacity="0" style="transition: opacity 0.5s;">No los genericos.</text>
+    </svg>
+  </div>
+</div>
+
+<!-- Scene 5: PeakAerobic + Olbrecht blocks -->
+<div class="scene" id="scene5">
+  <h2 style="margin-bottom:20px;">PeakAerobic + Olbrecht</h2>
+  <div class="feature-item" id="feat1"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Detecta tus umbrales reales</div>
+  <div class="feature-item" id="feat2"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Planifica bloques con proposito</div>
+  <div class="block-row">
+    <div class="block-card block-aec" id="b1">Aerobico</div>
+    <div class="block-card block-thr" id="b2">Umbral</div>
+    <div class="block-card block-aep" id="b3">VO2max</div>
+  </div>
+  <div class="overlay-text" id="blockNote">Cada bloque con su proposito.</div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">No copies.<br><span class="accent">Personaliza.</span></h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Planifica como se debe<br>Link en bio
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 45000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 2000 },
+  { id: 'scene2', start: 2000, end: 8000 },
+  { id: 'scene3', start: 8000, end: 15000 },
+  { id: 'scene4', start: 15000, end: 22000 },
+  { id: 'scene5', start: 22000, end: 38000 },
+  { id: 'scene6', start: 38000, end: 45000 },
+];
+
+const events = [
+  { time: 300, action: () => { document.getElementById('hook1').classList.add('show'); }},
+
+  { time: 2500, action: () => { document.getElementById('igPost').classList.add('show'); }},
+  { time: 5000, action: () => { document.getElementById('wrongBadge').style.opacity = '1'; }},
+
+  { time: 8500, action: () => { document.getElementById('seilerRef').style.opacity = '1'; }},
+  { time: 9000, action: () => { document.getElementById('pyr3').classList.add('show'); }},
+  { time: 10000, action: () => { document.getElementById('pyr2').classList.add('show'); }},
+  { time: 11000, action: () => { document.getElementById('pyr1').classList.add('show'); }},
+  { time: 12500, action: () => { document.getElementById('pyramidNote').classList.add('show'); }},
+
+  { time: 15500, action: () => {
+    document.getElementById('lt1Mark').style.opacity = '1';
+    document.getElementById('lt1Text').style.opacity = '1';
+    document.getElementById('lt2Mark').style.opacity = '1';
+    document.getElementById('lt2Text').style.opacity = '1';
+  }},
+  { time: 16500, action: () => {
+    document.getElementById('zoneLow').style.width = '370px';
+    document.getElementById('zoneGray').style.width = '170px';
+    document.getElementById('zoneHigh').style.width = '140px';
+  }},
+  { time: 18000, action: () => { document.getElementById('keyQ').style.opacity = '1'; }},
+  { time: 19500, action: () => { document.getElementById('keyA').style.opacity = '1'; }},
+
+  { time: 22500, action: () => { document.getElementById('feat1').classList.add('show'); }},
+  { time: 24000, action: () => { document.getElementById('feat2').classList.add('show'); }},
+  { time: 26000, action: () => { document.getElementById('b1').classList.add('show'); }},
+  { time: 27000, action: () => { document.getElementById('b2').classList.add('show'); }},
+  { time: 28000, action: () => { document.getElementById('b3').classList.add('show'); }},
+  { time: 30000, action: () => { document.getElementById('blockNote').classList.add('show'); }},
+
+  { time: 38500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 39500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

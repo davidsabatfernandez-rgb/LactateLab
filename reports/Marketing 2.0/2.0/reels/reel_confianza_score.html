@@ -1,0 +1,181 @@
+<!--
+VOICEOVER SCRIPT (30s):
+[0-5s] "Tu coach dice que tu LT2 es 3.5 milimoles. Pero, ¿cuánto puedes confiar en ese número?"
+[5-10s] "Depende de cuántos métodos coinciden. Baseline Rise da 3.4. Sustained Increase da 3.6. ModDmax da 3.5."
+[10-16s] "Cuando los métodos convergen, la confianza es alta. Score: 0.88."
+[16-22s] "Cuando divergen, necesitas más datos. Score: 0.45. No entrenes sobre arena movediza."
+[22-27s] "PeakAerobic te dice CUÁNTO puedes confiar. No solo el número, sino la fiabilidad del número."
+[27-30s] "Enlace en bio. Entrena con certeza."
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>¿Cuánto puedes confiar en tus umbrales?</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;background:#0e1e24;overflow:hidden;font-family:'Source Sans 3',sans-serif;color:#fff;position:relative}
+.scene{position:absolute;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.5s ease;padding:60px}
+.scene.active{opacity:1}
+h1{font-family:'Space Grotesk',sans-serif;font-size:82px;font-weight:700;text-align:center;line-height:1.1}
+h2{font-family:'Space Grotesk',sans-serif;font-size:64px;font-weight:700;text-align:center;line-height:1.15}
+p{font-family:'Source Sans 3',sans-serif;font-size:44px;text-align:center;line-height:1.4;color:#ffffffcc}
+.accent{color:#d26a36}
+.green{color:#22c55e}
+.red{color:#ef4444}
+.yellow{color:#eab308}
+.progress-bar{position:absolute;bottom:0;left:0;height:8px;background:#d26a36;z-index:100}
+.watermark{position:absolute;top:60px;right:60px;font-family:'Space Grotesk',sans-serif;font-size:32px;color:#d26a3660;z-index:100}
+.method-box{background:#ffffff08;border:2px solid #ffffff20;border-radius:20px;padding:36px 50px;margin:16px 0;width:100%;display:flex;justify-content:space-between;align-items:center}
+.method-name{font-size:40px;font-weight:600}
+.method-val{font-family:'Space Grotesk',sans-serif;font-size:56px;font-weight:700}
+.score-ring{position:relative;width:320px;height:320px;margin:40px auto}
+.score-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Space Grotesk',sans-serif;font-size:100px;font-weight:700}
+.score-label{font-size:36px;color:#ffffff80;text-align:center;margin-top:10px}
+.ref{font-size:30px;color:#ffffff50;margin-top:20px;font-style:italic}
+.cta-btn{display:inline-block;padding:28px 80px;background:#d26a36;border-radius:60px;font-family:'Space Grotesk',sans-serif;font-size:48px;font-weight:700;color:#fff;margin-top:40px}
+svg text{font-family:'Space Grotesk',sans-serif}
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progress"></div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="s1">
+  <h2 style="color:#ffffff80;margin-bottom:30px">Tu coach dice:</h2>
+  <div style="background:#ffffff08;border:2px solid #d26a36;border-radius:24px;padding:50px 80px;text-align:center">
+    <span style="font-size:38px;color:#ffffff80">Tu LT2 es</span>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:120px;font-weight:700;color:#d26a36">3.5</div>
+    <span style="font-size:38px;color:#ffffff80">mmol/L</span>
+  </div>
+  <div style="height:60px"></div>
+  <h1>¿Cuánto puedes<br><span class="accent">confiar</span>?</h1>
+</div>
+
+<!-- Scene 2: 3 methods -->
+<div class="scene" id="s2">
+  <h2 style="margin-bottom:40px">Depende de cuántos<br>métodos <span class="accent">coinciden</span></h2>
+  <div class="method-box">
+    <span class="method-name">Baseline Rise</span>
+    <span class="method-val" style="color:#22c55e">3.4</span>
+  </div>
+  <div class="method-box">
+    <span class="method-name">Sustained Increase</span>
+    <span class="method-val" style="color:#22c55e">3.6</span>
+  </div>
+  <div class="method-box">
+    <span class="method-name">ModDmax</span>
+    <span class="method-val" style="color:#22c55e">3.5</span>
+  </div>
+  <p style="margin-top:30px;font-size:38px;color:#ffffff60">Bishop 1998, Faude 2009</p>
+</div>
+
+<!-- Scene 3: High agreement -->
+<div class="scene" id="s3">
+  <h2>Agreement <span class="green">alto</span></h2>
+  <p style="margin:20px 0">Los métodos convergen</p>
+  <svg width="500" height="500" viewBox="0 0 500 500" style="margin:20px 0">
+    <!-- Convergence lines -->
+    <line x1="100" y1="100" x2="250" y2="240" stroke="#22c55e" stroke-width="3" stroke-dasharray="8,6"/>
+    <line x1="400" y1="100" x2="250" y2="240" stroke="#22c55e" stroke-width="3" stroke-dasharray="8,6"/>
+    <line x1="250" y1="420" x2="250" y2="260" stroke="#22c55e" stroke-width="3" stroke-dasharray="8,6"/>
+    <circle cx="100" cy="100" r="8" fill="#22c55e"/>
+    <circle cx="400" cy="100" r="8" fill="#22c55e"/>
+    <circle cx="250" cy="420" r="8" fill="#22c55e"/>
+    <text x="60" y="80" fill="#22c55e" font-size="28">BR 3.4</text>
+    <text x="350" y="80" fill="#22c55e" font-size="28">SI 3.6</text>
+    <text x="200" y="455" fill="#22c55e" font-size="28">MD 3.5</text>
+    <!-- Center convergence -->
+    <circle cx="250" cy="250" r="60" fill="#22c55e20" stroke="#22c55e" stroke-width="4"/>
+    <text x="250" y="260" fill="#22c55e" font-size="36" text-anchor="middle" font-weight="700">3.5</text>
+  </svg>
+  <div class="score-ring">
+    <svg width="320" height="320" viewBox="0 0 320 320">
+      <circle cx="160" cy="160" r="140" fill="none" stroke="#ffffff15" stroke-width="16"/>
+      <circle cx="160" cy="160" r="140" fill="none" stroke="#22c55e" stroke-width="16"
+        stroke-dasharray="774" stroke-dashoffset="93" stroke-linecap="round"
+        transform="rotate(-90 160 160)"/>
+    </svg>
+    <div class="score-num green">0.88</div>
+  </div>
+  <div class="score-label">Confianza alta</div>
+</div>
+
+<!-- Scene 4: Low agreement -->
+<div class="scene" id="s4">
+  <h2>Agreement <span class="red">bajo</span></h2>
+  <p style="margin:20px 0">Los métodos divergen</p>
+  <svg width="500" height="500" viewBox="0 0 500 500" style="margin:20px 0">
+    <!-- Divergence -->
+    <circle cx="80" cy="150" r="50" fill="#ef444415" stroke="#ef4444" stroke-width="3"/>
+    <text x="80" y="158" fill="#ef4444" font-size="28" text-anchor="middle">2.8</text>
+    <text x="80" y="100" fill="#ef4444" font-size="24" text-anchor="middle">BR</text>
+    <circle cx="420" cy="120" r="50" fill="#ef444415" stroke="#ef4444" stroke-width="3"/>
+    <text x="420" y="128" fill="#ef4444" font-size="28" text-anchor="middle">4.2</text>
+    <text x="420" y="70" fill="#ef4444" font-size="24" text-anchor="middle">SI</text>
+    <circle cx="250" cy="400" r="50" fill="#ef444415" stroke="#ef4444" stroke-width="3"/>
+    <text x="250" y="408" fill="#ef4444" font-size="28" text-anchor="middle">3.4</text>
+    <text x="250" y="350" fill="#ef4444" font-size="24" text-anchor="middle">MD</text>
+    <!-- No convergence -->
+    <text x="250" y="260" fill="#ef444460" font-size="32" text-anchor="middle">?</text>
+  </svg>
+  <div class="score-ring">
+    <svg width="320" height="320" viewBox="0 0 320 320">
+      <circle cx="160" cy="160" r="140" fill="none" stroke="#ffffff15" stroke-width="16"/>
+      <circle cx="160" cy="160" r="140" fill="none" stroke="#ef4444" stroke-width="16"
+        stroke-dasharray="774" stroke-dashoffset="427" stroke-linecap="round"
+        transform="rotate(-90 160 160)"/>
+    </svg>
+    <div class="score-num red">0.45</div>
+  </div>
+  <div class="score-label">Necesitas más datos</div>
+</div>
+
+<!-- Scene 5: PeakAerobic -->
+<div class="scene" id="s5">
+  <svg width="200" height="200" viewBox="0 0 200 200" style="margin-bottom:40px">
+    <circle cx="100" cy="100" r="90" fill="none" stroke="#d26a36" stroke-width="6"/>
+    <text x="100" y="115" fill="#d26a36" font-size="48" text-anchor="middle" font-weight="700">PA</text>
+  </svg>
+  <h2><span class="accent">PeakAerobic</span> te dice<br><span style="font-size:72px">CUANTO</span><br>puedes confiar.</h2>
+  <div style="height:30px"></div>
+  <p>No solo el número.<br>La <span class="accent">fiabilidad</span> del número.</p>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="s6">
+  <h1 style="font-size:72px">Entrena con<br><span class="accent">certeza</span>.</h1>
+  <div class="cta-btn">Enlace en bio</div>
+  <p style="margin-top:40px;font-size:36px;color:#ffffff60">@peakaerobic</p>
+</div>
+
+<script>
+const DURATION=30000;
+const scenes=[
+  {id:'s1',start:0,end:5000},
+  {id:'s2',start:5000,end:10000},
+  {id:'s3',start:10000,end:16000},
+  {id:'s4',start:16000,end:22000},
+  {id:'s5',start:22000,end:27000},
+  {id:'s6',start:27000,end:30000}
+];
+let startTime=null;
+function tick(now){
+  if(!startTime)startTime=now;
+  const elapsed=now-startTime;
+  const progress=Math.min(elapsed/DURATION,1);
+  document.getElementById('progress').style.width=(progress*100)+'%';
+  scenes.forEach(s=>{
+    const el=document.getElementById(s.id);
+    if(elapsed>=s.start&&elapsed<s.end){el.classList.add('active')}
+    else{el.classList.remove('active')}
+  });
+  if(elapsed<DURATION)requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Confidence Score — PeakAerobic</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide {
+    width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .slide-number {
+    position: absolute; top: 28px; right: 36px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; font-weight: 500; color: rgba(247,246,244,0.35); z-index: 10;
+  }
+  .progress-dots {
+    position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 10;
+  }
+  .progress-dots .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute; bottom: 32px; right: 36px; text-align: right; z-index: 10;
+  }
+  .watermark .brand {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: 16px; color: rgba(210,106,54,0.35);
+  }
+  .watermark .sub {
+    font-family: 'Source Sans 3', sans-serif; font-weight: 300;
+    font-size: 11px; color: rgba(210,106,54,0.25); margin-top: 1px;
+  }
+  .tag {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    background: rgba(210,106,54,0.15); color: #d26a36;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 18px;
+  }
+  .divider {
+    width: 60px; height: 4px; background: #d26a36; border-radius: 2px;
+  }
+  .card {
+    background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px; padding: 36px;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    padding: 40px 50px; border-radius: 20px; text-align: center;
+  }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+  .content { padding: 80px 70px 80px 70px; height: 100%; display: flex; flex-direction: column; }
+
+  @media print {
+    .slide { page-break-after: always; }
+    body { padding: 0; gap: 0; background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; text-align: center; gap: 36px;">
+    <div class="tag">TRANSPARENCIA</div>
+    <h1 style="font-size: 58px; line-height: 1.05; max-width: 850px;">
+      Cuanto puedes <span class="accent">confiar</span> en tus umbrales?
+    </h1>
+    <div class="divider" style="margin: 0 auto;"></div>
+    <p style="font-size: 26px; font-weight: 300; max-width: 680px; color: rgba(247,246,244,0.7); line-height: 1.5;">
+      No todos los analisis son iguales.<br>PeakAerobic te dice cuando confiar y cuando no.
+    </p>
+    <!-- Confidence gauge SVG -->
+    <svg width="260" height="150" viewBox="0 0 260 150">
+      <!-- Gauge arc background -->
+      <path d="M 30 130 A 100 100 0 0 1 230 130" fill="none" stroke="rgba(247,246,244,0.1)" stroke-width="16" stroke-linecap="round"/>
+      <!-- Gauge arc colored (0.82 = ~82% of arc) -->
+      <path d="M 30 130 A 100 100 0 0 1 210 75" fill="none" stroke="#d26a36" stroke-width="16" stroke-linecap="round"/>
+      <!-- Needle dot -->
+      <circle cx="210" cy="75" r="8" fill="#d26a36"/>
+      <!-- Value -->
+      <text x="130" y="110" text-anchor="middle" fill="#f7f6f4" font-family="Space Grotesk" font-weight="700" font-size="36">0.82</text>
+      <text x="130" y="135" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">confidence score</text>
+    </svg>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: EL PROBLEMA — CADA METODO DA UN NUMERO -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">EL PROBLEMA</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">Cada metodo da un <span class="accent">numero diferente</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <h3 style="font-size: 16px; color: rgba(247,246,244,0.5); margin-bottom: 8px;">BASELINE RISE</h3>
+          <p style="font-size: 16px; font-weight: 400; color: rgba(247,246,244,0.4); margin-bottom: 4px;">LT2 =</p>
+          <p style="font-size: 56px; font-weight: 700; color: #d26a36;">3.4</p>
+          <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">mmol/L</p>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <h3 style="font-size: 16px; color: rgba(247,246,244,0.5); margin-bottom: 8px;">SUSTAINED INCREASE</h3>
+          <p style="font-size: 16px; font-weight: 400; color: rgba(247,246,244,0.4); margin-bottom: 4px;">LT2 =</p>
+          <p style="font-size: 56px; font-weight: 700; color: #f97316;">3.6</p>
+          <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">mmol/L</p>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <h3 style="font-size: 16px; color: rgba(247,246,244,0.5); margin-bottom: 8px;">MODDMAX</h3>
+          <p style="font-size: 16px; font-weight: 400; color: rgba(247,246,244,0.4); margin-bottom: 4px;">LT2 =</p>
+          <p style="font-size: 56px; font-weight: 700; color: #22c55e;">3.5</p>
+          <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">mmol/L</p>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; text-align: center;">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.5;">
+          Tres metodos. Tres numeros. <span class="accent" style="font-weight: 600;">Cual es el real?</span>
+        </p>
+      </div>
+      <div class="card" style="padding: 24px 32px;">
+        <p style="font-size: 19px; font-weight: 300; line-height: 1.6; text-align: center; color: rgba(247,246,244,0.7);">
+          La mayoria de apps te dan <strong>un solo numero</strong> y esperan que confies. No te dicen con que metodo, ni cuanta variabilidad hay entre metodos, ni si los datos son suficientes.
+        </p>
+      </div>
+      <div class="card" style="padding: 20px 28px; border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.06);">
+        <p style="font-size: 17px; font-weight: 300; line-height: 1.5; font-style: italic; color: rgba(247,246,244,0.8);">
+          "The choice of threshold detection method can influence the derived exercise intensity by 5-15%."
+        </p>
+        <p style="font-size: 15px; font-weight: 600; color: #d26a36; margin-top: 8px;">
+          — Faude, O. et al. (2009), <em>Sports Medicine</em>
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Faude, O. et al. (2009). <em>Sports Med</em>, 39(6), 469–490. Bishop, D. et al. (1998). <em>Med Sci Sports Exerc</em>, 30(8), 1270–1275.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: AGREEMENT SCORE -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">LA SOLUCION</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">Agreement score: si los metodos <span class="green">coinciden</span>, alta confianza</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <div style="display: flex; gap: 24px;">
+        <!-- High agreement -->
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(34,197,94,0.3); text-align: center;">
+          <h3 style="font-size: 18px; color: #22c55e; margin-bottom: 16px;">Alta convergencia</h3>
+          <svg viewBox="0 0 200 160" width="200" height="160" style="margin: 0 auto;">
+            <!-- Three lines converging -->
+            <line x1="20" y1="40" x2="100" y2="78" stroke="#d26a36" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="20" y1="80" x2="100" y2="80" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="20" y1="120" x2="100" y2="82" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- Convergence point -->
+            <circle cx="100" cy="80" r="12" fill="none" stroke="#22c55e" stroke-width="2"/>
+            <circle cx="100" cy="80" r="4" fill="#22c55e"/>
+            <!-- Result -->
+            <line x1="112" y1="80" x2="180" y2="80" stroke="rgba(34,197,94,0.4)" stroke-width="2" stroke-dasharray="5 3"/>
+            <text x="150" y="140" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="16">CONFIANZA ALTA</text>
+          </svg>
+        </div>
+        <!-- Low agreement -->
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(239,68,68,0.3); text-align: center;">
+          <h3 style="font-size: 18px; color: #ef4444; margin-bottom: 16px;">Baja convergencia</h3>
+          <svg viewBox="0 0 200 160" width="200" height="160" style="margin: 0 auto;">
+            <!-- Three lines diverging -->
+            <line x1="20" y1="60" x2="180" y2="30" stroke="#d26a36" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="20" y1="80" x2="180" y2="80" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="20" y1="100" x2="180" y2="130" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- No convergence -->
+            <text x="100" y="155" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="16">CONFIANZA BAJA</text>
+          </svg>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; text-align: center;">
+        <p style="font-size: 20px; font-weight: 300; line-height: 1.6;">
+          PeakAerobic usa <strong>3 metodos independientes</strong> (Baseline Rise, Sustained Increase, ModDmax)
+          y mide cuanto <span class="accent">divergen entre si</span>. Si los 3 apuntan al mismo lugar, la deteccion es robusta.
+        </p>
+      </div>
+      <div class="card" style="padding: 20px 28px; text-align: center;">
+        <p style="font-size: 18px; font-weight: 400; line-height: 1.5; color: rgba(247,246,244,0.7);">
+          <span class="accent" style="font-weight: 600;">Agreement score</span> = medida de convergencia inter-metodo.
+          Es lo que convierte 3 estimaciones en 1 diagnostico con nivel de certeza.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Faude, O. et al. (2009). <em>Sports Med</em>, 39(6), 469–490. Bishop, D. et al. (1998). <em>Med Sci Sports Exerc</em>, 30(8), 1270–1275.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: ESCALA 0-1 -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">ESCALA</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">Escala de confianza: <span class="accent">0 a 1</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <!-- Color gradient bar -->
+      <svg viewBox="0 0 900 120" width="940" height="130" style="align-self: center;">
+        <defs>
+          <linearGradient id="confGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#f97316;stop-opacity:1" />
+            <stop offset="75%" style="stop-color:#d26a36;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#22c55e;stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <rect x="50" y="30" width="800" height="30" rx="15" fill="url(#confGrad)"/>
+        <!-- Markers -->
+        <line x1="50" y1="70" x2="50" y2="85" stroke="rgba(247,246,244,0.3)" stroke-width="1.5"/>
+        <text x="50" y="100" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Space Grotesk" font-weight="600" font-size="14">0</text>
+        <line x1="450" y1="70" x2="450" y2="85" stroke="rgba(247,246,244,0.3)" stroke-width="1.5"/>
+        <text x="450" y="100" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Space Grotesk" font-weight="600" font-size="14">0.50</text>
+        <line x1="650" y1="70" x2="650" y2="85" stroke="rgba(247,246,244,0.3)" stroke-width="1.5"/>
+        <text x="650" y="100" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Space Grotesk" font-weight="600" font-size="14">0.75</text>
+        <line x1="850" y1="70" x2="850" y2="85" stroke="rgba(247,246,244,0.3)" stroke-width="1.5"/>
+        <text x="850" y="100" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Space Grotesk" font-weight="600" font-size="14">1.0</text>
+      </svg>
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 24px; border-color: rgba(239,68,68,0.3); text-align: center;">
+          <p style="font-size: 40px; font-weight: 700; color: #ef4444;">&lt; 0.50</p>
+          <div style="height: 2px; background: rgba(239,68,68,0.3); margin: 12px 0;"></div>
+          <h3 style="font-size: 18px; color: #ef4444; margin-bottom: 8px;">Insuficiente</h3>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7);">
+            Pocos datos, alta divergencia entre metodos, o protocolo con ruido. <strong>No tomar decisiones con esto.</strong>
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px; border-color: rgba(249,115,22,0.3); text-align: center;">
+          <p style="font-size: 40px; font-weight: 700; color: #f97316;">0.50–0.75</p>
+          <div style="height: 2px; background: rgba(249,115,22,0.3); margin: 12px 0;"></div>
+          <h3 style="font-size: 18px; color: #f97316; margin-bottom: 8px;">Aceptable</h3>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7);">
+            Datos suficientes pero con algo de variabilidad. <strong>Util como orientacion</strong>, recomendable re-testear.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px; border-color: rgba(34,197,94,0.3); text-align: center;">
+          <p style="font-size: 40px; font-weight: 700; color: #22c55e;">&gt; 0.75</p>
+          <div style="height: 2px; background: rgba(34,197,94,0.3); margin: 12px 0;"></div>
+          <h3 style="font-size: 18px; color: #22c55e; margin-bottom: 8px;">Alta confianza</h3>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7);">
+            Los 3 metodos convergen. Datos limpios. Protocolo bien ejecutado. <strong>Fiable para prescripcion.</strong>
+          </p>
+        </div>
+      </div>
+      <div class="card" style="padding: 20px 28px; text-align: center;">
+        <p style="font-size: 20px; font-weight: 400; line-height: 1.5;">
+          PeakAerobic muestra el score de confianza <strong>siempre</strong>. No oculta incertidumbre.
+          Si el dato no es fiable, <span class="accent" style="font-weight: 600;">te lo dice</span>.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Faude, O. et al. (2009). <em>Sports Med</em>, 39(6), 469–490.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: CUANDO NO CONFIAR -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag" style="background: rgba(239,68,68,0.15); color: #ef4444;">WARNINGS</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">Cuando <span class="red">NO confiar</span> en tus umbrales</h2>
+    <div class="divider" style="background: #ef4444;"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(239,68,68,0.25);">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <svg viewBox="0 0 60 60" width="50" height="50">
+              <circle cx="30" cy="30" r="25" fill="none" stroke="#ef4444" stroke-width="2"/>
+              <text x="30" y="38" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="24">&lt;5</text>
+            </svg>
+          </div>
+          <h3 style="font-size: 18px; color: #ef4444; margin-bottom: 10px; text-align: center;">Menos de 5 escalones</h3>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7); text-align: center;">
+            Con 3-4 puntos no hay suficiente resolucion para detectar inflexiones. Los metodos no tienen datos para trabajar.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(239,68,68,0.25);">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <svg viewBox="0 0 60 60" width="50" height="50">
+              <polyline points="10,40 20,15 30,45 40,20 50,35" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 style="font-size: 18px; color: #ef4444; margin-bottom: 10px; text-align: center;">Datos con outliers</h3>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7); text-align: center;">
+            Picos transitorios, valores que caen tras subir, contaminacion por muestra. PeakAerobic los detecta y penaliza.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(239,68,68,0.25);">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <svg viewBox="0 0 60 60" width="50" height="50">
+              <rect x="10" y="15" width="40" height="30" rx="4" fill="none" stroke="#ef4444" stroke-width="2"/>
+              <line x1="10" y1="30" x2="50" y2="30" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <text x="30" y="55" text-anchor="middle" fill="#ef4444" font-family="Source Sans 3" font-size="10">protocolo?</text>
+            </svg>
+          </div>
+          <h3 style="font-size: 18px; color: #ef4444; margin-bottom: 10px; text-align: center;">Protocolo mal ejecutado</h3>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7); text-align: center;">
+            Escalones demasiado cortos, incrementos irregulares, descansos entre escalones. El protocolo condiciona la curva.
+          </p>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; text-align: center; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06);">
+        <p style="font-size: 20px; font-weight: 400; line-height: 1.5;">
+          PeakAerobic genera <span class="red" style="font-weight: 600;">warnings automaticos</span> cuando detecta estos problemas:
+          datos interpolados, baja confianza, datos obsoletos, ratio implausible, monotonia insuficiente.
+        </p>
+      </div>
+      <div class="card" style="padding: 20px 28px; text-align: center;">
+        <p style="font-size: 18px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7);">
+          Codigos de warning: <span style="font-family: 'Space Grotesk'; color: rgba(247,246,244,0.5); font-size: 15px;">W_INTERPOLATED · W_LOW_CONFIDENCE · W_STALE_DATA · W_BORDERLINE_GAP · W_IMPLAUSIBLE_RATIO</span>
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Billat, V. et al. (2003). <em>Med Sci Sports Exerc</em>, 35(1), 65–73. Faude, O. et al. (2009). <em>Sports Med</em>, 39(6), 469–490.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: PEAKAEROBIC CALCULA CONFIANZA -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">AUTOMATICO</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">PeakAerobic calcula confianza <span class="accent">automaticamente</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <div style="display: flex; gap: 20px; align-items: stretch;">
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <p style="font-size: 16px; font-weight: 500; color: rgba(247,246,244,0.5); margin-bottom: 8px;">COMPONENTE 1</p>
+          <p style="font-size: 28px; font-weight: 700; color: #d26a36; margin-bottom: 12px;">Agreement</p>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7);">
+            Convergencia entre los 3 metodos de deteccion. Si todos apuntan al mismo umbral, score alto.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <p style="font-size: 16px; font-weight: 500; color: rgba(247,246,244,0.5); margin-bottom: 8px;">COMPONENTE 2</p>
+          <p style="font-size: 28px; font-weight: 700; color: #d26a36; margin-bottom: 12px;">Monotonia</p>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7);">
+            La curva debe ser monotona creciente. Caidas inexplicables reducen la confianza.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <p style="font-size: 16px; font-weight: 500; color: rgba(247,246,244,0.5); margin-bottom: 8px;">COMPONENTE 3</p>
+          <p style="font-size: 28px; font-weight: 700; color: #d26a36; margin-bottom: 12px;">Datos</p>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7);">
+            Numero de escalones, presencia de outliers, calidad del protocolo.
+          </p>
+        </div>
+      </div>
+      <div class="card" style="padding: 28px; text-align: center; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+        <p style="font-size: 22px; font-weight: 500; line-height: 1.5; margin-bottom: 16px;">
+          El resultado: un <span class="green" style="font-weight: 700;">score unico de 0 a 1</span> que te dice cuanto confiar
+        </p>
+        <div style="display: flex; gap: 24px; justify-content: center;">
+          <div>
+            <p style="font-size: 14px; color: rgba(247,246,244,0.4);">Confianza &ge; 0.75</p>
+            <p style="font-size: 20px; font-weight: 600; color: #22c55e;">Prescribimos</p>
+          </div>
+          <div style="width: 1px; background: rgba(247,246,244,0.1);"></div>
+          <div>
+            <p style="font-size: 14px; color: rgba(247,246,244,0.4);">Confianza 0.50–0.75</p>
+            <p style="font-size: 20px; font-weight: 600; color: #f97316;">Con cautela</p>
+          </div>
+          <div style="width: 1px; background: rgba(247,246,244,0.1);"></div>
+          <div>
+            <p style="font-size: 14px; color: rgba(247,246,244,0.4);">Confianza &lt; 0.50</p>
+            <p style="font-size: 20px; font-weight: 600; color: #ef4444;">No actuamos</p>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="padding: 20px 28px; text-align: center;">
+        <p style="font-size: 18px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7);">
+          <strong>Principio fundamental:</strong> PeakAerobic <span class="accent">nunca toma decisiones con datos dudosos</span>. Prefiere decir "no se" a dar un numero falso.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Faude, O. et al. (2009). <em>Sports Med</em>, 39(6), 469–490.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; gap: 40px;">
+    <div class="cta-box" style="max-width: 800px; width: 100%;">
+      <h2 style="font-size: 44px; color: #f7f6f4; margin-bottom: 20px; line-height: 1.2;">
+        Analisis con<br>transparencia total
+      </h2>
+      <div style="width: 60px; height: 4px; background: rgba(247,246,244,0.4); border-radius: 2px; margin: 0 auto 24px;"></div>
+      <p style="font-size: 22px; font-weight: 300; color: rgba(247,246,244,0.9); line-height: 1.5; margin-bottom: 28px;">
+        PeakAerobic te da tus umbrales <strong>con score de confianza</strong>.
+        Sabes cuanto confiar en cada dato. Sin cajas negras.
+      </p>
+      <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <div style="background: rgba(247,246,244,0.15); padding: 12px 28px; border-radius: 10px;">
+          <p style="font-size: 18px; font-weight: 600; color: #f7f6f4;">3 metodos + confianza + warnings. Gratis.</p>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 32px; align-items: center;">
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #22c55e;">0.82</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Alta confianza</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #d26a36;">3</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Metodos validados</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #f97316;">Warnings</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Automaticos</p>
+      </div>
+    </div>
+    <p style="font-size: 20px; font-weight: 500; color: #d26a36;">peakaerobic.com</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

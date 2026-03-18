@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 02 - Test a Garmin en 60 segundos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1080px;
+    height: 1920px;
+    background: #0e1e24;
+    overflow: hidden;
+    font-family: 'Source Sans 3', sans-serif;
+    color: #f7f6f4;
+    position: relative;
+  }
+
+  .scene {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    padding: 60px;
+  }
+
+  .scene.active { opacity: 1; }
+
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 80px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.15;
+  }
+
+  h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 62px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .blue { color: #38bdf8; }
+  .dim { color: #f7f6f470; }
+
+  .overlay-text {
+    font-size: 48px;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 40px;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  .overlay-text.show {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.6s ease;
+  }
+
+  .progress-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 8px;
+    background: #d26a36;
+    width: 0%;
+    z-index: 100;
+    transition: width 0.1s linear;
+  }
+
+  .watermark {
+    position: absolute;
+    top: 60px;
+    right: 60px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: #d26a3660;
+  }
+
+  .citation {
+    position: absolute;
+    bottom: 40px;
+    left: 60px;
+    right: 60px;
+    font-size: 24px;
+    color: #f7f6f4;
+    opacity: 0.3;
+    text-align: center;
+    font-family: 'Source Sans 3', sans-serif;
+  }
+
+  /* Step flow */
+  .flow-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    align-items: center;
+    width: 100%;
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    width: 800px;
+    padding: 30px 40px;
+    border-radius: 20px;
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  .flow-step.show {
+    opacity: 1;
+    transform: translateX(0);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .flow-step.active-step {
+    background: #d26a3620;
+    border: 2px solid #d26a3660;
+  }
+
+  .step-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 56px;
+    font-weight: 700;
+    color: #d26a36;
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .step-text {
+    font-size: 42px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .flow-arrow {
+    font-size: 48px;
+    color: #d26a3660;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .flow-arrow.show { opacity: 1; }
+
+  /* Hook */
+  .scene-hook h1 {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  .scene-hook h1.show {
+    opacity: 1;
+    transform: scale(1);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .scene-hook .subtitle {
+    font-size: 52px;
+    color: #f7f6f490;
+    font-weight: 600;
+    margin-top: 30px;
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  .scene-hook .subtitle.show {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.6s ease;
+  }
+
+  /* Analysis card */
+  .analysis-card {
+    background: #162a33;
+    border-radius: 24px;
+    padding: 50px;
+    width: 860px;
+    margin-top: 40px;
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  .analysis-card.show {
+    opacity: 1;
+    transform: scale(1);
+    transition: all 0.5s ease;
+  }
+
+  .threshold-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    border-bottom: 1px solid #f7f6f415;
+    opacity: 0;
+  }
+
+  .threshold-row.show {
+    opacity: 1;
+    transition: opacity 0.4s ease;
+  }
+
+  .threshold-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 40px;
+    font-weight: 700;
+  }
+
+  .threshold-value {
+    font-size: 40px;
+    font-weight: 600;
+  }
+
+  /* Mesocycle card */
+  .meso-card {
+    background: #162a33;
+    border-radius: 24px;
+    padding: 40px;
+    width: 860px;
+    margin-top: 30px;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  .meso-card.show {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.5s ease;
+  }
+
+  .week-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    align-items: center;
+  }
+
+  .week-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    min-width: 60px;
+    color: #f7f6f480;
+  }
+
+  .week-bar {
+    height: 40px;
+    border-radius: 10px;
+    transition: width 1s ease;
+  }
+
+  /* Garmin card */
+  .garmin-card {
+    background: #162a33;
+    border-radius: 24px;
+    padding: 50px;
+    width: 860px;
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  .garmin-card.show {
+    opacity: 1;
+    transform: scale(1);
+    transition: all 0.5s ease;
+  }
+
+  .garmin-icon {
+    font-size: 120px;
+    margin-bottom: 20px;
+  }
+
+  .check-mark {
+    display: inline-block;
+    font-size: 72px;
+    color: #22c55e;
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  .check-mark.show {
+    opacity: 1;
+    transform: scale(1);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  /* CTA */
+  .logo-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 72px;
+    font-weight: 700;
+    color: #d26a36;
+    margin-bottom: 30px;
+  }
+
+  .cta-text {
+    font-size: 44px;
+    font-weight: 600;
+    text-align: center;
+    opacity: 0;
+  }
+
+  .cta-text.show {
+    opacity: 1;
+    transition: opacity 0.6s ease;
+  }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">De test de lactato<br>a <span class="accent">Garmin</span></h1>
+  <div class="subtitle" id="hook2">En 4 pasos automaticos</div>
+  <div class="citation">Threshold-based training zones (Faude et al., 2009, Sports Med)</div>
+</div>
+
+<!-- Scene 2: Steps flow -->
+<div class="scene" id="scene2">
+  <h2>El flujo completo</h2>
+  <div class="flow-container" style="margin-top: 60px;">
+    <div class="flow-step" id="step1">
+      <div class="step-number">1</div>
+      <div class="step-text">Test de lactato<br><span class="dim" style="font-size: 34px;">Escalones de intensidad progresiva</span></div>
+    </div>
+    <div class="flow-arrow" id="arrow1">&#8595;</div>
+    <div class="flow-step" id="step2">
+      <div class="step-number">2</div>
+      <div class="step-text">Analisis automatico<br><span class="dim" style="font-size: 34px;">LT1 + LT2 con 3 metodos</span></div>
+    </div>
+    <div class="flow-arrow" id="arrow2">&#8595;</div>
+    <div class="flow-step" id="step3">
+      <div class="step-number">3</div>
+      <div class="step-text">Mesociclo personalizado<br><span class="dim" style="font-size: 34px;">Bloques basados en tu fisiologia</span></div>
+    </div>
+    <div class="flow-arrow" id="arrow3">&#8595;</div>
+    <div class="flow-step" id="step4">
+      <div class="step-number">4</div>
+      <div class="step-text">Push a <span class="green">Garmin</span><br><span class="dim" style="font-size: 34px;">Sesiones en tu reloj</span></div>
+    </div>
+  </div>
+  <div class="citation">Multiple threshold methods improve reliability (Jamnick et al., 2020, IJSPP)</div>
+</div>
+
+<!-- Scene 3: Analysis result -->
+<div class="scene" id="scene3">
+  <h2>Deteccion de umbrales</h2>
+  <div class="analysis-card" id="analysisCard">
+    <div class="threshold-row" id="trow1">
+      <div class="threshold-name" style="color: #38bdf8;">LT1</div>
+      <div class="threshold-value">Umbral aerobico</div>
+    </div>
+    <div class="threshold-row" id="trow2">
+      <div class="threshold-name" style="color: #d26a36;">LT2</div>
+      <div class="threshold-value">Umbral anaerobico</div>
+    </div>
+    <div class="threshold-row" id="trow3" style="border-bottom: none;">
+      <div class="threshold-name" style="color: #22c55e;">Zonas</div>
+      <div class="threshold-value">Individualizadas</div>
+    </div>
+  </div>
+  <div class="overlay-text" id="methodLabel">3 metodos triangulados</div>
+  <div class="citation">Faude et al. (2009): "Individual lactate threshold concepts are recommended"</div>
+</div>
+
+<!-- Scene 4: Mesocycle -->
+<div class="scene" id="scene4">
+  <h2>Mesociclo generado</h2>
+  <div class="meso-card" id="mesoCard">
+    <div style="font-size: 36px; font-weight: 600; color: #d26a36; margin-bottom: 10px;">Bloque de capacidad aerobica</div>
+    <div style="font-size: 30px; color: #f7f6f470;">4 semanas — onda progresiva</div>
+    <div class="week-row">
+      <div class="week-label">S1</div>
+      <div class="week-bar" id="bar1" style="width: 0; background: #38bdf8;">&#8203;</div>
+    </div>
+    <div class="week-row">
+      <div class="week-label">S2</div>
+      <div class="week-bar" id="bar2" style="width: 0; background: #38bdf8;">&#8203;</div>
+    </div>
+    <div class="week-row">
+      <div class="week-label">S3</div>
+      <div class="week-bar" id="bar3" style="width: 0; background: #d26a36;">&#8203;</div>
+    </div>
+    <div class="week-row">
+      <div class="week-label">S4</div>
+      <div class="week-bar" id="bar4" style="width: 0; background: #22c55e;">&#8203;</div>
+    </div>
+  </div>
+  <div class="overlay-text" id="mesoLabel">Basado en tu perfil fisiologico</div>
+  <div class="citation">Periodization guided by physiological markers (Seiler, 2010, Sports Med)</div>
+</div>
+
+<!-- Scene 5: Garmin push -->
+<div class="scene" id="scene5">
+  <h2>Push a Garmin</h2>
+  <div class="garmin-card" id="garminCard">
+    <div class="garmin-icon">&#9201;</div>
+    <div style="font-size: 44px; font-weight: 600; margin-bottom: 30px;">Sesion enviada</div>
+    <div style="font-size: 36px; color: #f7f6f470; margin-bottom: 30px;">
+      Intervalos LT1 extensivo<br>
+      60 min — 5 escalones
+    </div>
+    <div class="check-mark" id="checkMark">&#10003;</div>
+  </div>
+  <div class="overlay-text" id="garminLabel">Directamente a tu muneca</div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Test &rarr; Analisis &rarr; Plan &rarr; Garmin</h2>
+  <div class="cta-text" id="cta1" style="font-size: 40px; color: #f7f6f490;">
+    Entrenamiento basado en evidencia,<br>automatizado de principio a fin
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px;">
+    <span class="accent">@peakaerobic</span>
+  </div>
+  <div class="citation">Faude et al. (2009) Sports Med; Jamnick et al. (2020) IJSPP</div>
+</div>
+
+<!-- Progress Bar -->
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 45000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 5000 },
+  { id: 'scene2', start: 5000, end: 16000 },
+  { id: 'scene3', start: 16000, end: 24000 },
+  { id: 'scene4', start: 24000, end: 32000 },
+  { id: 'scene5', start: 32000, end: 39000 },
+  { id: 'scene6', start: 39000, end: 45000 },
+];
+
+const events = [
+  // Scene 1
+  { time: 300, action: () => document.getElementById('hook1').classList.add('show') },
+  { time: 2500, action: () => document.getElementById('hook2').classList.add('show') },
+
+  // Scene 2
+  { time: 5500, action: () => document.getElementById('step1').classList.add('show') },
+  { time: 7000, action: () => { document.getElementById('arrow1').classList.add('show'); document.getElementById('step2').classList.add('show'); }},
+  { time: 9000, action: () => { document.getElementById('arrow2').classList.add('show'); document.getElementById('step3').classList.add('show'); }},
+  { time: 11000, action: () => { document.getElementById('arrow3').classList.add('show'); document.getElementById('step4').classList.add('show'); }},
+  { time: 13000, action: () => {
+    document.getElementById('step1').classList.add('active-step');
+    setTimeout(() => { document.getElementById('step1').classList.remove('active-step'); document.getElementById('step2').classList.add('active-step'); }, 600);
+    setTimeout(() => { document.getElementById('step2').classList.remove('active-step'); document.getElementById('step3').classList.add('active-step'); }, 1200);
+    setTimeout(() => { document.getElementById('step3').classList.remove('active-step'); document.getElementById('step4').classList.add('active-step'); }, 1800);
+  }},
+
+  // Scene 3
+  { time: 16500, action: () => document.getElementById('analysisCard').classList.add('show') },
+  { time: 17500, action: () => document.getElementById('trow1').classList.add('show') },
+  { time: 18500, action: () => document.getElementById('trow2').classList.add('show') },
+  { time: 19500, action: () => document.getElementById('trow3').classList.add('show') },
+  { time: 21000, action: () => document.getElementById('methodLabel').classList.add('show') },
+
+  // Scene 4
+  { time: 24500, action: () => document.getElementById('mesoCard').classList.add('show') },
+  { time: 25500, action: () => { document.getElementById('bar1').style.width = '400px'; }},
+  { time: 26000, action: () => { document.getElementById('bar2').style.width = '520px'; }},
+  { time: 26500, action: () => { document.getElementById('bar3').style.width = '640px'; }},
+  { time: 27000, action: () => { document.getElementById('bar4').style.width = '280px'; }},
+  { time: 28500, action: () => document.getElementById('mesoLabel').classList.add('show') },
+
+  // Scene 5
+  { time: 32500, action: () => document.getElementById('garminCard').classList.add('show') },
+  { time: 35000, action: () => document.getElementById('checkMark').classList.add('show') },
+  { time: 36500, action: () => document.getElementById('garminLabel').classList.add('show') },
+
+  // Scene 6
+  { time: 39500, action: () => document.getElementById('cta1').classList.add('show') },
+  { time: 41000, action: () => document.getElementById('cta2').classList.add('show') },
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) {
+    requestAnimationFrame(update);
+  }
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

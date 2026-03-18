@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 03 - Zonas genericas vs individualizadas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1080px;
+    height: 1920px;
+    background: #0e1e24;
+    overflow: hidden;
+    font-family: 'Source Sans 3', sans-serif;
+    color: #f7f6f4;
+    position: relative;
+  }
+
+  .scene {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    padding: 60px;
+  }
+
+  .scene.active { opacity: 1; }
+
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 76px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.15;
+  }
+
+  h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 60px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .dim { color: #f7f6f470; }
+
+  .overlay-text {
+    font-size: 44px;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 40px;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  .overlay-text.show {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.6s ease;
+  }
+
+  .progress-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 8px;
+    background: #d26a36;
+    width: 0%;
+    z-index: 100;
+    transition: width 0.1s linear;
+  }
+
+  .watermark {
+    position: absolute;
+    top: 60px;
+    right: 60px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: #d26a3660;
+  }
+
+  .citation {
+    position: absolute;
+    bottom: 40px;
+    left: 60px;
+    right: 60px;
+    font-size: 24px;
+    color: #f7f6f4;
+    opacity: 0.3;
+    text-align: center;
+    font-family: 'Source Sans 3', sans-serif;
+  }
+
+  /* Hook */
+  .scene-hook h1 {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  .scene-hook h1.show {
+    opacity: 1;
+    transform: scale(1);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  /* Formula */
+  .formula-box {
+    background: #162a33;
+    border-radius: 20px;
+    padding: 50px 60px;
+    margin-top: 50px;
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  .formula-box.show {
+    opacity: 1;
+    transform: scale(1);
+    transition: all 0.5s ease;
+  }
+
+  .formula {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 72px;
+    font-weight: 700;
+    text-align: center;
+    color: #f7f6f450;
+  }
+
+  .formula-label {
+    font-size: 38px;
+    text-align: center;
+    color: #f7f6f460;
+    margin-top: 20px;
+  }
+
+  .strikethrough {
+    text-decoration: line-through;
+    text-decoration-color: #ef4444;
+    text-decoration-thickness: 4px;
+  }
+
+  /* Athletes */
+  .athletes-row {
+    display: flex;
+    gap: 40px;
+    margin-top: 50px;
+    justify-content: center;
+  }
+
+  .athlete-card {
+    background: #162a33;
+    border-radius: 20px;
+    padding: 30px;
+    width: 260px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  .athlete-card.show {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.5s ease;
+  }
+
+  .athlete-icon { font-size: 80px; margin-bottom: 15px; }
+
+  .athlete-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .athlete-stat {
+    font-size: 28px;
+    color: #f7f6f480;
+    margin-bottom: 8px;
+  }
+
+  .athlete-threshold {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: #d26a36;
+    margin-top: 10px;
+  }
+
+  /* Zone comparison */
+  .zones-compare {
+    display: flex;
+    gap: 50px;
+    margin-top: 40px;
+  }
+
+  .zones-column {
+    text-align: center;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  .zones-column.show {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.5s ease;
+  }
+
+  .zones-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 34px;
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+
+  .zone-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 12px;
+  }
+
+  .zone-label-box {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    min-width: 50px;
+  }
+
+  .zone-fill {
+    height: 38px;
+    border-radius: 8px;
+    transition: width 0.8s ease;
+  }
+
+  /* CTA */
+  .logo-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 72px;
+    font-weight: 700;
+    color: #d26a36;
+    margin-bottom: 30px;
+  }
+
+  .cta-text {
+    font-size: 44px;
+    font-weight: 600;
+    text-align: center;
+    opacity: 0;
+  }
+
+  .cta-text.show {
+    opacity: 1;
+    transition: opacity 0.6s ease;
+  }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">Tus zonas pueden<br>estar basadas en<br><span class="accent">promedios poblacionales</span></h1>
+  <div class="citation">Jamnick et al. (2020) Int J Sports Physiol Perform</div>
+</div>
+
+<!-- Scene 2: Generic formula -->
+<div class="scene" id="scene2">
+  <h2>Formulas poblacionales</h2>
+  <div class="formula-box" id="formulaBox">
+    <div class="formula" id="formulaText">220 - edad = FC max</div>
+    <div class="formula-label">Promedio poblacional, no individual</div>
+  </div>
+  <div class="overlay-text" id="formulaLabel">Una talla para todos</div>
+  <div class="citation">Individual thresholds vary significantly (Jamnick et al., 2020)</div>
+</div>
+
+<!-- Scene 3: Three athletes, same HRmax -->
+<div class="scene" id="scene3">
+  <h2>Misma FC max.<br><span class="accent">Umbrales diferentes.</span></h2>
+  <div class="athletes-row">
+    <div class="athlete-card" id="ath1">
+      <div class="athlete-icon">&#127939;</div>
+      <div class="athlete-name">Atleta A</div>
+      <div class="athlete-stat">FC max: 185</div>
+      <div class="athlete-threshold">LT2 alto</div>
+    </div>
+    <div class="athlete-card" id="ath2">
+      <div class="athlete-icon">&#128692;</div>
+      <div class="athlete-name">Atleta B</div>
+      <div class="athlete-stat">FC max: 185</div>
+      <div class="athlete-threshold">LT2 medio</div>
+    </div>
+    <div class="athlete-card" id="ath3">
+      <div class="athlete-icon">&#127946;</div>
+      <div class="athlete-name">Atleta C</div>
+      <div class="athlete-stat">FC max: 185</div>
+      <div class="athlete-threshold">LT2 bajo</div>
+    </div>
+  </div>
+  <div class="overlay-text" id="athLabel">La evidencia muestra gran variabilidad<br>inter-individual en los umbrales</div>
+  <div class="citation">Faude et al. (2009) Sports Med: "individual threshold concepts are recommended"</div>
+</div>
+
+<!-- Scene 4: Zone comparison -->
+<div class="scene" id="scene4">
+  <h2>Zonas <span class="dim">genericas</span> vs <span class="green">individualizadas</span></h2>
+  <div class="zones-compare">
+    <div class="zones-column" id="zonesGeneric">
+      <div class="zones-title" style="color: #f7f6f450;">GENERICAS</div>
+      <div class="zone-bar"><div class="zone-label-box">Z1</div><div class="zone-fill" id="gz1" style="width: 0; background: #f7f6f420;"></div></div>
+      <div class="zone-bar"><div class="zone-label-box">Z2</div><div class="zone-fill" id="gz2" style="width: 0; background: #f7f6f430;"></div></div>
+      <div class="zone-bar"><div class="zone-label-box">Z3</div><div class="zone-fill" id="gz3" style="width: 0; background: #f7f6f440;"></div></div>
+      <div class="zone-bar"><div class="zone-label-box">Z4</div><div class="zone-fill" id="gz4" style="width: 0; background: #f7f6f450;"></div></div>
+      <div class="zone-bar"><div class="zone-label-box">Z5</div><div class="zone-fill" id="gz5" style="width: 0; background: #f7f6f460;"></div></div>
+    </div>
+    <div class="zones-column" id="zonesReal">
+      <div class="zones-title" style="color: #22c55e;">INDIVIDUALIZADAS</div>
+      <div class="zone-bar"><div class="zone-label-box">Z1</div><div class="zone-fill" id="rz1" style="width: 0; background: #22c55e40;"></div></div>
+      <div class="zone-bar"><div class="zone-label-box">Z2</div><div class="zone-fill" id="rz2" style="width: 0; background: #22c55e60;"></div></div>
+      <div class="zone-bar"><div class="zone-label-box">Z3</div><div class="zone-fill" id="rz3" style="width: 0; background: #22c55e80;"></div></div>
+      <div class="zone-bar"><div class="zone-label-box">Z4</div><div class="zone-fill" id="rz4" style="width: 0; background: #22c55ea0;"></div></div>
+      <div class="zone-bar"><div class="zone-label-box">Z5</div><div class="zone-fill" id="rz5" style="width: 0; background: #22c55e;"></div></div>
+    </div>
+  </div>
+  <div class="overlay-text" id="zoneOverlapLabel" style="font-size: 40px;">
+    Las diferencias cambian donde entrenas realmente
+  </div>
+  <div class="citation">At least 25 distinct threshold concepts (Jamnick et al., 2020)</div>
+</div>
+
+<!-- Scene 5: CTA -->
+<div class="scene" id="scene5">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Zonas desde tu curva real</h2>
+  <div class="cta-text" id="cta1" style="font-size: 40px; color: #f7f6f490;">
+    LT1 y LT2 detectados automaticamente.<br>Zonas individualizadas, no estimadas.
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px;">
+    <span class="accent">@peakaerobic</span>
+  </div>
+  <div class="citation">Faude et al. (2009) Sports Med; Jamnick et al. (2020) IJSPP</div>
+</div>
+
+<!-- Progress Bar -->
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 30000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 4000 },
+  { id: 'scene2', start: 4000, end: 8000 },
+  { id: 'scene3', start: 8000, end: 15000 },
+  { id: 'scene4', start: 15000, end: 24000 },
+  { id: 'scene5', start: 24000, end: 30000 },
+];
+
+const events = [
+  { time: 300, action: () => document.getElementById('hook1').classList.add('show') },
+  { time: 4500, action: () => document.getElementById('formulaBox').classList.add('show') },
+  { time: 6000, action: () => {
+    document.getElementById('formulaText').classList.add('strikethrough');
+    document.getElementById('formulaLabel').classList.add('show');
+  }},
+  { time: 8500, action: () => document.getElementById('ath1').classList.add('show') },
+  { time: 9200, action: () => document.getElementById('ath2').classList.add('show') },
+  { time: 9900, action: () => document.getElementById('ath3').classList.add('show') },
+  { time: 11500, action: () => document.getElementById('athLabel').classList.add('show') },
+  { time: 15500, action: () => document.getElementById('zonesGeneric').classList.add('show') },
+  { time: 16000, action: () => {
+    document.getElementById('gz1').style.width = '300px';
+    document.getElementById('gz2').style.width = '250px';
+    document.getElementById('gz3').style.width = '180px';
+    document.getElementById('gz4').style.width = '120px';
+    document.getElementById('gz5').style.width = '80px';
+  }},
+  { time: 17500, action: () => document.getElementById('zonesReal').classList.add('show') },
+  { time: 18000, action: () => {
+    document.getElementById('rz1').style.width = '340px';
+    document.getElementById('rz2').style.width = '220px';
+    document.getElementById('rz3').style.width = '140px';
+    document.getElementById('rz4').style.width = '100px';
+    document.getElementById('rz5').style.width = '60px';
+  }},
+  { time: 20000, action: () => document.getElementById('zoneOverlapLabel').classList.add('show') },
+  { time: 24500, action: () => document.getElementById('cta1').classList.add('show') },
+  { time: 26000, action: () => document.getElementById('cta2').classList.add('show') },
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) {
+    requestAnimationFrame(update);
+  }
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

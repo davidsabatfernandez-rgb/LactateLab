@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5 situaciones donde tu test de lactato miente</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #1a1a1a;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  font-family: 'Source Sans 3', sans-serif;
+}
+
+.slide {
+  width: 1080px;
+  height: 1080px;
+  background: #0e1e24;
+  color: #f7f6f4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 80px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; line-height: 1.2; }
+h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+p, li { font-family: 'Source Sans 3', sans-serif; }
+
+.accent { color: #d26a36; }
+.accent-green { color: #22c55e; }
+.accent-orange { color: #f97316; }
+
+.slide-number {
+  position: absolute;
+  top: 40px;
+  right: 50px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 20px;
+  color: rgba(247,246,244,0.35);
+}
+
+.progress-dots {
+  position: absolute;
+  bottom: 45px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+}
+
+.progress-dots .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(247,246,244,0.2);
+}
+
+.progress-dots .dot.active {
+  background: #d26a36;
+}
+
+.watermark {
+  position: absolute;
+  bottom: 44px;
+  right: 50px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  color: rgba(210,106,54,0.35);
+  text-align: right;
+}
+
+.watermark span {
+  display: block;
+  font-size: 11px;
+  color: rgba(210,106,54,0.25);
+}
+
+.tag {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 6px;
+  background: rgba(210,106,54,0.15);
+  color: #d26a36;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+}
+
+.divider {
+  width: 60px;
+  height: 4px;
+  background: #d26a36;
+  border-radius: 2px;
+}
+
+.cta-box {
+  background: linear-gradient(135deg, #d26a36, #e07b44);
+  padding: 40px 50px;
+  border-radius: 20px;
+  color: #f7f6f4;
+}
+
+.card {
+  background: rgba(210,106,54,0.08);
+  border: 1px solid rgba(210,106,54,0.2);
+  border-radius: 20px;
+  padding: 40px;
+}
+
+.reference {
+  font-size: 18px;
+  color: rgba(247,246,244,0.4);
+  font-style: italic;
+  margin-top: 20px;
+}
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:40px; align-items:flex-start;">
+    <div class="tag">FIABILIDAD</div>
+    <h1 style="font-size:60px;">5 situaciones donde tu test de lactato <span class="accent">miente</span></h1>
+    <div class="divider"></div>
+    <p style="font-size:28px; color:rgba(247,246,244,0.7); max-width:750px; line-height:1.6;">
+      Un test de lactato solo es tan bueno como las condiciones en las que se realiza. Estas 5 situaciones invalidan tus resultados.
+    </p>
+    <svg width="600" height="200" viewBox="0 0 600 200" style="margin-top:10px;">
+      <line x1="50" y1="170" x2="560" y2="170" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <line x1="50" y1="20" x2="50" y2="170" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <!-- Good curve (faint) -->
+      <path d="M80,155 L160,152 L240,145 L320,125 L400,90 L480,50 L540,25" fill="none" stroke="rgba(34,197,94,0.3)" stroke-width="2.5"/>
+      <!-- Noisy/invalid curve -->
+      <path d="M80,135 L160,148 L240,128 L320,140 L400,105 L480,85 L540,60" fill="none" stroke="#d26a36" stroke-width="3" stroke-dasharray="8,5"/>
+      <!-- Question marks -->
+      <text x="200" y="100" fill="rgba(210,106,54,0.4)" font-size="40" font-family="Space Grotesk">?</text>
+      <text x="350" y="80" fill="rgba(210,106,54,0.3)" font-size="30" font-family="Space Grotesk">?</text>
+      <text x="460" y="60" fill="rgba(210,106,54,0.35)" font-size="35" font-family="Space Grotesk">?</text>
+      <text x="545" y="23" fill="rgba(34,197,94,0.4)" font-size="13" font-family="Source Sans 3">Valido</text>
+      <text x="545" y="58" fill="#d26a36" font-size="13" font-family="Source Sans 3">Invalido</text>
+    </svg>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 2: SITUACIÓN 1 -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">SITUACION 1</div>
+    <h2 style="font-size:46px; max-width:850px;">Calentamiento <span class="accent">insuficiente</span></h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        Sin un calentamiento adecuado (<span class="accent">minimo 10-15 min</span>), los primeros escalones muestran valores de lactato erraticamente altos. El baseline queda artificialmente elevado y contamina la deteccion de LT1.
+      </p>
+    </div>
+    <svg width="700" height="280" viewBox="0 0 700 280">
+      <line x1="60" y1="240" x2="660" y2="240" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <line x1="60" y1="30" x2="60" y2="240" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <text x="20" y="245" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">0</text>
+      <text x="20" y="160" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">4</text>
+      <text x="20" y="75" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">8</text>
+      <!-- Good baseline (reference) -->
+      <path d="M100,225 L180,223 L260,218 L340,200 L420,165 L500,115 L580,60" fill="none" stroke="rgba(34,197,94,0.4)" stroke-width="2.5"/>
+      <text x="585" y="58" fill="rgba(34,197,94,0.5)" font-size="13" font-family="Source Sans 3">Con calentamiento</text>
+      <!-- Noisy baseline (no warmup) -->
+      <path d="M100,195 L180,210 L260,200 L340,192 L420,160 L500,110 L580,58" fill="none" stroke="#d26a36" stroke-width="3"/>
+      <text x="585" y="55" fill="#d26a36" font-size="13" font-family="Source Sans 3">Sin calentamiento</text>
+      <!-- Noisy zone highlight -->
+      <rect x="85" y="185" width="200" height="50" rx="8" fill="rgba(210,106,54,0.1)" stroke="rgba(210,106,54,0.3)" stroke-width="1.5" stroke-dasharray="6,4"/>
+      <text x="185" y="253" fill="#d26a36" font-size="14" font-family="Space Grotesk" text-anchor="middle">Baseline contaminado</text>
+      <!-- Data points -->
+      <circle cx="100" cy="195" r="6" fill="#d26a36"/>
+      <circle cx="180" cy="210" r="6" fill="#d26a36"/>
+      <circle cx="260" cy="200" r="6" fill="#d26a36"/>
+      <circle cx="100" cy="225" r="5" fill="#22c55e" opacity="0.5"/>
+      <circle cx="180" cy="223" r="5" fill="#22c55e" opacity="0.5"/>
+      <circle cx="260" cy="218" r="5" fill="#22c55e" opacity="0.5"/>
+    </svg>
+    <p class="reference">Faude et al. 2009 — Lactate threshold concepts: "adequate warm-up is essential for reliable threshold determination"</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 3: SITUACIÓN 2 -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">SITUACION 2</div>
+    <h2 style="font-size:46px; max-width:850px;">Escalones demasiado <span class="accent">cortos</span> (&lt;3 min)</h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        El lactato sanguineo necesita tiempo para equilibrarse con el lactato muscular. Con escalones de <span class="accent">&lt;3 minutos</span>, la muestra refleja el escalon anterior, no el actual. El estado estable requiere <span class="accent-green">4-5 minutos</span> por escalon.
+      </p>
+    </div>
+    <svg width="700" height="280" viewBox="0 0 700 280">
+      <!-- Two protocols comparison -->
+      <!-- Protocol A: short steps -->
+      <rect x="60" y="30" width="280" height="230" rx="16" fill="rgba(210,106,54,0.05)" stroke="rgba(210,106,54,0.15)" stroke-width="1"/>
+      <text x="200" y="60" fill="#d26a36" font-size="20" font-family="Space Grotesk" text-anchor="middle" font-weight="600">Escalones de 2 min</text>
+      <!-- Steps visualization -->
+      <rect x="90" y="90" width="40" height="20" rx="4" fill="rgba(210,106,54,0.3)"/>
+      <rect x="135" y="90" width="40" height="20" rx="4" fill="rgba(210,106,54,0.3)"/>
+      <rect x="180" y="90" width="40" height="20" rx="4" fill="rgba(210,106,54,0.3)"/>
+      <rect x="225" y="90" width="40" height="20" rx="4" fill="rgba(210,106,54,0.3)"/>
+      <rect x="270" y="90" width="40" height="20" rx="4" fill="rgba(210,106,54,0.3)"/>
+      <text x="200" y="135" fill="rgba(247,246,244,0.4)" font-size="15" font-family="Source Sans 3" text-anchor="middle">Lactato NO equilibrado</text>
+      <!-- Zigzag curve -->
+      <path d="M100,200 L140,195 L180,188 L220,192 L260,175 L300,160" fill="none" stroke="#d26a36" stroke-width="2.5"/>
+      <text x="200" y="230" fill="#d26a36" font-size="16" font-family="Space Grotesk" text-anchor="middle">Curva erratica</text>
+      <!-- Protocol B: proper steps -->
+      <rect x="380" y="30" width="280" height="230" rx="16" fill="rgba(34,197,94,0.05)" stroke="rgba(34,197,94,0.15)" stroke-width="1"/>
+      <text x="520" y="60" fill="#22c55e" font-size="20" font-family="Space Grotesk" text-anchor="middle" font-weight="600">Escalones de 4-5 min</text>
+      <!-- Steps visualization -->
+      <rect x="400" y="90" width="70" height="20" rx="4" fill="rgba(34,197,94,0.3)"/>
+      <rect x="480" y="90" width="70" height="20" rx="4" fill="rgba(34,197,94,0.3)"/>
+      <rect x="560" y="90" width="70" height="20" rx="4" fill="rgba(34,197,94,0.3)"/>
+      <text x="520" y="135" fill="rgba(247,246,244,0.4)" font-size="15" font-family="Source Sans 3" text-anchor="middle">Lactato en estado estable</text>
+      <!-- Clean curve -->
+      <path d="M420,200 L480,195 L540,180 L600,148 L630,120" fill="none" stroke="#22c55e" stroke-width="2.5"/>
+      <text x="520" y="230" fill="#22c55e" font-size="16" font-family="Space Grotesk" text-anchor="middle">Curva limpia</text>
+    </svg>
+    <p class="reference">Beneke &amp; von Duvillard 1996 — Determination of maximal lactate steady state in selected sports events; Heck et al. 1985</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 4: SITUACIÓN 3 -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">SITUACION 3</div>
+    <h2 style="font-size:46px; max-width:850px;"><span class="accent">Deshidratacion</span> o enfermedad</h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        La deshidratacion causa <span class="accent">hemoconcentracion</span>: menos plasma sanguineo = misma cantidad de lactato pero en menor volumen = concentracion artificialmente alta. El efecto puede ser de <span class="accent-orange">+0.5-1.0 mmol/L</span> en el baseline.
+      </p>
+    </div>
+    <div style="display:flex; gap:25px;">
+      <div class="card" style="flex:1; padding:30px; text-align:center;">
+        <svg width="120" height="120" viewBox="0 0 120 120" style="margin:0 auto 15px;">
+          <!-- Full blood vessel -->
+          <rect x="20" y="20" width="80" height="80" rx="40" fill="rgba(34,197,94,0.1)" stroke="rgba(34,197,94,0.3)" stroke-width="2"/>
+          <circle cx="40" cy="50" r="5" fill="rgba(210,106,54,0.5)"/>
+          <circle cx="60" cy="40" r="5" fill="rgba(210,106,54,0.5)"/>
+          <circle cx="80" cy="55" r="5" fill="rgba(210,106,54,0.5)"/>
+          <circle cx="50" cy="70" r="5" fill="rgba(210,106,54,0.5)"/>
+          <circle cx="70" cy="75" r="5" fill="rgba(210,106,54,0.5)"/>
+          <circle cx="60" cy="60" r="5" fill="rgba(210,106,54,0.5)"/>
+        </svg>
+        <h3 style="font-size:22px; color:#22c55e;">Hidratado</h3>
+        <p style="font-size:18px; color:rgba(247,246,244,0.5); margin-top:8px;">Plasma normal. Lactato = concentracion real.</p>
+        <p style="font-size:28px; color:#22c55e; margin-top:12px; font-family:'Space Grotesk'; font-weight:700;">1.0 mmol/L</p>
+      </div>
+      <div class="card" style="flex:1; padding:30px; text-align:center;">
+        <svg width="120" height="120" viewBox="0 0 120 120" style="margin:0 auto 15px;">
+          <!-- Concentrated blood vessel -->
+          <rect x="30" y="30" width="60" height="60" rx="30" fill="rgba(210,106,54,0.15)" stroke="rgba(210,106,54,0.3)" stroke-width="2"/>
+          <circle cx="45" cy="52" r="5" fill="rgba(210,106,54,0.7)"/>
+          <circle cx="60" cy="45" r="5" fill="rgba(210,106,54,0.7)"/>
+          <circle cx="75" cy="55" r="5" fill="rgba(210,106,54,0.7)"/>
+          <circle cx="52" cy="67" r="5" fill="rgba(210,106,54,0.7)"/>
+          <circle cx="68" cy="68" r="5" fill="rgba(210,106,54,0.7)"/>
+          <circle cx="60" cy="58" r="5" fill="rgba(210,106,54,0.7)"/>
+        </svg>
+        <h3 style="font-size:22px; color:#d26a36;">Deshidratado</h3>
+        <p style="font-size:18px; color:rgba(247,246,244,0.5); margin-top:8px;">Menos plasma. Mismo lactato = concentracion inflada.</p>
+        <p style="font-size:28px; color:#d26a36; margin-top:12px; font-family:'Space Grotesk'; font-weight:700;">1.6 mmol/L</p>
+      </div>
+    </div>
+    <p style="font-size:20px; color:rgba(247,246,244,0.5); margin-top:10px; text-align:center;">
+      Lo mismo ocurre con infecciones virales sublicinales: inflamacion sistemica eleva el baseline
+    </p>
+    <p class="reference">Maughan et al. 2007 — Fluid and electrolyte loss and replacement in exercise; Gleeson 2002</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 5: SITUACIÓN 4 -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">SITUACION 4</div>
+    <h2 style="font-size:44px; max-width:850px;">Comida pre-test con <span class="accent">alto indice glucemico</span></h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        Una comida rica en carbohidratos simples <span class="accent">2-3h antes</span> del test causa hiperinsulinemia reactiva, que altera el metabolismo de sustratos. El cuerpo prioriza la oxidacion de glucosa y el lactato basal se eleva.
+      </p>
+    </div>
+    <div style="display:flex; gap:25px;">
+      <div class="card" style="flex:1; padding:30px;">
+        <h3 style="font-size:22px; color:#d26a36; margin-bottom:15px; text-align:center;">Alto IG pre-test</h3>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:18px; color:rgba(247,246,244,0.6);">Insulina</span>
+            <span style="font-size:18px; color:#d26a36; font-family:'Space Grotesk'; font-weight:600;">ALTA</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:18px; color:rgba(247,246,244,0.6);">Oxidacion grasas</span>
+            <span style="font-size:18px; color:#d26a36; font-family:'Space Grotesk'; font-weight:600;">SUPRIMIDA</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:18px; color:rgba(247,246,244,0.6);">Glucolisis</span>
+            <span style="font-size:18px; color:#d26a36; font-family:'Space Grotesk'; font-weight:600;">ELEVADA</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:18px; color:rgba(247,246,244,0.6);">Lactato basal</span>
+            <span style="font-size:18px; color:#d26a36; font-family:'Space Grotesk'; font-weight:600;">+0.3-0.8 mmol</span>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="flex:1; padding:30px; border-color:rgba(34,197,94,0.3);">
+        <h3 style="font-size:22px; color:#22c55e; margin-bottom:15px; text-align:center;">Recomendacion</h3>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:18px; color:rgba(247,246,244,0.6);">Timing</span>
+            <span style="font-size:18px; color:#22c55e; font-family:'Space Grotesk'; font-weight:600;">3-4h antes</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:18px; color:rgba(247,246,244,0.6);">Tipo</span>
+            <span style="font-size:18px; color:#22c55e; font-family:'Space Grotesk'; font-weight:600;">Bajo IG</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:18px; color:rgba(247,246,244,0.6);">Cantidad</span>
+            <span style="font-size:18px; color:#22c55e; font-family:'Space Grotesk'; font-weight:600;">Moderada</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:18px; color:rgba(247,246,244,0.6);">Cafeina</span>
+            <span style="font-size:18px; color:#22c55e; font-family:'Space Grotesk'; font-weight:600;">OK si habitual</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="reference">Coyle 1997 — Substrate utilization during exercise; Hargreaves et al. 2004 — Pre-exercise carbohydrate and fat ingestion</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 6: SITUACIÓN 5 -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">SITUACION 5</div>
+    <h2 style="font-size:44px; max-width:850px;">Entrenamiento intenso <span class="accent">&lt;48h antes</span></h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        Con <span class="accent">glucogeno muscular deplecionado</span>, la curva se desplaza: el cuerpo depende mas de las grasas a intensidades bajas (lactato artificialmente bajo) pero no puede sostener las intensidades altas (LT2 artificialmente bajo).
+      </p>
+    </div>
+    <svg width="700" height="280" viewBox="0 0 700 280">
+      <line x1="60" y1="240" x2="660" y2="240" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <line x1="60" y1="30" x2="60" y2="240" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <text x="20" y="245" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">0</text>
+      <text x="20" y="160" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">4</text>
+      <text x="20" y="80" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">8</text>
+      <!-- Normal curve (rested) -->
+      <path d="M100,225 L180,222 L260,215 L340,195 L420,160 L500,105 L580,55" fill="none" stroke="#22c55e" stroke-width="3" opacity="0.5"/>
+      <text x="585" y="53" fill="#22c55e" font-size="14" font-family="Source Sans 3" opacity="0.7">Descansado</text>
+      <!-- Depleted curve -->
+      <path d="M100,228 L180,227 L260,225 L340,218 L420,190 L480,160 L510,140" fill="none" stroke="#d26a36" stroke-width="3"/>
+      <text x="518" y="138" fill="#d26a36" font-size="14" font-family="Source Sans 3">Deplecionado</text>
+      <!-- LT2 markers -->
+      <line x1="420" y1="160" x2="420" y2="240" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.4"/>
+      <line x1="380" y1="195" x2="380" y2="240" stroke="#d26a36" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <!-- LT2 label -->
+      <text x="420" y="255" fill="#22c55e" font-size="13" font-family="Space Grotesk" text-anchor="middle" opacity="0.5">LT2 real</text>
+      <text x="380" y="255" fill="#d26a36" font-size="13" font-family="Space Grotesk" text-anchor="middle">LT2 falso</text>
+      <!-- Premature end marker -->
+      <line x1="510" y1="30" x2="510" y2="130" stroke="rgba(210,106,54,0.4)" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="530" y="100" fill="rgba(210,106,54,0.5)" font-size="13" font-family="Source Sans 3">Abandono prematuro</text>
+    </svg>
+    <div class="card" style="padding:25px 35px; text-align:center;">
+      <p style="font-size:22px; color:rgba(247,246,244,0.7);">
+        <span class="accent">Recomendacion:</span> 48-72 horas de descanso o entrenamiento muy suave antes del test
+      </p>
+    </div>
+    <p class="reference">Jacobs 1981 — Lactate, muscle glycogen and exercise performance in man; Bergstrom et al. 1967</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:40px; align-items:center; text-align:center;">
+    <h2 style="font-size:48px; max-width:800px;">PeakAerobic detecta <span class="accent">tests sospechosos</span></h2>
+    <div class="divider" style="margin:0 auto;"></div>
+    <div class="cta-box" style="width:100%; text-align:center;">
+      <h2 style="font-size:36px; margin-bottom:20px; color:#fff;">Score de confianza automatico</h2>
+      <p style="font-size:24px; color:rgba(255,255,255,0.9); line-height:1.6; max-width:700px; margin:0 auto;">
+        Cada test recibe un score de confianza basado en la calidad de los datos: monotonia de la curva, coherencia del baseline, numero de escalones y consistencia entre metodos de deteccion.
+      </p>
+    </div>
+    <div style="display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">
+      <div class="card" style="padding:25px 30px; text-align:center;">
+        <h3 style="font-size:32px; color:#22c55e;">Alta</h3>
+        <p style="font-size:16px; color:rgba(247,246,244,0.5);">Confianza &gt;0.85</p>
+        <p style="font-size:14px; color:rgba(247,246,244,0.35);">Test fiable</p>
+      </div>
+      <div class="card" style="padding:25px 30px; text-align:center;">
+        <h3 style="font-size:32px; color:#f97316;">Media</h3>
+        <p style="font-size:16px; color:rgba(247,246,244,0.5);">Confianza 0.65-0.85</p>
+        <p style="font-size:14px; color:rgba(247,246,244,0.35);">Revisar condiciones</p>
+      </div>
+      <div class="card" style="padding:25px 30px; text-align:center;">
+        <h3 style="font-size:32px; color:#d26a36;">Baja</h3>
+        <p style="font-size:16px; color:rgba(247,246,244,0.5);">Confianza &lt;0.65</p>
+        <p style="font-size:14px; color:rgba(247,246,244,0.35);">Repetir test</p>
+      </div>
+    </div>
+    <p style="font-size:28px; color:rgba(247,246,244,0.7); margin-top:10px;">
+      peakaerobic.com — <span class="accent">Gratis</span>
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+</body>
+</html>

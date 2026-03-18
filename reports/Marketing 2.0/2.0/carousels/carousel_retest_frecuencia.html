@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>¿Cada cuánto deberías repetir tu test de lactato?</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px;
+    gap: 40px;
+    font-family: 'Source Sans 3', sans-serif;
+  }
+  .slide {
+    width: 1080px;
+    height: 1080px;
+    background: #0e1e24;
+    color: #f7f6f4;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide-number {
+    position: absolute;
+    top: 40px;
+    right: 50px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: rgba(247,246,244,0.4);
+    letter-spacing: 2px;
+  }
+  .progress-dots {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+  }
+  .progress-dots .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active {
+    background: #d26a36;
+  }
+  .watermark {
+    position: absolute;
+    bottom: 40px;
+    right: 50px;
+    text-align: right;
+    font-size: 13px;
+    color: rgba(247,246,244,0.25);
+    line-height: 1.4;
+  }
+  .watermark strong {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    display: block;
+    font-size: 14px;
+  }
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 52px;
+    line-height: 1.15;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 42px;
+    line-height: 1.2;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 32px;
+    line-height: 1.25;
+    margin-bottom: 16px;
+  }
+  p, li {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 26px;
+    line-height: 1.55;
+    color: rgba(247,246,244,0.85);
+  }
+  .tag {
+    display: inline-block;
+    background: rgba(210,106,54,0.15);
+    color: #d26a36;
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+  .card {
+    background: rgba(210,106,54,0.08);
+    border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px;
+    padding: 32px 36px;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    border-radius: 20px;
+    padding: 40px 50px;
+    text-align: center;
+    width: 100%;
+  }
+  .cta-box h2, .cta-box p {
+    color: #fff;
+  }
+  .ref {
+    font-size: 18px;
+    color: rgba(247,246,244,0.4);
+    font-style: italic;
+    margin-top: 16px;
+  }
+  ul { list-style: none; padding: 0; width: 100%; }
+  ul li { padding: 10px 0; padding-left: 30px; position: relative; }
+  ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #d26a36;
+  }
+  .big-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 96px;
+    font-weight: 700;
+    color: #d26a36;
+    line-height: 1;
+  }
+  .highlight-box {
+    border-left: 4px solid #d26a36;
+    padding-left: 24px;
+    margin: 16px 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <div class="slide-number">01 / 07</div>
+  <div class="tag">Frecuencia de re-test</div>
+  <h1>¿Cada cuánto deberías<br><span class="accent">retestarte?</span></h1>
+  <p style="text-align:center; font-size: 28px; margin-top: 12px;">La frecuencia óptima de tests de lactato<br>para maximizar tu entrenamiento</p>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+<!-- SLIDE 2: La regla general -->
+<div class="slide">
+  <div class="slide-number">02 / 07</div>
+  <h2>La regla general</h2>
+  <div class="big-number" style="margin: 20px 0;">6-8</div>
+  <h3 style="text-align:center;">semanas entre tests</h3>
+  <p style="text-align:center; margin-top: 20px;">Equivale a <span class="accent" style="font-weight:700;">2 mesociclos</span> completos de entrenamiento.</p>
+  <div class="card" style="margin-top: 30px;">
+    <p style="font-size:24px;">Las adaptaciones aeróbicas (densidad mitocondrial, capilarización, eficiencia enzimática) necesitan entre <strong class="accent">4 y 8 semanas</strong> para manifestarse en un test de lactato.</p>
+    <p class="ref">Issurin, V.B. (2010). New horizons for the methodology and physiology of training periodization. Sports Medicine, 40(3), 189-206.</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+<!-- SLIDE 3: Señales para retestarte ANTES -->
+<div class="slide">
+  <div class="slide-number">03 / 07</div>
+  <div class="tag">Retéstate antes si...</div>
+  <h2 style="font-size: 36px;">Señales de que necesitas<br>retestarte <span class="accent">antes</span></h2>
+  <div style="width:100%; margin-top: 20px;">
+    <div class="card" style="display:flex; align-items:center; gap:20px;">
+      <span class="red" style="font-size:36px; font-weight:700;">!</span>
+      <p style="font-size:24px;">Tu rendimiento se ha <strong>estancado</strong> o empeorado sin explicación</p>
+    </div>
+    <div class="card" style="display:flex; align-items:center; gap:20px;">
+      <span class="orange" style="font-size:36px; font-weight:700;">?</span>
+      <p style="font-size:24px;">Tus zonas de entrenamiento ya <strong>no se sienten correctas</strong></p>
+    </div>
+    <div class="card" style="display:flex; align-items:center; gap:20px;">
+      <span class="accent" style="font-size:36px; font-weight:700;">→</span>
+      <p style="font-size:24px;">Empiezas un <strong>nuevo bloque</strong> de entrenamiento (base → específico)</p>
+    </div>
+  </div>
+  <!-- SVG Timeline -->
+  <svg width="700" height="80" viewBox="0 0 700 80" style="margin-top: 30px;">
+    <line x1="50" y1="40" x2="650" y2="40" stroke="rgba(247,246,244,0.2)" stroke-width="3"/>
+    <circle cx="100" cy="40" r="12" fill="#d26a36"/>
+    <text x="100" y="70" fill="#d26a36" font-family="Space Grotesk" font-size="14" text-anchor="middle">Test 1</text>
+    <circle cx="300" cy="40" r="12" fill="#ef4444" stroke="#ef4444" stroke-width="2"/>
+    <text x="300" y="70" fill="#ef4444" font-family="Space Grotesk" font-size="14" text-anchor="middle">Estancamiento</text>
+    <text x="300" y="20" fill="#ef4444" font-family="Space Grotesk" font-size="13" text-anchor="middle">Sem. 4</text>
+    <circle cx="400" cy="40" r="12" fill="#f97316"/>
+    <text x="400" y="70" fill="#f97316" font-family="Space Grotesk" font-size="14" text-anchor="middle">Re-test</text>
+    <text x="400" y="20" fill="#f97316" font-family="Space Grotesk" font-size="13" text-anchor="middle">Sem. 5</text>
+    <circle cx="600" cy="40" r="12" fill="rgba(247,246,244,0.3)"/>
+    <text x="600" y="70" fill="rgba(247,246,244,0.3)" font-family="Space Grotesk" font-size="14" text-anchor="middle">Test normal</text>
+    <text x="600" y="20" fill="rgba(247,246,244,0.3)" font-family="Space Grotesk" font-size="13" text-anchor="middle">Sem. 8</text>
+  </svg>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+<!-- SLIDE 4: Señales para esperar más -->
+<div class="slide">
+  <div class="slide-number">04 / 07</div>
+  <div class="tag">Puedes esperar si...</div>
+  <h2 style="font-size: 36px;">Señales de que puedes<br>esperar <span class="green">más</span></h2>
+  <div style="width:100%; margin-top: 20px;">
+    <div class="card" style="display:flex; align-items:center; gap:20px;">
+      <span class="green" style="font-size:36px; font-weight:700;">✓</span>
+      <div>
+        <p style="font-size:24px; font-weight:600;">Progresión consistente</p>
+        <p style="font-size:20px; color:rgba(247,246,244,0.6);">Tus tiempos/potencia siguen mejorando de forma lineal</p>
+      </div>
+    </div>
+    <div class="card" style="display:flex; align-items:center; gap:20px;">
+      <span class="green" style="font-size:36px; font-weight:700;">✓</span>
+      <div>
+        <p style="font-size:24px; font-weight:600;">Misma fase de temporada</p>
+        <p style="font-size:20px; color:rgba(247,246,244,0.6);">Continúas en el mismo bloque sin cambio de objetivos</p>
+      </div>
+    </div>
+    <div class="card" style="display:flex; align-items:center; gap:20px;">
+      <span class="green" style="font-size:36px; font-weight:700;">✓</span>
+      <div>
+        <p style="font-size:24px; font-weight:600;">Sin cambios significativos de carga</p>
+        <p style="font-size:20px; color:rgba(247,246,244,0.6);">Volumen e intensidad estables, sin lesión ni parón</p>
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center; margin-top:30px; font-size:22px; color:rgba(247,246,244,0.5);">En estos casos, cada <span class="accent">8-12 semanas</span> es suficiente.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+<!-- SLIDE 5: El error #1 -->
+<div class="slide">
+  <div class="slide-number">05 / 07</div>
+  <div class="tag" style="background:rgba(239,68,68,0.15); color:#ef4444;">Error frecuente</div>
+  <h2>El error #1:<br><span class="red">retestarse demasiado pronto</span></h2>
+  <div class="card" style="margin-top: 24px; border-color: rgba(239,68,68,0.3);">
+    <p style="font-size:24px; text-align:center;">Retestarse a las <strong class="red">2-3 semanas</strong> no refleja adaptaciones reales.</p>
+    <p style="font-size:24px; text-align:center; margin-top:12px;">Solo mide <span class="red">fatiga acumulada</span> o variabilidad del test.</p>
+  </div>
+  <div style="margin-top:30px; width:100%;">
+    <div class="highlight-box">
+      <p style="font-size:24px;"><strong>La biogénesis mitocondrial</strong> necesita entre 3 y 6 semanas de estímulo sostenido para generar cambios medibles en la curva de lactato.</p>
+    </div>
+  </div>
+  <div class="card" style="margin-top:24px; text-align:center;">
+    <p style="font-size:22px;">Mínimo absoluto entre tests: <span class="accent" style="font-weight:700; font-size:28px;">4 semanas</span></p>
+  </div>
+  <p class="ref" style="text-align:center;">Hawley, J.A. (2002). Adaptations of skeletal muscle to prolonged, intense endurance training. Clinical and Experimental Pharmacology and Physiology, 29(3), 218-222.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+<!-- SLIDE 6: PeakAerobic tracking -->
+<div class="slide">
+  <div class="slide-number">06 / 07</div>
+  <h2>Trackea tu evolución<br>con <span class="accent">PeakAerobic</span></h2>
+  <p style="text-align:center; margin-bottom:30px; font-size:24px;">Visualiza cómo se mueven tus umbrales test a test.</p>
+  <!-- SVG Chart: LT1/LT2 evolution over time -->
+  <svg width="750" height="380" viewBox="0 0 750 380" style="margin-top: 10px;">
+    <!-- Grid -->
+    <line x1="80" y1="30" x2="80" y2="300" stroke="rgba(247,246,244,0.1)" stroke-width="1"/>
+    <line x1="80" y1="300" x2="720" y2="300" stroke="rgba(247,246,244,0.1)" stroke-width="1"/>
+    <line x1="80" y1="200" x2="720" y2="200" stroke="rgba(247,246,244,0.05)" stroke-width="1" stroke-dasharray="5,5"/>
+    <line x1="80" y1="100" x2="720" y2="100" stroke="rgba(247,246,244,0.05)" stroke-width="1" stroke-dasharray="5,5"/>
+    <!-- Y-axis labels -->
+    <text x="65" y="305" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14" text-anchor="end">3:00</text>
+    <text x="65" y="205" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14" text-anchor="end">4:30</text>
+    <text x="65" y="105" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14" text-anchor="end">6:00</text>
+    <text x="30" y="190" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="13" text-anchor="middle" transform="rotate(-90,30,190)">Ritmo (min/km)</text>
+    <!-- X-axis labels -->
+    <text x="160" y="330" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Ene</text>
+    <text x="320" y="330" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Mar</text>
+    <text x="480" y="330" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14" text-anchor="middle">May</text>
+    <text x="640" y="330" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Jul</text>
+    <!-- LT2 line (faster pace = lower on chart but higher on inverted axis) -->
+    <polyline points="160,210 320,190 480,165 640,145" fill="none" stroke="#d26a36" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="160" cy="210" r="7" fill="#d26a36"/>
+    <circle cx="320" cy="190" r="7" fill="#d26a36"/>
+    <circle cx="480" cy="165" r="7" fill="#d26a36"/>
+    <circle cx="640" cy="145" r="7" fill="#d26a36"/>
+    <text x="655" y="138" fill="#d26a36" font-family="Space Grotesk" font-size="15" font-weight="600">LT2</text>
+    <!-- LT1 line -->
+    <polyline points="160,140 320,125 480,110 640,95" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="160" cy="140" r="7" fill="#22c55e"/>
+    <circle cx="320" cy="125" r="7" fill="#22c55e"/>
+    <circle cx="480" cy="110" r="7" fill="#22c55e"/>
+    <circle cx="640" cy="95" r="7" fill="#22c55e"/>
+    <text x="655" y="88" fill="#22c55e" font-family="Space Grotesk" font-size="15" font-weight="600">LT1</text>
+    <!-- Test markers -->
+    <text x="160" y="350" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12" text-anchor="middle">Test 1</text>
+    <text x="320" y="350" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12" text-anchor="middle">Test 2</text>
+    <text x="480" y="350" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12" text-anchor="middle">Test 3</text>
+    <text x="640" y="350" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12" text-anchor="middle">Test 4</text>
+    <!-- Improvement arrow -->
+    <text x="400" y="60" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="16" text-anchor="middle">↑ Ritmo más rápido a misma concentración de lactato</text>
+  </svg>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">07 / 07</div>
+  <div class="cta-box">
+    <h2 style="font-size:44px; margin-bottom:20px;">Monitoriza tu<br>evolución fisiológica</h2>
+    <p style="font-size:26px; margin-bottom:30px; opacity:0.95;">Sube tus tests. Compara resultados.<br>Entrena con datos reales.</p>
+    <div style="background:rgba(255,255,255,0.2); border-radius:14px; padding:20px 36px; display:inline-block;">
+      <p style="font-size:24px; font-weight:700; color:#fff;">peakaerobic.com</p>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+</body>
+</html>

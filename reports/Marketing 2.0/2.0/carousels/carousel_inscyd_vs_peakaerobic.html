@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>INSCYD cobra €50/mes — PeakAerobic Carousel</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a1a;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    font-family: 'Source Sans 3', sans-serif;
+  }
+  .slide {
+    width: 1080px;
+    height: 1080px;
+    background: #0e1e24;
+    color: #f7f6f4;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide-number {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    color: rgba(247,246,244,0.35);
+  }
+  .progress-dots {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+  }
+  .progress-dots .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active {
+    background: #d26a36;
+  }
+  .watermark {
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    text-align: right;
+  }
+  .watermark .brand {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    color: rgba(210,106,54,0.35);
+    font-weight: 600;
+  }
+  .watermark .sub {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 11px;
+    color: rgba(210,106,54,0.25);
+  }
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 52px;
+    line-height: 1.15;
+    text-align: center;
+  }
+  h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 42px;
+    line-height: 1.2;
+    text-align: center;
+  }
+  h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+    font-size: 32px;
+    line-height: 1.3;
+  }
+  p, li {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 26px;
+    line-height: 1.6;
+    color: rgba(247,246,244,0.85);
+  }
+  .tag {
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 6px;
+    background: rgba(210,106,54,0.15);
+    color: #d26a36;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+    font-size: 20px;
+  }
+  .divider {
+    width: 60px;
+    height: 4px;
+    background: #d26a36;
+    border-radius: 2px;
+    margin: 20px 0;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    padding: 40px 50px;
+    border-radius: 20px;
+    text-align: center;
+    width: 100%;
+  }
+  .cta-box h2, .cta-box p {
+    color: #fff;
+  }
+  .card {
+    background: rgba(210,106,54,0.08);
+    border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px;
+    padding: 30px 35px;
+    width: 100%;
+  }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <span class="slide-number">01 / 07</span>
+  <div class="tag" style="margin-bottom: 30px;">Comparativa</div>
+  <h1 style="font-size: 56px; margin-bottom: 25px;">INSCYD cobra <span class="accent">€50/mes</span>.</h1>
+  <h1 style="font-size: 56px;">Esto hace lo mismo.</h1>
+  <div class="divider" style="margin: 30px 0;"></div>
+  <h2 style="font-size: 48px; color: #d26a36;">Gratis.</h2>
+  <div class="progress-dots"><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: Qué hace INSCYD -->
+<div class="slide">
+  <span class="slide-number">02 / 07</span>
+  <h2 style="margin-bottom: 30px;">¿Qué hace INSCYD?</h2>
+  <div class="divider"></div>
+  <div class="card" style="margin-top: 25px; margin-bottom: 25px;">
+    <h3 style="margin-bottom: 15px; color: #d26a36;">Perfilado metabólico</h3>
+    <ul style="list-style: none; padding: 0;">
+      <li style="margin-bottom: 10px;">📊 VO2max estimado</li>
+      <li style="margin-bottom: 10px;">⚡ VLamax (potencia glucolítica)</li>
+      <li style="margin-bottom: 10px;">🔥 FatMax (oxidación máxima de grasas)</li>
+      <li style="margin-bottom: 10px;">📍 Umbrales de lactato (LT1/LT2)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom: 15px; color: #ef4444;">Precio</h3>
+    <p style="font-size: 30px; font-weight: 600;"><span class="red">€49–99/mes</span> suscripción</p>
+    <p style="font-size: 30px; font-weight: 600;"><span class="red">€200–450</span> por test (coach certificado)</p>
+    <p style="font-size: 22px; margin-top: 10px; color: rgba(247,246,244,0.5);">Mader, 2003; Weber & Schneider, 2001</p>
+  </div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: Qué hace PeakAerobic -->
+<div class="slide">
+  <span class="slide-number">03 / 07</span>
+  <h2 style="margin-bottom: 25px;">¿Qué hace <span class="accent">PeakAerobic</span>?</h2>
+  <div class="divider"></div>
+  <p style="text-align: center; margin: 20px 0 30px; font-size: 28px;">Lo mismo. Desde tus tests de lactato. <span class="accent" style="font-weight: 700;">Gratis.</span></p>
+  <svg viewBox="0 0 800 340" width="800" xmlns="http://www.w3.org/2000/svg" style="margin-top: 10px;">
+    <!-- Table header -->
+    <rect x="0" y="0" width="800" height="55" rx="10" fill="rgba(210,106,54,0.2)"/>
+    <text x="300" y="36" font-family="Space Grotesk" font-size="22" font-weight="700" fill="#d26a36" text-anchor="middle">INSCYD</text>
+    <text x="600" y="36" font-family="Space Grotesk" font-size="22" font-weight="700" fill="#d26a36" text-anchor="middle">PeakAerobic</text>
+    <!-- Rows -->
+    <text x="30" y="95" font-family="Source Sans 3" font-size="21" fill="#f7f6f4">VO2max estimado</text>
+    <text x="300" y="95" font-family="Space Grotesk" font-size="22" fill="#22c55e" text-anchor="middle">✓</text>
+    <text x="600" y="95" font-family="Space Grotesk" font-size="22" fill="#22c55e" text-anchor="middle">✓</text>
+    <line x1="30" y1="115" x2="770" y2="115" stroke="rgba(247,246,244,0.08)" stroke-width="1"/>
+    <text x="30" y="150" font-family="Source Sans 3" font-size="21" fill="#f7f6f4">VLamax proxy</text>
+    <text x="300" y="150" font-family="Space Grotesk" font-size="22" fill="#22c55e" text-anchor="middle">✓</text>
+    <text x="600" y="150" font-family="Space Grotesk" font-size="22" fill="#22c55e" text-anchor="middle">✓</text>
+    <line x1="30" y1="170" x2="770" y2="170" stroke="rgba(247,246,244,0.08)" stroke-width="1"/>
+    <text x="30" y="205" font-family="Source Sans 3" font-size="21" fill="#f7f6f4">Umbrales LT1/LT2</text>
+    <text x="300" y="205" font-family="Space Grotesk" font-size="22" fill="#22c55e" text-anchor="middle">✓</text>
+    <text x="600" y="205" font-family="Space Grotesk" font-size="22" fill="#22c55e" text-anchor="middle">✓</text>
+    <line x1="30" y1="225" x2="770" y2="225" stroke="rgba(247,246,244,0.08)" stroke-width="1"/>
+    <text x="30" y="260" font-family="Source Sans 3" font-size="21" fill="#f7f6f4">Coste mensual</text>
+    <text x="300" y="260" font-family="Source Sans 3" font-size="22" fill="#ef4444" text-anchor="middle">€49–99</text>
+    <text x="600" y="260" font-family="Space Grotesk" font-size="22" fill="#22c55e" text-anchor="middle">€0</text>
+    <line x1="30" y1="280" x2="770" y2="280" stroke="rgba(247,246,244,0.08)" stroke-width="1"/>
+    <text x="30" y="318" font-family="Source Sans 3" font-size="21" fill="#f7f6f4">Coste por test</text>
+    <text x="300" y="318" font-family="Source Sans 3" font-size="22" fill="#ef4444" text-anchor="middle">€200–450</text>
+    <text x="600" y="318" font-family="Space Grotesk" font-size="22" fill="#22c55e" text-anchor="middle">€0</text>
+  </svg>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: Lo que INSCYD NO hace -->
+<div class="slide">
+  <span class="slide-number">04 / 07</span>
+  <h2 style="margin-bottom: 20px;">Lo que INSCYD <span class="red">NO</span> hace</h2>
+  <div class="divider"></div>
+  <div class="card" style="margin: 25px 0;">
+    <p style="font-size: 28px; font-style: italic; color: rgba(247,246,244,0.7); margin-bottom: 15px;">"Once you have the numbers, you're on your own."</p>
+    <p style="font-size: 20px; color: rgba(247,246,244,0.4);">— Discusión en foro TrainerRoad, 2023</p>
+  </div>
+  <div style="display: flex; gap: 20px; width: 100%; margin-top: 15px;">
+    <div class="card" style="flex: 1; text-align: center;">
+      <p style="font-size: 20px; color: rgba(247,246,244,0.5); margin-bottom: 10px;">INSCYD</p>
+      <h3 style="font-size: 26px;">Test → Perfil</h3>
+      <p style="font-size: 22px; margin-top: 8px; color: #ef4444;">Y ahí termina</p>
+    </div>
+    <div class="card" style="flex: 1; text-align: center; border-color: rgba(34,197,94,0.3);">
+      <p style="font-size: 20px; color: rgba(247,246,244,0.5); margin-bottom: 10px;">PeakAerobic</p>
+      <h3 style="font-size: 26px;">Test → Perfil → <span class="accent">Bloque</span></h3>
+      <p style="font-size: 22px; margin-top: 8px; color: #22c55e;">Prescripción incluida</p>
+    </div>
+  </div>
+  <p style="font-size: 20px; margin-top: 25px; color: rgba(247,246,244,0.45); text-align: center;">Basado en Olbrecht, <em>The Science of Winning</em>, 2000</p>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: Accesibilidad -->
+<div class="slide">
+  <span class="slide-number">05 / 07</span>
+  <h2 style="margin-bottom: 25px;">Acceso</h2>
+  <div class="divider"></div>
+  <div style="display: flex; gap: 25px; width: 100%; margin-top: 25px;">
+    <div class="card" style="flex: 1;">
+      <h3 style="text-align: center; margin-bottom: 20px; color: #ef4444;">INSCYD</h3>
+      <ul style="list-style: none; padding: 0;">
+        <li style="margin-bottom: 14px; font-size: 24px;"><span class="red">✗</span> Sales call obligatoria</li>
+        <li style="margin-bottom: 14px; font-size: 24px;"><span class="red">✗</span> Coach certificado requerido</li>
+        <li style="margin-bottom: 14px; font-size: 24px;"><span class="red">✗</span> Protocolo propietario</li>
+        <li style="margin-bottom: 14px; font-size: 24px;"><span class="red">✗</span> Algoritmos de caja negra</li>
+        <li style="font-size: 24px;"><span class="red">✗</span> Sin acceso directo atleta</li>
+      </ul>
+    </div>
+    <div class="card" style="flex: 1; border-color: rgba(34,197,94,0.3);">
+      <h3 style="text-align: center; margin-bottom: 20px; color: #22c55e;">PeakAerobic</h3>
+      <ul style="list-style: none; padding: 0;">
+        <li style="margin-bottom: 14px; font-size: 24px;"><span class="green">✓</span> Acceso inmediato</li>
+        <li style="margin-bottom: 14px; font-size: 24px;"><span class="green">✓</span> Pega tus datos y analiza</li>
+        <li style="margin-bottom: 14px; font-size: 24px;"><span class="green">✓</span> Cualquier test escalonado</li>
+        <li style="margin-bottom: 14px; font-size: 24px;"><span class="green">✓</span> Métodos publicados y citados</li>
+        <li style="font-size: 24px;"><span class="green">✓</span> Sin registro necesario</li>
+      </ul>
+    </div>
+  </div>
+  <p style="font-size: 20px; margin-top: 20px; color: rgba(247,246,244,0.45); text-align: center;">Bishop et al., 1998; Faude et al., 2009; Kindermann et al., 1979</p>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: Feature comparison -->
+<div class="slide">
+  <span class="slide-number">06 / 07</span>
+  <h2 style="margin-bottom: 25px;">Comparativa completa</h2>
+  <div class="divider"></div>
+  <svg viewBox="0 0 820 440" width="820" xmlns="http://www.w3.org/2000/svg" style="margin-top: 20px;">
+    <!-- Header -->
+    <rect x="0" y="0" width="820" height="55" rx="12" fill="rgba(210,106,54,0.2)"/>
+    <text x="260" y="36" font-family="Space Grotesk" font-size="20" font-weight="600" fill="#f7f6f4" text-anchor="middle">Función</text>
+    <text x="520" y="36" font-family="Space Grotesk" font-size="20" font-weight="600" fill="#ef4444" text-anchor="middle">INSCYD</text>
+    <text x="720" y="36" font-family="Space Grotesk" font-size="20" font-weight="600" fill="#22c55e" text-anchor="middle">PeakAerobic</text>
+    <!-- Row 1 -->
+    <text x="30" y="95" font-family="Source Sans 3" font-size="20" fill="#f7f6f4">Umbrales LT1/LT2</text>
+    <text x="520" y="95" font-size="24" fill="#22c55e" text-anchor="middle">✓</text>
+    <text x="720" y="95" font-size="24" fill="#22c55e" text-anchor="middle">✓</text>
+    <line x1="20" y1="112" x2="800" y2="112" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+    <!-- Row 2 -->
+    <text x="30" y="145" font-family="Source Sans 3" font-size="20" fill="#f7f6f4">VLamax proxy</text>
+    <text x="520" y="145" font-size="24" fill="#22c55e" text-anchor="middle">✓</text>
+    <text x="720" y="145" font-size="24" fill="#22c55e" text-anchor="middle">✓</text>
+    <line x1="20" y1="162" x2="800" y2="162" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+    <!-- Row 3 -->
+    <text x="30" y="195" font-family="Source Sans 3" font-size="20" fill="#f7f6f4">VO2max estimado</text>
+    <text x="520" y="195" font-size="24" fill="#22c55e" text-anchor="middle">✓</text>
+    <text x="720" y="195" font-size="24" fill="#22c55e" text-anchor="middle">✓</text>
+    <line x1="20" y1="212" x2="800" y2="212" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+    <!-- Row 4 -->
+    <text x="30" y="245" font-family="Source Sans 3" font-size="20" fill="#f7f6f4">Periodización por bloques</text>
+    <text x="520" y="245" font-size="24" fill="#ef4444" text-anchor="middle">✗</text>
+    <text x="720" y="245" font-size="24" fill="#22c55e" text-anchor="middle">✓</text>
+    <line x1="20" y1="262" x2="800" y2="262" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+    <!-- Row 5 -->
+    <text x="30" y="295" font-family="Source Sans 3" font-size="20" fill="#f7f6f4">Prescripción de mesociclo</text>
+    <text x="520" y="295" font-size="24" fill="#ef4444" text-anchor="middle">✗</text>
+    <text x="720" y="295" font-size="24" fill="#22c55e" text-anchor="middle">✓</text>
+    <line x1="20" y1="312" x2="800" y2="312" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+    <!-- Row 6 -->
+    <text x="30" y="345" font-family="Source Sans 3" font-size="20" fill="#f7f6f4">Gratis</text>
+    <text x="520" y="345" font-size="24" fill="#ef4444" text-anchor="middle">✗</text>
+    <text x="720" y="345" font-size="24" fill="#22c55e" text-anchor="middle">✓</text>
+    <line x1="20" y1="362" x2="800" y2="362" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+    <!-- Row 7 -->
+    <text x="30" y="395" font-family="Source Sans 3" font-size="20" fill="#f7f6f4">Transparencia metodológica</text>
+    <text x="520" y="395" font-size="24" fill="#ef4444" text-anchor="middle">✗</text>
+    <text x="720" y="395" font-size="24" fill="#22c55e" text-anchor="middle">✓</text>
+  </svg>
+  <p style="font-size: 18px; margin-top: 20px; color: rgba(247,246,244,0.4); text-align: center;">Modelos: Mader, 2003; Swain et al., 1994; ACSM, 2017</p>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <span class="slide-number">07 / 07</span>
+  <div class="cta-box">
+    <h1 style="color: #fff; font-size: 50px; margin-bottom: 20px;">Misma ciencia.</h1>
+    <h1 style="color: #fff; font-size: 50px; margin-bottom: 25px;">Cero paywall.</h1>
+    <div style="width: 60px; height: 4px; background: rgba(255,255,255,0.4); border-radius: 2px; margin: 25px auto;"></div>
+    <p style="font-size: 30px; color: rgba(255,255,255,0.9); margin-bottom: 10px;">Sube tu test de lactato. Obtén tu perfil metabólico.</p>
+    <p style="font-size: 30px; color: rgba(255,255,255,0.9);">Sin sales call. Sin certificación. Sin coste.</p>
+  </div>
+  <p style="font-size: 20px; margin-top: 30px; color: rgba(247,246,244,0.4); text-align: center;">peakaerobic.com</p>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

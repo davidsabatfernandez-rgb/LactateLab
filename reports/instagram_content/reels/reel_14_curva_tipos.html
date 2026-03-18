@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 14 — Tipos de Curva de Lactato</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px; height: 1920px; overflow: hidden;
+    background: #0e1e24; color: #f7f6f4;
+    font-family: 'Source Sans 3', sans-serif;
+    position: relative;
+  }
+  .watermark {
+    position: absolute; top: 40px; right: 40px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px; color: rgba(247,246,244,0.4);
+    z-index: 100;
+  }
+  .progress-bar {
+    position: absolute; bottom: 0; left: 0; height: 8px;
+    background: #d26a36; z-index: 100; width: 0%;
+    transition: width 0.1s linear;
+  }
+  .scene {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.5s ease;
+    padding: 60px;
+  }
+  .scene.active { opacity: 1; }
+  .accent { color: #d26a36; }
+  .citation {
+    position: absolute; bottom: 80px; left: 60px; right: 60px;
+    font-size: 24px; color: rgba(247,246,244,0.3);
+    text-align: center; font-style: italic;
+  }
+
+  .hook-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 76px; font-weight: 700; text-align: center; line-height: 1.15;
+  }
+
+  /* Silhouette grid */
+  .silhouettes {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 30px;
+    width: 800px; margin-top: 40px;
+  }
+  .sil-card {
+    background: rgba(247,246,244,0.05); border-radius: 20px;
+    height: 200px; display: flex; align-items: center; justify-content: center;
+    opacity: 0.3; filter: blur(8px);
+    transition: opacity 0.5s ease, filter 0.5s ease;
+    font-size: 60px;
+  }
+  .sil-card.revealed { opacity: 1; filter: blur(0); }
+
+  /* Curve type detail */
+  .curve-type-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 60px; font-weight: 700; margin-bottom: 12px;
+  }
+  .curve-type-sub {
+    font-size: 38px; color: rgba(247,246,244,0.6); margin-bottom: 30px;
+    text-align: center;
+  }
+  .curve-desc {
+    font-size: 34px; text-align: center; line-height: 1.5;
+    max-width: 800px; color: rgba(247,246,244,0.85); margin-top: 24px;
+  }
+  .trait-badge {
+    display: inline-block; padding: 10px 24px; border-radius: 30px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 600;
+    margin: 6px;
+  }
+  .traits { margin-top: 20px; text-align: center; }
+
+  canvas { border-radius: 12px; }
+
+  /* Final grid */
+  .final-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 900px;
+  }
+  .final-card {
+    background: rgba(247,246,244,0.06); border-radius: 20px; padding: 24px;
+    text-align: center;
+    opacity: 0; transform: scale(0.8);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .final-card.show { opacity: 1; transform: scale(1); }
+  .final-card canvas { width: 100%; height: 120px; }
+  .final-card-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px; font-weight: 600; margin-top: 10px;
+  }
+
+  .cta-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 44px; font-weight: 600; text-align: center; margin-bottom: 30px;
+    line-height: 1.3; max-width: 850px;
+  }
+  .logo-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 64px; font-weight: 700; color: #d26a36;
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+  .pulse { animation: pulse 1.5s ease infinite; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progress"></div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <div class="hook-text">No todas las curvas<br>de lactato son<br><span class="accent">iguales</span></div>
+  <div class="silhouettes">
+    <div class="sil-card" id="sil1">&#128200;</div>
+    <div class="sil-card" id="sil2">&#128200;</div>
+    <div class="sil-card" id="sil3">&#128200;</div>
+    <div class="sil-card" id="sil4">&#128200;</div>
+  </div>
+</div>
+
+<!-- Scene 2: Classic -->
+<div class="scene" id="scene2">
+  <div class="curve-type-title" style="color:#22c55e">CLASICA</div>
+  <div class="curve-type-sub">Curva exponencial con dos inflexiones</div>
+  <canvas id="curveClassic" width="800" height="400"></canvas>
+  <div class="curve-desc">Dos puntos de inflexion claros y definidos.<br>Modelo de dos umbrales de<br>Skinner & McLellan (1980).</div>
+  <div class="traits">
+    <span class="trait-badge" style="background:rgba(34,197,94,0.2);color:#22c55e">Predecible</span>
+    <span class="trait-badge" style="background:rgba(34,197,94,0.2);color:#22c55e">Alta confianza</span>
+  </div>
+  <div class="citation">Skinner, J.S. & McLellan, T.H. (1980). The transition from aerobic to anaerobic metabolism. Res Quarterly, 51(1), 234-248.</div>
+</div>
+
+<!-- Scene 3: Late inflection -->
+<div class="scene" id="scene3">
+  <div class="curve-type-title" style="color:#60a5fa">INFLEXION TARDIA</div>
+  <div class="curve-type-sub">Plana hasta intensidades altas</div>
+  <canvas id="curveLate" width="800" height="400"></canvas>
+  <div class="curve-desc">El lactato permanece bajo hasta intensidades<br>elevadas. Sugiere alta capacidad de<br>aclaramiento de lactato.</div>
+  <div class="traits">
+    <span class="trait-badge" style="background:rgba(96,165,250,0.2);color:#60a5fa">Aclaramiento alto</span>
+    <span class="trait-badge" style="background:rgba(96,165,250,0.2);color:#60a5fa">Eficiente</span>
+  </div>
+  <div class="citation">Brooks, G.A. (2018). The science and translation of lactate shuttle theory. Cell Metabolism, 27(4), 757-785.</div>
+</div>
+
+<!-- Scene 4: Early inflection -->
+<div class="scene" id="scene4">
+  <div class="curve-type-title" style="color:#f97316">INFLEXION TEMPRANA</div>
+  <div class="curve-type-sub">Subida rapida desde intensidades bajas</div>
+  <canvas id="curveEarly" width="800" height="400"></canvas>
+  <div class="curve-desc">El lactato sube rapidamente desde<br>intensidades bajas. Sugiere alta tasa<br>de produccion glucolitica.</div>
+  <div class="traits">
+    <span class="trait-badge" style="background:rgba(249,115,22,0.2);color:#f97316">Produccion alta</span>
+    <span class="trait-badge" style="background:rgba(249,115,22,0.2);color:#f97316">Glucolitico</span>
+  </div>
+  <div class="citation">Brooks, G.A. (2018). Cell Metabolism, 27(4), 757-785. — Lactate production-clearance balance.</div>
+</div>
+
+<!-- Scene 5: Noisy -->
+<div class="scene" id="scene5">
+  <div class="curve-type-title" style="color:#ef4444">RUIDOSA</div>
+  <div class="curve-type-sub">Datos erraticos con picos</div>
+  <canvas id="curveNoisy" width="800" height="400"></canvas>
+  <div class="curve-desc">Datos inconsistentes que dificultan<br>la deteccion de umbrales. Puede indicar<br>un protocolo de test inadecuado.</div>
+  <div class="traits">
+    <span class="trait-badge" style="background:rgba(239,68,68,0.2);color:#ef4444">Inconsistente</span>
+    <span class="trait-badge" style="background:rgba(239,68,68,0.2);color:#ef4444">Revisar protocolo</span>
+  </div>
+  <div class="citation">Beneke, R. et al. (2011). Methodological aspects of maximal lactate steady state. EJAP, 111(6), 1077-1086.</div>
+</div>
+
+<!-- Scene 6: All 4 + CTA -->
+<div class="scene" id="scene6">
+  <div class="cta-text">La forma de la curva refleja la<br>interaccion entre produccion y<br>aclaramiento de lactato</div>
+  <div class="final-grid">
+    <div class="final-card" id="fc1">
+      <canvas id="fc1c" width="340" height="120"></canvas>
+      <div class="final-card-label" style="color:#22c55e">Clasica</div>
+    </div>
+    <div class="final-card" id="fc2">
+      <canvas id="fc2c" width="340" height="120"></canvas>
+      <div class="final-card-label" style="color:#60a5fa">Inflexion tardia</div>
+    </div>
+    <div class="final-card" id="fc3">
+      <canvas id="fc3c" width="340" height="120"></canvas>
+      <div class="final-card-label" style="color:#f97316">Inflexion temprana</div>
+    </div>
+    <div class="final-card" id="fc4">
+      <canvas id="fc4c" width="340" height="120"></canvas>
+      <div class="final-card-label" style="color:#ef4444">Ruidosa</div>
+    </div>
+  </div>
+  <div class="logo-text pulse" style="margin-top:40px;">PeakAerobic</div>
+  <div class="citation">Brooks (2018) Cell Metabolism | Skinner & McLellan (1980) Res Quarterly | Beneke et al. (2011) EJAP</div>
+</div>
+
+<script>
+(function() {
+  const TOTAL = 30000;
+  const scenes = [
+    { id: 'scene1', start: 0, end: 3000 },
+    { id: 'scene2', start: 3000, end: 9000 },
+    { id: 'scene3', start: 9000, end: 15000 },
+    { id: 'scene4', start: 15000, end: 21000 },
+    { id: 'scene5', start: 21000, end: 26000 },
+    { id: 'scene6', start: 26000, end: 30000 },
+  ];
+  const progress = document.getElementById('progress');
+  let startTime = null;
+  const triggered = {};
+
+  // Curve data generators
+  const curves = {
+    classic: (t) => 0.8 + 0.3 * t + 2.5 * Math.pow(t, 2.5),
+    late: (t) => 0.9 + 0.1 * t + 6 * Math.pow(Math.max(t - 0.7, 0), 3),
+    early: (t) => 1.0 + 4 * t + 2 * t * t,
+    noisy: (t) => 1.0 + 1.5 * t + 1.5 * t * t + (Math.sin(t * 15) * 1.2 + Math.cos(t * 23) * 0.8),
+  };
+
+  function drawCurve(canvasId, curveFn, color, pct, cw, ch) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = cw || canvas.width, h = ch || canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    const pad = 40;
+
+    // Axes
+    ctx.strokeStyle = 'rgba(247,246,244,0.15)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, 10); ctx.lineTo(pad, h - pad); ctx.lineTo(w - 10, h - pad); ctx.stroke();
+
+    // Labels
+    ctx.font = '18px Source Sans 3'; ctx.fillStyle = 'rgba(247,246,244,0.4)';
+    ctx.fillText('mmol/L', 2, 24);
+    ctx.fillText('Intensidad', w / 2 - 30, h - 8);
+
+    // Curve
+    const steps = Math.floor(60 * pct);
+    if (steps < 1) return;
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const t = i / 60;
+      const x = pad + t * (w - pad - 10);
+      const val = curveFn(t);
+      const maxVal = 10;
+      const y = h - pad - (val / maxVal) * (h - pad - 20);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.stroke();
+
+    // Data points
+    const dotInterval = 10;
+    for (let i = 0; i <= steps; i += dotInterval) {
+      const t = i / 60;
+      const x = pad + t * (w - pad - 10);
+      const val = curveFn(t);
+      const y = h - pad - (val / 10) * (h - pad - 20);
+      ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = color; ctx.fill();
+    }
+  }
+
+  function animate(ts) {
+    if (!startTime) startTime = ts;
+    const elapsed = ts - startTime;
+    progress.style.width = Math.min(elapsed / TOTAL * 100, 100) + '%';
+
+    scenes.forEach(s => {
+      const el = document.getElementById(s.id);
+      if (elapsed >= s.start && elapsed < s.end) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    });
+
+    // Silhouette reveals
+    if (elapsed >= 500 && !triggered.s1) { triggered.s1 = true; document.getElementById('sil1').classList.add('revealed'); }
+    if (elapsed >= 1000 && !triggered.s2) { triggered.s2 = true; document.getElementById('sil2').classList.add('revealed'); }
+    if (elapsed >= 1500 && !triggered.s3) { triggered.s3 = true; document.getElementById('sil3').classList.add('revealed'); }
+    if (elapsed >= 2000 && !triggered.s4) { triggered.s4 = true; document.getElementById('sil4').classList.add('revealed'); }
+
+    // Draw curves with animation
+    if (elapsed >= 3000 && elapsed < 9000) {
+      const p = Math.min((elapsed - 3500) / 3000, 1);
+      drawCurve('curveClassic', curves.classic, '#22c55e', p);
+    }
+    if (elapsed >= 9000 && elapsed < 15000) {
+      const p = Math.min((elapsed - 9500) / 3000, 1);
+      drawCurve('curveLate', curves.late, '#60a5fa', p);
+    }
+    if (elapsed >= 15000 && elapsed < 21000) {
+      const p = Math.min((elapsed - 15500) / 3000, 1);
+      drawCurve('curveEarly', curves.early, '#f97316', p);
+    }
+    if (elapsed >= 21000 && elapsed < 26000) {
+      const p = Math.min((elapsed - 21500) / 3000, 1);
+      drawCurve('curveNoisy', curves.noisy, '#ef4444', p);
+    }
+
+    // Final cards
+    if (elapsed >= 26200 && !triggered.fc1) { triggered.fc1 = true; document.getElementById('fc1').classList.add('show'); drawCurve('fc1c', curves.classic, '#22c55e', 1, 340, 120); }
+    if (elapsed >= 26600 && !triggered.fc2) { triggered.fc2 = true; document.getElementById('fc2').classList.add('show'); drawCurve('fc2c', curves.late, '#60a5fa', 1, 340, 120); }
+    if (elapsed >= 27000 && !triggered.fc3) { triggered.fc3 = true; document.getElementById('fc3').classList.add('show'); drawCurve('fc3c', curves.early, '#f97316', 1, 340, 120); }
+    if (elapsed >= 27400 && !triggered.fc4) { triggered.fc4 = true; document.getElementById('fc4').classList.add('show'); drawCurve('fc4c', curves.noisy, '#ef4444', 1, 340, 120); }
+
+    if (elapsed < TOTAL) requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>

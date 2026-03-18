@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 09 - De Excel a prescripcion automatica</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 78px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 60px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+
+  .overlay-text { font-size: 48px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+  .badge-red { background: #ef444440; color: #ef4444; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  /* Split screen */
+  .split {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    margin-top: 30px;
+  }
+
+  .split-side {
+    flex: 1;
+    padding: 30px;
+    border-radius: 20px;
+    min-height: 600px;
+  }
+
+  .split-excel { background: #ef444408; border: 2px solid #ef444430; }
+  .split-pa { background: #22c55e08; border: 2px solid #22c55e30; }
+
+  .split-header {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 25px;
+  }
+
+  .step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin: 15px 0;
+    font-size: 30px;
+    opacity: 0;
+    transform: translateY(15px);
+    transition: all 0.4s ease;
+  }
+
+  .step-item.show { opacity: 1; transform: translateY(0); }
+
+  .step-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 20px;
+    margin-top: 3px;
+  }
+
+  .icon-slow { background: #ef444430; color: #ef4444; }
+  .icon-fast { background: #22c55e30; color: #22c55e; }
+
+  /* Timer */
+  .timer-big {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 160px;
+    font-weight: 700;
+    color: #22c55e;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .timer-big.show { opacity: 1; transform: scale(1); }
+
+  /* Flow steps */
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 25px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .flow-box {
+    padding: 18px 25px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 30px;
+    background: #22c55e15;
+    border: 2px solid #22c55e40;
+    color: #22c55e;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.4s ease;
+  }
+
+  .flow-box.show { opacity: 1; transform: translateY(0); }
+
+  .flow-arr {
+    font-size: 36px;
+    color: #22c55e;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .flow-arr.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1"><span class="red">Excel</span> vs <span class="green">PeakAerobic</span><br>Mismo test.</h1>
+</div>
+
+<!-- Scene 2: Split comparison - Excel side -->
+<div class="scene" id="scene2">
+  <div class="split">
+    <div class="split-side split-excel">
+      <div class="split-header" style="color:#ef4444;">Excel</div>
+      <div class="step-item" id="ex1"><div class="step-icon icon-slow">1</div><div>Copiar datos manualmente</div></div>
+      <div class="step-item" id="ex2"><div class="step-icon icon-slow">2</div><div>Hacer grafico</div></div>
+      <div class="step-item" id="ex3"><div class="step-icon icon-slow">3</div><div>Trazar lineas a ojo</div></div>
+      <div class="step-item" id="ex4"><div class="step-icon icon-slow">4</div><div>Calcular zonas a mano</div></div>
+      <div class="step-item" id="ex5"><div class="step-icon icon-slow">5</div><div>Rezar por no equivocarte</div></div>
+      <div class="step-item" id="ex6"><div class="step-icon icon-slow">6</div><div>Mesociclo... ni hablemos</div></div>
+      <div class="badge badge-red" id="exTime" style="opacity:0; transition:opacity 0.5s;">30+ minutos</div>
+    </div>
+    <div class="split-side split-pa">
+      <div class="split-header" style="color:#22c55e;">PeakAerobic</div>
+      <div class="step-item" id="pa1"><div class="step-icon icon-fast">1</div><div>Importar datos</div></div>
+      <div class="step-item" id="pa2"><div class="step-icon icon-fast">2</div><div>Click</div></div>
+      <div class="step-item" id="pa3"><div class="step-icon icon-fast">3</div><div>Umbrales detectados</div></div>
+      <div class="step-item" id="pa4"><div class="step-icon icon-fast">&#10003;</div><div>Zonas automaticas</div></div>
+      <div class="step-item" id="pa5"><div class="step-icon icon-fast">&#10003;</div><div>Bloque Olbrecht</div></div>
+      <div class="step-item" id="pa6"><div class="step-icon icon-fast">&#10003;</div><div>Push a Garmin</div></div>
+      <div class="badge badge-green" id="paTime" style="opacity:0; transition:opacity 0.5s;">60 segundos</div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 3: Flow -->
+<div class="scene" id="scene3">
+  <h2>De datos crudos a prescripcion</h2>
+  <div class="flow-row">
+    <div class="flow-box" id="fb1">Importar</div>
+    <div class="flow-arr" id="fa1">&#8594;</div>
+    <div class="flow-box" id="fb2">Umbrales</div>
+    <div class="flow-arr" id="fa2">&#8594;</div>
+    <div class="flow-box" id="fb3">Zonas</div>
+    <div class="flow-arr" id="fa3">&#8594;</div>
+    <div class="flow-box" id="fb4">Bloque</div>
+    <div class="flow-arr" id="fa4">&#8594;</div>
+    <div class="flow-box" id="fb5">Sesiones</div>
+    <div class="flow-arr" id="fa5">&#8594;</div>
+    <div class="flow-box" id="fb6">Garmin</div>
+  </div>
+  <div class="timer-big" id="timerBig" style="margin-top:50px;">60s</div>
+  <div class="overlay-text" id="timerNote">De datos crudos a prescripcion: 60 segundos.</div>
+</div>
+
+<!-- Scene 4: CTA -->
+<div class="scene" id="scene4">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">60 segundos. En serio.</h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Link en bio. 60 segundos.
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 40000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 2000 },
+  { id: 'scene2', start: 2000, end: 20000 },
+  { id: 'scene3', start: 20000, end: 34000 },
+  { id: 'scene4', start: 34000, end: 40000 },
+];
+
+const events = [
+  { time: 300, action: () => { document.getElementById('hook1').classList.add('show'); }},
+
+  // Excel side
+  { time: 2500, action: () => { document.getElementById('ex1').classList.add('show'); }},
+  { time: 3300, action: () => { document.getElementById('ex2').classList.add('show'); }},
+  { time: 4100, action: () => { document.getElementById('ex3').classList.add('show'); }},
+  { time: 4900, action: () => { document.getElementById('ex4').classList.add('show'); }},
+  { time: 5700, action: () => { document.getElementById('ex5').classList.add('show'); }},
+  { time: 6500, action: () => { document.getElementById('ex6').classList.add('show'); }},
+  { time: 7500, action: () => { document.getElementById('exTime').style.opacity = '1'; }},
+
+  // PA side
+  { time: 9000, action: () => { document.getElementById('pa1').classList.add('show'); }},
+  { time: 9500, action: () => { document.getElementById('pa2').classList.add('show'); }},
+  { time: 10000, action: () => { document.getElementById('pa3').classList.add('show'); }},
+  { time: 10500, action: () => { document.getElementById('pa4').classList.add('show'); }},
+  { time: 11000, action: () => { document.getElementById('pa5').classList.add('show'); }},
+  { time: 11500, action: () => { document.getElementById('pa6').classList.add('show'); }},
+  { time: 12500, action: () => { document.getElementById('paTime').style.opacity = '1'; }},
+
+  // Flow
+  { time: 21000, action: () => { document.getElementById('fb1').classList.add('show'); }},
+  { time: 21500, action: () => { document.getElementById('fa1').classList.add('show'); }},
+  { time: 22000, action: () => { document.getElementById('fb2').classList.add('show'); }},
+  { time: 22500, action: () => { document.getElementById('fa2').classList.add('show'); }},
+  { time: 23000, action: () => { document.getElementById('fb3').classList.add('show'); }},
+  { time: 23500, action: () => { document.getElementById('fa3').classList.add('show'); }},
+  { time: 24000, action: () => { document.getElementById('fb4').classList.add('show'); }},
+  { time: 24500, action: () => { document.getElementById('fa4').classList.add('show'); }},
+  { time: 25000, action: () => { document.getElementById('fb5').classList.add('show'); }},
+  { time: 25500, action: () => { document.getElementById('fa5').classList.add('show'); }},
+  { time: 26000, action: () => { document.getElementById('fb6').classList.add('show'); }},
+  { time: 28000, action: () => { document.getElementById('timerBig').classList.add('show'); }},
+  { time: 30000, action: () => { document.getElementById('timerNote').classList.add('show'); }},
+
+  { time: 34500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 35500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

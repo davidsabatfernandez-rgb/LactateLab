@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 05 - Por que tu Zona 2 de Garmin esta mal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 78px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+
+  .overlay-text { font-size: 52px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-red { background: #ef444440; color: #ef4444; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+  .badge-orange { background: #f9731640; color: #f97316; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  /* Garmin watch mock */
+  .watch-mock {
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    border: 8px solid #f7f6f430;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 30px auto;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.5s ease;
+  }
+
+  .watch-mock.show { opacity: 1; transform: scale(1); }
+
+  .watch-zone {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 56px;
+    font-weight: 700;
+  }
+
+  .watch-label {
+    font-size: 28px;
+    color: #f7f6f460;
+    margin-top: 5px;
+  }
+
+  /* Comparison bars */
+  .bar-compare {
+    width: 800px;
+    margin-top: 40px;
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 15px 0;
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: all 0.5s ease;
+  }
+
+  .bar-row.show { opacity: 1; transform: translateX(0); }
+
+  .bar-label {
+    width: 200px;
+    font-size: 30px;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 50px;
+    background: #f7f6f410;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 1s ease;
+    width: 0%;
+  }
+
+  .bar-marker {
+    position: absolute;
+    top: -8px;
+    bottom: -8px;
+    width: 4px;
+    transition: left 1s ease, opacity 0.5s;
+    opacity: 0;
+  }
+
+  /* Arrow flow */
+  .flow-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .flow-step {
+    padding: 20px 25px;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 30px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.4s ease;
+    background: #d26a3615;
+    border: 2px solid #d26a3640;
+  }
+
+  .flow-step.show { opacity: 1; transform: translateY(0); }
+
+  .flow-arrow {
+    font-size: 40px;
+    color: #d26a36;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .flow-arrow.show { opacity: 1; }
+
+  .feature-item {
+    display: flex; align-items: center; gap: 20px; font-size: 44px; font-weight: 600; margin: 15px 0;
+    opacity: 0; transform: translateX(-30px); transition: all 0.5s ease;
+  }
+  .feature-item.show { opacity: 1; transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">Garmin dice <span class="green">Zona 2</span><br><br>Tu lactato dice <span class="red">que no</span></h1>
+</div>
+
+<!-- Scene 2: How Garmin calculates -->
+<div class="scene" id="scene2">
+  <h2>Como calcula Garmin</h2>
+  <div class="watch-mock" id="watch">
+    <div class="watch-zone" style="color:#22c55e;">ZONE 2</div>
+    <div class="watch-label">60-70% FC max</div>
+    <div class="watch-label" style="margin-top:10px; color:#f97316;">Calculo generico</div>
+  </div>
+  <div class="overlay-text" id="garminNote">Garmin usa % de FC max. Un calculo generico.</div>
+</div>
+
+<!-- Scene 3: Real LT1 difference -->
+<div class="scene" id="scene3">
+  <h2>Tu LT1 real puede estar<br><span class="orange">15 ppm</span> por debajo</h2>
+  <div class="bar-compare">
+    <div class="bar-row" id="br1">
+      <div class="bar-label" style="color:#ef4444;">Garmin Z2</div>
+      <div class="bar-track">
+        <div class="bar-fill" id="barGarmin" style="background:#ef444460;"></div>
+        <div class="bar-marker" id="mkGarmin" style="background:#ef4444;"></div>
+      </div>
+      <span style="font-size:28px; color:#ef4444; width:80px;" id="valGarmin">140</span>
+    </div>
+    <div class="bar-row" id="br2">
+      <div class="bar-label" style="color:#22c55e;">LT1 real</div>
+      <div class="bar-track">
+        <div class="bar-fill" id="barReal" style="background:#22c55e60;"></div>
+        <div class="bar-marker" id="mkReal" style="background:#22c55e;"></div>
+      </div>
+      <span style="font-size:28px; color:#22c55e; width:80px;" id="valReal">125</span>
+    </div>
+  </div>
+  <div class="badge badge-orange" id="diffBadge" style="opacity:0; transition:opacity 0.5s; font-size:40px; margin-top:30px;">15 ppm de diferencia</div>
+</div>
+
+<!-- Scene 4: Consequence -->
+<div class="scene" id="scene4">
+  <h2><span class="red">Resultado</span></h2>
+  <div style="margin-top:50px; text-align:center;">
+    <div style="font-size:52px; font-weight:600; opacity:0; transform:translateY(20px); transition:all 0.6s ease;" id="conseq1">
+      Entrenas en <span class="orange">Zona 3</span> sin saberlo
+    </div>
+    <div style="font-size:44px; color:#f7f6f480; margin-top:30px; opacity:0; transform:translateY(20px); transition:all 0.6s ease;" id="conseq2">
+      Acumulas fatiga pensando que recuperas.
+    </div>
+    <div class="badge badge-red" id="fatigueBadge" style="opacity:0; transition:opacity 0.5s; margin-top:40px; font-size:38px;">
+      Fatiga cronica encubierta
+    </div>
+  </div>
+</div>
+
+<!-- Scene 5: Solution flow -->
+<div class="scene" id="scene5">
+  <h2 style="margin-bottom:30px;">La solucion</h2>
+  <div class="flow-container">
+    <div class="flow-step" id="fs1">Test de<br>lactato</div>
+    <div class="flow-arrow" id="fa1">&#8594;</div>
+    <div class="flow-step" id="fs2">PeakAerobic<br>LT1/LT2</div>
+    <div class="flow-arrow" id="fa2">&#8594;</div>
+    <div class="flow-step" id="fs3">Push a<br>Garmin</div>
+    <div class="flow-arrow" id="fa3">&#8594;</div>
+    <div class="flow-step" id="fs4" style="background:#22c55e15; border-color:#22c55e40; color:#22c55e;">Zonas<br>corregidas</div>
+  </div>
+  <div class="overlay-text" id="pushNote">Zonas reales en tu reloj. Un click.</div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Tu Zona 2 real</h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Corrige tus zonas de Garmin hoy<br>Link en bio
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 40000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 2000 },
+  { id: 'scene2', start: 2000, end: 8000 },
+  { id: 'scene3', start: 8000, end: 14000 },
+  { id: 'scene4', start: 14000, end: 20000 },
+  { id: 'scene5', start: 20000, end: 34000 },
+  { id: 'scene6', start: 34000, end: 40000 },
+];
+
+const events = [
+  { time: 300, action: () => { document.getElementById('hook1').classList.add('show'); }},
+
+  { time: 2500, action: () => { document.getElementById('watch').classList.add('show'); }},
+  { time: 4500, action: () => { document.getElementById('garminNote').classList.add('show'); }},
+
+  { time: 8500, action: () => {
+    document.getElementById('br1').classList.add('show');
+    document.getElementById('br2').classList.add('show');
+  }},
+  { time: 9500, action: () => {
+    document.getElementById('barGarmin').style.width = '73%';
+    document.getElementById('barReal').style.width = '65%';
+    document.getElementById('mkGarmin').style.opacity = '1';
+    document.getElementById('mkGarmin').style.left = '73%';
+    document.getElementById('mkReal').style.opacity = '1';
+    document.getElementById('mkReal').style.left = '65%';
+  }},
+  { time: 11000, action: () => { document.getElementById('diffBadge').style.opacity = '1'; }},
+
+  { time: 14500, action: () => { document.getElementById('conseq1').style.opacity = '1'; document.getElementById('conseq1').style.transform = 'translateY(0)'; }},
+  { time: 16000, action: () => { document.getElementById('conseq2').style.opacity = '1'; document.getElementById('conseq2').style.transform = 'translateY(0)'; }},
+  { time: 17500, action: () => { document.getElementById('fatigueBadge').style.opacity = '1'; }},
+
+  { time: 20500, action: () => { document.getElementById('fs1').classList.add('show'); }},
+  { time: 21500, action: () => { document.getElementById('fa1').classList.add('show'); }},
+  { time: 22500, action: () => { document.getElementById('fs2').classList.add('show'); }},
+  { time: 23500, action: () => { document.getElementById('fa2').classList.add('show'); }},
+  { time: 24500, action: () => { document.getElementById('fs3').classList.add('show'); }},
+  { time: 25500, action: () => { document.getElementById('fa3').classList.add('show'); }},
+  { time: 26500, action: () => { document.getElementById('fs4').classList.add('show'); }},
+  { time: 28000, action: () => { document.getElementById('pushNote').classList.add('show'); }},
+
+  { time: 34500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 35500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

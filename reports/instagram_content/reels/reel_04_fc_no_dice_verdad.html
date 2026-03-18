@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 04 - Tu FC no te esta diciendo la verdad</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 76px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 58px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; }
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .hr-display {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 180px;
+    font-weight: 700;
+    color: #ef4444;
+    text-align: center;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  .hr-pulse { animation: pulse 0.8s ease infinite; }
+
+  .hr-label { font-size: 42px; color: #f7f6f480; margin-top: 10px; }
+
+  .lactate-bar-container {
+    width: 800px;
+    margin: 20px auto;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s ease;
+  }
+  .lactate-bar-container.show { opacity: 1; transform: translateY(0); }
+
+  .bar-header { display: flex; justify-content: space-between; font-size: 32px; margin-bottom: 8px; }
+  .bar-condition { color: #f7f6f480; }
+  .bar-value { font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
+
+  .bar-track { width: 100%; height: 50px; background: #f7f6f410; border-radius: 12px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 12px; transition: width 1s ease; width: 0; }
+
+  .comparison-box {
+    width: 860px;
+    display: flex;
+    gap: 30px;
+    margin-top: 40px;
+  }
+
+  .comp-card {
+    flex: 1;
+    padding: 40px 30px;
+    border-radius: 20px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s ease;
+  }
+  .comp-card.show { opacity: 1; transform: translateY(0); }
+
+  .comp-card.bad { background: #ef444420; border: 2px solid #ef444460; }
+  .comp-card.good { background: #22c55e20; border: 2px solid #22c55e60; }
+
+  .comp-icon { font-size: 80px; margin-bottom: 20px; }
+  .comp-title { font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; margin-bottom: 15px; }
+  .comp-desc { font-size: 30px; color: #f7f6f480; line-height: 1.4; }
+
+  .lactate-stable {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 120px;
+    font-weight: 700;
+    color: #22c55e;
+    text-align: center;
+    margin: 30px 0;
+  }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <h1>Tus zonas de FC son<br>una <span class="red">suposicion</span></h1>
+  <div class="hr-display hr-pulse" style="margin-top: 40px;">155</div>
+  <div class="hr-label">bpm</div>
+  <h2 id="s1sub" style="margin-top: 40px; opacity:0; transition: opacity 0.5s;"><span class="accent">Aqui esta la prueba.</span></h2>
+</div>
+
+<!-- Scene 2: Same HR, different lactate -->
+<div class="scene" id="scene2">
+  <div class="hr-display" style="font-size: 120px;">155 bpm</div>
+  <div style="font-size: 44px; color: #f7f6f460; margin: 20px 0 40px;">Misma frecuencia cardiaca</div>
+
+  <div class="lactate-bar-container" id="bar1">
+    <div class="bar-header">
+      <span class="bar-condition">Fresco, 18 C</span>
+      <span class="bar-value green">2.1 mmol/L</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="fill1" style="background: #22c55e;"></div></div>
+  </div>
+
+  <div class="lactate-bar-container" id="bar2">
+    <div class="bar-header">
+      <span class="bar-condition">Calor, 32 C</span>
+      <span class="bar-value" style="color: #f97316;">3.4 mmol/L</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="fill2" style="background: #f97316;"></div></div>
+  </div>
+
+  <div class="lactate-bar-container" id="bar3">
+    <div class="bar-header">
+      <span class="bar-condition">Fatiga acumulada</span>
+      <span class="bar-value red">3.8 mmol/L</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="fill3" style="background: #ef4444;"></div></div>
+  </div>
+
+  <div class="lactate-bar-container" id="bar4">
+    <div class="bar-header">
+      <span class="bar-condition">Deshidratado</span>
+      <span class="bar-value red">4.2 mmol/L</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="fill4" style="background: #ef4444;"></div></div>
+  </div>
+
+  <div style="font-size: 48px; font-weight: 700; margin-top: 50px; color: #ef4444; opacity: 0; transition: opacity 0.5s;" id="s2verdict">
+    Misma FC. Lactato completamente diferente.
+  </div>
+</div>
+
+<!-- Scene 3: Lactate is stable -->
+<div class="scene" id="scene3">
+  <h2>El lactato <span class="green">no miente</span></h2>
+  <div style="margin-top: 50px; font-size: 40px; color: #f7f6f480;">Misma intensidad metabolica =</div>
+  <div class="lactate-stable">3.2 mmol/L</div>
+  <div style="font-size: 36px; color: #f7f6f460; line-height: 1.6; text-align: center;">
+    Independiente de calor<br>
+    Independiente de cafeina<br>
+    Independiente de hora del dia<br>
+    Independiente de estres
+  </div>
+  <div style="margin-top: 50px; font-size: 48px; font-weight: 700; color: #22c55e;">
+    Medida DIRECTA del metabolismo
+  </div>
+</div>
+
+<!-- Scene 4: Comparison -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom: 40px;">FC vs Lactato</h2>
+  <div class="comparison-box">
+    <div class="comp-card bad" id="cardBad">
+      <div class="comp-title red">Frecuencia Cardiaca</div>
+      <div style="font-size: 80px; margin: 20px 0;">?</div>
+      <div class="comp-desc">
+        Proxy indirecto<br>
+        Afectada por calor<br>
+        Cardiac drift<br>
+        Cafeina, estres<br>
+        Hidratacion
+      </div>
+    </div>
+    <div class="comp-card good" id="cardGood">
+      <div class="comp-title green">Lactato</div>
+      <div style="font-size: 80px; margin: 20px 0;">3.2</div>
+      <div class="comp-desc">
+        Medida directa<br>
+        Reflejo metabolico<br>
+        Reproducible<br>
+        Objetivo<br>
+        Individualizado
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 5: CTA -->
+<div class="scene" id="scene5">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-top: 30px;">Deja de adivinar.<br><span class="accent">Mide.</span></h2>
+  <div style="font-size: 36px; color: #d26a36; margin-top: 40px;">@peakaerobic</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 35000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 5000 },
+  { id: 'scene2', start: 5000, end: 18000 },
+  { id: 'scene3', start: 18000, end: 25000 },
+  { id: 'scene4', start: 25000, end: 31000 },
+  { id: 'scene5', start: 31000, end: 35000 },
+];
+
+const events = [
+  { time: 3000, action: () => document.getElementById('s1sub').style.opacity = '1' },
+  // Bars
+  { time: 5500, action: () => { document.getElementById('bar1').classList.add('show'); setTimeout(() => document.getElementById('fill1').style.width = '28%', 100); }},
+  { time: 7000, action: () => { document.getElementById('bar2').classList.add('show'); setTimeout(() => document.getElementById('fill2').style.width = '45%', 100); }},
+  { time: 8500, action: () => { document.getElementById('bar3').classList.add('show'); setTimeout(() => document.getElementById('fill3').style.width = '50%', 100); }},
+  { time: 10000, action: () => { document.getElementById('bar4').classList.add('show'); setTimeout(() => document.getElementById('fill4').style.width = '56%', 100); }},
+  { time: 12000, action: () => document.getElementById('s2verdict').style.opacity = '1' },
+  // Comparison cards
+  { time: 25500, action: () => document.getElementById('cardBad').classList.add('show') },
+  { time: 26500, action: () => document.getElementById('cardGood').classList.add('show') },
+];
+
+let eventIndex = 0;
+function update() {
+  const elapsed = Date.now() - startTime;
+  document.getElementById('progressBar').style.width = Math.min(elapsed / DURATION * 100, 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

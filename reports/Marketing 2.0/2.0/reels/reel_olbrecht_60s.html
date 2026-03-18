@@ -1,0 +1,197 @@
+<!-- VOICEOVER SCRIPT (for AI voice generation):
+Scene 1 (0-4s): "Tu mesociclo está basado en intuición. Debería estar basado en fisiología."
+Scene 2 (4-10s): "Jan Olbrecht definió cuatro capacidades metabólicas. Capacidad aeróbica, potencia aeróbica, capacidad anaeróbica y potencia anaeróbica. Cada atleta tiene un perfil diferente."
+Scene 3 (10-16s): "Tu perfil de lactato te dice cuál de estas cuatro capacidades necesitas entrenar. No adivinar. Medir."
+Scene 4 (16-22s): "Ejemplo real: LT2 bajo con VLamax alta. El diagnóstico es un gap aeróbico grande. El bloque correcto es Capacidad Aeróbica. NO threshold."
+Scene 5 (22-27s): "PeakAerobic es el único software que implementa la periodización de Olbrecht de forma automática."
+Scene 6 (27-30s): "Periodización real. Basada en tu fisiología. PeakAerobic."
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Periodización Olbrecht en 60 segundos</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #fff; position: relative; }
+.scene { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.15; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.2; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f97316; }
+.overlay-text { font-size: 52px; font-weight: 600; text-align: center; opacity: 0; transition: opacity 0.5s ease; }
+.overlay-text.show { opacity: 1; }
+.progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; z-index: 100; width: 0%; }
+.watermark { position: absolute; top: 60px; right: 60px; font-size: 32px; color: #d26a3660; font-family: 'Space Grotesk', sans-serif; }
+.sub { font-size: 44px; color: #ffffffaa; margin-top: 30px; text-align: center; line-height: 1.4; }
+.ref { font-size: 30px; color: #ffffff55; margin-top: 20px; font-style: italic; }
+svg { max-width: 900px; }
+.badge { background: #d26a36; color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 42px; font-weight: 700; padding: 20px 50px; border-radius: 20px; margin-top: 40px; }
+.cta-handle { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-top: 30px; }
+.quadrant { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 50px; width: 100%; max-width: 900px; }
+.quad-box { border-radius: 24px; padding: 40px 30px; text-align: center; border: 3px solid; }
+.quad-box h3 { font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; margin-bottom: 12px; }
+.quad-box p { font-size: 32px; color: #ffffffaa; }
+.quad-box.aec { border-color: #22c55e; background: #22c55e15; }
+.quad-box.aec h3 { color: #22c55e; }
+.quad-box.aep { border-color: #3b82f6; background: #3b82f615; }
+.quad-box.aep h3 { color: #3b82f6; }
+.quad-box.anc { border-color: #f97316; background: #f9731615; }
+.quad-box.anc h3 { color: #f97316; }
+.quad-box.anp { border-color: #ef4444; background: #ef444415; }
+.quad-box.anp h3 { color: #ef4444; }
+.quad-box.highlight { box-shadow: 0 0 40px #22c55e88; transform: scale(1.05); transition: all 0.5s; }
+.arrow-label { font-size: 38px; font-weight: 600; color: #d26a36; margin-top: 40px; text-align: center; }
+.list-item { font-size: 46px; color: #ffffffcc; margin: 16px 0; opacity: 0; transition: opacity 0.4s ease; text-align: left; padding-left: 40px; }
+.list-item.show { opacity: 1; }
+.list-item .bullet { color: #d26a36; margin-right: 16px; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene 1: Hook -->
+<div class="scene active" id="scene1">
+  <h1>Tu mesociclo está basado en <span class="red">intuición</span>.</h1>
+  <p class="sub" style="margin-top:50px;">Debería estar basado en <span class="accent">fisiología</span>.</p>
+</div>
+
+<!-- Scene 2: 4 capacidades -->
+<div class="scene" id="scene2">
+  <h2>Jan Olbrecht: <span class="accent">4 capacidades</span></h2>
+  <div class="quadrant">
+    <div class="quad-box aec" id="qAEC">
+      <h3>AEC</h3>
+      <p>Capacidad<br>Aeróbica</p>
+    </div>
+    <div class="quad-box aep">
+      <h3>AEP</h3>
+      <p>Potencia<br>Aeróbica</p>
+    </div>
+    <div class="quad-box anc">
+      <h3>ANC</h3>
+      <p>Capacidad<br>Anaeróbica</p>
+    </div>
+    <div class="quad-box anp">
+      <h3>ANP</h3>
+      <p>Potencia<br>Anaeróbica</p>
+    </div>
+  </div>
+  <p class="ref">Olbrecht, "The Science of Winning", 2000</p>
+</div>
+
+<!-- Scene 3: Lactate → Quadrant -->
+<div class="scene" id="scene3">
+  <h2>Tu <span class="accent">curva de lactato</span> te dice cuál necesitas</h2>
+  <svg viewBox="0 0 800 400" style="margin-top:50px;">
+    <!-- Simplified lactate curve -->
+    <polyline points="80,340 200,330 320,310 440,270 560,200 680,100" fill="none" stroke="#d26a36" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="80" cy="340" r="8" fill="#d26a36"/>
+    <circle cx="200" cy="330" r="8" fill="#d26a36"/>
+    <circle cx="320" cy="310" r="8" fill="#d26a36"/>
+    <circle cx="440" cy="270" r="8" fill="#d26a36"/>
+    <circle cx="560" cy="200" r="8" fill="#d26a36"/>
+    <circle cx="680" cy="100" r="8" fill="#d26a36"/>
+    <!-- Axes -->
+    <line x1="60" y1="360" x2="740" y2="360" stroke="#ffffff44" stroke-width="2"/>
+    <line x1="60" y1="360" x2="60" y2="60" stroke="#ffffff44" stroke-width="2"/>
+    <text x="400" y="395" text-anchor="middle" fill="#ffffff66" font-family="Source Sans 3" font-size="24">Intensidad →</text>
+    <text x="30" y="210" text-anchor="middle" fill="#ffffff66" font-family="Source Sans 3" font-size="24" transform="rotate(-90,30,210)">Lactato →</text>
+    <!-- Arrow pointing right -->
+    <line x1="400" y1="280" x2="400" y2="440" stroke="#22c55e" stroke-width="4" stroke-dasharray="8,8" opacity="0.6">
+      <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite"/>
+    </line>
+  </svg>
+  <p class="arrow-label">Tu perfil → tu bloque</p>
+</div>
+
+<!-- Scene 4: Ejemplo -->
+<div class="scene" id="scene4">
+  <h2 style="font-size:56px;">LT2 bajo + VLamax alta</h2>
+  <p class="sub" style="margin-top:20px;">= Gap aeróbico grande</p>
+  <div style="margin-top:50px;">
+    <div class="quadrant" style="margin-top:0;">
+      <div class="quad-box aec" id="qAEC2" style="box-shadow: 0 0 50px #22c55e66;">
+        <h3>AEC ✓</h3>
+        <p>Capacidad<br>Aeróbica</p>
+      </div>
+      <div class="quad-box aep" style="opacity:0.3;">
+        <h3>AEP</h3>
+        <p>Potencia<br>Aeróbica</p>
+      </div>
+      <div class="quad-box anc" style="opacity:0.3;">
+        <h3>ANC</h3>
+        <p>Capacidad<br>Anaeróbica</p>
+      </div>
+      <div class="quad-box anp" style="opacity:0.3;">
+        <h3>ANP</h3>
+        <p>Potencia<br>Anaeróbica</p>
+      </div>
+    </div>
+  </div>
+  <p class="overlay-text" id="text4not" style="margin-top:40px;color:#ef4444;font-size:56px;">NO threshold.</p>
+</div>
+
+<!-- Scene 5: PeakAerobic -->
+<div class="scene" id="scene5">
+  <h1 style="font-size:68px;">El <span class="accent">ÚNICO</span> software que implementa Olbrecht</h1>
+  <div class="badge" style="margin-top:60px;">PERIODIZACIÓN AUTOMÁTICA</div>
+  <p class="sub" style="margin-top:40px;">6 bloques metabólicos<br>basados en tu perfil de lactato</p>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <h1>Periodización <span class="accent">real</span></h1>
+  <div class="cta-handle">@peakaerobic</div>
+  <p class="sub" style="margin-top:30px;">Basada en tu fisiología</p>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 4000 },
+  { id: 'scene2', start: 4000, end: 10000 },
+  { id: 'scene3', start: 10000, end: 16000 },
+  { id: 'scene4', start: 16000, end: 22000 },
+  { id: 'scene5', start: 22000, end: 27000 },
+  { id: 'scene6', start: 27000, end: 30000 }
+];
+const events = [
+  { time: 18000, action: () => document.getElementById('text4not').classList.add('show') }
+];
+const eventsTriggered = new Set();
+const startTime = performance.now();
+
+function tick() {
+  const elapsed = performance.now() - startTime;
+  const progress = Math.min(elapsed / DURATION, 1);
+  document.getElementById('progressBar').style.width = (progress * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+
+  events.forEach((e, i) => {
+    if (elapsed >= e.time && !eventsTriggered.has(i)) {
+      eventsTriggered.add(i);
+      e.action();
+    }
+  });
+
+  if (progress < 1) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

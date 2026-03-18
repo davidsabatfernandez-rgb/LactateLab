@@ -1,0 +1,249 @@
+<!--
+VOICEOVER SCRIPT (30s):
+[0-5s] "Y si tu test de lactato pudiera programar tu Garmin automaticamente? Puede. Te lo enseno."
+[5-10s] "Paso uno. Pegas tus datos de lactato. Ritmo, frecuencia cardiaca, concentracion de lactato por etapa. Nada mas."
+[10-16s] "Paso dos. Tres metodos cientificos analizan tu curva: baseline rise, sustained increase y ModDmax. Cada uno da su estimacion. Un score de confianza pondera el resultado."
+[16-22s] "Paso tres. El motor fisiologico lee tu perfil. Selecciona el bloque Olbrecht correcto. AEC, threshold, AEP. Despues, dose ladders calculan el volumen exacto de cada sesion."
+[22-27s] "Paso cuatro. Push a Garmin Connect. Las sesiones aparecen en tu reloj. Con estructura, zonas y duracion. Listas para ejecutar."
+[27-30s] "De datos a reloj. PeakAerobic."
+
+REFERENCIAS:
+- Brooks GA (2018). Lactate Shuttle. Cell Metabolism.
+- Bishop D et al. (1998). Modified Dmax method. Med Sci Sports Exerc.
+- Olbrecht J. The Science of Winning.
+- Garmin Connect IQ SDK — Workout Push API.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>De Lactato a Garmin</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #e8e8e8; position: relative; }
+.scene { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; line-height: 1.1; text-align: center; margin-bottom: 40px; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; line-height: 1.15; text-align: center; margin-bottom: 30px; }
+p { font-size: 42px; line-height: 1.4; text-align: center; color: #b0b0b0; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; z-index: 100; }
+.watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; color: #d26a3660; z-index: 100; }
+.cta-box { background: linear-gradient(135deg, #d26a36, #e8884a); border-radius: 24px; padding: 40px 60px; text-align: center; }
+.cta-box h2 { color: #fff; margin-bottom: 10px; }
+.cta-box p { color: #ffffffcc; }
+.step-num { font-family: 'Space Grotesk', sans-serif; font-size: 140px; font-weight: 700; color: #d26a3630; line-height: 1; margin-bottom: 10px; }
+.pipeline-box { background: #1a3040; border: 2px solid #d26a3640; border-radius: 20px; padding: 24px 36px; margin: 10px 0; display: flex; align-items: center; gap: 20px; width: 90%; }
+.pipeline-box .icon { font-size: 48px; min-width: 60px; text-align: center; }
+.pipeline-box .text { font-size: 36px; color: #e8e8e8; text-align: left; }
+.input-mock { background: #1a3040; border: 2px solid #d26a3650; border-radius: 16px; padding: 24px; margin: 12px 0; width: 85%; }
+.input-row { display: flex; gap: 20px; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #ffffff10; }
+.input-row:last-child { border-bottom: none; }
+.input-header { font-family: 'Space Grotesk', sans-serif; font-size: 26px; color: #d26a36; font-weight: 600; }
+.input-val { font-size: 28px; color: #e8e8e8; font-family: 'Source Sans 3', sans-serif; }
+.convergence-method { background: #1a3040; border-radius: 14px; padding: 18px 28px; margin: 8px 0; width: 85%; display: flex; justify-content: space-between; align-items: center; }
+.method-name { font-family: 'Space Grotesk', sans-serif; font-size: 32px; color: #e8e8e8; }
+.method-val { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; }
+.confidence-bar { width: 85%; height: 16px; background: #1a3040; border-radius: 8px; margin: 20px 0; overflow: hidden; }
+.confidence-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #22c55e); border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene 1: 0-5s -->
+<div class="scene" id="scene1">
+  <h1>Y si tu test de lactato pudiera programar tu <span class="accent">Garmin</span>?</h1>
+  <h2 style="color:#22c55e;">Puede.</h2>
+</div>
+
+<!-- Scene 2: 5-10s -->
+<div class="scene" id="scene2">
+  <div class="step-num">1</div>
+  <h2 style="font-size:52px;">Pega tus datos de lactato</h2>
+  <div class="input-mock">
+    <div class="input-row">
+      <span class="input-header">Etapa</span>
+      <span class="input-header">Ritmo</span>
+      <span class="input-header">FC</span>
+      <span class="input-header">Lactato</span>
+    </div>
+    <div class="input-row">
+      <span class="input-val">1</span>
+      <span class="input-val">6:00</span>
+      <span class="input-val">128</span>
+      <span class="input-val">0.9</span>
+    </div>
+    <div class="input-row">
+      <span class="input-val">2</span>
+      <span class="input-val">5:30</span>
+      <span class="input-val">142</span>
+      <span class="input-val">1.2</span>
+    </div>
+    <div class="input-row">
+      <span class="input-val">3</span>
+      <span class="input-val">5:00</span>
+      <span class="input-val">156</span>
+      <span class="input-val">1.8</span>
+    </div>
+    <div class="input-row">
+      <span class="input-val">4</span>
+      <span class="input-val">4:40</span>
+      <span class="input-val">168</span>
+      <span class="input-val">2.9</span>
+    </div>
+    <div class="input-row">
+      <span class="input-val">5</span>
+      <span class="input-val">4:20</span>
+      <span class="input-val">178</span>
+      <span class="input-val">4.8</span>
+    </div>
+    <div class="input-row">
+      <span class="input-val">6</span>
+      <span class="input-val">4:00</span>
+      <span class="input-val">186</span>
+      <span class="input-val">7.2</span>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 3: 10-16s -->
+<div class="scene" id="scene3">
+  <div class="step-num">2</div>
+  <h2 style="font-size:50px;">3 mtodos + confianza</h2>
+  <div class="convergence-method" style="border-left: 4px solid #d26a36;">
+    <span class="method-name">Baseline Rise</span>
+    <span class="method-val" style="color:#d26a36;">4:32/km</span>
+  </div>
+  <div class="convergence-method" style="border-left: 4px solid #22c55e;">
+    <span class="method-name">Sustained Increase</span>
+    <span class="method-val" style="color:#22c55e;">4:28/km</span>
+  </div>
+  <div class="convergence-method" style="border-left: 4px solid #3b82f6;">
+    <span class="method-name">ModDmax</span>
+    <span class="method-val" style="color:#3b82f6;">4:35/km</span>
+  </div>
+  <div style="margin-top:30px; text-align:center;">
+    <p style="font-size:32px; color:#b0b0b0;">Score de confianza</p>
+    <div class="confidence-bar">
+      <div class="confidence-fill" style="width:87%;"></div>
+    </div>
+    <p style="font-family:'Space Grotesk'; font-size:48px; font-weight:700; color:#22c55e;">0.87</p>
+  </div>
+  <p style="font-size:36px; margin-top:20px;">LT2 agregado: <span class="accent" style="font-weight:700;">4:32/km</span></p>
+</div>
+
+<!-- Scene 4: 16-22s -->
+<div class="scene" id="scene4">
+  <div class="step-num">3</div>
+  <h2 style="font-size:48px;">Motor fisiolgico</h2>
+  <div class="pipeline-box">
+    <div class="icon" style="color:#d26a36;">&#9881;</div>
+    <div class="text">Perfil: gap aerbico, VLamax moderada</div>
+  </div>
+  <svg width="60" height="50" viewBox="0 0 60 50" style="margin:6px 0;">
+    <polygon points="30,45 10,15 50,15" fill="#d26a3660"/>
+  </svg>
+  <div class="pipeline-box" style="border-color:#22c55e40;">
+    <div class="icon" style="color:#22c55e;">&#9733;</div>
+    <div class="text">Bloque: <span style="color:#22c55e; font-weight:700;">AEC</span> (Olbrecht)</div>
+  </div>
+  <svg width="60" height="50" viewBox="0 0 60 50" style="margin:6px 0;">
+    <polygon points="30,45 10,15 50,15" fill="#d26a3660"/>
+  </svg>
+  <div class="pipeline-box" style="border-color:#3b82f640;">
+    <div class="icon" style="color:#3b82f6;">&#9776;</div>
+    <div class="text">Dose Ladders: volumen por sesin</div>
+  </div>
+  <svg width="60" height="50" viewBox="0 0 60 50" style="margin:6px 0;">
+    <polygon points="30,45 10,15 50,15" fill="#d26a3660"/>
+  </svg>
+  <div class="pipeline-box" style="border-color:#d26a3680;">
+    <div class="icon" style="color:#d26a36;">&#9201;</div>
+    <div class="text">Sesiones con estructura y zonas</div>
+  </div>
+</div>
+
+<!-- Scene 5: 22-27s -->
+<div class="scene" id="scene5">
+  <div class="step-num">4</div>
+  <h2 style="font-size:50px;">Push a <span class="accent">Garmin Connect</span></h2>
+  <svg width="320" height="440" viewBox="0 0 320 440" style="margin:20px 0;">
+    <!-- Watch body -->
+    <rect x="60" y="40" width="200" height="280" rx="60" fill="#1a3040" stroke="#d26a36" stroke-width="3"/>
+    <!-- Screen -->
+    <rect x="85" y="80" width="150" height="200" rx="16" fill="#0e1e24" stroke="#d26a3650" stroke-width="1"/>
+    <!-- Watch band top -->
+    <rect x="110" y="0" width="100" height="50" rx="8" fill="#1a3040" stroke="#d26a3640" stroke-width="2"/>
+    <!-- Watch band bottom -->
+    <rect x="110" y="310" width="100" height="50" rx="8" fill="#1a3040" stroke="#d26a3640" stroke-width="2"/>
+    <!-- Screen content: workout -->
+    <text x="160" y="115" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="18" font-weight="700">WORKOUT</text>
+    <text x="160" y="145" text-anchor="middle" fill="#22c55e" font-family="Source Sans 3" font-size="16">WU 15' Z1</text>
+    <text x="160" y="168" text-anchor="middle" fill="#e8e8e8" font-family="Source Sans 3" font-size="16">4x10' @ LT1</text>
+    <text x="160" y="191" text-anchor="middle" fill="#e8e8e8" font-family="Source Sans 3" font-size="16">Rec 3' Z1</text>
+    <text x="160" y="214" text-anchor="middle" fill="#22c55e" font-family="Source Sans 3" font-size="16">CD 10' Z1</text>
+    <rect x="100" y="232" width="120" height="34" rx="8" fill="#22c55e30" stroke="#22c55e" stroke-width="1"/>
+    <text x="160" y="255" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="16" font-weight="700">INICIAR</text>
+    <!-- Wireless signal -->
+    <g transform="translate(160,390)">
+      <path d="M-20,0 C-20,-15 -10,-25 0,-25 C10,-25 20,-15 20,0" fill="none" stroke="#d26a36" stroke-width="2" opacity="0.4">
+        <animate attributeName="opacity" values="0.2;0.8;0.2" dur="1.5s" repeatCount="indefinite"/>
+      </path>
+      <path d="M-30,5 C-30,-20 -15,-35 0,-35 C15,-35 30,-20 30,5" fill="none" stroke="#d26a36" stroke-width="2" opacity="0.3">
+        <animate attributeName="opacity" values="0.1;0.6;0.1" dur="1.5s" repeatCount="indefinite" begin="0.3s"/>
+      </path>
+      <circle cx="0" cy="5" r="4" fill="#d26a36"/>
+    </g>
+    <text x="160" y="435" text-anchor="middle" fill="#d26a3680" font-family="Source Sans 3" font-size="22">Sincronizado</text>
+  </svg>
+  <p style="font-size:44px; color:#e8e8e8;">En tu reloj. <span class="green">Listo.</span></p>
+</div>
+
+<!-- Scene 6: 27-30s -->
+<div class="scene" id="scene6">
+  <div class="cta-box">
+    <h2 style="font-size:64px;">De datos a reloj.</h2>
+    <h2 style="font-size:72px;">PeakAerobic</h2>
+  </div>
+  <p style="margin-top:40px; font-size:36px; color:#d26a36;">@peakaerobic</p>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 5000 },
+  { id: 'scene2', start: 5000, end: 10000 },
+  { id: 'scene3', start: 10000, end: 16000 },
+  { id: 'scene4', start: 16000, end: 22000 },
+  { id: 'scene5', start: 22000, end: 27000 },
+  { id: 'scene6', start: 27000, end: 30000 }
+];
+
+const startTime = performance.now();
+
+function tick() {
+  const elapsed = (performance.now() - startTime) % DURATION;
+  document.getElementById('progressBar').style.width = ((elapsed / DURATION) * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+
+  requestAnimationFrame(tick);
+}
+
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

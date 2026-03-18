@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 03 - 3 errores interpretando tu test de lactato</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1080px;
+    height: 1920px;
+    background: #0e1e24;
+    overflow: hidden;
+    font-family: 'Source Sans 3', sans-serif;
+    color: #f7f6f4;
+    position: relative;
+  }
+
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+
+  .overlay-text { font-size: 52px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  .scene-hook .subtitle { font-size: 58px; color: #d26a36; font-weight: 700; font-family: 'Space Grotesk', sans-serif; margin-top: 30px; opacity: 0; transform: translateY(40px); }
+  .scene-hook .subtitle.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-red { background: #ef444440; color: #ef4444; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  .grid-line { stroke: #f7f6f415; stroke-width: 1; }
+  .axis-label { font-family: 'Source Sans 3', sans-serif; font-size: 28px; fill: #f7f6f480; }
+
+  /* Error card */
+  .error-card {
+    width: 900px;
+    padding: 50px;
+    border-radius: 24px;
+    margin-top: 30px;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.5s ease;
+  }
+
+  .error-card.show { opacity: 1; transform: scale(1); }
+
+  .error-bg { background: #ef444415; border: 3px solid #ef444450; }
+
+  .error-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 120px;
+    font-weight: 700;
+    color: #ef4444;
+    line-height: 1;
+  }
+
+  .error-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 52px;
+    font-weight: 700;
+    margin: 15px 0;
+  }
+
+  .error-desc {
+    font-size: 38px;
+    color: #f7f6f4a0;
+    line-height: 1.4;
+  }
+
+  /* X icon */
+  .x-icon {
+    display: inline-block;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: #ef444430;
+    color: #ef4444;
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 70px;
+    text-align: center;
+    margin-right: 20px;
+  }
+
+  /* Feature list */
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 44px;
+    font-weight: 600;
+    margin: 15px 0;
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: all 0.5s ease;
+  }
+
+  .feature-item.show { opacity: 1; transform: translateX(0); }
+
+  /* Confidence bar */
+  .confidence-bar-container {
+    width: 700px;
+    margin-top: 40px;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  .confidence-bar-container.show { opacity: 1; }
+
+  .conf-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .conf-bar-bg {
+    width: 100%;
+    height: 40px;
+    background: #f7f6f415;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .conf-bar-fill {
+    height: 100%;
+    background: #22c55e;
+    border-radius: 20px;
+    width: 0%;
+    transition: width 1.5s ease;
+  }
+
+  .conf-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: #22c55e;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">Tu test de lactato<br><span class="accent">no esta mal</span></h1>
+  <div class="subtitle" id="hook2">Tu interpretacion si.</div>
+</div>
+
+<!-- Scene 2: Error 1 -->
+<div class="scene" id="scene2">
+  <div class="error-card error-bg" id="err1">
+    <div style="display:flex; align-items:center; gap:20px;">
+      <span class="x-icon">X</span>
+      <span class="error-number">1</span>
+    </div>
+    <div class="error-title">Umbral fijo en <span class="red">4 mmol</span></div>
+    <div class="error-desc">El LT2 varia entre 2.5 y 5.5 mmol segun el atleta.</div>
+    <div class="badge badge-red" style="margin-top:25px;">Faude 2009</div>
+  </div>
+</div>
+
+<!-- Scene 3: Error 2 -->
+<div class="scene" id="scene3">
+  <div class="error-card error-bg" id="err2">
+    <div style="display:flex; align-items:center; gap:20px;">
+      <span class="x-icon">X</span>
+      <span class="error-number">2</span>
+    </div>
+    <div class="error-title">Ignorar el <span class="red">LT1</span></div>
+    <div class="error-desc">Sin LT1 no sabes donde empieza tu zona aerobica real. Tu "zona 2" es una estimacion.</div>
+  </div>
+</div>
+
+<!-- Scene 4: Error 3 -->
+<div class="scene" id="scene4">
+  <div class="error-card error-bg" id="err3">
+    <div style="display:flex; align-items:center; gap:20px;">
+      <span class="x-icon">X</span>
+      <span class="error-number">3</span>
+    </div>
+    <div class="error-title">Un solo test <span class="red">aislado</span></div>
+    <div class="error-desc">Sin historial dinamico no ves la tendencia. Un dato suelto no muestra progresion.</div>
+  </div>
+</div>
+
+<!-- Scene 5: PeakAerobic solution -->
+<div class="scene" id="scene5">
+  <h2 style="margin-bottom:30px;">PeakAerobic lo resuelve</h2>
+  <div class="feature-item" id="f1"><span style="color:#22c55e; font-size:48px;">&#10003;</span> 3 metodos validados</div>
+  <div class="feature-item" id="f2"><span style="color:#22c55e; font-size:48px;">&#10003;</span> LT1 + LT2 detectados</div>
+  <div class="feature-item" id="f3"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Historial dinamico completo</div>
+  <div class="feature-item" id="f4"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Score de confianza</div>
+  <div class="confidence-bar-container" id="confBar">
+    <div class="conf-label">Confianza de deteccion</div>
+    <div class="conf-bar-bg">
+      <div class="conf-bar-fill" id="confFill"></div>
+    </div>
+    <div class="conf-value" id="confValue">0%</div>
+  </div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Interpreta bien.<br>Entrena mejor.</h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Tu primer analisis es gratis<br>Enlace en bio
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 45000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 3000 },
+  { id: 'scene2', start: 3000, end: 10000 },
+  { id: 'scene3', start: 10000, end: 18000 },
+  { id: 'scene4', start: 18000, end: 27000 },
+  { id: 'scene5', start: 27000, end: 40000 },
+  { id: 'scene6', start: 40000, end: 45000 },
+];
+
+const events = [
+  { time: 300, action: () => { document.getElementById('hook1').classList.add('show'); }},
+  { time: 1500, action: () => { document.getElementById('hook2').classList.add('show'); }},
+
+  { time: 3500, action: () => { document.getElementById('err1').classList.add('show'); }},
+
+  { time: 10500, action: () => { document.getElementById('err2').classList.add('show'); }},
+
+  { time: 18500, action: () => { document.getElementById('err3').classList.add('show'); }},
+
+  { time: 27500, action: () => { document.getElementById('f1').classList.add('show'); }},
+  { time: 28500, action: () => { document.getElementById('f2').classList.add('show'); }},
+  { time: 29500, action: () => { document.getElementById('f3').classList.add('show'); }},
+  { time: 30500, action: () => { document.getElementById('f4').classList.add('show'); }},
+  { time: 32000, action: () => {
+    document.getElementById('confBar').classList.add('show');
+    setTimeout(() => {
+      document.getElementById('confFill').style.width = '87%';
+      let v = 0;
+      const interval = setInterval(() => {
+        v += 1;
+        if (v > 87) { clearInterval(interval); return; }
+        document.getElementById('confValue').textContent = v + '%';
+      }, 17);
+    }, 300);
+  }},
+
+  { time: 40500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 41500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

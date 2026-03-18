@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3 tipos de curva de lactato — PeakAerobic</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide {
+    width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .slide-number {
+    position: absolute; top: 28px; right: 36px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; font-weight: 500; color: rgba(247,246,244,0.35); z-index: 10;
+  }
+  .progress-dots {
+    position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 10;
+  }
+  .progress-dots .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute; bottom: 32px; right: 36px; text-align: right; z-index: 10;
+  }
+  .watermark .brand {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: 16px; color: rgba(210,106,54,0.35);
+  }
+  .watermark .sub {
+    font-family: 'Source Sans 3', sans-serif; font-weight: 300;
+    font-size: 11px; color: rgba(210,106,54,0.25); margin-top: 1px;
+  }
+  .tag {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    background: rgba(210,106,54,0.15); color: #d26a36;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 18px;
+  }
+  .divider {
+    width: 60px; height: 4px; background: #d26a36; border-radius: 2px;
+  }
+  .card {
+    background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px; padding: 36px;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    padding: 40px 50px; border-radius: 20px; text-align: center;
+  }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+  .content { padding: 80px 70px 80px 70px; height: 100%; display: flex; flex-direction: column; }
+
+  @media print {
+    .slide { page-break-after: always; }
+    body { padding: 0; gap: 0; background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; text-align: center; gap: 36px;">
+    <div class="tag">PERFILES FISIOLOGICOS</div>
+    <h1 style="font-size: 64px; line-height: 1.05; max-width: 850px;">
+      3 tipos de <span class="accent">curva de lactato</span>
+    </h1>
+    <div class="divider" style="margin: 0 auto;"></div>
+    <p style="font-size: 26px; font-weight: 300; max-width: 680px; color: rgba(247,246,244,0.7); line-height: 1.5;">
+      Tu curva dice que tipo de atleta eres<br>y que necesitas entrenar.
+    </p>
+    <svg width="700" height="140" viewBox="0 0 700 140">
+      <!-- Curve 1: Diesel (flat then steep) -->
+      <text x="110" y="18" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="14">Diesel</text>
+      <polyline points="20,110 50,108 80,106 110,104 140,100 160,80 180,45 200,20" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/>
+
+      <!-- Curve 2: Explosive (steep early) -->
+      <text x="360" y="18" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="14">Explosivo</text>
+      <polyline points="270,110 295,95 320,75 345,55 370,38 395,25 420,18 445,15" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+
+      <!-- Curve 3: Balanced (smooth exponential) -->
+      <text x="600" y="18" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="600" font-size="14">Equilibrado</text>
+      <polyline points="510,110 540,106 570,98 600,84 630,62 660,38 690,20" fill="none" stroke="#d26a36" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: TIPO 1 — EL DIESEL -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag" style="background: rgba(34,197,94,0.15); color: #22c55e;">TIPO 1</div>
+    <h2 style="font-size: 44px; line-height: 1.15;"><span class="green">"El Diesel"</span> — curva plana con subida tardia</h2>
+    <div class="divider" style="background: #22c55e;"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 280" width="940" height="300" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="240" x2="840" y2="240" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="20" x2="90" y2="240" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="270" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Intensidad</text>
+        <text x="35" y="130" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 130)">Lactato (mmol/L)</text>
+
+        <!-- Flat diesel curve -->
+        <polyline points="120,228 200,226 300,224 400,222 500,218 560,208 600,185 640,150 680,100 720,55 760,20"
+          fill="none" stroke="#22c55e" stroke-width="3.5" stroke-linecap="round"/>
+
+        <!-- LT1 very late -->
+        <line x1="520" y1="25" x2="520" y2="240" stroke="rgba(34,197,94,0.5)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="520" y="20" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="13">LT1</text>
+
+        <!-- LT2 also late -->
+        <line x1="620" y1="25" x2="620" y2="240" stroke="rgba(239,68,68,0.5)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="620" y="20" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="13">LT2</text>
+
+        <!-- Flat zone annotation -->
+        <rect x="180" y="195" width="300" height="35" rx="8" fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.15)" stroke-width="1"/>
+        <text x="330" y="218" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-weight="600" font-size="14">Zona plana: gran base aerobica</text>
+
+        <!-- Ratio annotation -->
+        <rect x="600" y="55" width="200" height="50" rx="10" fill="rgba(34,197,94,0.12)" stroke="rgba(34,197,94,0.3)" stroke-width="1"/>
+        <text x="700" y="76" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="16">Ratio &gt; 0.87</text>
+        <text x="700" y="96" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">VLamax baja</text>
+      </svg>
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 24px; border-color: rgba(34,197,94,0.25);">
+          <h3 style="font-size: 18px; color: #22c55e; margin-bottom: 10px;">Perfil</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            VLamax baja. Produccion de lactato minima. Oxidacion de grasas alta. Perfil tipico de <strong>ironman / ultra</strong>.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px; border-color: rgba(34,197,94,0.25);">
+          <h3 style="font-size: 18px; color: #22c55e; margin-bottom: 10px;">Fortaleza</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Puede sostener intensidad alta durante horas. Excelente eficiencia metabolica. "Motor diesel".
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px; border-color: rgba(34,197,94,0.25);">
+          <h3 style="font-size: 18px; color: #22c55e; margin-bottom: 10px;">Limitacion</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Le falta potencia anaerobica. Sufre en sprints, subidas cortas e intensas, y en el kick final.
+          </p>
+        </div>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Olbrecht, J. (2000). <em>The Science of Winning</em>. Mader, A. (2003). <em>Eur J Appl Physiol</em>, 88, 500–512.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: TIPO 2 — EL EXPLOSIVO -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag" style="background: rgba(239,68,68,0.15); color: #ef4444;">TIPO 2</div>
+    <h2 style="font-size: 44px; line-height: 1.15;"><span class="red">"El Explosivo"</span> — subida temprana y pronunciada</h2>
+    <div class="divider" style="background: #ef4444;"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 280" width="940" height="300" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="240" x2="840" y2="240" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="20" x2="90" y2="240" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="270" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Intensidad</text>
+        <text x="35" y="130" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 130)">Lactato (mmol/L)</text>
+
+        <!-- Steep early curve -->
+        <polyline points="120,228 200,218 280,195 350,160 420,120 480,85 530,55 580,35 630,25 680,20"
+          fill="none" stroke="#ef4444" stroke-width="3.5" stroke-linecap="round"/>
+
+        <!-- LT1 very early -->
+        <line x1="240" y1="25" x2="240" y2="240" stroke="rgba(34,197,94,0.5)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="240" y="20" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="13">LT1</text>
+
+        <!-- LT2 still far from LT1 -->
+        <line x1="440" y1="25" x2="440" y2="240" stroke="rgba(239,68,68,0.5)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="440" y="20" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="13">LT2</text>
+
+        <!-- Large gap -->
+        <line x1="250" y1="14" x2="430" y2="14" stroke="rgba(239,68,68,0.5)" stroke-width="2"/>
+        <text x="340" y="10" text-anchor="middle" fill="#ef4444" font-family="Source Sans 3" font-weight="600" font-size="12">GAP GRANDE</text>
+
+        <!-- Ratio annotation -->
+        <rect x="550" y="120" width="250" height="50" rx="10" fill="rgba(239,68,68,0.12)" stroke="rgba(239,68,68,0.3)" stroke-width="1"/>
+        <text x="675" y="141" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="16">Ratio &lt; 0.79</text>
+        <text x="675" y="161" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">VLamax alta</text>
+      </svg>
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 24px; border-color: rgba(239,68,68,0.25);">
+          <h3 style="font-size: 18px; color: #ef4444; margin-bottom: 10px;">Perfil</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            VLamax alta. Produce mucho lactato a intensidad moderada. Quema glucogeno rapido. Perfil de <strong>sprinter / 5k</strong>.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px; border-color: rgba(239,68,68,0.25);">
+          <h3 style="font-size: 18px; color: #ef4444; margin-bottom: 10px;">Fortaleza</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Potencia anaerobica alta. Buen kick final. Explosividad en subidas cortas y cambios de ritmo.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px; border-color: rgba(239,68,68,0.25);">
+          <h3 style="font-size: 18px; color: #ef4444; margin-bottom: 10px;">Limitacion</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            No sostiene intensidad media. Se "pincha" en esfuerzos de +30 min. Necesita <strong>construir base</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Olbrecht, J. (2000). <em>The Science of Winning</em>. Mader, A. (2003). <em>Eur J Appl Physiol</em>, 88, 500–512.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: TIPO 3 — EL EQUILIBRADO -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">TIPO 3</div>
+    <h2 style="font-size: 44px; line-height: 1.15;"><span class="accent">"El Equilibrado"</span> — curva exponencial suave</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 280" width="940" height="300" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="240" x2="840" y2="240" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="20" x2="90" y2="240" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="270" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Intensidad</text>
+        <text x="35" y="130" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 130)">Lactato (mmol/L)</text>
+
+        <!-- Smooth exponential curve -->
+        <polyline points="120,232 200,226 280,216 360,200 440,175 520,140 600,95 680,50 760,20"
+          fill="none" stroke="#d26a36" stroke-width="3.5" stroke-linecap="round"/>
+
+        <!-- LT1 moderate -->
+        <line x1="350" y1="25" x2="350" y2="240" stroke="rgba(34,197,94,0.5)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="350" y="20" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="13">LT1</text>
+
+        <!-- LT2 moderate distance -->
+        <line x1="520" y1="25" x2="520" y2="240" stroke="rgba(239,68,68,0.5)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="520" y="20" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="13">LT2</text>
+
+        <!-- Moderate gap -->
+        <line x1="360" y1="14" x2="510" y2="14" stroke="rgba(210,106,54,0.5)" stroke-width="2"/>
+        <text x="435" y="10" text-anchor="middle" fill="#d26a36" font-family="Source Sans 3" font-weight="600" font-size="12">GAP MODERADO</text>
+
+        <!-- Ratio annotation -->
+        <rect x="590" y="120" width="220" height="50" rx="10" fill="rgba(210,106,54,0.12)" stroke="rgba(210,106,54,0.3)" stroke-width="1"/>
+        <text x="700" y="141" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="16">Ratio ~0.83</text>
+        <text x="700" y="161" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">VLamax moderada</text>
+      </svg>
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 24px;">
+          <h3 style="font-size: 18px; color: #d26a36; margin-bottom: 10px;">Perfil</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            VLamax moderada. Ni diesel puro ni explosivo. Es el perfil mas comun en <strong>age-groupers y amateur avanzados</strong>.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px;">
+          <h3 style="font-size: 18px; color: #d26a36; margin-bottom: 10px;">Versatilidad</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Puede ir hacia ambos lados. Puede <strong>bajar VLamax</strong> para larga distancia o <strong>subir potencia</strong> para eventos cortos.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px;">
+          <h3 style="font-size: 18px; color: #d26a36; margin-bottom: 10px;">Direccion</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            La decision depende de la <strong>carrera objetivo</strong>: ironman → bajar VLamax; 10k → subir potencia aerobica.
+          </p>
+        </div>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Olbrecht, J. (2000). <em>The Science of Winning</em>. Mader, A. (2003). <em>Eur J Appl Physiol</em>, 88, 500–512.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: QUE ENTRENAR SEGUN TU TIPO -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">PRESCRIPCION</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">Tu tipo de curva dice <span class="accent">que entrenar</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(34,197,94,0.3);">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <svg viewBox="0 0 80 50" width="80" height="50">
+              <polyline points="5,45 20,44 35,43 50,42 60,35 70,20 78,5" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 style="font-size: 20px; color: #22c55e; margin-bottom: 12px; text-align: center;">Diesel</h3>
+          <div style="padding: 16px; background: rgba(34,197,94,0.08); border-radius: 10px; margin-bottom: 12px;">
+            <p style="font-size: 16px; font-weight: 600; color: #22c55e; text-align: center;">Bloque THR o AEP</p>
+          </div>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Trabajo de umbral y potencia aerobica. Intervalos en LT2 + algo de VO2max. Puede incluir spice anaerobico (ANC).
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(239,68,68,0.3);">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <svg viewBox="0 0 80 50" width="80" height="50">
+              <polyline points="5,45 15,38 25,28 35,18 45,12 55,8 65,6 78,5" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 style="font-size: 20px; color: #ef4444; margin-bottom: 12px; text-align: center;">Explosivo</h3>
+          <div style="padding: 16px; background: rgba(239,68,68,0.08); border-radius: 10px; margin-bottom: 12px;">
+            <p style="font-size: 16px; font-weight: 600; color: #ef4444; text-align: center;">Bloque AEC</p>
+          </div>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Construir capacidad aerobica. Volumen bajo LT1. Bajar VLamax. "Build the engine before tuning it." (Olbrecht)
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px;">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <svg viewBox="0 0 80 50" width="80" height="50">
+              <polyline points="5,45 15,42 25,38 35,32 45,24 55,16 65,9 78,5" fill="none" stroke="#d26a36" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 style="font-size: 20px; color: #d26a36; margin-bottom: 12px; text-align: center;">Equilibrado</h3>
+          <div style="padding: 16px; background: rgba(210,106,54,0.08); border-radius: 10px; margin-bottom: 12px;">
+            <p style="font-size: 16px; font-weight: 600; color: #d26a36; text-align: center;">Segun carrera objetivo</p>
+          </div>
+          <p style="font-size: 16px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Ironman/70.3 → AEC (bajar VLamax). 10k/HM → THR/AEP (subir umbral). Sprint tri → ANC/ANP.
+          </p>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; text-align: center;">
+        <p style="font-size: 20px; font-weight: 400; line-height: 1.5;">
+          <span class="accent" style="font-weight: 600;">La forma de tu curva determina la direccion del entrenamiento.</span>
+          No el volumen total, no el numero de intervalos: la fisiologia marca el camino.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Olbrecht, J. (2000). <em>The Science of Winning</em>. Faude, O. et al. (2009). <em>Sports Med</em>, 39(6), 469–490.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: PEAKAEROBIC IDENTIFICA TU TIPO -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">AUTOMATICO</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">PeakAerobic <span class="accent">identifica tu tipo</span> y prescribe el bloque correcto</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <div style="display: flex; gap: 20px; align-items: stretch;">
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <p style="font-size: 16px; font-weight: 500; color: rgba(247,246,244,0.5); margin-bottom: 8px;">PASO 1</p>
+          <p style="font-size: 42px; font-weight: 700; color: #d26a36; margin-bottom: 12px;">Curva</p>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7);">
+            Pega tus datos de lactato. Detectamos LT1, LT2, confianza, y la forma de tu curva.
+          </p>
+        </div>
+        <div style="display: flex; align-items: center;">
+          <svg width="30" height="30" viewBox="0 0 30 30">
+            <polyline points="5,15 25,15" stroke="rgba(210,106,54,0.4)" stroke-width="2" fill="none"/>
+            <polyline points="18,8 25,15 18,22" stroke="rgba(210,106,54,0.4)" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <p style="font-size: 16px; font-weight: 500; color: rgba(247,246,244,0.5); margin-bottom: 8px;">PASO 2</p>
+          <p style="font-size: 42px; font-weight: 700; color: #d26a36; margin-bottom: 12px;">Perfil</p>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7);">
+            Calculamos ratio LT1/LT2, VLamax proxy, VO2max estimado y nivel aerobico.
+          </p>
+        </div>
+        <div style="display: flex; align-items: center;">
+          <svg width="30" height="30" viewBox="0 0 30 30">
+            <polyline points="5,15 25,15" stroke="rgba(210,106,54,0.4)" stroke-width="2" fill="none"/>
+            <polyline points="18,8 25,15 18,22" stroke="rgba(210,106,54,0.4)" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <p style="font-size: 16px; font-weight: 500; color: rgba(247,246,244,0.5); margin-bottom: 8px;">PASO 3</p>
+          <p style="font-size: 42px; font-weight: 700; color: #d26a36; margin-bottom: 12px;">Bloque</p>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.5; color: rgba(247,246,244,0.7);">
+            Motor fisiologico selecciona el bloque Olbrecht optimo para tu perfil y carrera objetivo.
+          </p>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; text-align: center; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+        <p style="font-size: 20px; font-weight: 400; line-height: 1.5;">
+          Todo basado en la ciencia de Olbrecht, Mader y Faude. Sin adivinar. Sin zonas genericas.
+          <span class="green" style="font-weight: 600;">Tu fisiologia → tu prescripcion.</span>
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Olbrecht, J. (2000). <em>The Science of Winning</em>. Mader, A. (2003). <em>Eur J Appl Physiol</em>, 88, 500–512.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; gap: 40px;">
+    <div class="cta-box" style="max-width: 800px; width: 100%;">
+      <h2 style="font-size: 44px; color: #f7f6f4; margin-bottom: 20px; line-height: 1.2;">
+        Cual es tu tipo?<br>Pega tus datos y descubrelo.
+      </h2>
+      <div style="width: 60px; height: 4px; background: rgba(247,246,244,0.4); border-radius: 2px; margin: 0 auto 24px;"></div>
+      <p style="font-size: 22px; font-weight: 300; color: rgba(247,246,244,0.9); line-height: 1.5; margin-bottom: 28px;">
+        PeakAerobic identifica tu tipo de curva, calcula tu <strong>VLamax proxy</strong>
+        y prescribe el bloque de entrenamiento que necesitas.
+      </p>
+      <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <div style="background: rgba(247,246,244,0.15); padding: 12px 28px; border-radius: 10px;">
+          <p style="font-size: 18px; font-weight: 600; color: #f7f6f4;">Diesel / Explosivo / Equilibrado. Gratis.</p>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 32px; align-items: center;">
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #22c55e;">Diesel</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">VLamax baja</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #ef4444;">Explosivo</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">VLamax alta</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #d26a36;">Equilibrado</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Versatil</p>
+      </div>
+    </div>
+    <p style="font-size: 20px; font-weight: 500; color: #d26a36;">peakaerobic.com</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

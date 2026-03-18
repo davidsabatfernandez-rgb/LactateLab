@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 12 - Olbrecht en 30 segundos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 78px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 60px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+
+  .overlay-text { font-size: 48px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  /* Block cards */
+  .block-card {
+    width: 800px;
+    padding: 40px;
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin: 15px 0;
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: all 0.5s ease;
+  }
+
+  .block-card.show { opacity: 1; transform: translateX(0); }
+
+  .block-icon {
+    width: 100px;
+    height: 100px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .block-info {
+    flex: 1;
+  }
+
+  .block-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 40px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .block-desc {
+    font-size: 32px;
+    color: #f7f6f480;
+  }
+
+  .block-aec { background: #22c55e10; border: 2px solid #22c55e40; }
+  .block-thr { background: #f9731610; border: 2px solid #f9731640; }
+  .block-aep { background: #ef444410; border: 2px solid #ef444440; }
+
+  .icon-aec { background: #22c55e30; color: #22c55e; }
+  .icon-thr { background: #f9731630; color: #f97316; }
+  .icon-aep { background: #ef444430; color: #ef4444; }
+
+  /* Two tanks */
+  .tank-row {
+    display: flex;
+    gap: 60px;
+    justify-content: center;
+    margin-top: 30px;
+  }
+
+  .tank {
+    text-align: center;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.5s ease;
+  }
+
+  .tank.show { opacity: 1; transform: translateY(0); }
+
+  .tank-body {
+    width: 180px;
+    height: 280px;
+    border: 4px solid;
+    border-radius: 20px;
+    margin: 0 auto 15px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tank-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transition: height 1.5s ease;
+  }
+
+  .tank-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+  }
+
+  .tank-sublabel {
+    font-size: 24px;
+    color: #f7f6f460;
+    margin-top: 5px;
+  }
+
+  .feature-item {
+    display: flex; align-items: center; gap: 20px; font-size: 44px; font-weight: 600; margin: 15px 0;
+    opacity: 0; transform: translateX(-30px); transition: all 0.5s ease;
+  }
+  .feature-item.show { opacity: 1; transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">No todos los bloques<br>de entrenamiento<br><span class="accent">hacen lo mismo</span></h1>
+</div>
+
+<!-- Scene 2: Two tanks (Olbrecht) -->
+<div class="scene" id="scene2">
+  <h2>Olbrecht: 2 motores</h2>
+  <div class="tank-row">
+    <div class="tank" id="tank1">
+      <div class="tank-body" style="border-color:#22c55e;">
+        <div class="tank-fill" id="tf1" style="background:#22c55e30; height:0;"></div>
+      </div>
+      <div class="tank-label" style="color:#22c55e;">Aerobico</div>
+      <div class="tank-sublabel">Capacidad + potencia</div>
+    </div>
+    <div class="tank" id="tank2">
+      <div class="tank-body" style="border-color:#ef4444;">
+        <div class="tank-fill" id="tf2" style="background:#ef444430; height:0;"></div>
+      </div>
+      <div class="tank-label" style="color:#ef4444;">Glucolitico</div>
+      <div class="tank-sublabel">Velocidad + explosividad</div>
+    </div>
+  </div>
+  <div class="overlay-text" id="tankNote" style="font-size:40px;">Tu cuerpo tiene 2 motores. Aerobico y glucolitico.</div>
+</div>
+
+<!-- Scene 3: AEC Block -->
+<div class="scene" id="scene3">
+  <div class="block-card block-aec" id="blockAEC">
+    <div class="block-icon icon-aec">AEC</div>
+    <div class="block-info">
+      <div class="block-name" style="color:#22c55e;">Bloque Aerobico</div>
+      <div class="block-desc">Llenar el tanque grande.<br>Volumen + LT1.</div>
+    </div>
+  </div>
+  <div style="margin-top:30px;">
+    <svg width="500" height="200" viewBox="0 0 500 200">
+      <rect x="0" y="0" width="500" height="200" rx="16" fill="#22c55e08" stroke="#22c55e30" stroke-width="2"/>
+      <rect id="aecFill" x="20" y="40" width="0" height="120" rx="10" fill="#22c55e30" style="transition: width 1.5s ease;"/>
+      <text x="250" y="30" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="28">Volumen</text>
+      <text x="250" y="185" text-anchor="middle" fill="#f7f6f460" font-size="24">Base aerobica</text>
+    </svg>
+  </div>
+</div>
+
+<!-- Scene 4: THR Block -->
+<div class="scene" id="scene4">
+  <div class="block-card block-thr" id="blockTHR">
+    <div class="block-icon icon-thr">THR</div>
+    <div class="block-info">
+      <div class="block-name" style="color:#f97316;">Bloque Umbral</div>
+      <div class="block-desc">Subir el techo.<br>Intervalos de crucero + LT2.</div>
+    </div>
+  </div>
+  <div style="margin-top:30px;">
+    <svg width="500" height="200" viewBox="0 0 500 200">
+      <rect x="0" y="0" width="500" height="200" rx="16" fill="#f9731608" stroke="#f9731630" stroke-width="2"/>
+      <!-- Interval blocks -->
+      <rect id="thrI1" x="30" y="50" width="60" height="100" rx="8" fill="#f9731640" opacity="0" style="transition: opacity 0.3s;"/>
+      <rect id="thrI2" x="120" y="50" width="60" height="100" rx="8" fill="#f9731640" opacity="0" style="transition: opacity 0.3s;"/>
+      <rect id="thrI3" x="210" y="50" width="60" height="100" rx="8" fill="#f9731640" opacity="0" style="transition: opacity 0.3s;"/>
+      <rect id="thrI4" x="300" y="50" width="60" height="100" rx="8" fill="#f9731640" opacity="0" style="transition: opacity 0.3s;"/>
+      <rect id="thrI5" x="390" y="50" width="60" height="100" rx="8" fill="#f9731640" opacity="0" style="transition: opacity 0.3s;"/>
+      <text x="250" y="185" text-anchor="middle" fill="#f7f6f460" font-size="24">Cruise intervals</text>
+    </svg>
+  </div>
+</div>
+
+<!-- Scene 5: AEP Block -->
+<div class="scene" id="scene5">
+  <div class="block-card block-aep" id="blockAEP">
+    <div class="block-icon icon-aep">AEP</div>
+    <div class="block-info">
+      <div class="block-name" style="color:#ef4444;">Bloque Potencia</div>
+      <div class="block-desc">VO2max.<br>Intensidad pura.</div>
+    </div>
+  </div>
+  <div style="margin-top:30px;">
+    <svg width="500" height="200" viewBox="0 0 500 200">
+      <rect x="0" y="0" width="500" height="200" rx="16" fill="#ef444408" stroke="#ef444430" stroke-width="2"/>
+      <!-- Spikes -->
+      <path id="aepSpikes" fill="none" stroke="#ef4444" stroke-width="4" stroke-linecap="round"
+        d="M 30,150 L 60,40 L 90,150 L 150,150 L 180,50 L 210,150 L 270,150 L 300,30 L 330,150 L 390,150 L 420,45 L 450,150"
+        stroke-dasharray="1000" stroke-dashoffset="1000" style="transition: stroke-dashoffset 1.5s ease;"/>
+      <text x="250" y="185" text-anchor="middle" fill="#f7f6f460" font-size="24">VO2max intervals</text>
+    </svg>
+  </div>
+  <div class="overlay-text" id="aepNote">PeakAerobic elige el bloque que necesitas segun tus datos.</div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Entrena con sistema</h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Tu bloque personalizado<br>Link en bio
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 35000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 2000 },
+  { id: 'scene2', start: 2000, end: 8000 },
+  { id: 'scene3', start: 8000, end: 14000 },
+  { id: 'scene4', start: 14000, end: 20000 },
+  { id: 'scene5', start: 20000, end: 30000 },
+  { id: 'scene6', start: 30000, end: 35000 },
+];
+
+const events = [
+  { time: 300, action: () => { document.getElementById('hook1').classList.add('show'); }},
+
+  { time: 2500, action: () => { document.getElementById('tank1').classList.add('show'); }},
+  { time: 3500, action: () => { document.getElementById('tank2').classList.add('show'); }},
+  { time: 4500, action: () => {
+    document.getElementById('tf1').style.height = '65%';
+    document.getElementById('tf2').style.height = '45%';
+  }},
+  { time: 6000, action: () => { document.getElementById('tankNote').classList.add('show'); }},
+
+  { time: 8500, action: () => { document.getElementById('blockAEC').classList.add('show'); }},
+  { time: 9500, action: () => { document.getElementById('aecFill').style.width = '460px'; }},
+
+  { time: 14500, action: () => { document.getElementById('blockTHR').classList.add('show'); }},
+  { time: 15500, action: () => {
+    ['thrI1','thrI2','thrI3','thrI4','thrI5'].forEach((id, i) => {
+      setTimeout(() => document.getElementById(id).style.opacity = '1', i * 200);
+    });
+  }},
+
+  { time: 20500, action: () => { document.getElementById('blockAEP').classList.add('show'); }},
+  { time: 21500, action: () => { document.getElementById('aepSpikes').style.strokeDashoffset = '0'; }},
+  { time: 24000, action: () => { document.getElementById('aepNote').classList.add('show'); }},
+
+  { time: 30500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 31500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

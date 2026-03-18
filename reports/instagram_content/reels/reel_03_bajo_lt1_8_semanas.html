@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 03 - Bajo LT1 8 semanas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.6s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 78px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 58px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; }
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+  .week-counter { font-family: 'Space Grotesk', sans-serif; font-size: 120px; font-weight: 700; color: #d26a36; margin: 20px 0; }
+  .adaptation-item { font-size: 44px; font-weight: 600; padding: 18px 0; opacity: 0; transform: translateX(-30px); transition: all 0.5s ease; }
+  .adaptation-item.show { opacity: 1; transform: translateX(0); }
+  .adaptation-icon { color: #22c55e; margin-right: 15px; }
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; }
+  .subtitle { font-size: 48px; color: #f7f6f4; text-align: center; margin-top: 20px; }
+  .curve-container { width: 900px; height: 600px; margin: 30px auto; }
+  .overlay-label { font-size: 52px; font-weight: 700; text-align: center; margin-top: 20px; opacity: 0; transition: opacity 0.5s; }
+  .overlay-label.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <h1>Mismo esfuerzo.<br><span class="accent">Atleta diferente.</span></h1>
+  <div style="font-size: 52px; margin-top: 40px; opacity: 0; transition: opacity 0.5s;" id="hookSub">8 semanas entrenando bajo LT1</div>
+</div>
+
+<!-- Scene 2: Week 1 Curve -->
+<div class="scene" id="scene2">
+  <div class="week-counter" id="weekNum">Semana 1</div>
+  <div class="curve-container">
+    <svg width="900" height="600" viewBox="0 0 900 600" id="morphChart">
+      <line x1="80" y1="50" x2="80" y2="520" stroke="#f7f6f415" stroke-width="1"/>
+      <line x1="80" y1="520" x2="850" y2="520" stroke="#f7f6f415" stroke-width="1"/>
+      <!-- Y labels -->
+      <text x="25" y="525" fill="#f7f6f480" font-family="Source Sans 3" font-size="26">0</text>
+      <text x="25" y="405" fill="#f7f6f480" font-family="Source Sans 3" font-size="26">2</text>
+      <text x="25" y="290" fill="#f7f6f480" font-family="Source Sans 3" font-size="26">4</text>
+      <text x="25" y="175" fill="#f7f6f480" font-family="Source Sans 3" font-size="26">6</text>
+      <text x="25" y="60" fill="#f7f6f480" font-family="Source Sans 3" font-size="26">8</text>
+      <text x="15" y="35" fill="#f7f6f460" font-family="Source Sans 3" font-size="22">mmol/L</text>
+      <!-- X labels -->
+      <text x="150" y="560" fill="#f7f6f480" font-family="Source Sans 3" font-size="26">3:30</text>
+      <text x="350" y="560" fill="#f7f6f480" font-family="Source Sans 3" font-size="26">4:00</text>
+      <text x="550" y="560" fill="#f7f6f480" font-family="Source Sans 3" font-size="26">4:30</text>
+      <text x="750" y="560" fill="#f7f6f480" font-family="Source Sans 3" font-size="26">5:00</text>
+      <text x="430" y="595" fill="#f7f6f460" font-family="Source Sans 3" font-size="22">min/km</text>
+
+      <!-- LT1 reference line -->
+      <line x1="80" y1="425" x2="850" y2="425" stroke="#22c55e30" stroke-width="2" stroke-dasharray="10 8"/>
+      <text x="855" y="430" fill="#22c55e50" font-family="Space Grotesk" font-weight="700" font-size="24">LT1</text>
+
+      <!-- Ghost curve (week 1 - stays) -->
+      <path id="ghostCurve" fill="none" stroke="#f7f6f420" stroke-width="3" d="" style="transition: opacity 1s;"/>
+
+      <!-- Morphing curve -->
+      <path id="morphCurve" fill="none" stroke="#d26a36" stroke-width="5" stroke-linecap="round" d=""/>
+
+      <!-- Data dots -->
+      <g id="dots"></g>
+    </svg>
+  </div>
+  <div class="overlay-label" id="morphLabel"></div>
+</div>
+
+<!-- Scene 3: Adaptations -->
+<div class="scene" id="scene3">
+  <h2 style="margin-bottom: 50px;">Adaptaciones en <span class="green">8 semanas</span></h2>
+  <div class="adaptation-item" id="ad1"><span class="adaptation-icon">+</span> Mayor densidad mitocondrial</div>
+  <div class="adaptation-item" id="ad2"><span class="adaptation-icon">+</span> Mejor oxidacion de grasas</div>
+  <div class="adaptation-item" id="ad3"><span class="adaptation-icon">+</span> Mayor capilarizacion</div>
+  <div class="adaptation-item" id="ad4"><span class="adaptation-icon">+</span> Reduccion de VLamax</div>
+  <div class="adaptation-item" id="ad5" style="color: #d26a36; font-size: 52px; margin-top: 30px;"><span class="adaptation-icon" style="color:#d26a36;">= </span>Curva desplazada a la derecha</div>
+</div>
+
+<!-- Scene 4: CTA -->
+<div class="scene" id="scene4">
+  <div class="logo-text">PeakAerobic</div>
+  <div class="subtitle">Entrena con ciencia</div>
+  <div style="font-size: 36px; color: #d26a36; margin-top: 40px;">@peakaerobic</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 40000;
+const startTime = Date.now();
+
+// Curve data for weeks 1 through 8 (lactate values at 6 pace points)
+// Week 1: steep curve (untrained-ish)
+// Week 8: flatter curve shifted right (trained)
+const weekCurves = [
+  [490, 460, 410, 330, 200, 80],   // Week 1
+  [495, 465, 420, 345, 220, 100],  // Week 2
+  [498, 472, 435, 360, 240, 120],  // Week 3
+  [500, 478, 445, 375, 260, 140],  // Week 4
+  [502, 482, 452, 388, 278, 158],  // Week 5
+  [504, 486, 458, 398, 295, 175],  // Week 6
+  [506, 490, 465, 410, 310, 190],  // Week 7
+  [508, 494, 470, 418, 322, 205],  // Week 8
+];
+
+const xPositions = [150, 290, 430, 570, 700, 820];
+
+function buildPath(vals) {
+  let d = `M ${xPositions[0]},${vals[0]}`;
+  for (let i = 1; i < vals.length; i++) {
+    const cx1 = xPositions[i-1] + (xPositions[i] - xPositions[i-1]) * 0.5;
+    d += ` C ${cx1},${vals[i-1]} ${cx1},${vals[i]} ${xPositions[i]},${vals[i]}`;
+  }
+  return d;
+}
+
+function buildDots(vals) {
+  return vals.map((v, i) => `<circle cx="${xPositions[i]}" cy="${v}" r="8" fill="#d26a36"/>`).join('');
+}
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 6000 },
+  { id: 'scene2', start: 6000, end: 32000 },
+  { id: 'scene3', start: 32000, end: 37000 },
+  { id: 'scene4', start: 37000, end: 40000 },
+];
+
+let currentWeek = -1;
+
+const events = [
+  { time: 3000, action: () => document.getElementById('hookSub').style.opacity = '1' },
+  // Adaptations
+  { time: 32500, action: () => document.getElementById('ad1').classList.add('show') },
+  { time: 33200, action: () => document.getElementById('ad2').classList.add('show') },
+  { time: 33900, action: () => document.getElementById('ad3').classList.add('show') },
+  { time: 34600, action: () => document.getElementById('ad4').classList.add('show') },
+  { time: 35500, action: () => document.getElementById('ad5').classList.add('show') },
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  document.getElementById('progressBar').style.width = Math.min(elapsed / DURATION * 100, 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  // Morph curve animation (scene 2: 6000-32000, ~3.25s per week)
+  if (elapsed >= 6000 && elapsed < 32000) {
+    const weekProgress = (elapsed - 6000) / (32000 - 6000);
+    const weekIdx = Math.min(Math.floor(weekProgress * 8), 7);
+
+    if (weekIdx !== currentWeek) {
+      currentWeek = weekIdx;
+      document.getElementById('weekNum').textContent = `Semana ${weekIdx + 1}`;
+      document.getElementById('morphCurve').setAttribute('d', buildPath(weekCurves[weekIdx]));
+      document.getElementById('dots').innerHTML = buildDots(weekCurves[weekIdx]);
+
+      if (weekIdx === 0) {
+        document.getElementById('ghostCurve').setAttribute('d', buildPath(weekCurves[0]));
+      }
+
+      if (weekIdx >= 4) {
+        document.getElementById('ghostCurve').style.opacity = '1';
+        const label = document.getElementById('morphLabel');
+        label.textContent = 'Misma velocidad, menos lactato';
+        label.classList.add('show');
+        label.style.color = '#22c55e';
+      }
+    }
+  }
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+// Init first curve
+document.getElementById('morphCurve').setAttribute('d', buildPath(weekCurves[0]));
+document.getElementById('dots').innerHTML = buildDots(weekCurves[0]);
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

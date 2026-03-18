@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5 razones por las que tus zonas de Garmin están MAL — PeakAerobic</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide {
+    width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .slide-number {
+    position: absolute; top: 40px; right: 50px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; font-weight: 500; color: rgba(247,246,244,0.35); z-index: 10;
+  }
+  .progress-dots {
+    position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 10;
+  }
+  .progress-dots .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute; bottom: 44px; right: 50px; text-align: right; z-index: 10;
+  }
+  .watermark .brand {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+    font-size: 16px; color: rgba(210,106,54,0.35);
+  }
+  .watermark .sub {
+    font-family: 'Source Sans 3', sans-serif; font-weight: 300;
+    font-size: 11px; color: rgba(210,106,54,0.25); margin-top: 1px;
+  }
+  .tag {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    background: rgba(210,106,54,0.15); color: #d26a36;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 20px;
+  }
+  .divider {
+    width: 60px; height: 4px; background: #d26a36; border-radius: 2px;
+  }
+  .card {
+    background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px; padding: 40px 30px;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    padding: 40px 50px; border-radius: 20px; text-align: center;
+  }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+  .accent { color: #d26a36; }
+  .accent-green { color: #22c55e; }
+  .accent-orange { color: #f97316; }
+  .red { color: #ef4444; }
+  .content { padding: 80px 70px 80px 70px; height: 100%; display: flex; flex-direction: column; }
+
+  @media print {
+    .slide { page-break-after: always; }
+    body { padding: 0; gap: 0; background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; text-align: center; gap: 36px;">
+    <div class="tag">ZONAS DE ENTRENAMIENTO</div>
+    <h1 style="font-size: 68px; max-width: 820px;">
+      5 razones por las que tus zonas de <span class="accent">Garmin</span> están <span class="red">MAL</span>
+    </h1>
+    <div class="divider" style="margin: 0 auto;"></div>
+    <p style="font-size: 26px; font-weight: 300; max-width: 640px; color: rgba(247,246,244,0.7); line-height: 1.5;">
+      Tu reloj no mide fisiología.<br>Mide algoritmos.
+    </p>
+    <svg width="440" height="80" viewBox="0 0 440 80">
+      <rect x="0" y="10" width="88" height="50" rx="8" fill="rgba(34,197,94,0.25)" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="44" y="40" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="16">Z1</text>
+      <rect x="88" y="10" width="88" height="50" rx="8" fill="rgba(210,106,54,0.25)" stroke="#d26a36" stroke-width="2"/>
+      <text x="132" y="40" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="16">Z2</text>
+      <rect x="176" y="10" width="88" height="50" rx="8" fill="rgba(249,115,22,0.25)" stroke="#f97316" stroke-width="1.5"/>
+      <text x="220" y="40" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="600" font-size="16">Z3</text>
+      <rect x="264" y="10" width="88" height="50" rx="8" fill="rgba(239,68,68,0.25)" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="308" y="40" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="16">Z4</text>
+      <rect x="352" y="10" width="88" height="50" rx="8" fill="rgba(239,68,68,0.35)" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="396" y="40" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="16">Z5</text>
+      <line x1="0" y1="70" x2="440" y2="70" stroke="#ef4444" stroke-width="2" stroke-dasharray="6 4"/>
+      <text x="220" y="78" text-anchor="middle" fill="#ef4444" font-family="Source Sans 3" font-weight="600" font-size="11">BASADAS EN ALGORITMOS, NO EN TU FISIOLOGIA</text>
+    </svg>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: Razon 1 — 220-edad -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">RAZON 1</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">Usa <span class="red">220 - edad</span> para estimar tu FCmax</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 320" width="940" height="340" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="280" x2="840" y2="280" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="280" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="310" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Edad (anos)</text>
+        <text x="35" y="155" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 155)">FCmax (bpm)</text>
+
+        <!-- X labels -->
+        <text x="140" y="298" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">20</text>
+        <text x="340" y="298" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">30</text>
+        <text x="540" y="298" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">40</text>
+        <text x="740" y="298" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">50</text>
+
+        <!-- Y labels -->
+        <text x="75" y="268" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">160</text>
+        <text x="75" y="198" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">175</text>
+        <text x="75" y="128" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">190</text>
+        <text x="75" y="58" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">205</text>
+
+        <!-- 220-age line -->
+        <line x1="140" y1="48" x2="740" y2="178" stroke="#d26a36" stroke-width="2.5"/>
+        <text x="760" y="175" fill="#d26a36" font-family="Space Grotesk" font-weight="600" font-size="14">220 - edad</text>
+
+        <!-- Error band +-12bpm -->
+        <polygon points="140,18 740,148 740,208 140,78" fill="rgba(239,68,68,0.1)" stroke="rgba(239,68,68,0.3)" stroke-width="1" stroke-dasharray="6 4"/>
+
+        <!-- Error annotation -->
+        <line x1="440" y1="83" x2="440" y2="173" stroke="#ef4444" stroke-width="2"/>
+        <line x1="430" y1="83" x2="450" y2="83" stroke="#ef4444" stroke-width="2"/>
+        <line x1="430" y1="173" x2="450" y2="173" stroke="#ef4444" stroke-width="2"/>
+        <text x="480" y="133" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="18">+-12 bpm</text>
+
+        <!-- Scatter dots showing real variation -->
+        <circle cx="180" cy="38" r="5" fill="#22c55e" opacity="0.7"/>
+        <circle cx="200" cy="72" r="5" fill="#22c55e" opacity="0.7"/>
+        <circle cx="250" cy="48" r="5" fill="#22c55e" opacity="0.7"/>
+        <circle cx="300" cy="95" r="5" fill="#22c55e" opacity="0.7"/>
+        <circle cx="350" cy="60" r="5" fill="#22c55e" opacity="0.7"/>
+        <circle cx="400" cy="120" r="5" fill="#22c55e" opacity="0.7"/>
+        <circle cx="450" cy="88" r="5" fill="#22c55e" opacity="0.7"/>
+        <circle cx="500" cy="145" r="5" fill="#22c55e" opacity="0.7"/>
+        <circle cx="550" cy="110" r="5" fill="#22c55e" opacity="0.7"/>
+        <circle cx="600" cy="165" r="5" fill="#22c55e" opacity="0.7"/>
+        <circle cx="650" cy="130" r="5" fill="#22c55e" opacity="0.7"/>
+        <circle cx="700" cy="185" r="5" fill="#22c55e" opacity="0.7"/>
+        <circle cx="720" cy="155" r="5" fill="#22c55e" opacity="0.7"/>
+      </svg>
+      <div class="card" style="padding: 28px 36px;">
+        <p style="font-size: 20px; font-weight: 300; line-height: 1.6; font-style: italic; color: rgba(247,246,244,0.8);">
+          "The 220-age formula has <strong>no acceptable scientific basis</strong> and the estimation error is unacceptably large."
+        </p>
+        <p style="font-size: 16px; font-weight: 600; color: #d26a36; margin-top: 12px;">
+          — Robergs & Landwehr (2002), <em>J Exercise Physiology Online</em>
+        </p>
+      </div>
+      <p style="font-size: 22px; font-weight: 400; text-align: center; color: rgba(247,246,244,0.7);">
+        Si tu FCmax real difiere <span class="red" style="font-weight: 700;">10-12 bpm</span>, todas tus zonas estan desplazadas.
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Robergs, R. & Landwehr, R. (2002). <em>J Exercise Physiology Online</em>, 5(2), 1-10.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: Razon 2 — No diferencia LT1 de LT2 -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">RAZON 2</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">No diferencia <span class="accent-green">LT1</span> de <span class="red">LT2</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 340" width="940" height="360" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="290" x2="840" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="330" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Intensidad</text>
+        <text x="35" y="160" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 160)">Lactato (mmol/L)</text>
+
+        <!-- Lactate curve -->
+        <polyline points="130,278 220,274 310,268 380,258 440,240 500,210 550,170 600,125 660,75 720,40"
+          fill="none" stroke="#d26a36" stroke-width="3.5" stroke-linecap="round"/>
+
+        <!-- LT1 marker -->
+        <line x1="340" y1="40" x2="340" y2="290" stroke="#22c55e" stroke-width="2.5" stroke-dasharray="8 5"/>
+        <rect x="290" y="45" width="100" height="32" rx="8" fill="rgba(34,197,94,0.2)" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="340" y="67" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="18">LT1</text>
+        <text x="340" y="95" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="13">Umbral aerobico</text>
+
+        <!-- LT2 marker -->
+        <line x1="560" y1="40" x2="560" y2="290" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="8 5"/>
+        <rect x="510" y="45" width="100" height="32" rx="8" fill="rgba(239,68,68,0.2)" stroke="#ef4444" stroke-width="1.5"/>
+        <text x="560" y="67" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="18">LT2</text>
+        <text x="560" y="95" text-anchor="middle" fill="rgba(239,68,68,0.6)" font-family="Source Sans 3" font-size="13">Umbral anaerobico</text>
+
+        <!-- Garmin single threshold -->
+        <line x1="460" y1="145" x2="460" y2="290" stroke="#f97316" stroke-width="3" stroke-dasharray="4 3"/>
+        <text x="460" y="140" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="700" font-size="16">Garmin: 1 umbral</text>
+
+        <!-- Zone annotations -->
+        <rect x="100" y="250" width="240" height="30" rx="6" fill="rgba(34,197,94,0.1)"/>
+        <text x="220" y="270" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-weight="500" font-size="13">Zona aerobica real</text>
+        <rect x="340" y="250" width="220" height="30" rx="6" fill="rgba(210,106,54,0.1)"/>
+        <text x="450" y="270" text-anchor="middle" fill="rgba(210,106,54,0.6)" font-family="Source Sans 3" font-weight="500" font-size="13">Zona umbral</text>
+        <rect x="560" y="250" width="260" height="30" rx="6" fill="rgba(239,68,68,0.1)"/>
+        <text x="690" y="270" text-anchor="middle" fill="rgba(239,68,68,0.6)" font-family="Source Sans 3" font-weight="500" font-size="13">Zona severa</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px;">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          Kindermann et al. (1979) demostraron que existen <span class="accent-green" style="font-weight: 700;">DOS umbrales</span> fisiologicos distintos. Garmin solo detecta uno (y a menudo mal).
+        </p>
+      </div>
+      <p style="font-size: 20px; font-weight: 300; text-align: center; color: rgba(247,246,244,0.6);">
+        Sin LT1, no sabes donde empieza tu zona de base real.<br>
+        Sin LT2, no sabes donde empieza la alta intensidad.
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Kindermann, W., Simon, G. & Keul, J. (1979). <em>Int J Sports Med</em>, 1, 23-30.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: Razon 3 — No detecta VLamax -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">RAZON 3</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">No detecta tu <span class="accent">VLamax</span>: la capacidad glucolitica</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 360" width="940" height="380" style="align-self: center;">
+        <!-- Two-tank model -->
+        <!-- Aerobic tank (large) -->
+        <rect x="120" y="60" width="200" height="260" rx="12" fill="none" stroke="#22c55e" stroke-width="2.5"/>
+        <rect x="124" y="120" width="192" height="196" rx="8" fill="rgba(34,197,94,0.15)"/>
+        <text x="220" y="48" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="18">VO2max</text>
+        <text x="220" y="180" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-weight="500" font-size="16">Tanque</text>
+        <text x="220" y="205" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-weight="500" font-size="16">AEROBICO</text>
+        <text x="220" y="240" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="14">(grande, lento)</text>
+
+        <!-- Glycolytic tank (small) -->
+        <rect x="380" y="180" width="140" height="140" rx="12" fill="none" stroke="#ef4444" stroke-width="2.5"/>
+        <rect x="384" y="210" width="132" height="106" rx="8" fill="rgba(239,68,68,0.15)"/>
+        <text x="450" y="168" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="18">VLamax</text>
+        <text x="450" y="260" text-anchor="middle" fill="rgba(239,68,68,0.6)" font-family="Source Sans 3" font-weight="500" font-size="16">Tanque</text>
+        <text x="450" y="285" text-anchor="middle" fill="rgba(239,68,68,0.6)" font-family="Source Sans 3" font-weight="500" font-size="16">GLUCOLITICO</text>
+        <text x="450" y="310" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="14">(rapido, limitado)</text>
+
+        <!-- Arrow between tanks -->
+        <line x1="324" y1="250" x2="376" y2="250" stroke="rgba(247,246,244,0.3)" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="rgba(247,246,244,0.3)"/></marker></defs>
+        <text x="350" y="240" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="12">lactato</text>
+
+        <!-- Right side: effect on zones -->
+        <rect x="580" y="60" width="280" height="120" rx="14" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.25)" stroke-width="1"/>
+        <text x="720" y="90" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="18">VLamax ALTA</text>
+        <text x="720" y="115" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="15">Lactato sube rapido</text>
+        <text x="720" y="140" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="15">Zonas estrechas</text>
+        <text x="720" y="165" text-anchor="middle" fill="rgba(239,68,68,0.5)" font-family="Source Sans 3" font-weight="600" font-size="14">Sprinters, 5k</text>
+
+        <rect x="580" y="200" width="280" height="120" rx="14" fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.25)" stroke-width="1"/>
+        <text x="720" y="230" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="18">VLamax BAJA</text>
+        <text x="720" y="255" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="15">Lactato sube tarde</text>
+        <text x="720" y="280" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="15">Zonas amplias</text>
+        <text x="720" y="305" text-anchor="middle" fill="rgba(34,197,94,0.5)" font-family="Source Sans 3" font-weight="600" font-size="14">Ironman, maraton</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px;">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          Mader (2003): la <span class="accent" style="font-weight: 700;">VLamax</span> determina cuanto lactato produces a cada intensidad. <strong>Dos atletas con la misma FCmax pueden tener zonas completamente diferentes.</strong>
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Mader, A. (2003). <em>Eur J Appl Physiol</em>, 88(4-5), 420-431.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: Razon 4 — Algoritmos de FC, no fisiologia -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">RAZON 4</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">Usan <span class="red">algoritmos de FC</span>, no fisiologia real</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 28px;">
+          <h3 style="font-size: 20px; color: #ef4444; margin-bottom: 16px;">Factores que alteran la FC</h3>
+          <ul style="font-size: 18px; font-weight: 300; line-height: 2.2; color: rgba(247,246,244,0.7); list-style: none; padding: 0;">
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #ef4444;">&#x2022;</span> Calor y humedad</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #ef4444;">&#x2022;</span> Deshidratacion</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #ef4444;">&#x2022;</span> Cafe y estimulantes</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #ef4444;">&#x2022;</span> Estres y sueno</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #ef4444;">&#x2022;</span> Fatiga acumulada</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #ef4444;">&#x2022;</span> Altitud</li>
+          </ul>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px;">
+          <h3 style="font-size: 20px; color: #22c55e; margin-bottom: 16px;">La FC NO mide</h3>
+          <ul style="font-size: 18px; font-weight: 300; line-height: 2.2; color: rgba(247,246,244,0.7); list-style: none; padding: 0;">
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #22c55e;">&#x2022;</span> Produccion de lactato</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #22c55e;">&#x2022;</span> Capacidad de aclaramiento</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #22c55e;">&#x2022;</span> VLamax individual</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #22c55e;">&#x2022;</span> Oxidacion de grasas</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #22c55e;">&#x2022;</span> Eficiencia metabolica</li>
+            <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #22c55e;">&#x2022;</span> Adaptacion muscular</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 36px; border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.06);">
+        <p style="font-size: 20px; font-weight: 300; line-height: 1.6; font-style: italic; color: rgba(247,246,244,0.8);">
+          "The correlation between HR-based thresholds and blood lactate thresholds was <strong>weak to moderate</strong> in well-trained athletes."
+        </p>
+        <p style="font-size: 16px; font-weight: 600; color: #d26a36; margin-top: 12px;">
+          — Sylta et al. (2014), <em>Int J Sports Physiol Perform</em>
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Sylta, O. et al. (2014). <em>Int J Sports Physiol Perform</em>, 9(6), 1000-1007.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: Razon 5 — Linea horizontal para todos -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">RAZON 5</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">Una <span class="red">linea horizontal</span> para todos los atletas</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 340" width="940" height="360" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="290" x2="850" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="470" y="330" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Intensidad</text>
+        <text x="35" y="160" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 160)">Lactato (mmol/L)</text>
+
+        <!-- Fixed 4mmol line -->
+        <line x1="90" y1="140" x2="850" y2="140" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="10 5"/>
+        <text x="860" y="137" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="14" text-anchor="start">4 mmol</text>
+
+        <!-- Athlete A: early riser (high VLamax) -->
+        <polyline points="130,278 200,274 280,266 340,248 400,218 440,180 470,140 510,90 550,50"
+          fill="none" stroke="#f97316" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="470" cy="140" r="8" fill="#f97316" stroke="#0e1e24" stroke-width="2"/>
+        <text x="480" y="130" fill="#f97316" font-family="Space Grotesk" font-weight="600" font-size="14">Atleta A</text>
+        <text x="480" y="112" fill="rgba(249,115,22,0.6)" font-family="Source Sans 3" font-size="12">VLamax alta</text>
+
+        <!-- Athlete B: moderate -->
+        <polyline points="130,280 220,278 320,274 400,265 480,245 540,210 590,168 630,130 670,85 710,50"
+          fill="none" stroke="#d26a36" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="605" cy="155" r="8" fill="#d26a36" stroke="#0e1e24" stroke-width="2"/>
+        <text x="615" y="148" fill="#d26a36" font-family="Space Grotesk" font-weight="600" font-size="14">Atleta B</text>
+
+        <!-- Athlete C: late riser (low VLamax, trained) -->
+        <polyline points="130,282 240,280 360,278 460,274 540,268 620,256 680,235 730,200 760,165 790,120 820,70"
+          fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="775" cy="145" r="8" fill="#22c55e" stroke="#0e1e24" stroke-width="2"/>
+        <text x="785" y="138" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="14">Atleta C</text>
+        <text x="785" y="120" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="12">VLamax baja</text>
+
+        <!-- Annotation: all cross 4mmol at different points -->
+        <rect x="200" y="40" width="350" height="32" rx="8" fill="rgba(239,68,68,0.12)" stroke="rgba(239,68,68,0.3)" stroke-width="1"/>
+        <text x="375" y="62" text-anchor="middle" fill="#ef4444" font-family="Source Sans 3" font-weight="600" font-size="15">Misma linea, 3 fisiologias diferentes</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px;">
+        <p style="font-size: 20px; font-weight: 300; line-height: 1.6; font-style: italic; color: rgba(247,246,244,0.8);">
+          "Fixed blood lactate thresholds <strong>should not be recommended</strong> for the determination of lactate thresholds in individuals."
+        </p>
+        <p style="font-size: 16px; font-weight: 600; color: #d26a36; margin-top: 12px;">
+          — Faude, Kindermann & Meyer (2009), <em>Sports Medicine</em>
+        </p>
+      </div>
+      <p style="font-size: 20px; font-weight: 400; text-align: center; color: rgba(247,246,244,0.7);">
+        Cada atleta necesita un analisis <span class="accent" style="font-weight: 700;">individual</span> de su curva de lactato.
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Faude, O., Kindermann, W. & Meyer, T. (2009). <em>Sports Medicine</em>, 39(6), 469-490.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; gap: 40px;">
+    <div class="cta-box" style="max-width: 800px; width: 100%;">
+      <h2 style="font-size: 44px; color: #f7f6f4; margin-bottom: 20px; line-height: 1.2;">
+        Analiza tu curva de lactato real
+      </h2>
+      <div style="width: 60px; height: 4px; background: rgba(247,246,244,0.4); border-radius: 2px; margin: 0 auto 24px;"></div>
+      <p style="font-size: 22px; font-weight: 300; color: rgba(247,246,244,0.9); line-height: 1.5; margin-bottom: 28px;">
+        PeakAerobic detecta tu <strong>LT1</strong>, <strong>LT2</strong> y <strong>VLamax</strong> con metodos cientificos validados. Zonas reales, no algoritmos.
+      </p>
+      <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <div style="background: rgba(247,246,244,0.15); padding: 12px 28px; border-radius: 10px;">
+          <p style="font-size: 18px; font-weight: 600; color: #f7f6f4;">Tus zonas basadas en TU fisiologia</p>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 32px; align-items: center;">
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #22c55e;">LT1</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Umbral aerobico</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #ef4444;">LT2</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Umbral anaerobico</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #d26a36;">VLamax</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Perfil metabolico</p>
+      </div>
+    </div>
+    <p style="font-size: 20px; font-weight: 500; color: #d26a36;">peakaerobic.com</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

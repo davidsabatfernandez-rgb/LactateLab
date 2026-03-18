@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCT: los transportadores de lactato que deciden tu rendimiento</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+.slide { width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 80px; position: relative; overflow: hidden; flex-shrink: 0; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+p, li { font-family: 'Source Sans 3', sans-serif; }
+.accent { color: #d26a36; }
+.accent-green { color: #22c55e; }
+.accent-orange { color: #f97316; }
+.slide-number { position: absolute; top: 40px; right: 50px; font-size: 20px; color: rgba(247,246,244,0.35); font-family: 'Space Grotesk', sans-serif; }
+.progress-dots { position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+.progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.25); }
+.progress-dots .dot.active { background: #d26a36; }
+.watermark { position: absolute; bottom: 44px; right: 50px; text-align: right; font-family: 'Space Grotesk', sans-serif; }
+.watermark .brand { font-size: 18px; font-weight: 600; color: rgba(247,246,244,0.3); }
+.watermark .sub { font-size: 12px; color: rgba(247,246,244,0.2); }
+.cta-box { background: linear-gradient(135deg, #d26a36, #e07b44); border-radius: 20px; padding: 30px 50px; text-align: center; }
+.card { background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2); border-radius: 20px; padding: 30px; width: 100%; }
+.ref { font-size: 16px; color: rgba(247,246,244,0.4); margin-top: 16px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <div class="slide-number">1/7</div>
+  <div style="text-align: center;">
+    <p style="font-size: 22px; text-transform: uppercase; letter-spacing: 4px; color: rgba(247,246,244,0.5); margin-bottom: 30px;">Fisiología del rendimiento</p>
+    <h1 style="font-size: 72px; line-height: 1.1; margin-bottom: 30px;">MCT: el secreto que mueve tu <span class="accent">lactato</span></h1>
+    <p style="font-size: 28px; color: rgba(247,246,244,0.7); max-width: 700px; margin: 0 auto;">Los transportadores que determinan si acumulas o aprovechas el lactato</p>
+    <div style="margin-top: 50px;">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="50" fill="none" stroke="#d26a36" stroke-width="3" opacity="0.4"/>
+        <circle cx="60" cy="60" r="35" fill="none" stroke="#d26a36" stroke-width="2" opacity="0.6"/>
+        <path d="M40 70 Q60 30 80 70" fill="none" stroke="#d26a36" stroke-width="3"/>
+        <circle cx="50" cy="55" r="5" fill="#d26a36" opacity="0.8"/>
+        <circle cx="70" cy="55" r="5" fill="#22c55e" opacity="0.8"/>
+        <path d="M55 55 L65 55" stroke="#f7f6f4" stroke-width="2" marker-end="url(#arrow)"/>
+        <defs><marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#f7f6f4"/></marker></defs>
+      </svg>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: Lactato = combustible -->
+<div class="slide">
+  <div class="slide-number">2/7</div>
+  <h2 style="font-size: 44px; margin-bottom: 30px; text-align: center;">El lactato es <span class="accent">combustible</span>,<br>no desecho</h2>
+  <div style="margin: 30px 0;">
+    <svg width="700" height="300" viewBox="0 0 700 300">
+      <!-- Fiber type 1 -->
+      <rect x="30" y="60" width="200" height="180" rx="20" fill="rgba(34,197,94,0.1)" stroke="#22c55e" stroke-width="2"/>
+      <text x="130" y="100" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="20" font-weight="600">Fibra lenta (I)</text>
+      <text x="130" y="140" text-anchor="middle" fill="#f7f6f4" font-family="Source Sans 3" font-size="18">Oxidativa</text>
+      <text x="130" y="170" text-anchor="middle" fill="#f7f6f4" font-family="Source Sans 3" font-size="16">Consume lactato</text>
+      <text x="130" y="200" text-anchor="middle" fill="#22c55e" font-family="Source Sans 3" font-size="18" font-weight="600">→ ATP</text>
+      <!-- Arrow shuttle -->
+      <path d="M240 150 L460 150" stroke="#d26a36" stroke-width="3" stroke-dasharray="8,4"/>
+      <polygon points="455,142 470,150 455,158" fill="#d26a36"/>
+      <polygon points="245,142 230,150 245,158" fill="#d26a36"/>
+      <text x="350" y="130" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="16" font-weight="600">LACTATE SHUTTLE</text>
+      <text x="350" y="180" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Transporte bidireccional</text>
+      <!-- Fiber type 2 -->
+      <rect x="470" y="60" width="200" height="180" rx="20" fill="rgba(249,115,22,0.1)" stroke="#f97316" stroke-width="2"/>
+      <text x="570" y="100" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="20" font-weight="600">Fibra rápida (II)</text>
+      <text x="570" y="140" text-anchor="middle" fill="#f7f6f4" font-family="Source Sans 3" font-size="18">Glucolítica</text>
+      <text x="570" y="170" text-anchor="middle" fill="#f7f6f4" font-family="Source Sans 3" font-size="16">Produce lactato</text>
+      <text x="570" y="200" text-anchor="middle" fill="#f97316" font-family="Source Sans 3" font-size="18" font-weight="600">→ Lactato</text>
+    </svg>
+  </div>
+  <div class="card" style="text-align: center;">
+    <p style="font-size: 22px; line-height: 1.6;">Las fibras rápidas producen lactato. Las fibras lentas lo <span class="accent-green">consumen como combustible</span>. El Lactate Shuttle conecta ambas.</p>
+  </div>
+  <p class="ref">Brooks, G.A. (2018). The Science and Translation of Lactate Shuttle Theory. Cell Metabolism, 27(4), 757-785.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: MCT1 -->
+<div class="slide">
+  <div class="slide-number">3/7</div>
+  <h2 style="font-size: 48px; margin-bottom: 20px; text-align: center;"><span class="accent-green">MCT1</span>: el limpiador</h2>
+  <p style="font-size: 24px; color: rgba(247,246,244,0.7); text-align: center; margin-bottom: 40px;">Transportador oxidativo — Fibras tipo I</p>
+  <div style="display: flex; gap: 30px; width: 100%; margin-bottom: 30px;">
+    <div class="card" style="flex: 1; text-align: center;">
+      <svg width="80" height="80" viewBox="0 0 80 80" style="margin-bottom: 15px;">
+        <rect x="10" y="10" width="60" height="60" rx="15" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="2"/>
+        <text x="40" y="48" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="28" font-weight="700">IN</text>
+      </svg>
+      <h2 style="font-size: 24px; color: #22c55e; margin-bottom: 10px;">Función</h2>
+      <p style="font-size: 20px; line-height: 1.5;">Transporta lactato <strong>dentro</strong> de la mitocondria para oxidarlo como combustible</p>
+    </div>
+    <div class="card" style="flex: 1; text-align: center;">
+      <svg width="80" height="80" viewBox="0 0 80 80" style="margin-bottom: 15px;">
+        <circle cx="40" cy="40" r="30" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="2"/>
+        <text x="40" y="46" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="24" font-weight="700">Z2</text>
+      </svg>
+      <h2 style="font-size: 24px; color: #22c55e; margin-bottom: 10px;">Se entrena con</h2>
+      <p style="font-size: 20px; line-height: 1.5;">Volumen en <strong>Zona 2</strong> (bajo LT1). Sesiones largas, ritmo conversacional</p>
+    </div>
+  </div>
+  <div class="card" style="text-align: center; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+    <p style="font-size: 22px;"><span class="accent-green">Más MCT1 = más capacidad de limpiar lactato</span> = puedes mantener intensidades más altas sin acumular</p>
+  </div>
+  <p class="ref">Juel, C. & Halestrap, A.P. (2004). Lactate transport in skeletal muscle. J Physiol, 517(3), 633-642.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: MCT4 -->
+<div class="slide">
+  <div class="slide-number">4/7</div>
+  <h2 style="font-size: 48px; margin-bottom: 20px; text-align: center;"><span class="accent-orange">MCT4</span>: el evacuador</h2>
+  <p style="font-size: 24px; color: rgba(247,246,244,0.7); text-align: center; margin-bottom: 40px;">Transportador glucolítico — Fibras tipo II</p>
+  <div style="display: flex; gap: 30px; width: 100%; margin-bottom: 30px;">
+    <div class="card" style="flex: 1; text-align: center;">
+      <svg width="80" height="80" viewBox="0 0 80 80" style="margin-bottom: 15px;">
+        <rect x="10" y="10" width="60" height="60" rx="15" fill="rgba(249,115,22,0.15)" stroke="#f97316" stroke-width="2"/>
+        <text x="40" y="48" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="24" font-weight="700">OUT</text>
+      </svg>
+      <h2 style="font-size: 24px; color: #f97316; margin-bottom: 10px;">Función</h2>
+      <p style="font-size: 20px; line-height: 1.5;">Saca lactato <strong>fuera</strong> de la célula rápidamente para evitar acumulación local</p>
+    </div>
+    <div class="card" style="flex: 1; text-align: center;">
+      <svg width="80" height="80" viewBox="0 0 80 80" style="margin-bottom: 15px;">
+        <circle cx="40" cy="40" r="30" fill="rgba(249,115,22,0.15)" stroke="#f97316" stroke-width="2"/>
+        <text x="40" y="38" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="16" font-weight="700">HIIT</text>
+        <text x="40" y="54" text-anchor="middle" fill="#f97316" font-family="Source Sans 3" font-size="12">VO2max</text>
+      </svg>
+      <h2 style="font-size: 24px; color: #f97316; margin-bottom: 10px;">Se entrena con</h2>
+      <p style="font-size: 20px; line-height: 1.5;">Intervalos de <strong>alta intensidad</strong> (>LT2). Esfuerzos cortos e intensos</p>
+    </div>
+  </div>
+  <div class="card" style="text-align: center; border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.06);">
+    <p style="font-size: 22px;"><span class="accent-orange">Más MCT4 = evacuación más rápida</span> = las fibras rápidas no se "ahogan" en su propio lactato</p>
+  </div>
+  <p class="ref">Thomas, C. et al. (2012). Monocarboxylate transporters, blood lactate removal after supramaximal exercise. Med Sci Sports Exerc, 44(10), 1899-1906.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: MCT1 shifts LT2 -->
+<div class="slide">
+  <div class="slide-number">5/7</div>
+  <h2 style="font-size: 42px; margin-bottom: 15px; text-align: center;">Más MCT1 = <span class="accent">LT2 más alto</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 30px;">La curva de lactato se desplaza a la derecha</p>
+  <div style="margin: 20px 0;">
+    <svg width="750" height="400" viewBox="0 0 750 400">
+      <!-- Axes -->
+      <line x1="80" y1="320" x2="700" y2="320" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+      <line x1="80" y1="320" x2="80" y2="40" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+      <text x="400" y="370" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="18">Intensidad (ritmo / potencia)</text>
+      <text x="30" y="180" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="18" transform="rotate(-90, 30, 180)">Lactato (mmol/L)</text>
+      <!-- LT2 line -->
+      <line x1="80" y1="120" x2="700" y2="120" stroke="rgba(210,106,54,0.3)" stroke-width="1" stroke-dasharray="6,4"/>
+      <text x="710" y="125" fill="#d26a36" font-family="Source Sans 3" font-size="14">LT2</text>
+      <!-- Before curve (less MCT1) -->
+      <path d="M120 300 Q200 295 280 280 Q360 260 420 200 Q460 150 500 80" fill="none" stroke="rgba(247,246,244,0.35)" stroke-width="3" stroke-dasharray="8,4"/>
+      <text x="480" y="65" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="16">Antes</text>
+      <!-- After curve (more MCT1) -->
+      <path d="M120 300 Q220 296 340 285 Q440 268 520 200 Q570 150 620 80" fill="none" stroke="#22c55e" stroke-width="3"/>
+      <text x="630" y="65" fill="#22c55e" font-family="Source Sans 3" font-size="16" font-weight="600">Después</text>
+      <!-- LT2 markers -->
+      <line x1="380" y1="120" x2="380" y2="330" stroke="rgba(247,246,244,0.2)" stroke-width="1" stroke-dasharray="4,4"/>
+      <line x1="510" y1="120" x2="510" y2="330" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,4"/>
+      <!-- Arrow -->
+      <path d="M390 340 L500 340" stroke="#d26a36" stroke-width="3" marker-end="url(#arr2)"/>
+      <defs><marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#d26a36"/></marker></defs>
+      <text x="445" y="360" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="16" font-weight="600">Desplazamiento</text>
+    </svg>
+  </div>
+  <div class="card" style="text-align: center;">
+    <p style="font-size: 22px;">Con más MCT1, limpias lactato más rápido → la curva se desplaza a la derecha → <span class="accent-green">puedes ir más rápido al mismo lactato</span></p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: AEC vs ANC -->
+<div class="slide">
+  <div class="slide-number">6/7</div>
+  <h2 style="font-size: 42px; margin-bottom: 15px; text-align: center;">¿Qué necesitas tú?</h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 40px;">Olbrecht: elige el bloque según tu perfil metabólico</p>
+  <div style="display: flex; gap: 30px; width: 100%;">
+    <div class="card" style="flex: 1; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+      <h2 style="font-size: 28px; color: #22c55e; text-align: center; margin-bottom: 20px;">Bloque AEC</h2>
+      <p style="font-size: 20px; text-align: center; margin-bottom: 15px;">Capacidad Aeróbica</p>
+      <div style="border-top: 1px solid rgba(34,197,94,0.2); padding-top: 15px;">
+        <p style="font-size: 18px; line-height: 1.8; color: rgba(247,246,244,0.8);">
+          ✦ Volumen en Zona 2<br>
+          ✦ LT1 extensivas<br>
+          ✦ ↑ MCT1 (+40-60%)<br>
+          ✦ ↑ Densidad mitocondrial<br>
+          ✦ ↓ VLamax
+        </p>
+      </div>
+      <p style="font-size: 16px; color: #22c55e; text-align: center; margin-top: 15px;">Para: VLamax alta, base insuficiente</p>
+    </div>
+    <div class="card" style="flex: 1; border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.06);">
+      <h2 style="font-size: 28px; color: #f97316; text-align: center; margin-bottom: 20px;">Bloque ANC</h2>
+      <p style="font-size: 20px; text-align: center; margin-bottom: 15px;">Capacidad Anaeróbica</p>
+      <div style="border-top: 1px solid rgba(249,115,22,0.2); padding-top: 15px;">
+        <p style="font-size: 18px; line-height: 1.8; color: rgba(247,246,244,0.8);">
+          ✦ HIIT / intervalos<br>
+          ✦ Sprints cortos<br>
+          ✦ ↑ MCT4 (+70-80%)<br>
+          ✦ ↑ Capacidad buffer<br>
+          ✦ ↑ VLamax
+        </p>
+      </div>
+      <p style="font-size: 16px; color: #f97316; text-align: center; margin-top: 15px;">Para: VLamax baja, "diesel" sin chispa</p>
+    </div>
+  </div>
+  <p class="ref">Olbrecht, J. The Science of Winning. Ch. 8-10: Training model by metabolic profile.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7/7</div>
+  <div style="text-align: center; max-width: 800px;">
+    <p style="font-size: 22px; color: rgba(247,246,244,0.5); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 30px;">La clave</p>
+    <h1 style="font-size: 52px; line-height: 1.2; margin-bottom: 40px;">No adivines.<br><span class="accent">Diagnostica</span> qué transportadores necesitas entrenar.</h1>
+    <div class="cta-box" style="margin-bottom: 30px;">
+      <h2 style="font-size: 32px; color: #f7f6f4; margin-bottom: 10px;">PeakAerobic</h2>
+      <p style="font-size: 22px; color: rgba(247,246,244,0.9);">Analiza tu curva de lactato y diagnostica si necesitas más MCT1 o MCT4</p>
+    </div>
+    <p style="font-size: 20px; color: rgba(247,246,244,0.5); margin-top: 20px;">Tu perfil metabólico decide el bloque. La ciencia decide la dosis.</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carousel 9 — VLamax: la métrica que tu coach no te explica</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide { width: 1080px; height: 1080px; position: relative; overflow: hidden; background: #0e1e24; color: #f7f6f4; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 80px; }
+  .slide-number { position: absolute; top: 40px; right: 50px; font-family: 'Space Grotesk', sans-serif; font-size: 20px; color: rgba(247,246,244,0.35); font-weight: 500; letter-spacing: 2px; }
+  .progress-dots { position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.2); }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark { position: absolute; bottom: 44px; right: 50px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; color: rgba(210,106,54,0.35); font-weight: 600; letter-spacing: 1px; }
+  .watermark span { font-weight: 400; font-size: 11px; display: block; letter-spacing: 0.5px; color: rgba(210,106,54,0.25); }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; line-height: 1.15; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; line-height: 1.2; }
+  p { font-family: 'Source Sans 3', sans-serif; line-height: 1.5; }
+  .accent { color: #d26a36; }
+  .tag { display: inline-block; padding: 8px 20px; border-radius: 6px; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 500; background: rgba(210,106,54,0.15); color: #d26a36; margin-bottom: 20px; letter-spacing: 1px; }
+  .divider { width: 60px; height: 4px; background: #d26a36; border-radius: 2px; margin: 24px 0; }
+  .cta-box { background: linear-gradient(135deg, #d26a36, #e07b44); padding: 40px 50px; border-radius: 20px; text-align: center; max-width: 820px; }
+  @media print { body { padding: 0; gap: 0; background: white; } .slide { page-break-after: always; margin: 0; } }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide" style="background: linear-gradient(160deg, #0e1e24 0%, #132a33 50%, #0e1e24 100%);">
+  <div class="slide-number">01 / 08</div>
+  <div style="text-align: center;">
+    <div class="tag">METABOLISMO</div>
+    <h1 style="font-size: 60px; margin-bottom: 30px;"><span class="accent">VLamax</span><br>Motor diésel o<br>coche deportivo?</h1>
+    <div class="divider" style="margin: 24px auto;"></div>
+    <p style="font-size: 28px; color: rgba(247,246,244,0.6);">La métrica que tu coach no te explica</p>
+  </div>
+  <div class="progress-dots"><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 2: Definition -->
+<div class="slide">
+  <div class="slide-number">02 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 50px; margin-bottom: 30px;">VLamax =</h2>
+    <h2 style="font-size: 44px; color: #d26a36; margin-bottom: 40px;">Tasa máxima de<br>producción de lactato</h2>
+    <div style="max-width: 700px; margin: 0 auto; padding: 35px 40px; border-radius: 16px; background: rgba(210,106,54,0.06); border: 1.5px solid rgba(210,106,54,0.2);">
+      <p style="font-size: 26px; color: rgba(247,246,244,0.65); text-align: left;">
+        Mide la capacidad de tu sistema glucolítico: cuánto lactato puede
+        producir tu musculatura en un esfuerzo máximo corto.
+      </p>
+      <div class="divider"></div>
+      <p style="font-size: 22px; color: rgba(247,246,244,0.45); text-align: left;">
+        Se expresa en <strong style="color: #f7f6f4;">mmol/L/seg</strong>.<br>
+        Típico: 0.2 - 0.9 mmol/L/seg.<br>
+        Sprinter: > 0.6 | Diésel: < 0.3
+      </p>
+    </div>
+  </div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 3: High VLamax -->
+<div class="slide">
+  <div class="slide-number">03 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 48px; margin-bottom: 40px;">VLamax <span style="color:#f97316;">ALTA</span> = Sprinter</h2>
+    <div style="display: flex; gap: 50px; justify-content: center; align-items: center;">
+      <svg viewBox="0 0 300 300" style="width: 280px;">
+        <circle cx="150" cy="150" r="130" fill="none" stroke="rgba(249,115,22,0.2)" stroke-width="3"/>
+        <!-- Speedometer needle pointing high -->
+        <line x1="150" y1="150" x2="240" y2="80" stroke="#f97316" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="150" cy="150" r="15" fill="#f97316"/>
+        <!-- Scale markers -->
+        <text x="60" y="260" fill="rgba(247,246,244,0.3)" font-size="14">LOW</text>
+        <text x="220" y="60" fill="#f97316" font-size="16" font-weight="600">HIGH</text>
+      </svg>
+      <div style="text-align: left; max-width: 450px;">
+        <p style="font-size: 26px; color: rgba(247,246,244,0.7); margin-bottom: 20px;">
+          Tu sistema glucolítico es <strong style="color: #f97316;">potente</strong>.
+          Produces mucho lactato muy rápido.
+        </p>
+        <div style="padding: 20px; border-radius: 12px; background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.2); margin-bottom: 15px;">
+          <p style="font-size: 20px; color: rgba(247,246,244,0.5);">Gran potencia en esfuerzos cortos</p>
+        </div>
+        <div style="padding: 20px; border-radius: 12px; background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.2); margin-bottom: 15px;">
+          <p style="font-size: 20px; color: rgba(247,246,244,0.5);">Acumulas lactato rápidamente</p>
+        </div>
+        <div style="padding: 20px; border-radius: 12px; background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.2);">
+          <p style="font-size: 20px; color: rgba(247,246,244,0.5);">Quemas glucógeno a alta tasa</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 4: Low VLamax -->
+<div class="slide">
+  <div class="slide-number">04 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 48px; margin-bottom: 40px;">VLamax <span style="color:#22c55e;">BAJA</span> = Diésel</h2>
+    <div style="display: flex; gap: 50px; justify-content: center; align-items: center;">
+      <svg viewBox="0 0 300 300" style="width: 280px;">
+        <circle cx="150" cy="150" r="130" fill="none" stroke="rgba(34,197,94,0.2)" stroke-width="3"/>
+        <!-- Speedometer needle pointing low -->
+        <line x1="150" y1="150" x2="60" y2="210" stroke="#22c55e" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="150" cy="150" r="15" fill="#22c55e"/>
+        <text x="40" y="240" fill="#22c55e" font-size="16" font-weight="600">LOW</text>
+        <text x="220" y="60" fill="rgba(247,246,244,0.3)" font-size="14">HIGH</text>
+      </svg>
+      <div style="text-align: left; max-width: 450px;">
+        <p style="font-size: 26px; color: rgba(247,246,244,0.7); margin-bottom: 20px;">
+          Tu sistema glucolítico es <strong style="color: #22c55e;">económico</strong>.
+          Produces poco lactato por unidad de esfuerzo.
+        </p>
+        <div style="padding: 20px; border-radius: 12px; background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.2); margin-bottom: 15px;">
+          <p style="font-size: 20px; color: rgba(247,246,244,0.5);">Economía de glucógeno superior</p>
+        </div>
+        <div style="padding: 20px; border-radius: 12px; background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.2); margin-bottom: 15px;">
+          <p style="font-size: 20px; color: rgba(247,246,244,0.5);">Puedes mantener mayor % de VO2max</p>
+        </div>
+        <div style="padding: 20px; border-radius: 12px; background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.2);">
+          <p style="font-size: 20px; color: rgba(247,246,244,0.5);">Ideal para larga distancia</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 5: Event matching -->
+<div class="slide">
+  <div class="slide-number">05 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 44px; margin-bottom: 50px;">Tu evento necesita una VLamax específica</h2>
+    <div style="max-width: 800px; margin: 0 auto;">
+      <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; padding: 22px 30px; border-radius: 14px; background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.2);">
+        <div style="width: 120px; text-align: center; flex-shrink: 0;">
+          <p style="font-size: 22px; color: #22c55e; font-family: 'Space Grotesk'; font-weight: 700;">BAJA</p>
+        </div>
+        <div style="flex: 1; text-align: left;">
+          <p style="font-size: 24px; color: #f7f6f4;">Ironman / Ultra / Maratón</p>
+          <p style="font-size: 18px; color: rgba(247,246,244,0.4);">Economizar glucógeno es crucial</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; padding: 22px 30px; border-radius: 14px; background: rgba(210,106,54,0.06); border: 1px solid rgba(210,106,54,0.2);">
+        <div style="width: 120px; text-align: center; flex-shrink: 0;">
+          <p style="font-size: 22px; color: #d26a36; font-family: 'Space Grotesk'; font-weight: 700;">MEDIA</p>
+        </div>
+        <div style="flex: 1; text-align: left;">
+          <p style="font-size: 24px; color: #f7f6f4;">Media Maratón / 10K / Olímpico</p>
+          <p style="font-size: 18px; color: rgba(247,246,244,0.4);">Equilibrio entre potencia y economía</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 20px; padding: 22px 30px; border-radius: 14px; background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.2);">
+        <div style="width: 120px; text-align: center; flex-shrink: 0;">
+          <p style="font-size: 22px; color: #f97316; font-family: 'Space Grotesk'; font-weight: 700;">ALTA</p>
+        </div>
+        <div style="flex: 1; text-align: left;">
+          <p style="font-size: 24px; color: #f7f6f4;">5K / Sprint Tri / Pista</p>
+          <p style="font-size: 18px; color: rgba(247,246,244,0.4);">Necesitas potencia glucolítica</p>
+        </div>
+      </div>
+    </div>
+    <p style="font-size: 24px; margin-top: 40px; color: rgba(247,246,244,0.5);">
+      Ironman necesita VLamax <strong style="color: #22c55e;">BAJA</strong>. Sprint necesita VLamax <strong style="color: #f97316;">ALTA</strong>.
+    </p>
+  </div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 6: INSCYD comparison -->
+<div class="slide">
+  <div class="slide-number">06 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 44px; margin-bottom: 50px;">Accesibilidad: INSCYD vs PeakAerobic</h2>
+    <div style="display: flex; gap: 40px; justify-content: center;">
+      <div style="padding: 40px 35px; border-radius: 20px; background: rgba(247,246,244,0.03); border: 1px solid rgba(247,246,244,0.1); width: 370px; text-align: center;">
+        <h3 style="font-size: 30px; color: rgba(247,246,244,0.6); margin-bottom: 20px;">INSCYD</h3>
+        <p style="font-size: 56px; font-family: 'Space Grotesk'; font-weight: 700; color: rgba(247,246,244,0.8); margin-bottom: 10px;">$200+</p>
+        <p style="font-size: 20px; color: rgba(247,246,244,0.35); margin-bottom: 20px;">por informe</p>
+        <div class="divider" style="margin: 15px auto; background: rgba(247,246,244,0.15);"></div>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.35);">Requiere coach certificado INSCYD<br>Protocolo específico obligatorio<br>Tiempo de entrega: 2-5 días</p>
+      </div>
+      <div style="padding: 40px 35px; border-radius: 20px; background: rgba(210,106,54,0.06); border: 1.5px solid rgba(210,106,54,0.3); width: 370px; text-align: center;">
+        <h3 style="font-size: 30px; color: #d26a36; margin-bottom: 20px;">PeakAerobic</h3>
+        <p style="font-size: 56px; font-family: 'Space Grotesk'; font-weight: 700; color: #d26a36; margin-bottom: 10px;">Gratis</p>
+        <p style="font-size: 20px; color: rgba(247,246,244,0.35); margin-bottom: 20px;">estimación desde tu test estándar</p>
+        <div class="divider" style="margin: 15px auto;"></div>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.5);">Cualquier test escalonado sirve<br>Resultado inmediato<br>Proxy via ratio LT1/LT2 + Mader 2003</p>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 7: Sprint test -->
+<div class="slide">
+  <div class="slide-number">07 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 44px; margin-bottom: 20px;">Test de sprint 15-30"</h2>
+    <p style="font-size: 24px; color: rgba(247,246,244,0.5); margin-bottom: 40px;">Pico de lactato post-sprint = VLamax directa (Mader 2003)</p>
+    <svg viewBox="0 0 800 350" xmlns="http://www.w3.org/2000/svg" style="width: 760px;">
+      <line x1="80" y1="300" x2="720" y2="300" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+      <line x1="80" y1="300" x2="80" y2="30" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+      <!-- Sprint effort -->
+      <rect x="120" y="260" width="80" height="40" rx="6" fill="rgba(249,115,22,0.3)" stroke="#f97316" stroke-width="2"/>
+      <text x="160" y="285" fill="#f97316" font-size="16" text-anchor="middle" font-weight="600">SPRINT</text>
+      <!-- Lactate rise post-sprint -->
+      <path d="M 200 270 Q 250 260 300 200 Q 350 100 400 60 Q 450 50 500 55 Q 580 70 680 120" stroke="#d26a36" stroke-width="3" fill="none"/>
+      <circle cx="400" cy="58" r="10" fill="#d26a36"/>
+      <text x="400" y="42" fill="#d26a36" font-size="18" text-anchor="middle" font-weight="700">PICO</text>
+      <!-- Time labels -->
+      <text x="160" y="320" fill="rgba(247,246,244,0.3)" font-size="14" text-anchor="middle">0"</text>
+      <text x="250" y="320" fill="rgba(247,246,244,0.3)" font-size="14" text-anchor="middle">30"</text>
+      <text x="400" y="320" fill="rgba(247,246,244,0.3)" font-size="14" text-anchor="middle">3'</text>
+      <text x="550" y="320" fill="rgba(247,246,244,0.3)" font-size="14" text-anchor="middle">5'</text>
+      <text x="680" y="320" fill="rgba(247,246,244,0.3)" font-size="14" text-anchor="middle">10'</text>
+      <text x="400" y="340" fill="rgba(247,246,244,0.35)" font-size="15" text-anchor="middle">Tiempo post-sprint</text>
+    </svg>
+    <div style="margin-top: 30px; padding: 25px 35px; border-radius: 14px; background: rgba(210,106,54,0.06); border-left: 4px solid #d26a36; text-align: left; max-width: 700px; margin-left: auto; margin-right: auto;">
+      <p style="font-size: 22px; color: rgba(247,246,244,0.65);">
+        El pico de lactato tras un sprint máximo de 15-30" refleja directamente
+        tu VLamax. <strong style="color: #d26a36;">Pico alto = VLamax alta. Pico bajo = VLamax baja.</strong>
+      </p>
+    </div>
+  </div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 8: CTA -->
+<div class="slide" style="background: linear-gradient(160deg, #0e1e24 0%, #1a2e36 50%, #0e1e24 100%);">
+  <div class="slide-number">08 / 08</div>
+  <div style="text-align: center;">
+    <div class="cta-box">
+      <h2 style="font-size: 50px; color: #fff; margin-bottom: 20px;">Conoce tu perfil<br>metabólico. Gratis.</h2>
+      <div style="width: 60px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin: 24px auto;"></div>
+      <p style="font-size: 26px; color: rgba(255,255,255,0.85);">VLamax estimada + VO2max + Ratio LT1/LT2.<br>Todo desde un test de campo estándar.</p>
+      <div style="margin-top: 40px; padding: 20px 40px; background: rgba(255,255,255,0.15); border-radius: 12px; display: inline-block;">
+        <p style="font-size: 36px; font-family: 'Space Grotesk'; font-weight: 700; color: #fff;">peakaerobic.com</p>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div></div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!-- VOICEOVER SCRIPT (for AI voice generation):
+Scene 1 (0-5s): "Tu curva de lactato puede predecir tu maratón. Sin correr uno."
+Scene 2 (5-12s): "El modelo de di Prampero, del dos mil tres, combina coste energético y sostenibilidad metabólica para predecir tu rendimiento."
+Scene 3 (12-18s): "Dos factores clave. LT2: tu intensidad máxima sostenible. Y VLamax: tu tasa de consumo de carbohidratos. Cuanto más baja, más eficiente."
+Scene 4 (18-24s): "Mira las predicciones. Diez K: treinta y nueve treinta. Media maratón: una hora veintiocho. Maratón: tres horas diez."
+Scene 5 (24-28s): "Las calculadoras genéricas ignoran tu VLamax. PeakAerobic no."
+Scene 6 (28-30s): "PeakAerobic. Entrena con ciencia."
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Tu curva predice tu maratón</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden;
+  font-family: 'Source Sans 3', sans-serif; color: #e8e8e8;
+}
+.scene {
+  position: absolute; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.5s ease; padding: 60px;
+}
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.1; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.15; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f97316; }
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 8px;
+  background: #d26a36; z-index: 100; width: 0%;
+}
+.watermark {
+  position: absolute; top: 60px; right: 60px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 32px;
+  color: #d26a3660;
+}
+.overlay-text {
+  font-size: 52px; font-weight: 600; text-align: center;
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.overlay-text.show { opacity: 1; transform: translateY(0); }
+.badge {
+  display: inline-block; padding: 12px 30px; border-radius: 50px;
+  font-weight: 700; font-size: 36px;
+}
+.badge-red { background: #ef444440; color: #ef4444; }
+.badge-green { background: #22c55e40; color: #22c55e; }
+
+/* Scene 1 */
+.hook-main {
+  font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700;
+  text-align: center; line-height: 1.2;
+}
+.hook-sub {
+  font-size: 50px; color: #ffffff70; margin-top: 30px; font-weight: 600;
+}
+
+/* Scene 2 */
+.formula-box {
+  width: 820px; padding: 50px; border-radius: 24px;
+  background: #ffffff06; border: 2px solid #ffffff15; margin-top: 40px;
+  text-align: center;
+}
+.formula-text {
+  font-family: 'Space Grotesk', sans-serif; font-size: 42px; font-weight: 600;
+  color: #d26a36; line-height: 1.6;
+}
+.formula-desc {
+  font-size: 36px; color: #ffffff70; margin-top: 20px; line-height: 1.4;
+}
+.formula-ref {
+  font-size: 30px; color: #ffffff40; margin-top: 20px; font-style: italic;
+}
+
+/* Scene 3 */
+.factor-grid {
+  display: flex; gap: 40px; margin-top: 50px;
+}
+.factor-card {
+  width: 400px; padding: 45px; border-radius: 24px;
+  text-align: center;
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.factor-card.show { opacity: 1; transform: translateY(0); }
+.factor-card-lt2 {
+  background: #22c55e10; border: 2px solid #22c55e50;
+}
+.factor-card-vlamax {
+  background: #d26a3610; border: 2px solid #d26a3650;
+}
+.factor-icon {
+  font-size: 64px; margin-bottom: 20px;
+}
+.factor-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 52px; font-weight: 700;
+}
+.factor-desc {
+  font-size: 34px; color: #ffffff80; margin-top: 14px; line-height: 1.3;
+}
+
+/* Scene 4 */
+.pred-table {
+  width: 800px; margin-top: 50px;
+}
+.pred-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 28px 40px; border-radius: 16px; margin-bottom: 16px;
+  background: #ffffff06; border: 1px solid #ffffff10;
+  opacity: 0; transform: translateX(-40px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.pred-row.show { opacity: 1; transform: translateX(0); }
+.pred-event {
+  font-family: 'Space Grotesk', sans-serif; font-size: 48px; font-weight: 600;
+}
+.pred-time {
+  font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700;
+  color: #d26a36;
+}
+.pred-arrow {
+  font-size: 36px; color: #d26a3660; text-align: center;
+  opacity: 0; transition: opacity 0.3s;
+}
+.pred-arrow.show { opacity: 1; }
+
+/* Scene 5 */
+.compare-grid {
+  display: flex; gap: 40px; margin-top: 50px;
+}
+.compare-card {
+  width: 400px; padding: 45px; border-radius: 24px;
+  text-align: center;
+}
+.compare-generic {
+  background: #ef444410; border: 2px solid #ef444440;
+}
+.compare-peak {
+  background: #22c55e10; border: 2px solid #22c55e40;
+}
+.compare-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700;
+  margin-bottom: 20px;
+}
+.compare-list {
+  text-align: left; font-size: 34px; line-height: 1.8; color: #ffffffb0;
+}
+.compare-x { color: #ef4444; font-weight: 700; margin-right: 8px; }
+.compare-check { color: #22c55e; font-weight: 700; margin-right: 8px; }
+
+/* Scene 6 */
+.cta-brand {
+  font-family: 'Space Grotesk', sans-serif; font-size: 100px; font-weight: 700;
+  color: #d26a36; margin-bottom: 20px;
+}
+.cta-handle { font-family: 'Space Grotesk', sans-serif; font-size: 44px; color: #ffffff80; }
+.cta-tagline { font-size: 42px; font-weight: 600; color: #e8e8e8; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <div class="hook-main">Tu curva de lactato<br>puede <span class="accent">predecir</span><br>tu maratón.</div>
+  <div class="hook-sub">Sin correr uno.</div>
+</div>
+
+<!-- Scene 2: di Prampero model -->
+<div class="scene" id="scene2">
+  <h2>Modelo <span class="accent">di Prampero</span></h2>
+  <div class="formula-box">
+    <div class="formula-text">
+      v = VO2max &times; F<sub>LT2</sub> / C<sub>r</sub>
+    </div>
+    <div class="formula-desc">
+      Velocidad sostenible = capacidad aeróbica<br>
+      &times; fracción utilizable &divide; coste energético
+    </div>
+    <div class="formula-ref">di Prampero et al., 2003</div>
+  </div>
+  <svg width="700" height="280" viewBox="0 0 700 280" fill="none" style="margin-top:30px;">
+    <!-- Axes -->
+    <line x1="60" y1="240" x2="660" y2="240" stroke="#ffffff20" stroke-width="2"/>
+    <line x1="60" y1="240" x2="60" y2="20" stroke="#ffffff20" stroke-width="2"/>
+    <text x="360" y="275" fill="#ffffff40" font-size="20" text-anchor="middle" font-family="Source Sans 3">Intensidad</text>
+    <text x="30" y="130" fill="#ffffff40" font-size="20" text-anchor="middle" font-family="Source Sans 3" transform="rotate(-90,30,130)">Lactato</text>
+    <!-- Curve -->
+    <polyline points="90,220 160,215 240,208 320,190 400,155 480,100 560,40" stroke="#d26a36" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- LT2 marker -->
+    <line x1="400" y1="155" x2="400" y2="240" stroke="#22c55e" stroke-width="2" stroke-dasharray="8,6"/>
+    <text x="400" y="258" fill="#22c55e" font-size="22" text-anchor="middle" font-family="Space Grotesk" font-weight="700">LT2</text>
+    <circle cx="400" cy="155" r="8" fill="#22c55e"/>
+  </svg>
+</div>
+
+<!-- Scene 3: Two factors -->
+<div class="scene" id="scene3">
+  <h2>Dos factores <span class="accent">clave</span></h2>
+  <div class="factor-grid">
+    <div class="factor-card factor-card-lt2" id="fc1">
+      <div class="factor-title green">LT2</div>
+      <div class="factor-desc">Intensidad máxima sostenible</div>
+      <div style="margin-top:20px;">
+        <span class="badge badge-green">Techo aeróbico</span>
+      </div>
+    </div>
+    <div class="factor-card factor-card-vlamax" id="fc2">
+      <div class="factor-title accent">VLamax</div>
+      <div class="factor-desc">Tasa de consumo de carbohidratos</div>
+      <div style="margin-top:20px;">
+        <span class="badge badge-red">Baja = eficiente</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 4: Prediction table -->
+<div class="scene" id="scene4">
+  <h2>Predicciones</h2>
+  <div class="pred-table">
+    <div class="pred-row" id="pr1">
+      <span class="pred-event">10K</span>
+      <span class="pred-time">39:30</span>
+    </div>
+    <div class="pred-arrow" id="pa1">&#x25BC;</div>
+    <div class="pred-row" id="pr2">
+      <span class="pred-event">Media Maratón</span>
+      <span class="pred-time">1:28:00</span>
+    </div>
+    <div class="pred-arrow" id="pa2">&#x25BC;</div>
+    <div class="pred-row" id="pr3">
+      <span class="pred-event">Maratón</span>
+      <span class="pred-time">3:10:00</span>
+    </div>
+  </div>
+  <p class="overlay-text" id="s4sub" style="margin-top:30px;font-size:38px;color:#ffffff60;">
+    Basado en LT2 + VLamax + coste energético individual
+  </p>
+</div>
+
+<!-- Scene 5: Generic vs PeakAerobic -->
+<div class="scene" id="scene5">
+  <h2>Calculadoras genéricas<br><span class="red">ignoran tu VLamax</span>.</h2>
+  <div class="compare-grid">
+    <div class="compare-card compare-generic">
+      <div class="compare-title" style="color:#ef4444;">Genérica</div>
+      <div class="compare-list">
+        <div><span class="compare-x">&times;</span> Solo VO2max</div>
+        <div><span class="compare-x">&times;</span> Ignora VLamax</div>
+        <div><span class="compare-x">&times;</span> Sin perfil metabólico</div>
+      </div>
+    </div>
+    <div class="compare-card compare-peak">
+      <div class="compare-title" style="color:#22c55e;">PeakAerobic</div>
+      <div class="compare-list">
+        <div><span class="compare-check">&check;</span> VO2max + VLamax</div>
+        <div><span class="compare-check">&check;</span> Coste energético</div>
+        <div><span class="compare-check">&check;</span> Perfil completo</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="cta-brand">PeakAerobic</div>
+  <div class="cta-handle">@peakaerobic</div>
+  <div class="cta-tagline">Entrena con ciencia.</div>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 5000 },
+  { id: 'scene2', start: 5000, end: 12000 },
+  { id: 'scene3', start: 12000, end: 18000 },
+  { id: 'scene4', start: 18000, end: 24000 },
+  { id: 'scene5', start: 24000, end: 28000 },
+  { id: 'scene6', start: 28000, end: 30000 }
+];
+const events = [
+  { time: 13000, action: () => document.getElementById('fc1').classList.add('show') },
+  { time: 14500, action: () => document.getElementById('fc2').classList.add('show') },
+  { time: 19000, action: () => document.getElementById('pr1').classList.add('show') },
+  { time: 20000, action: () => { document.getElementById('pa1').classList.add('show'); document.getElementById('pr2').classList.add('show'); }},
+  { time: 21000, action: () => { document.getElementById('pa2').classList.add('show'); document.getElementById('pr3').classList.add('show'); }},
+  { time: 22000, action: () => document.getElementById('s4sub').classList.add('show') },
+];
+const startTime = performance.now();
+const firedEvents = new Set();
+function loop(now) {
+  const elapsed = now - startTime;
+  if (elapsed > DURATION) return;
+  document.getElementById('progressBar').style.width = ((elapsed / DURATION) * 100) + '%';
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+  events.forEach((e, i) => {
+    if (elapsed >= e.time && !firedEvents.has(i)) { firedEvents.add(i); e.action(); }
+  });
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

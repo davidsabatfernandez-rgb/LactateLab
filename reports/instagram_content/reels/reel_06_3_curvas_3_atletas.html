@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 06 - 3 curvas 3 atletas 3 planes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 52px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .blue { color: #3b82f6; }
+  .purple { color: #a855f7; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; }
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .athlete-card {
+    width: 900px;
+    background: #162a33;
+    border-radius: 20px;
+    padding: 35px;
+    margin: 15px 0;
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: all 0.6s ease;
+  }
+  .athlete-card.show { opacity: 1; transform: translateX(0); }
+  .athlete-card.a { border-left: 6px solid #22c55e; }
+  .athlete-card.b { border-left: 6px solid #3b82f6; }
+  .athlete-card.c { border-left: 6px solid #a855f7; }
+
+  .athlete-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+  .athlete-name { font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; }
+  .athlete-diag { font-size: 28px; color: #f7f6f480; }
+  .block-badge { display: inline-block; padding: 10px 24px; border-radius: 10px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 30px; }
+
+  .mini-curve { margin: 10px 0; }
+
+  .block-container {
+    display: flex; gap: 20px; width: 900px; margin-top: 30px;
+  }
+  .block-card {
+    flex: 1; padding: 30px 20px; border-radius: 16px; text-align: center;
+    opacity: 0; transform: translateY(30px); transition: all 0.5s ease;
+  }
+  .block-card.show { opacity: 1; transform: translateY(0); }
+  .block-name { font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700; margin-bottom: 10px; }
+  .block-desc { font-size: 24px; color: #f7f6f480; line-height: 1.4; }
+  .block-weeks { font-size: 28px; font-weight: 700; margin-top: 10px; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <h1>Mismo deporte.<br><span class="accent">Entrenamiento<br>completamente diferente.</span></h1>
+  <div style="font-size: 52px; margin-top: 40px; opacity:0; transition: opacity 0.5s;" id="s1sub">3 curvas. 3 atletas. 3 planes.</div>
+</div>
+
+<!-- Scene 2: Athlete A -->
+<div class="scene" id="scene2">
+  <div class="athlete-card a show" style="opacity:1; transform:none;">
+    <div class="athlete-header">
+      <div class="athlete-name green">Atleta A</div>
+      <div class="block-badge" style="background: #22c55e30; color: #22c55e;">Base fuerte</div>
+    </div>
+    <svg width="830" height="250" viewBox="0 0 830 250" class="mini-curve">
+      <line x1="40" y1="220" x2="790" y2="220" stroke="#f7f6f415" stroke-width="1"/>
+      <!-- Flat then late rise = good aerobic base -->
+      <path fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round"
+        d="M 60,200 C 150,198 250,195 350,190 C 450,185 520,175 600,140 C 660,110 720,60 780,30"
+        stroke-dasharray="900" stroke-dashoffset="900" id="curveA" style="transition: stroke-dashoffset 2s ease;"/>
+      <circle cx="60" cy="200" r="6" fill="#22c55e"/>
+      <circle cx="200" cy="196" r="6" fill="#22c55e"/>
+      <circle cx="350" cy="190" r="6" fill="#22c55e"/>
+      <circle cx="480" cy="180" r="6" fill="#22c55e"/>
+      <circle cx="600" cy="140" r="6" fill="#22c55e"/>
+      <circle cx="700" cy="75" r="6" fill="#22c55e"/>
+      <circle cx="780" cy="30" r="6" fill="#22c55e"/>
+    </svg>
+    <div class="athlete-diag">LT1 alto (4:50/km) | VLamax ALTA | Curva plana abajo</div>
+  </div>
+  <div style="margin-top: 30px; text-align: center;">
+    <div style="font-size: 40px; font-weight: 700; color: #22c55e; margin-bottom: 15px;">Diagnostico</div>
+    <div style="font-size: 36px; color: #f7f6f4; line-height: 1.5;">
+      Buena base aerobica<br>
+      Pero VLamax alta = produce mucho lactato<br>
+      <span style="color: #22c55e; font-weight: 700;">Necesita: capacidad anaerobica (ANC)</span>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 3: Athlete B -->
+<div class="scene" id="scene3">
+  <div class="athlete-card b show" style="opacity:1; transform:none;">
+    <div class="athlete-header">
+      <div class="athlete-name blue">Atleta B</div>
+      <div class="block-badge" style="background: #3b82f630; color: #3b82f6;">Base debil</div>
+    </div>
+    <svg width="830" height="250" viewBox="0 0 830 250" class="mini-curve">
+      <line x1="40" y1="220" x2="790" y2="220" stroke="#f7f6f415" stroke-width="1"/>
+      <!-- Steep early rise = weak base -->
+      <path fill="none" stroke="#3b82f6" stroke-width="4" stroke-linecap="round"
+        d="M 60,200 C 120,195 180,180 260,155 C 340,125 420,80 520,45 C 600,25 700,15 780,10"
+        stroke-dasharray="900" stroke-dashoffset="900" id="curveB" style="transition: stroke-dashoffset 2s ease;"/>
+      <circle cx="60" cy="200" r="6" fill="#3b82f6"/>
+      <circle cx="180" cy="180" r="6" fill="#3b82f6"/>
+      <circle cx="300" cy="140" r="6" fill="#3b82f6"/>
+      <circle cx="420" cy="85" r="6" fill="#3b82f6"/>
+      <circle cx="550" cy="40" r="6" fill="#3b82f6"/>
+      <circle cx="680" cy="18" r="6" fill="#3b82f6"/>
+      <circle cx="780" cy="10" r="6" fill="#3b82f6"/>
+    </svg>
+    <div class="athlete-diag">LT1 bajo (5:20/km) | Curva empinada temprana</div>
+  </div>
+  <div style="margin-top: 30px; text-align: center;">
+    <div style="font-size: 40px; font-weight: 700; color: #3b82f6; margin-bottom: 15px;">Diagnostico</div>
+    <div style="font-size: 36px; color: #f7f6f4; line-height: 1.5;">
+      Base aerobica insuficiente<br>
+      Lactato sube demasiado pronto<br>
+      <span style="color: #3b82f6; font-weight: 700;">Necesita: capacidad aerobica (AEC)</span>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 4: Athlete C -->
+<div class="scene" id="scene4">
+  <div class="athlete-card c show" style="opacity:1; transform:none;">
+    <div class="athlete-header">
+      <div class="athlete-name purple">Atleta C</div>
+      <div class="block-badge" style="background: #a855f730; color: #a855f7;">Equilibrado</div>
+    </div>
+    <svg width="830" height="250" viewBox="0 0 830 250" class="mini-curve">
+      <line x1="40" y1="220" x2="790" y2="220" stroke="#f7f6f415" stroke-width="1"/>
+      <!-- Balanced curve -->
+      <path fill="none" stroke="#a855f7" stroke-width="4" stroke-linecap="round"
+        d="M 60,200 C 150,197 240,190 340,175 C 440,155 520,120 600,75 C 660,45 720,25 780,15"
+        stroke-dasharray="900" stroke-dashoffset="900" id="curveC" style="transition: stroke-dashoffset 2s ease;"/>
+      <circle cx="60" cy="200" r="6" fill="#a855f7"/>
+      <circle cx="200" cy="193" r="6" fill="#a855f7"/>
+      <circle cx="340" cy="175" r="6" fill="#a855f7"/>
+      <circle cx="460" cy="145" r="6" fill="#a855f7"/>
+      <circle cx="580" cy="85" r="6" fill="#a855f7"/>
+      <circle cx="700" cy="30" r="6" fill="#a855f7"/>
+      <circle cx="780" cy="15" r="6" fill="#a855f7"/>
+    </svg>
+    <div class="athlete-diag">LT1 y LT2 equilibrados | Perfil balanceado</div>
+  </div>
+  <div style="margin-top: 30px; text-align: center;">
+    <div style="font-size: 40px; font-weight: 700; color: #a855f7; margin-bottom: 15px;">Diagnostico</div>
+    <div style="font-size: 36px; color: #f7f6f4; line-height: 1.5;">
+      Buena base y buena capacidad<br>
+      Listo para especificidad<br>
+      <span style="color: #a855f7; font-weight: 700;">Necesita: potencia aerobica (AEP)</span>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 5: 3 Blocks -->
+<div class="scene" id="scene5">
+  <h2 style="margin-bottom: 30px;">3 bloques <span class="accent">Olbrecht</span></h2>
+  <div class="block-container">
+    <div class="block-card" id="bl1" style="background: #22c55e15; border: 2px solid #22c55e40;">
+      <div class="block-name green">ANC</div>
+      <div style="font-size: 28px; color: #22c55e;">Atleta A</div>
+      <div class="block-desc" style="margin-top: 15px;">
+        Sprints cortos<br>+ vol. LT1<br>Reducir VLamax
+      </div>
+      <div class="block-weeks green">4 semanas</div>
+    </div>
+    <div class="block-card" id="bl2" style="background: #3b82f615; border: 2px solid #3b82f640;">
+      <div class="block-name blue">AEC</div>
+      <div style="font-size: 28px; color: #3b82f6;">Atleta B</div>
+      <div class="block-desc" style="margin-top: 15px;">
+        Volumen bajo<br>intensidad<br>Construir base
+      </div>
+      <div class="block-weeks blue">5 semanas</div>
+    </div>
+    <div class="block-card" id="bl3" style="background: #a855f715; border: 2px solid #a855f740;">
+      <div class="block-name purple">AEP</div>
+      <div style="font-size: 28px; color: #a855f7;">Atleta C</div>
+      <div class="block-desc" style="margin-top: 15px;">
+        VO2max intervals<br>+ tempo runs<br>Potencia aerobica
+      </div>
+      <div class="block-weeks purple">4 semanas</div>
+    </div>
+  </div>
+  <div style="font-size: 44px; font-weight: 700; color: #d26a36; margin-top: 40px; text-align: center; opacity:0; transition: opacity 0.5s;" id="s5verdict">
+    Mismo deporte. 3 planes distintos.
+  </div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-top: 30px;">Prescripcion<br><span class="accent">individualizada</span></h2>
+  <div style="font-size: 36px; color: #d26a36; margin-top: 40px;">@peakaerobic</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 45000;
+const startTime = Date.now();
+const scenes = [
+  { id: 'scene1', start: 0, end: 6000 },
+  { id: 'scene2', start: 6000, end: 15000 },
+  { id: 'scene3', start: 15000, end: 24000 },
+  { id: 'scene4', start: 24000, end: 33000 },
+  { id: 'scene5', start: 33000, end: 41000 },
+  { id: 'scene6', start: 41000, end: 45000 },
+];
+const events = [
+  { time: 3000, action: () => document.getElementById('s1sub').style.opacity = '1' },
+  { time: 7000, action: () => document.getElementById('curveA').style.strokeDashoffset = '0' },
+  { time: 16000, action: () => document.getElementById('curveB').style.strokeDashoffset = '0' },
+  { time: 25000, action: () => document.getElementById('curveC').style.strokeDashoffset = '0' },
+  { time: 34000, action: () => document.getElementById('bl1').classList.add('show') },
+  { time: 35000, action: () => document.getElementById('bl2').classList.add('show') },
+  { time: 36000, action: () => document.getElementById('bl3').classList.add('show') },
+  { time: 38000, action: () => document.getElementById('s5verdict').style.opacity = '1' },
+];
+let eventIndex = 0;
+function update() {
+  const elapsed = Date.now() - startTime;
+  document.getElementById('progressBar').style.width = Math.min(elapsed / DURATION * 100, 100) + '%';
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

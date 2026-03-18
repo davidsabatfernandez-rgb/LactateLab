@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Como hacer un test de lactato correctamente</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0e1e24; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; }
+  .slide { width: 1080px; height: 1080px; padding: 72px; position: relative; display: flex; flex-direction: column; justify-content: center; background: #0e1e24; margin-bottom: 4px; overflow: hidden; }
+  .slide::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #d26a36, #f97316); }
+  h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+  .slide-number { position: absolute; top: 36px; right: 48px; font-family: 'Space Grotesk', sans-serif; font-size: 18px; color: rgba(247,246,244,0.3); font-weight: 600; }
+  .progress-dots { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.2); }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark { position: absolute; bottom: 40px; right: 48px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; color: rgba(247,246,244,0.2); letter-spacing: 1px; }
+  .tag { display: inline-block; background: rgba(210,106,54,0.15); color: #d26a36; font-size: 16px; font-weight: 600; padding: 8px 20px; border-radius: 24px; margin-bottom: 28px; letter-spacing: 1px; text-transform: uppercase; }
+  .cover-title { font-size: 68px; font-weight: 700; line-height: 1.1; margin-bottom: 24px; }
+  .cover-title span { color: #d26a36; }
+  .cover-sub { font-size: 26px; font-weight: 300; color: rgba(247,246,244,0.7); line-height: 1.5; }
+  .section-title { font-size: 42px; font-weight: 700; margin-bottom: 32px; line-height: 1.2; }
+  .section-title span { color: #d26a36; }
+  .body-text { font-size: 24px; line-height: 1.7; color: rgba(247,246,244,0.85); }
+  .card { background: rgba(247,246,244,0.05); border: 1px solid rgba(247,246,244,0.08); border-radius: 16px; padding: 32px; margin-bottom: 20px; }
+  .card-label { font-family: 'Space Grotesk', sans-serif; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #d26a36; margin-bottom: 8px; }
+  .card-value { font-family: 'Space Grotesk', sans-serif; font-size: 48px; font-weight: 700; }
+  .card-desc { font-size: 20px; color: rgba(247,246,244,0.6); margin-top: 8px; }
+  .step-row { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 24px; }
+  .step-num { font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700; color: #d26a36; min-width: 56px; }
+  .step-content h3 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+  .step-content p { font-size: 20px; color: rgba(247,246,244,0.7); line-height: 1.5; }
+  .error-card { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+  .error-card h3 { font-size: 22px; color: #ef4444; margin-bottom: 8px; }
+  .error-card p { font-size: 19px; color: rgba(247,246,244,0.7); line-height: 1.5; }
+  .good-card { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+  .good-card h3 { font-size: 22px; color: #22c55e; margin-bottom: 8px; }
+  .good-card p { font-size: 19px; color: rgba(247,246,244,0.7); line-height: 1.5; }
+  .cta-box { background: linear-gradient(135deg, #d26a36, #f97316); border-radius: 20px; padding: 48px; text-align: center; }
+  .cta-box h2 { font-size: 44px; margin-bottom: 20px; color: #fff; }
+  .cta-box p { font-size: 24px; color: rgba(255,255,255,0.9); margin-bottom: 32px; }
+  .cta-box .cta-link { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: #fff; background: rgba(0,0,0,0.25); padding: 16px 40px; border-radius: 12px; display: inline-block; }
+  .citation { font-size: 16px; color: rgba(247,246,244,0.25); position: absolute; bottom: 70px; left: 72px; right: 120px; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="tag">Guia practica</div>
+  <h1 class="cover-title">Como hacer un<br>test de lactato<br><span>correctamente</span></h1>
+  <p class="cover-sub">El protocolo, los errores comunes<br>y lo que dice la literatura.</p>
+  <div class="progress-dots"><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 2: The step test protocol -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <h2 class="section-title">El protocolo <span>incremental por etapas</span></h2>
+  <p class="body-text" style="margin-bottom: 24px;">El test de lactato mas utilizado en la investigacion es el test incremental con etapas de intensidad creciente y toma de muestra al final de cada etapa.</p>
+  <div class="step-row">
+    <div class="step-num">01</div>
+    <div class="step-content">
+      <h3>Intensidad inicial baja</h3>
+      <p>Comenzar a una intensidad claramente por debajo del LT1 esperado. La primera muestra debe reflejar valores basales de lactato.</p>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">02</div>
+    <div class="step-content">
+      <h3>Incrementos constantes</h3>
+      <p>Aumentar la intensidad de forma uniforme entre etapas (ej. +0.5 km/h o +20-25W). Los incrementos deben ser suficientes para generar una curva con resolucion adecuada.</p>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">03</div>
+    <div class="step-content">
+      <h3>Toma de muestra al final de cada etapa</h3>
+      <p>Muestra de sangre capilar (lobulo de la oreja o dedo) en los ultimos 30 segundos de cada etapa para medir la concentracion de lactato.</p>
+    </div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">04</div>
+    <div class="step-content">
+      <h3>Hasta el agotamiento o lactato alto</h3>
+      <p>Continuar hasta que el atleta no pueda mantener la intensidad o el lactato supere claramente el LT2.</p>
+    </div>
+  </div>
+  <div class="citation">Faude O et al. Lactate threshold concepts: how valid are they? Sports Med, 2009.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 3: Stage duration -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <h2 class="section-title">Duracion de las etapas: <span>minimo 3 minutos</span></h2>
+  <p class="body-text" style="margin-bottom: 20px;">Beneke et al. (2011) revisaron la metodologia del MLSS y concluyeron que etapas de al menos 3 minutos son necesarias para que el lactato sanguineo se aproxime a un estado estable a cada intensidad.</p>
+  <svg width="936" height="400" viewBox="0 0 936 400">
+    <rect x="0" y="0" width="936" height="400" rx="12" fill="rgba(247,246,244,0.03)"/>
+    <text x="468" y="35" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Space Grotesk" font-size="18" font-weight="600">EFECTO DE LA DURACION DE ETAPA</text>
+    <!-- Short stages -->
+    <rect x="80" y="60" width="380" height="130" rx="12" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.2)" stroke-width="1"/>
+    <text x="270" y="95" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-size="22" font-weight="600">Etapas de 1-2 minutos</text>
+    <text x="270" y="125" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="18">El lactato no alcanza equilibrio</text>
+    <text x="270" y="155" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="18">Curva desplazada a la derecha</text>
+    <text x="270" y="180" text-anchor="middle" fill="#ef4444" font-family="Source Sans 3" font-size="17" font-weight="600">Umbrales sobreestimados</text>
+    <!-- Long stages -->
+    <rect x="480" y="60" width="380" height="130" rx="12" fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.2)" stroke-width="1"/>
+    <text x="670" y="95" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="22" font-weight="600">Etapas de 3-5 minutos</text>
+    <text x="670" y="125" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="18">Lactato se aproxima al estado estable</text>
+    <text x="670" y="155" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="18">Curva refleja el metabolismo real</text>
+    <text x="670" y="180" text-anchor="middle" fill="#22c55e" font-family="Source Sans 3" font-size="17" font-weight="600">Umbrales mas fiables</text>
+    <!-- Bottom recommendation -->
+    <rect x="120" y="220" width="696" height="150" rx="16" fill="rgba(210,106,54,0.08)" stroke="rgba(210,106,54,0.2)" stroke-width="1"/>
+    <text x="468" y="265" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="24" font-weight="600">Recomendacion de la literatura</text>
+    <text x="468" y="305" text-anchor="middle" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="20">Etapas de 3-5 minutos para tests incrementales</text>
+    <text x="468" y="335" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="18">Etapas mas largas en ciclismo (4-5 min) que en carrera (3-4 min)</text>
+  </svg>
+  <div class="citation">Beneke R et al. Methodological aspects of maximal lactate steady state — implications for performance testing. Eur J Appl Physiol, 2011 / Heck H et al. Int J Sports Med, 1985.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 4: Common errors -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <h2 class="section-title">Errores comunes <span>en el test</span></h2>
+  <p class="body-text" style="margin-bottom: 20px;">La literatura identifica varios errores metodologicos frecuentes que comprometen la validez del test:</p>
+  <div class="error-card">
+    <h3>Pocas etapas por debajo de LT1</h3>
+    <p>Sin suficientes puntos en zona aerobica, es imposible establecer una linea base fiable. Se recomiendan al menos 2-3 etapas con lactato estable bajo (Faude et al., 2009).</p>
+  </div>
+  <div class="error-card">
+    <h3>Incrementos irregulares o demasiado grandes</h3>
+    <p>Saltos de intensidad desiguales distorsionan la curva de lactato. Los incrementos deben ser constantes y suficientemente pequenos para capturar la zona de transicion.</p>
+  </div>
+  <div class="error-card">
+    <h3>Etapas demasiado cortas</h3>
+    <p>Como documentaron Beneke et al. (2011), etapas menores de 3 minutos no permiten que el lactato refleje el metabolismo real a esa intensidad.</p>
+  </div>
+  <div class="error-card">
+    <h3>Parar demasiado pronto</h3>
+    <p>Sin puntos por encima de LT2, los metodos de deteccion de umbrales pierden precision. El test debe incluir al menos 2-3 etapas con lactato claramente elevado.</p>
+  </div>
+  <div class="citation">Faude O et al. Sports Med, 2009 / Beneke R et al. Eur J Appl Physiol, 2011.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 5: Minimum data points -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <h2 class="section-title">¿Cuantos puntos <span>necesitas</span>?</h2>
+  <p class="body-text" style="margin-bottom: 20px;">La fiabilidad del analisis depende directamente del numero de etapas completadas. Mas puntos permiten aplicar mas metodos de deteccion y validar sus resultados.</p>
+  <svg width="936" height="440" viewBox="0 0 936 440">
+    <rect x="0" y="0" width="936" height="440" rx="12" fill="rgba(247,246,244,0.03)"/>
+    <text x="468" y="35" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Space Grotesk" font-size="18" font-weight="600">NUMERO DE ETAPAS Y FIABILIDAD DEL ANALISIS</text>
+    <!-- 4 stages -->
+    <rect x="100" y="70" width="170" height="320" rx="12" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.2)" stroke-width="1"/>
+    <text x="185" y="110" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-size="48" font-weight="700">4</text>
+    <text x="185" y="140" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-size="18">etapas</text>
+    <text x="185" y="185" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="17">Insuficiente</text>
+    <text x="185" y="215" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">Solo metodo del</text>
+    <text x="185" y="240" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">umbral fijo (4mmol)</text>
+    <text x="185" y="280" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">Sin validacion</text>
+    <text x="185" y="305" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">cruzada posible</text>
+    <rect x="120" y="340" width="130" height="30" rx="6" fill="rgba(239,68,68,0.3)"/>
+    <text x="185" y="361" text-anchor="middle" fill="#ef4444" font-family="Source Sans 3" font-size="15" font-weight="600">Confianza baja</text>
+    <!-- 6 stages -->
+    <rect x="300" y="70" width="170" height="320" rx="12" fill="rgba(249,115,22,0.08)" stroke="rgba(249,115,22,0.2)" stroke-width="1"/>
+    <text x="385" y="110" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="48" font-weight="700">6</text>
+    <text x="385" y="140" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="18">etapas</text>
+    <text x="385" y="185" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="17">Aceptable</text>
+    <text x="385" y="215" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">Baseline + rise +</text>
+    <text x="385" y="240" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">inflexion basica</text>
+    <text x="385" y="280" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">LT1 y LT2 detectables</text>
+    <text x="385" y="305" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">con 2 metodos</text>
+    <rect x="320" y="340" width="130" height="30" rx="6" fill="rgba(249,115,22,0.3)"/>
+    <text x="385" y="361" text-anchor="middle" fill="#f97316" font-family="Source Sans 3" font-size="15" font-weight="600">Confianza media</text>
+    <!-- 8+ stages -->
+    <rect x="500" y="70" width="170" height="320" rx="12" fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.2)" stroke-width="1"/>
+    <text x="585" y="110" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="48" font-weight="700">8+</text>
+    <text x="585" y="140" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="18">etapas</text>
+    <text x="585" y="185" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="17">Optimo</text>
+    <text x="585" y="215" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">Multiples metodos</text>
+    <text x="585" y="240" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">aplicables (Dmax,</text>
+    <text x="585" y="265" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">baseline rise, etc.)</text>
+    <text x="585" y="300" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">Validacion cruzada</text>
+    <rect x="520" y="340" width="130" height="30" rx="6" fill="rgba(34,197,94,0.3)"/>
+    <text x="585" y="361" text-anchor="middle" fill="#22c55e" font-family="Source Sans 3" font-size="15" font-weight="600">Confianza alta</text>
+    <!-- 10+ -->
+    <rect x="700" y="70" width="170" height="320" rx="12" fill="rgba(210,106,54,0.08)" stroke="rgba(210,106,54,0.3)" stroke-width="1"/>
+    <text x="785" y="110" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="48" font-weight="700">10+</text>
+    <text x="785" y="140" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="18">etapas</text>
+    <text x="785" y="185" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="17">Ideal</text>
+    <text x="785" y="215" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">Maxima resolucion</text>
+    <text x="785" y="240" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">en la curva</text>
+    <text x="785" y="280" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">Deteccion robusta</text>
+    <text x="785" y="305" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15">de ambos umbrales</text>
+    <rect x="720" y="340" width="130" height="30" rx="6" fill="rgba(210,106,54,0.3)"/>
+    <text x="785" y="361" text-anchor="middle" fill="#d26a36" font-family="Source Sans 3" font-size="15" font-weight="600">Confianza maxima</text>
+  </svg>
+  <div class="citation">Faude O et al. Sports Med, 2009 / Jamnick NA et al. Int J Sports Physiol Perform, 2020.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 6: Pre-test checklist -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <h2 class="section-title">Checklist <span>antes del test</span></h2>
+  <p class="body-text" style="margin-bottom: 24px;">Para que los resultados sean reproducibles y comparables entre tests, la literatura recomienda estandarizar las condiciones previas:</p>
+  <div class="good-card">
+    <h3>Descanso previo adecuado</h3>
+    <p>Evitar entrenamiento intenso en las 24-48 horas previas. La fatiga residual eleva el lactato basal y desplaza la curva (Faude et al., 2009).</p>
+  </div>
+  <div class="good-card">
+    <h3>Alimentacion estandarizada</h3>
+    <p>La disponibilidad de carbohidratos afecta la cinetica del lactato. Se recomienda una comida estandar 2-3 horas antes del test.</p>
+  </div>
+  <div class="good-card">
+    <h3>Calentamiento breve y consistente</h3>
+    <p>Un calentamiento corto (5-10 min) a baja intensidad. Debe ser identico en cada test para garantizar la comparabilidad longitudinal.</p>
+  </div>
+  <div class="good-card">
+    <h3>Condiciones ambientales similares</h3>
+    <p>Temperatura, altitud y hora del dia pueden influir en la respuesta de lactato. Heck et al. (1985) destacaron la importancia de la estandarizacion ambiental.</p>
+  </div>
+  <div class="citation">Faude O et al. Sports Med, 2009 / Heck H et al. Int J Sports Med, 1985.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div style="flex: 1; display: flex; align-items: center;">
+    <div class="cta-box" style="width: 100%;">
+      <h2>Buenos datos, buenos resultados.</h2>
+      <p>PeakAerobic analiza tus tests de lactato con multiples metodos<br>validados por la literatura para maximizar la fiabilidad.</p>
+      <div class="cta-link">peakaerobic.com</div>
+    </div>
+  </div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!--
+VOICEOVER SCRIPT (ESPAÑOL) — 30 segundos
+
+[0-5s] VO2max. El número sagrado. ¿Y si pudieras estimarlo sin espirometría?
+[5-12s] Tu LT2 ocurre aproximadamente al 75-85% de tu VO2max. Esto lo documentó Hausswirth en 2013.
+[12-18s] La ecuación ACSM convierte tu velocidad en LT2 a consumo de oxígeno. Y de ahí extrapolas a VO2max. Swain, 1994.
+[18-24s] Ejemplo: LT2 a 14 kilómetros por hora, utilización del 80%. VO2max estimado: 55 mililitros por kilo por minuto.
+[24-28s] No es perfecto, tiene un margen del 5 al 10 por ciento. Pero la tendencia entre tests es oro.
+[27-30s] PeakAerobic. Enlace en bio.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Estima tu VO2max sin ir al laboratorio</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden;
+  font-family: 'Source Sans 3', 'Space Grotesk', sans-serif; color: #fff;
+}
+.scene {
+  position: absolute; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.5s ease; padding: 60px;
+}
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.1; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.15; }
+p { font-family: 'Source Sans 3', sans-serif; font-size: 42px; text-align: center; line-height: 1.4; margin-top: 30px; color: #ffffffcc; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f97316; }
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 8px;
+  background: #d26a36; z-index: 100; width: 0%;
+}
+.watermark {
+  position: absolute; top: 60px; right: 60px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 32px; color: #d26a3660;
+  z-index: 50;
+}
+.ref { font-size: 30px; color: #ffffff40; margin-top: 20px; font-style: italic; text-align: center; }
+svg text { font-family: 'Space Grotesk', sans-serif; }
+.cta-box {
+  border: 3px solid #d26a36; border-radius: 24px; padding: 32px 56px;
+  margin-top: 40px; text-align: center;
+}
+.cta-box h2 { font-size: 56px; color: #d26a36; }
+.cta-box p { font-size: 38px; color: #ffffffaa; margin-top: 12px; }
+.formula-box {
+  background: #ffffff08; border: 2px solid #d26a3650; border-radius: 20px;
+  padding: 36px 48px; margin-top: 36px; width: 100%; text-align: center;
+}
+.formula {
+  font-family: 'Space Grotesk', sans-serif; font-size: 44px; font-weight: 600;
+  color: #ffffffdd; line-height: 1.5;
+}
+.formula .highlight { color: #d26a36; font-weight: 700; }
+.big-number {
+  font-family: 'Space Grotesk', sans-serif; font-size: 140px; font-weight: 700;
+  color: #d26a36; margin-top: 20px;
+}
+.big-unit {
+  font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 600;
+  color: #ffffff80; margin-top: 0;
+}
+.margin-badge {
+  display: inline-block; background: #f9731620; border: 2px solid #f97316;
+  border-radius: 16px; padding: 16px 36px; margin-top: 30px;
+  font-size: 44px; font-weight: 700; color: #f97316;
+}
+.trend-row {
+  display: flex; align-items: center; gap: 30px; margin-top: 40px;
+}
+.trend-item {
+  text-align: center; flex: 1;
+}
+.trend-val {
+  font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700;
+}
+.trend-label { font-size: 30px; color: #ffffff60; margin-top: 8px; }
+.trend-arrow {
+  font-size: 56px; color: #22c55e; min-width: 60px; text-align: center;
+}
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene 1: Hook (0-5s) -->
+<div class="scene" id="scene1">
+  <h2 style="color:#ffffff80;">VO2max</h2>
+  <h1 style="margin-top:20px;">El número <span class="accent">sagrado</span></h1>
+  <p style="font-size:52px; margin-top:50px;">¿Y si pudieras estimarlo<br><span class="green">sin espirometría</span>?</p>
+</div>
+
+<!-- Scene 2: Fractional utilization (5-12s) -->
+<div class="scene" id="scene2">
+  <h2>Tu LT2 ocurre al</h2>
+  <svg width="800" height="360" viewBox="0 0 800 360" style="margin-top:30px;">
+    <!-- Full VO2max bar -->
+    <rect x="40" y="40" width="720" height="120" rx="20" fill="#ffffff10" stroke="#ffffff30" stroke-width="2"/>
+    <text x="400" y="20" fill="#ffffff60" font-size="28" text-anchor="middle">VO2max total</text>
+    <!-- Utilization portion -->
+    <rect x="40" y="40" width="0" height="120" rx="20" fill="#d26a3640" id="utilizationBar"/>
+    <!-- Percentage labels -->
+    <text x="320" y="115" fill="#d26a36" font-size="52" font-weight="700" text-anchor="middle" id="pctText" opacity="0">75-85%</text>
+    <text x="320" y="155" fill="#d26a36" font-size="28" text-anchor="middle" id="pctLabel" opacity="0">de tu VO2max</text>
+    <!-- Right portion label -->
+    <text x="660" y="115" fill="#ffffff40" font-size="36" text-anchor="middle" id="reserveText" opacity="0">Reserva</text>
+    <!-- Arrow pointing to LT2 boundary -->
+    <line x1="580" y1="180" x2="580" y2="250" stroke="#f97316" stroke-width="3" id="lt2Arrow" opacity="0"/>
+    <text x="580" y="280" fill="#f97316" font-size="32" font-weight="700" text-anchor="middle" id="lt2Label" opacity="0">Tu LT2</text>
+  </svg>
+  <p class="ref">Hausswirth & Brisswalter 2013 — Training & Racing for Triathlon</p>
+</div>
+
+<!-- Scene 3: ACSM equation (12-18s) -->
+<div class="scene" id="scene3">
+  <h2>Ecuación <span class="accent">ACSM</span></h2>
+  <div class="formula-box">
+    <div class="formula">
+      VO2 = <span class="highlight">velocidad</span> (m/min) &times; 0.2 + 3.5
+    </div>
+  </div>
+  <div style="margin-top:30px;">
+    <svg width="800" height="80" viewBox="0 0 800 80">
+      <polygon points="400,0 420,35 380,35" fill="#d26a36"/>
+      <polygon points="400,80 420,45 380,45" fill="#d26a36"/>
+    </svg>
+  </div>
+  <div class="formula-box">
+    <div class="formula">
+      VO2max = VO2<sub>LT2</sub> &divide; <span class="highlight">utilización</span>
+    </div>
+  </div>
+  <p style="margin-top:40px; font-size:38px; color:#ffffff80;">Velocidad en LT2 &#x2192; VO2 en LT2 &#x2192; extrapolar a VO2max</p>
+  <p class="ref">Swain et al. 1994 — Medicine & Science in Sports & Exercise</p>
+</div>
+
+<!-- Scene 4: Example (18-24s) -->
+<div class="scene" id="scene4">
+  <h2>Ejemplo</h2>
+  <div style="display:flex; gap:40px; margin-top:40px; width:100%; justify-content:center;">
+    <div style="text-align:center; flex:1;">
+      <p style="font-size:32px; color:#ffffff60; margin-top:0;">LT2</p>
+      <div style="font-family:'Space Grotesk'; font-size:68px; font-weight:700; color:#f97316;">14 km/h</div>
+    </div>
+    <div style="text-align:center; flex:1;">
+      <p style="font-size:32px; color:#ffffff60; margin-top:0;">Utilización</p>
+      <div style="font-family:'Space Grotesk'; font-size:68px; font-weight:700; color:#d26a36;">~80%</div>
+    </div>
+  </div>
+  <svg width="120" height="80" viewBox="0 0 120 80" style="margin-top:20px;">
+    <polygon points="60,80 30,20 90,20" fill="#22c55e40" stroke="#22c55e" stroke-width="3"/>
+  </svg>
+  <p style="font-size:36px; color:#ffffff60; margin-top:10px;">VO2max estimado</p>
+  <div class="big-number" id="vo2Number">0</div>
+  <div class="big-unit">ml/kg/min</div>
+</div>
+
+<!-- Scene 5: Margin + Trend (24-28s) -->
+<div class="scene" id="scene5">
+  <h2>No es perfecto</h2>
+  <div class="margin-badge">&#xB1; 5-10%</div>
+  <p style="font-size:44px; margin-top:50px;">Pero la <span class="green">tendencia</span><br>entre tests es <span class="accent">oro</span>.</p>
+  <div class="trend-row">
+    <div class="trend-item">
+      <div class="trend-val" style="color:#ffffff80;">51</div>
+      <div class="trend-label">Enero</div>
+    </div>
+    <div class="trend-arrow">&#x2192;</div>
+    <div class="trend-item">
+      <div class="trend-val" style="color:#f97316;">53</div>
+      <div class="trend-label">Marzo</div>
+    </div>
+    <div class="trend-arrow">&#x2192;</div>
+    <div class="trend-item">
+      <div class="trend-val" style="color:#22c55e;">55</div>
+      <div class="trend-label">Mayo</div>
+    </div>
+  </div>
+  <svg width="600" height="6" style="margin-top:20px;">
+    <line x1="80" y1="3" x2="520" y2="3" stroke="#22c55e" stroke-width="3"/>
+    <polygon points="520,0 530,3 520,6" fill="#22c55e"/>
+  </svg>
+</div>
+
+<!-- Scene 6: CTA (28-30s) -->
+<div class="scene" id="scene6">
+  <h1 class="accent">PeakAerobic</h1>
+  <p style="font-size:48px; margin-top:30px;">Tu laboratorio de lactato portátil.</p>
+  <div class="cta-box">
+    <h2>Enlace en bio</h2>
+    <p>peakaerobic.com</p>
+  </div>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 5000 },
+  { id: 'scene2', start: 5000, end: 12000 },
+  { id: 'scene3', start: 12000, end: 18000 },
+  { id: 'scene4', start: 18000, end: 24000 },
+  { id: 'scene5', start: 24000, end: 28000 },
+  { id: 'scene6', start: 28000, end: 30000 }
+];
+
+let vo2Animated = false;
+
+const events = [
+  { time: 5800, action: () => {
+    const bar = document.getElementById('utilizationBar');
+    if (bar) { bar.style.transition = 'width 1.5s ease'; bar.style.width = '576px'; } // 80% of 720
+    setTimeout(() => {
+      ['pctText','pctLabel','reserveText','lt2Arrow','lt2Label'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.style.transition = 'opacity 0.5s'; el.style.opacity = '1'; }
+      });
+    }, 800);
+  }},
+  { time: 18500, action: () => {
+    if (vo2Animated) return;
+    vo2Animated = true;
+    const el = document.getElementById('vo2Number');
+    if (!el) return;
+    let current = 0;
+    const target = 55;
+    const step = () => {
+      current += 1;
+      el.textContent = current;
+      if (current < target) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }}
+];
+let eventsFired = {};
+const startTime = performance.now();
+
+function tick(now) {
+  const elapsed = now - startTime;
+  const progress = Math.min(elapsed / DURATION, 1);
+  document.getElementById('progressBar').style.width = (progress * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  events.forEach((e, i) => {
+    if (elapsed >= e.time && !eventsFired[i]) { eventsFired[i] = true; e.action(); }
+  });
+
+  if (progress < 1) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

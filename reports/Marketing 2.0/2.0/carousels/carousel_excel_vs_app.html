@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>45 minutos en Excel vs 60 segundos — PeakAerobic</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide {
+    width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .slide-number {
+    position: absolute; top: 28px; right: 36px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; font-weight: 500; color: rgba(247,246,244,0.35); z-index: 10;
+  }
+  .progress-dots {
+    position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 10;
+  }
+  .progress-dots .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute; bottom: 32px; right: 36px; text-align: right; z-index: 10;
+  }
+  .watermark .brand {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: 16px; color: rgba(210,106,54,0.35);
+  }
+  .watermark .sub {
+    font-family: 'Source Sans 3', sans-serif; font-weight: 300;
+    font-size: 11px; color: rgba(210,106,54,0.25); margin-top: 1px;
+  }
+  .tag {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    background: rgba(210,106,54,0.15); color: #d26a36;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 18px;
+  }
+  .divider {
+    width: 60px; height: 4px; background: #d26a36; border-radius: 2px;
+  }
+  .card {
+    background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px; padding: 36px;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    padding: 40px 50px; border-radius: 20px; text-align: center;
+  }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+  .content { padding: 80px 70px 80px 70px; height: 100%; display: flex; flex-direction: column; }
+
+  @media print {
+    .slide { page-break-after: always; }
+    body { padding: 0; gap: 0; background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; text-align: center; gap: 36px;">
+    <div class="tag">EXCEL VS APP</div>
+    <h1 style="font-size: 68px; line-height: 1.05; max-width: 820px;">
+      <span class="red">45 minutos</span> en Excel vs <span class="green">60 segundos</span>
+    </h1>
+    <div class="divider" style="margin: 0 auto;"></div>
+    <p style="font-size: 26px; font-weight: 300; max-width: 640px; color: rgba(247,246,244,0.7); line-height: 1.5;">
+      Si sigues analizando lactato en una hoja de calculo, esto te interesa.
+    </p>
+    <div style="display: flex; gap: 40px; align-items: center;">
+      <div style="text-align: center;">
+        <p style="font-size: 72px; font-weight: 700; font-family: Space Grotesk; color: #ef4444;">45</p>
+        <p style="font-size: 18px; font-weight: 300; color: rgba(239,68,68,0.6);">minutos</p>
+      </div>
+      <p style="font-size: 36px; font-weight: 300; color: rgba(247,246,244,0.25);">vs</p>
+      <div style="text-align: center;">
+        <p style="font-size: 72px; font-weight: 700; font-family: Space Grotesk; color: #22c55e;">60</p>
+        <p style="font-size: 18px; font-weight: 300; color: rgba(34,197,94,0.6);">segundos</p>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: Lo que haces en Excel -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag" style="background: rgba(239,68,68,0.15); color: #ef4444;">EXCEL</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">El proceso manual en <span class="red">Excel</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px;">
+      <svg viewBox="0 0 900 440" width="940" height="460" style="align-self: center;">
+        <!-- Spreadsheet mockup -->
+        <rect x="40" y="20" width="820" height="400" rx="12" fill="rgba(239,68,68,0.04)" stroke="rgba(239,68,68,0.15)" stroke-width="1.5"/>
+        <!-- Header -->
+        <rect x="40" y="20" width="820" height="42" rx="12" fill="rgba(239,68,68,0.08)"/>
+        <text x="130" y="48" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Escalon</text>
+        <text x="250" y="48" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Ritmo</text>
+        <text x="360" y="48" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14" text-anchor="middle">FC</text>
+        <text x="470" y="48" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Lactato</text>
+        <text x="650" y="48" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Formula polinomio manual</text>
+        <!-- Grid -->
+        <line x1="190" y1="20" x2="190" y2="420" stroke="rgba(247,246,244,0.05)" stroke-width="1"/>
+        <line x1="310" y1="20" x2="310" y2="420" stroke="rgba(247,246,244,0.05)" stroke-width="1"/>
+        <line x1="420" y1="20" x2="420" y2="420" stroke="rgba(247,246,244,0.05)" stroke-width="1"/>
+        <line x1="530" y1="20" x2="530" y2="420" stroke="rgba(247,246,244,0.05)" stroke-width="1"/>
+        <!-- Data rows -->
+        <text x="130" y="85" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="13" text-anchor="middle">1</text>
+        <text x="250" y="85" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="13" text-anchor="middle">5:45</text>
+        <text x="360" y="85" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="13" text-anchor="middle">132</text>
+        <text x="470" y="85" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="13" text-anchor="middle">1.2</text>
+        <text x="660" y="85" fill="rgba(239,68,68,0.35)" font-family="Source Sans 3" font-size="10" text-anchor="middle">=0.003x^3-0.12x^2+1.8x-2.1</text>
+        <line x1="40" y1="100" x2="860" y2="100" stroke="rgba(247,246,244,0.04)" stroke-width="1"/>
+        <text x="130" y="118" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="13" text-anchor="middle">2</text>
+        <text x="250" y="118" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="13" text-anchor="middle">5:15</text>
+        <text x="360" y="118" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="13" text-anchor="middle">141</text>
+        <text x="470" y="118" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="13" text-anchor="middle">1.4</text>
+        <line x1="40" y1="133" x2="860" y2="133" stroke="rgba(247,246,244,0.04)" stroke-width="1"/>
+        <text x="130" y="151" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="13" text-anchor="middle">...</text>
+        <text x="250" y="151" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="13" text-anchor="middle">...</text>
+
+        <!-- Steps list -->
+        <rect x="60" y="180" width="380" height="220" rx="10" fill="rgba(239,68,68,0.06)"/>
+        <text x="80" y="210" fill="rgba(239,68,68,0.7)" font-family="Space Grotesk" font-weight="600" font-size="16">Proceso manual:</text>
+        <text x="80" y="240" fill="rgba(247,246,244,0.55)" font-family="Source Sans 3" font-size="15">1. Copiar datos del dispositivo</text>
+        <text x="80" y="265" fill="rgba(247,246,244,0.55)" font-family="Source Sans 3" font-size="15">2. Crear grafico de dispersion</text>
+        <text x="80" y="290" fill="rgba(247,246,244,0.55)" font-family="Source Sans 3" font-size="15">3. Ajustar polinomio de 3er grado</text>
+        <text x="80" y="315" fill="rgba(247,246,244,0.55)" font-family="Source Sans 3" font-size="15">4. Buscar inflexion manualmente</text>
+        <text x="80" y="340" fill="rgba(247,246,244,0.55)" font-family="Source Sans 3" font-size="15">5. Calcular zonas a mano</text>
+        <text x="80" y="365" fill="rgba(247,246,244,0.55)" font-family="Source Sans 3" font-size="15">6. Copiar todo a otro documento</text>
+
+        <!-- Time badge -->
+        <rect x="520" y="220" width="300" height="130" rx="16" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.2)" stroke-width="1.5"/>
+        <text x="670" y="280" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="56">45 min</text>
+        <text x="670" y="310" text-anchor="middle" fill="rgba(239,68,68,0.5)" font-family="Source Sans 3" font-size="15">(si no hay errores)</text>
+      </svg>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Mader, A. et al. (1976). <em>Acta Physiologica Scandinavica</em>. El metodo 4 mmol fijo sigue siendo el mas usado en Excel.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: Problemas del Excel -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag" style="background: rgba(239,68,68,0.15); color: #ef4444;">PROBLEMAS</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">4 problemas del analisis en <span class="red">Excel</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px;">
+      <div class="card" style="padding: 24px 32px; display: flex; align-items: center; gap: 24px; border-color: rgba(239,68,68,0.25);">
+        <div style="min-width: 50px; height: 50px; border-radius: 12px; background: rgba(239,68,68,0.15); display: flex; align-items: center; justify-content: center;">
+          <span class="red" style="font-size: 24px; font-weight: 700; font-family: Space Grotesk;">1</span>
+        </div>
+        <div>
+          <h3 style="font-size: 20px; color: #ef4444; margin-bottom: 4px;">Solo un metodo (4 mmol fijo)</h3>
+          <p style="font-size: 17px; font-weight: 300; color: rgba(247,246,244,0.7);">Mader (1976): umbral fijo en 4 mmol. No triangulacion. Un solo metodo puede errar 0.5-1.0 mmol en el ritmo/potencia asociado.</p>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; display: flex; align-items: center; gap: 24px; border-color: rgba(239,68,68,0.25);">
+        <div style="min-width: 50px; height: 50px; border-radius: 12px; background: rgba(239,68,68,0.15); display: flex; align-items: center; justify-content: center;">
+          <span class="red" style="font-size: 24px; font-weight: 700; font-family: Space Grotesk;">2</span>
+        </div>
+        <div>
+          <h3 style="font-size: 20px; color: #ef4444; margin-bottom: 4px;">Sin score de confianza</h3>
+          <p style="font-size: 17px; font-weight: 300; color: rgba(247,246,244,0.7);">No sabes si el resultado es fiable. No hay agreement score ni deteccion de metodos discordantes.</p>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; display: flex; align-items: center; gap: 24px; border-color: rgba(239,68,68,0.25);">
+        <div style="min-width: 50px; height: 50px; border-radius: 12px; background: rgba(239,68,68,0.15); display: flex; align-items: center; justify-content: center;">
+          <span class="red" style="font-size: 24px; font-weight: 700; font-family: Space Grotesk;">3</span>
+        </div>
+        <div>
+          <h3 style="font-size: 20px; color: #ef4444; margin-bottom: 4px;">Sin deteccion de outliers</h3>
+          <p style="font-size: 17px; font-weight: 300; color: rgba(247,246,244,0.7);">Un pinchazo malo (sudor en la muestra, tira defectuosa) distorsiona toda la curva y no tienes forma de detectarlo.</p>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; display: flex; align-items: center; gap: 24px; border-color: rgba(239,68,68,0.25);">
+        <div style="min-width: 50px; height: 50px; border-radius: 12px; background: rgba(239,68,68,0.15); display: flex; align-items: center; justify-content: center;">
+          <span class="red" style="font-size: 24px; font-weight: 700; font-family: Space Grotesk;">4</span>
+        </div>
+        <div>
+          <h3 style="font-size: 20px; color: #ef4444; margin-bottom: 4px;">Sin historico longitudinal</h3>
+          <p style="font-size: 17px; font-weight: 300; color: rgba(247,246,244,0.7);">Cada test es un archivo separado. No hay evolucion temporal ni comparacion automatica entre tests.</p>
+        </div>
+      </div>
+      <div class="card" style="padding: 20px 28px; text-align: center; border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.06);">
+        <p style="font-size: 20px; font-weight: 400; line-height: 1.5; color: rgba(247,246,244,0.8);">
+          Faude et al. (2009): <span class="orange" style="font-weight: 600;">"un solo metodo de deteccion de umbral es insuficiente"</span>. La triangulacion entre multiples metodos es esencial para resultados fiables.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Faude, O., Kindermann, W. & Meyer, T. (2009). <em>Sports Med</em>, 39(6), 469–490. Billat, V. et al. (2003). <em>Sports Med</em>, 33(6), 407–426.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: PeakAerobic pipeline -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">PEAKAEROBIC</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">Pegar datos + <span class="accent">3 metodos</span> + confianza + zonas + Garmin</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+      <div class="card" style="padding: 24px 32px; display: flex; align-items: center; gap: 24px;">
+        <div style="min-width: 50px; height: 50px; border-radius: 12px; background: rgba(210,106,54,0.15); display: flex; align-items: center; justify-content: center;">
+          <span class="accent" style="font-size: 24px; font-weight: 700; font-family: Space Grotesk;">1</span>
+        </div>
+        <div>
+          <h3 style="font-size: 20px; color: #d26a36; margin-bottom: 4px;">Pegar datos</h3>
+          <p style="font-size: 17px; font-weight: 300; color: rgba(247,246,244,0.7);">Copy-paste directo: ritmo/potencia, FC y lactato por escalon. Sin formateo.</p>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; display: flex; align-items: center; gap: 24px;">
+        <div style="min-width: 50px; height: 50px; border-radius: 12px; background: rgba(210,106,54,0.15); display: flex; align-items: center; justify-content: center;">
+          <span class="accent" style="font-size: 24px; font-weight: 700; font-family: Space Grotesk;">2</span>
+        </div>
+        <div>
+          <h3 style="font-size: 20px; color: #d26a36; margin-bottom: 4px;">3 metodos automaticos</h3>
+          <p style="font-size: 17px; font-weight: 300; color: rgba(247,246,244,0.7);">Baseline Rise + Sustained Increase + ModDmax (Bishop 1998). Agregacion con mediana para resultado robusto.</p>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; display: flex; align-items: center; gap: 24px;">
+        <div style="min-width: 50px; height: 50px; border-radius: 12px; background: rgba(210,106,54,0.15); display: flex; align-items: center; justify-content: center;">
+          <span class="accent" style="font-size: 24px; font-weight: 700; font-family: Space Grotesk;">3</span>
+        </div>
+        <div>
+          <h3 style="font-size: 20px; color: #d26a36; margin-bottom: 4px;">Score de confianza + outliers</h3>
+          <p style="font-size: 17px; font-weight: 300; color: rgba(247,246,244,0.7);">Agreement score entre metodos. Leave-One-Out para outliers. Sabes exactamente cuanto confiar.</p>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; display: flex; align-items: center; gap: 24px;">
+        <div style="min-width: 50px; height: 50px; border-radius: 12px; background: rgba(210,106,54,0.15); display: flex; align-items: center; justify-content: center;">
+          <span class="accent" style="font-size: 24px; font-weight: 700; font-family: Space Grotesk;">4</span>
+        </div>
+        <div>
+          <h3 style="font-size: 20px; color: #d26a36; margin-bottom: 4px;">Zonas + VLamax + prescripcion + push a Garmin</h3>
+          <p style="font-size: 17px; font-weight: 300; color: rgba(247,246,244,0.7);">Del test al reloj en un clic. Zonas individualizadas, bloque de entrenamiento Olbrecht, prediccion de carrera.</p>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 8px;">
+        <p style="font-size: 52px; font-weight: 700; font-family: Space Grotesk; color: #22c55e;">60 segundos</p>
+        <p style="font-size: 18px; font-weight: 300; color: rgba(247,246,244,0.5);">Del dato crudo al perfil fisiologico completo</p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Bishop, D., Jenkins, D. & Mackinnon, L. (1998). <em>Med Sci Sports Exerc</em>, 30(8), 1270–1275.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: Comparacion visual -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">COMPARACION</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">Comparacion <span class="accent">visual</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; gap: 24px; align-items: center;">
+      <!-- Excel side -->
+      <div style="flex: 1;">
+        <p style="text-align: center; font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #ef4444;">Excel</p>
+        <svg width="440" height="400" viewBox="0 0 440 400">
+          <rect x="10" y="10" width="420" height="380" rx="12" fill="rgba(239,68,68,0.04)" stroke="rgba(239,68,68,0.15)" stroke-width="1"/>
+          <!-- Axes -->
+          <line x1="60" y1="340" x2="400" y2="340" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+          <line x1="60" y1="40" x2="60" y2="340" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+          <!-- Scattered points -->
+          <circle cx="90" cy="310" r="5" fill="rgba(239,68,68,0.4)"/>
+          <circle cx="130" cy="295" r="5" fill="rgba(239,68,68,0.4)"/>
+          <circle cx="170" cy="280" r="5" fill="rgba(239,68,68,0.4)"/>
+          <circle cx="200" cy="250" r="5" fill="rgba(239,68,68,0.4)"/>
+          <circle cx="240" cy="200" r="5" fill="rgba(239,68,68,0.4)"/>
+          <circle cx="275" cy="150" r="5" fill="rgba(239,68,68,0.4)"/>
+          <circle cx="310" cy="90" r="5" fill="rgba(239,68,68,0.4)"/>
+          <circle cx="350" cy="55" r="5" fill="rgba(239,68,68,0.4)"/>
+          <!-- Bad polynomial -->
+          <path d="M80,315 Q160,295 210,255 Q270,175 320,85 Q345,40 370,35" fill="none" stroke="rgba(239,68,68,0.3)" stroke-width="2" stroke-dasharray="5,3"/>
+          <!-- 4mmol line -->
+          <line x1="50" y1="200" x2="410" y2="200" stroke="rgba(239,68,68,0.2)" stroke-width="1" stroke-dasharray="4,4"/>
+          <text x="55" y="195" fill="rgba(239,68,68,0.35)" font-family="Source Sans 3" font-size="11">4.0 mmol</text>
+          <!-- Manual annotation -->
+          <text x="200" y="230" fill="rgba(239,68,68,0.4)" font-family="Source Sans 3" font-size="12" transform="rotate(-15,200,230)">LT2 = 4mmol?</text>
+          <!-- Verdict -->
+          <rect x="80" y="350" width="280" height="30" rx="6" fill="rgba(239,68,68,0.08)"/>
+          <text x="220" y="370" text-anchor="middle" fill="rgba(239,68,68,0.5)" font-family="Source Sans 3" font-size="13">Sin confianza. Sin zonas. Sin outliers.</text>
+        </svg>
+      </div>
+      <!-- PeakAerobic side -->
+      <div style="flex: 1;">
+        <p style="text-align: center; font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #d26a36;">PeakAerobic</p>
+        <svg width="440" height="400" viewBox="0 0 440 400">
+          <rect x="10" y="10" width="420" height="380" rx="12" fill="rgba(210,106,54,0.04)" stroke="rgba(210,106,54,0.15)" stroke-width="1"/>
+          <!-- Axes -->
+          <line x1="60" y1="340" x2="400" y2="340" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+          <line x1="60" y1="40" x2="60" y2="340" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+          <!-- Clean curve -->
+          <path d="M80,310 Q140,295 190,265 Q240,220 280,155 Q310,105 350,55" fill="none" stroke="#d26a36" stroke-width="3" stroke-linecap="round"/>
+          <!-- Clean points -->
+          <circle cx="80" cy="310" r="6" fill="#d26a36"/>
+          <circle cx="120" cy="296" r="6" fill="#d26a36"/>
+          <circle cx="160" cy="278" r="6" fill="#d26a36"/>
+          <circle cx="200" cy="252" r="6" fill="#d26a36"/>
+          <circle cx="240" cy="210" r="6" fill="#d26a36"/>
+          <circle cx="280" cy="155" r="6" fill="#d26a36"/>
+          <circle cx="315" cy="100" r="6" fill="#d26a36"/>
+          <circle cx="350" cy="55" r="6" fill="#d26a36"/>
+          <!-- LT1 -->
+          <line x1="160" y1="30" x2="160" y2="350" stroke="#22c55e" stroke-width="2" stroke-dasharray="6,4"/>
+          <text x="160" y="25" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="13">LT1</text>
+          <!-- LT2 -->
+          <line x1="265" y1="30" x2="265" y2="350" stroke="#d26a36" stroke-width="2" stroke-dasharray="6,4"/>
+          <text x="265" y="25" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="600" font-size="13">LT2</text>
+          <!-- Confidence badge -->
+          <rect x="300" y="280" width="110" height="50" rx="10" fill="rgba(34,197,94,0.12)" stroke="rgba(34,197,94,0.3)" stroke-width="1"/>
+          <text x="355" y="302" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="500" font-size="12">Confianza</text>
+          <text x="355" y="322" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="18">0.92</text>
+          <!-- Verdict -->
+          <rect x="60" y="350" width="320" height="30" rx="6" fill="rgba(34,197,94,0.06)"/>
+          <text x="220" y="370" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="13">3 metodos. Zonas. VLamax. Prediccion.</text>
+        </svg>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Bishop, D. et al. (1998). <em>Med Sci Sports Exerc</em>. Faude, O. et al. (2009). <em>Sports Med</em>, 39(6), 469–490.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: Bonus features -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">BONUS</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">Lo que Excel <span class="red">nunca</span> hara</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px;">
+      <div class="card" style="padding: 28px 32px; display: flex; align-items: center; gap: 24px;">
+        <div style="min-width: 56px; height: 56px; border-radius: 14px; background: rgba(210,106,54,0.12); display: flex; align-items: center; justify-content: center;">
+          <span class="accent" style="font-size: 26px; font-weight: 700; font-family: Space Grotesk;">!</span>
+        </div>
+        <div>
+          <h3 style="font-size: 22px; color: #d26a36; margin-bottom: 6px;">Deteccion automatica de outliers</h3>
+          <p style="font-size: 18px; font-weight: 300; color: rgba(247,246,244,0.7);">Leave-One-Out cross-validation. Pondera puntos sospechosos sin eliminarlos. Un pinchazo malo no arruina tu analisis (Billat 2003).</p>
+        </div>
+      </div>
+      <div class="card" style="padding: 28px 32px; display: flex; align-items: center; gap: 24px;">
+        <div style="min-width: 56px; height: 56px; border-radius: 14px; background: rgba(210,106,54,0.12); display: flex; align-items: center; justify-content: center;">
+          <span class="accent" style="font-size: 22px; font-weight: 700; font-family: Space Grotesk;">T</span>
+        </div>
+        <div>
+          <h3 style="font-size: 22px; color: #d26a36; margin-bottom: 6px;">Evolucion temporal de umbrales</h3>
+          <p style="font-size: 18px; font-weight: 300; color: rgba(247,246,244,0.7);">Compara tests a lo largo del tiempo. Ve como se mueven LT1, LT2 y VLamax mes a mes. Detecta estancamiento o progresion.</p>
+        </div>
+      </div>
+      <div class="card" style="padding: 28px 32px; display: flex; align-items: center; gap: 24px;">
+        <div style="min-width: 56px; height: 56px; border-radius: 14px; background: rgba(210,106,54,0.12); display: flex; align-items: center; justify-content: center;">
+          <span class="accent" style="font-size: 20px; font-weight: 700; font-family: Space Grotesk;">Rx</span>
+        </div>
+        <div>
+          <h3 style="font-size: 22px; color: #d26a36; margin-bottom: 6px;">Prescripcion de entrenamiento</h3>
+          <p style="font-size: 18px; font-weight: 300; color: rgba(247,246,244,0.7);">No solo mide: prescribe. Te dice QUE entrenar basandose en tu perfil metabolico y el modelo Olbrecht de 4 capacidades.</p>
+        </div>
+      </div>
+      <div class="card" style="padding: 28px 32px; display: flex; align-items: center; gap: 24px;">
+        <div style="min-width: 56px; height: 56px; border-radius: 14px; background: rgba(210,106,54,0.12); display: flex; align-items: center; justify-content: center;">
+          <span class="accent" style="font-size: 22px; font-weight: 700; font-family: Space Grotesk;">G</span>
+        </div>
+        <div>
+          <h3 style="font-size: 22px; color: #d26a36; margin-bottom: 6px;">Push a Garmin</h3>
+          <p style="font-size: 18px; font-weight: 300; color: rgba(247,246,244,0.7);">Zonas y workouts directamente a tu reloj. Un clic. Excel no puede hacer esto.</p>
+        </div>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Billat, V. et al. (2003). <em>Sports Med</em>, 33(6), 407–426. Olbrecht, J. (2000). <em>The Science of Winning</em>.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; gap: 40px;">
+    <div class="cta-box" style="max-width: 800px; width: 100%;">
+      <h2 style="font-size: 44px; color: #f7f6f4; margin-bottom: 20px; line-height: 1.2;">
+        Deja el Excel.<br>Analisis profesional<br>en 60 segundos.
+      </h2>
+      <div style="width: 60px; height: 4px; background: rgba(247,246,244,0.4); border-radius: 2px; margin: 0 auto 24px;"></div>
+      <p style="font-size: 22px; font-weight: 300; color: rgba(247,246,244,0.9); line-height: 1.5; margin-bottom: 28px;">
+        3 metodos. Score de confianza. Zonas. VLamax.<br>Prediccion. Prescripcion. Todo automatico.
+      </p>
+      <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <div style="background: rgba(247,246,244,0.15); padding: 12px 28px; border-radius: 10px;">
+          <p style="font-size: 18px; font-weight: 600; color: #f7f6f4;">Gratis. Sin registro.</p>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 32px; align-items: center;">
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #ef4444;">Excel</p>
+        <p style="font-size: 14px; font-weight: 300; color: rgba(247,246,244,0.5);">45 minutos</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 48px; font-weight: 700; color: #22c55e;">PA</p>
+        <p style="font-size: 14px; font-weight: 300; color: rgba(247,246,244,0.5);">60 segundos</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #d26a36;">3x</p>
+        <p style="font-size: 14px; font-weight: 300; color: rgba(247,246,244,0.5);">Metodos</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #f97316;">Garmin</p>
+        <p style="font-size: 14px; font-weight: 300; color: rgba(247,246,244,0.5);">Push directo</p>
+      </div>
+    </div>
+    <p style="font-size: 20px; font-weight: 500; color: #d26a36;">peakaerobic.com</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

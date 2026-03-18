@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Analisis de lactato: manual vs automatizado</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0e1e24; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; }
+  .slide { width: 1080px; height: 1080px; position: relative; padding: 72px; display: flex; flex-direction: column; justify-content: center; overflow: hidden; page-break-after: always; }
+  .slide-number { position: absolute; top: 40px; right: 52px; font-family: 'Space Grotesk', sans-serif; font-size: 22px; color: rgba(247,246,244,0.35); font-weight: 600; }
+  .progress-dots { position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.2); }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark { position: absolute; bottom: 44px; right: 52px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; color: rgba(247,246,244,0.18); letter-spacing: 1px; }
+  .citation { position: absolute; bottom: 72px; left: 72px; font-size: 16px; color: rgba(247,246,244,0.25); font-family: 'Source Sans 3', sans-serif; max-width: 700px; line-height: 1.4; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; line-height: 1.15; }
+  .tag { display: inline-block; background: #d26a36; color: #0e1e24; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 20px; padding: 8px 20px; border-radius: 6px; margin-bottom: 28px; text-transform: uppercase; letter-spacing: 1.5px; }
+  .subtitle { font-size: 28px; font-weight: 300; color: rgba(247,246,244,0.7); margin-top: 20px; line-height: 1.4; }
+  .card { background: rgba(247,246,244,0.06); border: 1px solid rgba(247,246,244,0.08); border-radius: 16px; padding: 32px; margin-top: 20px; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .orange { color: #f97316; }
+  .red { color: #ef4444; }
+  .cta-box { background: linear-gradient(135deg, #d26a36 0%, #b8522a 100%); border-radius: 20px; padding: 48px; text-align: center; }
+  .cta-box h2 { color: #f7f6f4; font-size: 42px; margin-bottom: 16px; }
+  .cta-box .url { font-size: 32px; font-weight: 700; color: #0e1e24; background: #f7f6f4; display: inline-block; padding: 14px 36px; border-radius: 12px; margin-top: 24px; font-family: 'Space Grotesk', sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="tag">Herramientas</div>
+  <h1 style="font-size: 60px;">Analisis de lactato:<br><span class="accent">manual vs automatizado</span></h1>
+  <p class="subtitle">Los metodos de deteccion de umbrales existen desde los anos 80. La diferencia esta en como los aplicas.</p>
+  <div class="progress-dots"><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 2: The methodological challenge -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <h2 style="font-size: 44px; margin-bottom: 20px;">El reto: <span class="orange">mas de 25 metodos</span> publicados</h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); margin-bottom: 24px;">Jamnick et al. (2020) revisaron sistematicamente los metodos de determinacion de umbrales de lactato y documentaron que distintos metodos aplicados a los mismos datos producen valores de umbral significativamente diferentes.</p>
+  <div class="card" style="margin-top: 0; padding: 28px;">
+    <p style="font-family: 'Space Grotesk'; font-size: 20px; font-weight: 600; color: #d26a36; margin-bottom: 16px;">Metodos historicos de referencia</p>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div style="padding: 14px 18px; background: rgba(247,246,244,0.03); border-radius: 8px;">
+        <p style="font-size: 17px; font-weight: 600; color: rgba(247,246,244,0.7);">Dmax (Cheng et al., 1992)</p>
+        <p style="font-size: 15px; color: rgba(247,246,244,0.4); margin-top: 4px;">Maxima distancia entre curva y linea recta</p>
+      </div>
+      <div style="padding: 14px 18px; background: rgba(247,246,244,0.03); border-radius: 8px;">
+        <p style="font-size: 17px; font-weight: 600; color: rgba(247,246,244,0.7);">ModDmax (Bishop et al., 1998)</p>
+        <p style="font-size: 15px; color: rgba(247,246,244,0.4); margin-top: 4px;">Linea desde primer aumento significativo</p>
+      </div>
+      <div style="padding: 14px 18px; background: rgba(247,246,244,0.03); border-radius: 8px;">
+        <p style="font-size: 17px; font-weight: 600; color: rgba(247,246,244,0.7);">OBLA 4 mmol (Heck et al., 1985)</p>
+        <p style="font-size: 15px; color: rgba(247,246,244,0.4); margin-top: 4px;">Concentracion fija de lactato</p>
+      </div>
+      <div style="padding: 14px 18px; background: rgba(247,246,244,0.03); border-radius: 8px;">
+        <p style="font-size: 17px; font-weight: 600; color: rgba(247,246,244,0.7);">Baseline + delta (Faude, 2009)</p>
+        <p style="font-size: 15px; color: rgba(247,246,244,0.4); margin-top: 4px;">Elevacion sobre valor basal individual</p>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="padding: 24px 28px;">
+    <p style="font-size: 20px; line-height: 1.6; color: rgba(247,246,244,0.6);">Cada metodo tiene sus fortalezas y limitaciones. Ningun metodo unico es optimo para todas las formas de curva. La evidencia sugiere que utilizar multiples metodos y evaluar su concordancia aumenta la confianza en la estimacion.</p>
+  </div>
+  <div class="citation">Jamnick NA et al. (2020). An examination and critique of current methods to determine exercise intensity domains. Int J Sports Physiol Perform, 15(4).</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 3: Manual process -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <h2 style="font-size: 44px; margin-bottom: 28px;">El proceso <span class="red">manual</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.55); margin-bottom: 24px;">Cada paso introduce una fuente potencial de variabilidad. La acumulacion de decisiones subjetivas puede desplazar el umbral estimado de forma significativa.</p>
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <div class="card" style="margin:0; padding: 20px 28px; display: flex; align-items: center; gap: 20px;">
+      <div style="min-width: 44px; height: 44px; border-radius: 10px; background: rgba(239,68,68,0.12); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk'; font-weight: 700; color: #ef4444; font-size: 20px;">1</div>
+      <div>
+        <p style="font-size: 19px; font-weight: 600; color: rgba(247,246,244,0.7);">Transcripcion de datos</p>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.45); margin-top: 2px;">Copiar valores del analizador a la hoja de calculo. Errores de transcripcion.</p>
+      </div>
+    </div>
+    <div class="card" style="margin:0; padding: 20px 28px; display: flex; align-items: center; gap: 20px;">
+      <div style="min-width: 44px; height: 44px; border-radius: 10px; background: rgba(239,68,68,0.12); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk'; font-weight: 700; color: #ef4444; font-size: 20px;">2</div>
+      <div>
+        <p style="font-size: 19px; font-weight: 600; color: rgba(247,246,244,0.7);">Seleccion de metodo</p>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.45); margin-top: 2px;">Elegir un unico metodo, generalmente sin validacion cruzada con otros.</p>
+      </div>
+    </div>
+    <div class="card" style="margin:0; padding: 20px 28px; display: flex; align-items: center; gap: 20px;">
+      <div style="min-width: 44px; height: 44px; border-radius: 10px; background: rgba(239,68,68,0.12); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk'; font-weight: 700; color: #ef4444; font-size: 20px;">3</div>
+      <div>
+        <p style="font-size: 19px; font-weight: 600; color: rgba(247,246,244,0.7);">Interpretacion visual</p>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.45); margin-top: 2px;">Buscar el punto de inflexion a ojo. Variabilidad inter-observador documentada.</p>
+      </div>
+    </div>
+    <div class="card" style="margin:0; padding: 20px 28px; display: flex; align-items: center; gap: 20px;">
+      <div style="min-width: 44px; height: 44px; border-radius: 10px; background: rgba(239,68,68,0.12); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk'; font-weight: 700; color: #ef4444; font-size: 20px;">4</div>
+      <div>
+        <p style="font-size: 19px; font-weight: 600; color: rgba(247,246,244,0.7);">Sin deteccion de outliers</p>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.45); margin-top: 2px;">Un punto anomalo (muestra contaminada, error de medicion) puede desplazar todo el analisis.</p>
+      </div>
+    </div>
+  </div>
+  <div class="citation">Bishop D et al. (1998). Reliability of a 1-h endurance performance test. Med Sci Sports Exerc; Cheng B et al. (1992). J Appl Physiol.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 4: Feature comparison -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <h2 style="font-size: 44px; margin-bottom: 28px;">Comparacion de <span class="accent">funcionalidades</span></h2>
+  <div style="width: 100%;">
+    <svg width="936" height="520" viewBox="0 0 936 520">
+      <!-- Header -->
+      <rect x="0" y="0" width="936" height="55" rx="12" fill="rgba(247,246,244,0.04)"/>
+      <text x="280" y="36" fill="rgba(247,246,244,0.5)" font-family="Space Grotesk" font-size="20" font-weight="600" text-anchor="middle">Funcionalidad</text>
+      <text x="620" y="36" fill="#ef4444" font-family="Space Grotesk" font-size="20" font-weight="600" text-anchor="middle">Manual</text>
+      <text x="830" y="36" fill="#22c55e" font-family="Space Grotesk" font-size="20" font-weight="600" text-anchor="middle">Automatizado</text>
+      <!-- Rows -->
+      <line x1="0" y1="65" x2="936" y2="65" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+      <text x="40" y="98" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="18">Metodos de deteccion</text>
+      <text x="620" y="98" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="17" text-anchor="middle">1 metodo tipicamente</text>
+      <text x="830" y="98" fill="#22c55e" font-family="Source Sans 3" font-size="17" font-weight="600" text-anchor="middle">Multiples + agregacion</text>
+      <line x1="0" y1="120" x2="936" y2="120" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+      <text x="40" y="153" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="18">Indice de confianza</text>
+      <text x="620" y="153" fill="#ef4444" font-family="Source Sans 3" font-size="17" text-anchor="middle">No disponible</text>
+      <text x="830" y="153" fill="#22c55e" font-family="Source Sans 3" font-size="17" font-weight="600" text-anchor="middle">Concordancia entre metodos</text>
+      <line x1="0" y1="175" x2="936" y2="175" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+      <text x="40" y="208" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="18">Deteccion de outliers</text>
+      <text x="620" y="208" fill="#ef4444" font-family="Source Sans 3" font-size="17" text-anchor="middle">Visual / subjetiva</text>
+      <text x="830" y="208" fill="#22c55e" font-family="Source Sans 3" font-size="17" font-weight="600" text-anchor="middle">Algoritmica (LOO)</text>
+      <line x1="0" y1="230" x2="936" y2="230" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+      <text x="40" y="263" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="18">Evolucion longitudinal</text>
+      <text x="620" y="263" fill="#ef4444" font-family="Source Sans 3" font-size="17" text-anchor="middle">Archivos separados</text>
+      <text x="830" y="263" fill="#22c55e" font-family="Source Sans 3" font-size="17" font-weight="600" text-anchor="middle">Serie temporal integrada</text>
+      <line x1="0" y1="285" x2="936" y2="285" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+      <text x="40" y="318" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="18">Reproducibilidad</text>
+      <text x="620" y="318" fill="#ef4444" font-family="Source Sans 3" font-size="17" text-anchor="middle">Varia entre observadores</text>
+      <text x="830" y="318" fill="#22c55e" font-family="Source Sans 3" font-size="17" font-weight="600" text-anchor="middle">Identico resultado cada vez</text>
+      <line x1="0" y1="340" x2="936" y2="340" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+      <text x="40" y="373" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="18">Adaptacion a forma de curva</text>
+      <text x="620" y="373" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="17" text-anchor="middle">Depende del operador</text>
+      <text x="830" y="373" fill="#22c55e" font-family="Source Sans 3" font-size="17" font-weight="600" text-anchor="middle">Seleccion automatica</text>
+      <line x1="0" y1="395" x2="936" y2="395" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+      <text x="40" y="428" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="18">Zonas de entrenamiento</text>
+      <text x="620" y="428" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="17" text-anchor="middle">Calculo manual</text>
+      <text x="830" y="428" fill="#22c55e" font-family="Source Sans 3" font-size="17" font-weight="600" text-anchor="middle">Basadas en LT1 + LT2</text>
+      <line x1="0" y1="450" x2="936" y2="450" stroke="rgba(247,246,244,0.06)" stroke-width="1"/>
+      <text x="40" y="483" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="18">Tiempo por analisis</text>
+      <text x="620" y="483" fill="#ef4444" font-family="Space Grotesk" font-size="20" font-weight="600" text-anchor="middle">30 min - 2 horas</text>
+      <text x="830" y="483" fill="#22c55e" font-family="Space Grotesk" font-size="20" font-weight="600" text-anchor="middle">Segundos</text>
+    </svg>
+  </div>
+  <div class="citation">Metodos validados: Bishop D et al. (1998). J Sports Sci; Cheng B et al. (1992). J Appl Physiol.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 5: Reproducibility matters -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <h2 style="font-size: 44px; margin-bottom: 24px;">La reproducibilidad <span class="green">importa</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.55); margin-bottom: 24px;">Para que la monitorizacion longitudinal tenga sentido, el metodo de analisis debe producir resultados consistentes. Si el metodo cambia entre tests, no puedes distinguir una mejora real de un artefacto metodologico.</p>
+  <div style="display: flex; gap: 24px; margin-bottom: 16px;">
+    <div class="card" style="flex:1; text-align:center; margin:0; border-color: #ef4444;">
+      <p style="font-size: 18px; font-weight: 600; color: #ef4444; margin-bottom: 16px;">Analisis manual</p>
+      <svg width="340" height="180" viewBox="0 0 340 180">
+        <circle cx="100" cy="90" r="30" fill="rgba(239,68,68,0.08)" stroke="#ef4444" stroke-width="1.5"/>
+        <text x="100" y="86" fill="#ef4444" font-family="Source Sans 3" font-size="14" font-weight="600" text-anchor="middle">Test 1</text>
+        <text x="100" y="102" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="12" text-anchor="middle">LT2: 4:15</text>
+        <circle cx="240" cy="90" r="30" fill="rgba(239,68,68,0.08)" stroke="#ef4444" stroke-width="1.5"/>
+        <text x="240" y="86" fill="#ef4444" font-family="Source Sans 3" font-size="14" font-weight="600" text-anchor="middle">Test 2</text>
+        <text x="240" y="102" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="12" text-anchor="middle">LT2: 4:08</text>
+        <text x="170" y="150" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Diferente metodo, diferente observador</text>
+        <text x="170" y="170" fill="#ef4444" font-family="Source Sans 3" font-size="14" text-anchor="middle" font-weight="600">Mejora real o artefacto?</text>
+      </svg>
+    </div>
+    <div class="card" style="flex:1; text-align:center; margin:0; border-color: #22c55e;">
+      <p style="font-size: 18px; font-weight: 600; color: #22c55e; margin-bottom: 16px;">Analisis automatizado</p>
+      <svg width="340" height="180" viewBox="0 0 340 180">
+        <circle cx="100" cy="90" r="30" fill="rgba(34,197,94,0.08)" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="100" y="86" fill="#22c55e" font-family="Source Sans 3" font-size="14" font-weight="600" text-anchor="middle">Test 1</text>
+        <text x="100" y="102" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="12" text-anchor="middle">LT2: 4:12</text>
+        <circle cx="240" cy="90" r="30" fill="rgba(34,197,94,0.08)" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="240" y="86" fill="#22c55e" font-family="Source Sans 3" font-size="14" font-weight="600" text-anchor="middle">Test 2</text>
+        <text x="240" y="102" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="12" text-anchor="middle">LT2: 4:05</text>
+        <text x="170" y="150" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Mismo metodo, mismo algoritmo</text>
+        <text x="170" y="170" fill="#22c55e" font-family="Source Sans 3" font-size="14" text-anchor="middle" font-weight="600">Mejora real: 7 seg/km</text>
+      </svg>
+    </div>
+  </div>
+  <div class="card" style="padding: 24px 28px;">
+    <p style="font-size: 20px; line-height: 1.6; color: rgba(247,246,244,0.6);">Faude et al. (2009) senalaron que la fiabilidad test-retest del metodo de deteccion es fundamental para la monitorizacion del entrenamiento. Un metodo consistente es requisito para detectar adaptaciones reales.</p>
+  </div>
+  <div class="citation">Faude O et al. (2009). Lactate threshold concepts: how valid are they? Sports Med, 39(6), 469-490.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 6: Multi-athlete scalability -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <h2 style="font-size: 42px; margin-bottom: 24px;">Escala con <span class="accent">multiples atletas</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.55); margin-bottom: 24px;">Para entrenadores con multiples deportistas, la automatizacion no es un lujo sino una necesidad practica. Cada nuevo test multiplica el tiempo de analisis manual.</p>
+  <div style="display: flex; gap: 24px;">
+    <div class="card" style="flex:1; text-align: center; margin:0; border-color: rgba(239,68,68,0.2);">
+      <p style="font-size: 20px; font-weight: 600; color: #ef4444; margin-bottom: 16px;">10 atletas con Excel</p>
+      <svg width="340" height="220" viewBox="0 0 340 220">
+        <rect x="60" y="20" width="180" height="28" rx="4" fill="rgba(239,68,68,0.06)" stroke="rgba(239,68,68,0.2)" stroke-width="1"/>
+        <rect x="55" y="35" width="180" height="28" rx="4" fill="rgba(239,68,68,0.06)" stroke="rgba(239,68,68,0.2)" stroke-width="1"/>
+        <rect x="50" y="50" width="180" height="28" rx="4" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.3)" stroke-width="1"/>
+        <text x="140" y="69" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="12" text-anchor="middle">atleta_01_test_06.xlsx</text>
+        <text x="140" y="110" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="32" text-anchor="middle">...</text>
+        <rect x="70" y="130" width="180" height="28" rx="4" fill="rgba(239,68,68,0.06)" stroke="rgba(239,68,68,0.2)" stroke-width="1"/>
+        <rect x="65" y="145" width="180" height="28" rx="4" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.3)" stroke-width="1"/>
+        <text x="155" y="166" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="12" text-anchor="middle">atleta_10_test_03.xlsx</text>
+        <text x="140" y="210" fill="#ef4444" font-family="Source Sans 3" font-size="15" font-weight="500" text-anchor="middle">60+ archivos, mantenimiento constante</text>
+      </svg>
+    </div>
+    <div class="card" style="flex:1; text-align: center; margin:0; border-color: rgba(34,197,94,0.3);">
+      <p style="font-size: 20px; font-weight: 600; color: #22c55e; margin-bottom: 16px;">10 atletas automatizados</p>
+      <svg width="340" height="220" viewBox="0 0 340 220">
+        <rect x="30" y="20" width="280" height="170" rx="12" fill="rgba(34,197,94,0.04)" stroke="rgba(34,197,94,0.2)" stroke-width="1.5"/>
+        <rect x="45" y="40" width="250" height="22" rx="4" fill="rgba(34,197,94,0.06)"/>
+        <text x="55" y="56" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="12">Ana G. — LT2: 4:12 — Conf: 0.91</text>
+        <rect x="45" y="68" width="250" height="22" rx="4" fill="rgba(247,246,244,0.02)"/>
+        <text x="55" y="84" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="12">Carlos M. — LT2: 285W — Conf: 0.84</text>
+        <rect x="45" y="96" width="250" height="22" rx="4" fill="rgba(34,197,94,0.06)"/>
+        <text x="55" y="112" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="12">Laura R. — LT2: 1:32 — Conf: 0.78</text>
+        <text x="170" y="145" fill="rgba(247,246,244,0.25)" font-family="Source Sans 3" font-size="24" text-anchor="middle">...</text>
+        <rect x="45" y="158" width="250" height="22" rx="4" fill="rgba(247,246,244,0.02)"/>
+        <text x="55" y="174" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="12">Pablo T. — LT2: 4:35 — Conf: 0.88</text>
+        <text x="170" y="210" fill="#22c55e" font-family="Source Sans 3" font-size="15" font-weight="500" text-anchor="middle">1 dashboard, toda la informacion</text>
+      </svg>
+    </div>
+  </div>
+  <div class="citation">Metodos de deteccion validados: Bishop D et al. (1998). J Sports Sci; Cheng B et al. (1992). J Appl Physiol.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+    <div class="cta-box">
+      <p style="font-size: 22px; font-weight: 500; color: rgba(247,246,244,0.85); margin-bottom: 16px;">Tu tiempo vale mas que formatear hojas de calculo</p>
+      <h2>Analisis de lactato<br>profesional con metodos<br>validados (Bishop, Cheng, Faude)</h2>
+      <p style="font-size: 22px; color: rgba(247,246,244,0.75); margin-top: 16px;">Sube tu primer test y comprueba la diferencia en segundos.</p>
+      <div class="url">peakaerobic.com</div>
+    </div>
+  </div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+</body>
+</html>

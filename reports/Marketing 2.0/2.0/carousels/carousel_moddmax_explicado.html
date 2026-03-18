@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModDmax: el metodo de umbral mas preciso — PeakAerobic</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide {
+    width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .slide-number {
+    position: absolute; top: 40px; right: 50px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; font-weight: 500; color: rgba(247,246,244,0.35); z-index: 10;
+  }
+  .progress-dots {
+    position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 10;
+  }
+  .progress-dots .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute; bottom: 44px; right: 50px; text-align: right; z-index: 10;
+  }
+  .watermark .brand {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+    font-size: 16px; color: rgba(210,106,54,0.35);
+  }
+  .watermark .sub {
+    font-family: 'Source Sans 3', sans-serif; font-weight: 300;
+    font-size: 11px; color: rgba(210,106,54,0.25); margin-top: 1px;
+  }
+  .tag {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    background: rgba(210,106,54,0.15); color: #d26a36;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 20px;
+  }
+  .divider {
+    width: 60px; height: 4px; background: #d26a36; border-radius: 2px;
+  }
+  .card {
+    background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px; padding: 40px 30px;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    padding: 40px 50px; border-radius: 20px; text-align: center;
+  }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+  .accent { color: #d26a36; }
+  .accent-green { color: #22c55e; }
+  .accent-orange { color: #f97316; }
+  .red { color: #ef4444; }
+  .content { padding: 80px 70px 80px 70px; height: 100%; display: flex; flex-direction: column; }
+
+  @media print {
+    .slide { page-break-after: always; }
+    body { padding: 0; gap: 0; background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; text-align: center; gap: 36px;">
+    <div class="tag">METODOS DE UMBRAL</div>
+    <h1 style="font-size: 68px; max-width: 820px;">
+      <span class="accent">ModDmax</span>: el metodo que tu coach deberia usar
+    </h1>
+    <div class="divider" style="margin: 0 auto;"></div>
+    <p style="font-size: 26px; font-weight: 300; max-width: 680px; color: rgba(247,246,244,0.7); line-height: 1.5;">
+      De Dmax a Modified Dmax: como la ciencia del umbral de lactato evoluciono en 6 anos.
+    </p>
+    <svg width="400" height="100" viewBox="0 0 400 100">
+      <!-- Mini curve -->
+      <polyline points="40,85 80,82 130,78 180,70 220,58 260,42 300,24 340,10"
+        fill="none" stroke="#d26a36" stroke-width="3" stroke-linecap="round"/>
+      <!-- Perpendicular line hint -->
+      <line x1="40" y1="85" x2="340" y2="10" stroke="rgba(247,246,244,0.2)" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <line x1="220" y1="58" x2="238" y2="38" stroke="#22c55e" stroke-width="2"/>
+      <circle cx="220" cy="58" r="5" fill="#d26a36"/>
+      <text x="200" y="95" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="12">Dmax (1992) → ModDmax (1998)</text>
+    </svg>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: Dmax original — Cheng 1992 -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">DMAX ORIGINAL</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">Dmax — <span class="accent">Cheng et al. (1992)</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 380" width="940" height="400" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="330" x2="840" y2="330" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="330" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="370" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Intensidad (velocidad / potencia)</text>
+        <text x="35" y="180" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 180)">Lactato (mmol/L)</text>
+
+        <!-- Data points -->
+        <circle cx="140" cy="310" r="7" fill="#d26a36" opacity="0.9"/>
+        <circle cx="230" cy="305" r="7" fill="#d26a36" opacity="0.9"/>
+        <circle cx="320" cy="296" r="7" fill="#d26a36" opacity="0.9"/>
+        <circle cx="410" cy="278" r="7" fill="#d26a36" opacity="0.9"/>
+        <circle cx="500" cy="245" r="7" fill="#d26a36" opacity="0.9"/>
+        <circle cx="590" cy="195" r="7" fill="#d26a36" opacity="0.9"/>
+        <circle cx="680" cy="130" r="7" fill="#d26a36" opacity="0.9"/>
+        <circle cx="770" cy="55" r="7" fill="#d26a36" opacity="0.9"/>
+
+        <!-- Polynomial curve fit -->
+        <path d="M140,310 Q300,295 410,278 Q540,250 590,195 Q650,140 680,130 Q740,80 770,55"
+          fill="none" stroke="#d26a36" stroke-width="2.5" stroke-linecap="round"/>
+
+        <!-- Straight line: first to last point -->
+        <line x1="140" y1="310" x2="770" y2="55" stroke="rgba(247,246,244,0.4)" stroke-width="2" stroke-dasharray="8 5"/>
+        <text x="155" y="300" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">Primer punto</text>
+        <text x="775" y="48" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">Ultimo punto</text>
+
+        <!-- Max perpendicular distance -->
+        <line x1="545" y1="226" x2="578" y2="162" stroke="#22c55e" stroke-width="3"/>
+        <circle cx="545" cy="226" r="6" fill="#22c55e"/>
+        <text x="600" y="185" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="16">Dmax</text>
+        <text x="600" y="205" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="13">Distancia maxima</text>
+        <text x="600" y="225" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="13">perpendicular</text>
+
+        <!-- Arrow pointing to perpendicular -->
+        <polygon points="562,194 572,188 568,198" fill="#22c55e"/>
+      </svg>
+      <div class="card" style="padding: 28px 36px;">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          <strong>Dmax</strong> = punto de la curva con la <span class="accent-green" style="font-weight: 700;">maxima distancia perpendicular</span> a la linea recta que une el primer y el ultimo punto del test.
+        </p>
+      </div>
+      <p style="font-size: 18px; font-weight: 300; text-align: center; color: rgba(247,246,244,0.6);">
+        Innovador en 1992: objetivo, reproducible, sin criterio arbitrario de lactato fijo.
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Cheng, B. et al. (1992). <em>Med Sci Sports Exerc</em>, 24(3), 313-320.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: Problema de Dmax -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">EL PROBLEMA</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">Dmax depende del <span class="red">primer y ultimo punto</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 340" width="940" height="360" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="290" x2="840" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+
+        <!-- Same curve -->
+        <path d="M140,275 Q300,262 400,248 Q520,220 580,175 Q650,120 700,80 Q740,55 780,38"
+          fill="none" stroke="rgba(210,106,54,0.4)" stroke-width="2" stroke-linecap="round"/>
+
+        <!-- Scenario A: start from first data point -->
+        <line x1="140" y1="275" x2="780" y2="38" stroke="#22c55e" stroke-width="2" stroke-dasharray="8 5"/>
+        <circle cx="140" cy="275" r="6" fill="#22c55e"/>
+        <circle cx="780" cy="38" r="6" fill="#22c55e"/>
+        <line x1="510" y1="205" x2="540" y2="148" stroke="#22c55e" stroke-width="3"/>
+        <circle cx="510" cy="205" r="8" fill="#22c55e" stroke="#0e1e24" stroke-width="2"/>
+        <text x="515" y="235" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="15">Dmax A</text>
+
+        <!-- Scenario B: start later (e.g., different warmup protocol) -->
+        <line x1="300" y1="262" x2="780" y2="38" stroke="#ef4444" stroke-width="2" stroke-dasharray="8 5"/>
+        <circle cx="300" cy="262" r="6" fill="#ef4444"/>
+        <line x1="580" y1="175" x2="605" y2="122" stroke="#ef4444" stroke-width="3"/>
+        <circle cx="580" cy="175" r="8" fill="#ef4444" stroke="#0e1e24" stroke-width="2"/>
+        <text x="615" y="170" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="15">Dmax B</text>
+
+        <!-- Annotation -->
+        <rect x="130" y="40" width="300" height="55" rx="10" fill="rgba(239,68,68,0.1)" stroke="rgba(239,68,68,0.25)" stroke-width="1"/>
+        <text x="280" y="62" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="15">Misma curva, distinto inicio</text>
+        <text x="280" y="82" text-anchor="middle" fill="rgba(239,68,68,0.6)" font-family="Source Sans 3" font-size="14">= umbral diferente</text>
+
+        <!-- Delta annotation -->
+        <line x1="510" y1="210" x2="575" y2="180" stroke="#f97316" stroke-width="2" stroke-dasharray="4 3"/>
+        <rect x="530" y="245" width="90" height="28" rx="6" fill="rgba(249,115,22,0.15)"/>
+        <text x="575" y="264" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="700" font-size="14">~8% error</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06);">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          Bishop (1998) demostro que cambiar el <span class="red" style="font-weight: 700;">punto de inicio</span> del calculo desplaza el umbral significativamente. El resultado depende del protocolo, no solo de la fisiologia.
+        </p>
+      </div>
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 20px 24px; text-align: center;">
+          <p style="font-size: 18px; font-weight: 300; color: rgba(247,246,244,0.7);">Mas escalones bajos</p>
+          <p style="font-size: 16px; font-weight: 600; color: #ef4444; margin-top: 8px;">LT2 se desplaza ABAJO</p>
+        </div>
+        <div class="card" style="flex: 1; padding: 20px 24px; text-align: center;">
+          <p style="font-size: 18px; font-weight: 300; color: rgba(247,246,244,0.7);">Menos escalones bajos</p>
+          <p style="font-size: 16px; font-weight: 600; color: #f97316; margin-top: 8px;">LT2 se desplaza ARRIBA</p>
+        </div>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Bishop, D., Jenkins, D. & Mackinnon, L. (1998). <em>Med Sci Sports Exerc</em>, 30(8), 1270-1274.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: ModDmax — Bishop 1998 -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">LA SOLUCION</div>
+    <h2 style="font-size: 40px; line-height: 1.15;"><span class="accent">Modified Dmax</span> — Bishop (1998)</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 340" width="940" height="360" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="290" x2="840" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="330" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Intensidad</text>
+        <text x="35" y="160" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 160)">Lactato (mmol/L)</text>
+
+        <!-- Data points -->
+        <circle cx="140" cy="275" r="6" fill="rgba(210,106,54,0.4)"/>
+        <circle cx="220" cy="272" r="6" fill="rgba(210,106,54,0.4)"/>
+        <circle cx="300" cy="268" r="6" fill="rgba(210,106,54,0.4)"/>
+        <circle cx="380" cy="258" r="7" fill="#22c55e" stroke="#22c55e" stroke-width="2"/>
+        <circle cx="460" cy="238" r="6" fill="#d26a36"/>
+        <circle cx="540" cy="200" r="6" fill="#d26a36"/>
+        <circle cx="620" cy="148" r="6" fill="#d26a36"/>
+        <circle cx="700" cy="85" r="6" fill="#d26a36"/>
+        <circle cx="780" cy="40" r="6" fill="#d26a36"/>
+
+        <!-- Curve -->
+        <path d="M140,275 Q260,268 380,258 Q480,240 540,200 Q600,155 620,148 Q680,95 700,85 Q750,55 780,40"
+          fill="none" stroke="#d26a36" stroke-width="2.5" stroke-linecap="round"/>
+
+        <!-- Old Dmax line (faded) -->
+        <line x1="140" y1="275" x2="780" y2="40" stroke="rgba(239,68,68,0.25)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="200" y="252" fill="rgba(239,68,68,0.4)" font-family="Source Sans 3" font-size="12">Dmax clasico</text>
+
+        <!-- ModDmax line: from first significant rise point to last -->
+        <line x1="380" y1="258" x2="780" y2="40" stroke="#22c55e" stroke-width="2.5" stroke-dasharray="8 5"/>
+
+        <!-- ModDmax point label -->
+        <text x="380" y="245" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="14">Inicio: primera subida</text>
+        <text x="380" y="228" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="12">significativa (+0.5 mmol)</text>
+
+        <!-- ModDmax perpendicular -->
+        <line x1="570" y1="185" x2="600" y2="130" stroke="#d26a36" stroke-width="3"/>
+        <circle cx="570" cy="185" r="8" fill="#d26a36" stroke="#0e1e24" stroke-width="2"/>
+        <rect x="610" y="120" width="140" height="32" rx="8" fill="rgba(210,106,54,0.2)" stroke="#d26a36" stroke-width="1.5"/>
+        <text x="680" y="141" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="16">ModDmax</text>
+
+        <!-- Faded points annotation -->
+        <rect x="110" y="40" width="250" height="50" rx="10" fill="rgba(247,246,244,0.05)" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+        <text x="235" y="60" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-weight="500" font-size="14">Los puntos pre-subida</text>
+        <text x="235" y="78" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-weight="500" font-size="14">se EXCLUYEN del calculo</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          ModDmax usa como inicio el punto donde el lactato sube <span class="accent-green" style="font-weight: 700;">+0.5 mmol sobre el minimo</span> (baseline). Elimina la dependencia del numero de escalones bajos.
+        </p>
+      </div>
+      <p style="font-size: 18px; font-weight: 300; text-align: center; color: rgba(247,246,244,0.6);">
+        Mismo concepto geometrico, pero anclado a un criterio fisiologico.
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Bishop, D., Jenkins, D. & Mackinnon, L. (1998). <em>Med Sci Sports Exerc</em>, 30(8), 1270-1274.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: Resultados y validacion -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">VALIDACION</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">Correlacion con rendimiento: <span class="accent">r = 0.92</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 300" width="940" height="320" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="120" y1="260" x2="840" y2="260" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="120" y1="30" x2="120" y2="260" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="480" y="295" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Potencia en ModDmax (W)</text>
+        <text x="55" y="145" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 55 145)">Rendimiento TT (W)</text>
+
+        <!-- Scatter points: strong correlation -->
+        <circle cx="180" cy="235" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="220" cy="218" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="260" cy="210" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="310" cy="195" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="350" cy="180" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="400" cy="165" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="440" cy="155" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="490" cy="138" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="530" cy="120" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="580" cy="108" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="620" cy="92" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="670" cy="78" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="720" cy="60" r="6" fill="#d26a36" opacity="0.7"/>
+        <circle cx="770" cy="48" r="6" fill="#d26a36" opacity="0.7"/>
+
+        <!-- Regression line -->
+        <line x1="160" y1="242" x2="790" y2="42" stroke="#22c55e" stroke-width="2.5"/>
+
+        <!-- R value -->
+        <rect x="600" y="180" width="200" height="60" rx="12" fill="rgba(34,197,94,0.12)" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="700" y="208" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="24">r = 0.92</text>
+        <text x="700" y="230" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="13">p &lt; 0.001</text>
+      </svg>
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 24px; text-align: center;">
+          <h3 style="font-size: 18px; color: #d26a36; margin-bottom: 10px;">Bishop (1998)</h3>
+          <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.7); line-height: 1.5;">
+            ModDmax correlaciona mejor con rendimiento en contrarreloj que Dmax clasico y que OBLA 4mmol.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px; text-align: center;">
+          <h3 style="font-size: 18px; color: #d26a36; margin-bottom: 10px;">Nicholson & Sleivert (2001)</h3>
+          <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.7); line-height: 1.5;">
+            Confirmaron que ModDmax es el mejor predictor de rendimiento en ciclismo entre 8 metodos comparados.
+          </p>
+        </div>
+      </div>
+      <div class="card" style="padding: 20px 28px; text-align: center; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+        <p style="font-size: 20px; font-weight: 500; line-height: 1.5;">
+          ModDmax supera a OBLA 4mmol, Dmax clasico, y umbrales de FC en prediccion de rendimiento.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Bishop et al. (1998). <em>MSSE</em>, 30(8), 1270-1274. Nicholson, R. & Sleivert, G. (2001). <em>MSSE</em>, 33(12), 2039-2045.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: PeakAerobic cruza 3 metodos -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">PEAKAEROBIC</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">Cruzamos <span class="accent">3 metodos</span> validados para mayor precision</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 320" width="940" height="340" style="align-self: center;">
+        <!-- Three circles converging (Venn-like) -->
+        <circle cx="320" cy="140" r="120" fill="rgba(210,106,54,0.1)" stroke="#d26a36" stroke-width="2"/>
+        <text x="280" y="100" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="18">ModDmax</text>
+        <text x="280" y="122" text-anchor="middle" fill="rgba(210,106,54,0.6)" font-family="Source Sans 3" font-size="13">Bishop 1998</text>
+
+        <circle cx="500" cy="140" r="120" fill="rgba(34,197,94,0.1)" stroke="#22c55e" stroke-width="2"/>
+        <text x="545" y="100" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="18">Baseline Rise</text>
+        <text x="545" y="122" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="13">Faude 2009</text>
+
+        <circle cx="410" cy="240" r="120" fill="rgba(249,115,22,0.1)" stroke="#f97316" stroke-width="2"/>
+        <text x="410" y="290" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="700" font-size="18">Sustained Increase</text>
+        <text x="410" y="312" text-anchor="middle" fill="rgba(249,115,22,0.6)" font-family="Source Sans 3" font-size="13">Kindermann 1979</text>
+
+        <!-- Center convergence -->
+        <circle cx="410" cy="170" r="35" fill="rgba(247,246,244,0.1)" stroke="rgba(247,246,244,0.4)" stroke-width="2"/>
+        <text x="410" y="165" text-anchor="middle" fill="#f7f6f4" font-family="Space Grotesk" font-weight="700" font-size="14">LT2</text>
+        <text x="410" y="182" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="11">consenso</text>
+
+        <!-- Right side: confidence score -->
+        <rect x="660" y="60" width="220" height="220" rx="20" fill="rgba(210,106,54,0.08)" stroke="rgba(210,106,54,0.25)" stroke-width="1.5"/>
+        <text x="770" y="100" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Score de confianza</text>
+        <text x="770" y="175" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="72">0.89</text>
+        <text x="770" y="210" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">3/3 metodos coinciden</text>
+        <text x="770" y="235" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="16">Alta confianza</text>
+        <rect x="700" y="248" width="140" height="6" rx="3" fill="rgba(247,246,244,0.1)"/>
+        <rect x="700" y="248" width="125" height="6" rx="3" fill="#22c55e"/>
+      </svg>
+      <div class="card" style="padding: 28px 36px;">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          Si los 3 metodos <span class="accent-green" style="font-weight: 700;">convergen</span>, la confianza es alta. Si <span class="red" style="font-weight: 700;">divergen</span>, te avisamos y explicamos por que.
+        </p>
+      </div>
+      <p style="font-size: 18px; font-weight: 300; text-align: center; color: rgba(247,246,244,0.6);">
+        Ningun metodo unico es perfecto. La convergencia de varios es mas robusta que cualquiera solo.
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Bishop (1998), Faude et al. (2009), Kindermann et al. (1979).
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; gap: 40px;">
+    <div class="cta-box" style="max-width: 800px; width: 100%;">
+      <h2 style="font-size: 44px; color: #f7f6f4; margin-bottom: 20px; line-height: 1.2;">
+        3 metodos validados.<br>Score de confianza.<br>Gratis.
+      </h2>
+      <div style="width: 60px; height: 4px; background: rgba(247,246,244,0.4); border-radius: 2px; margin: 0 auto 24px;"></div>
+      <p style="font-size: 22px; font-weight: 300; color: rgba(247,246,244,0.9); line-height: 1.5; margin-bottom: 28px;">
+        PeakAerobic calcula tu umbral con <strong>ModDmax</strong>, <strong>Baseline Rise</strong> y <strong>Sustained Increase</strong>, y te dice cuanto puedes confiar en el resultado.
+      </p>
+      <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <div style="background: rgba(247,246,244,0.15); padding: 12px 28px; border-radius: 10px;">
+          <p style="font-size: 18px; font-weight: 600; color: #f7f6f4;">Sube tu test de lactato y analiza gratis</p>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 32px; align-items: center;">
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #d26a36;">ModDmax</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Bishop 1998</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #22c55e;">Baseline</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Faude 2009</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #f97316;">Sustained</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Kindermann 1979</p>
+      </div>
+    </div>
+    <p style="font-size: 20px; font-weight: 500; color: #d26a36;">peakaerobic.com</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

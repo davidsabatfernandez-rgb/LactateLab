@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 12 — Score de Confianza</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px; height: 1920px; overflow: hidden;
+    background: #0e1e24; color: #f7f6f4;
+    font-family: 'Source Sans 3', sans-serif;
+    position: relative;
+  }
+  .watermark {
+    position: absolute; top: 40px; right: 40px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px; color: rgba(247,246,244,0.4);
+    z-index: 100;
+  }
+  .progress-bar {
+    position: absolute; bottom: 0; left: 0; height: 8px;
+    background: #d26a36; z-index: 100; width: 0%;
+    transition: width 0.1s linear;
+  }
+  .scene {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.5s ease;
+    padding: 60px;
+  }
+  .scene.active { opacity: 1; }
+  .citation {
+    position: absolute; bottom: 80px; left: 60px; right: 60px;
+    font-size: 24px; color: rgba(247,246,244,0.3);
+    text-align: center; font-style: italic;
+  }
+
+  /* Scene 1: Hook */
+  .hook-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 78px; font-weight: 700; text-align: center;
+    line-height: 1.15;
+    transform: scale(0.8); opacity: 0;
+    transition: transform 0.6s ease, opacity 0.6s ease;
+  }
+  .hook-text.zoom-in { transform: scale(1); opacity: 1; }
+  .hook-text .accent { color: #d26a36; }
+
+  /* Scene 2: The 25 number */
+  .big-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 240px; font-weight: 700; color: #d26a36;
+    line-height: 1; margin-bottom: 30px;
+    opacity: 0; transform: scale(0.5);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .big-number.visible { opacity: 1; transform: scale(1); }
+  .big-subtitle {
+    font-size: 40px; text-align: center; line-height: 1.4;
+    max-width: 800px; color: rgba(247,246,244,0.8);
+  }
+
+  /* Scene 3: Divergent methods */
+  .methods-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 48px; font-weight: 600; margin-bottom: 50px;
+    text-align: center; line-height: 1.3;
+  }
+
+  /* Scene 4: Convergent methods */
+  .converge-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 44px; font-weight: 600; margin-top: 30px; color: #22c55e;
+  }
+
+  /* Scene 5: Confidence bar */
+  .confidence-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 50px; font-weight: 600; margin-bottom: 50px;
+  }
+  .confidence-track {
+    width: 800px; height: 60px; border-radius: 30px;
+    background: rgba(247,246,244,0.08); overflow: hidden;
+    margin-bottom: 30px;
+  }
+  .confidence-fill {
+    height: 100%; border-radius: 30px; width: 0%;
+    transition: width 2s ease, background 2s ease;
+    background: #ef4444;
+  }
+  .confidence-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 72px; font-weight: 700;
+    margin-bottom: 30px;
+    transition: color 2s ease;
+    color: #ef4444;
+  }
+  .confidence-desc {
+    font-size: 34px; text-align: center; line-height: 1.5;
+    max-width: 800px; color: rgba(247,246,244,0.7);
+  }
+
+  /* Scene 6: Overlay example */
+  .overlay-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 40px; font-weight: 600; margin-top: 20px;
+    color: rgba(247,246,244,0.7);
+  }
+
+  /* Scene 7: CTA */
+  .cta-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 48px; font-weight: 600; text-align: center;
+    line-height: 1.4; margin-bottom: 50px;
+  }
+  .logo-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 64px; font-weight: 700; color: #d26a36;
+  }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  .pulse { animation: pulse 1.5s ease infinite; }
+
+  canvas { border-radius: 12px; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progress"></div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <div class="hook-text" id="hookText">
+    Tu analisis de<br>lactato incluye<br>un <span class="accent">score de<br>confianza</span>?
+  </div>
+</div>
+
+<!-- Scene 2: The 25 -->
+<div class="scene" id="scene2">
+  <div class="big-number" id="bigNum">25</div>
+  <div class="big-subtitle">conceptos de umbral diferentes<br>producen resultados distintos<br>aplicados a los mismos datos</div>
+  <div class="citation">Jamnick, N.A. et al. (2020). An examination and critique of current methods to determine exercise intensity domains. Sports Med, 50(10), 1733-1756.</div>
+</div>
+
+<!-- Scene 3: Divergent methods -->
+<div class="scene" id="scene3">
+  <div class="methods-title">Un solo metodo =<br>una sola perspectiva</div>
+  <canvas id="divergeCanvas" width="900" height="500"></canvas>
+  <div class="citation">Jamnick et al. (2020): different threshold methods yield different results from identical datasets.</div>
+</div>
+
+<!-- Scene 4: Convergent methods -->
+<div class="scene" id="scene4">
+  <div class="methods-title">Multiples metodos convergentes =<br>mayor confianza</div>
+  <canvas id="convergeCanvas" width="900" height="500"></canvas>
+  <div class="converge-label" id="convergeLabel" style="opacity:0; transition: opacity 0.5s">Convergencia alta</div>
+  <div class="citation">Bishop, D. et al. (1998). MSSE, 30(9), 1373-1381. | Jamnick et al. (2020). Sports Med.</div>
+</div>
+
+<!-- Scene 5: Confidence bar -->
+<div class="scene" id="scene5">
+  <div class="confidence-title">Score de confianza</div>
+  <div class="confidence-value" id="confValue">0.40</div>
+  <div class="confidence-track"><div class="confidence-fill" id="confFill"></div></div>
+  <div class="confidence-desc">Un score bajo no invalida el resultado.<br>Indica que se necesitan mas datos<br>o un protocolo mas controlado.</div>
+  <div class="citation">Jamnick, N.A. et al. (2020). Sports Med, 50(10), 1733-1756.</div>
+</div>
+
+<!-- Scene 6: Overlay example -->
+<div class="scene" id="scene6">
+  <div class="methods-title" style="font-size:42px">Metodos validados superpuestos</div>
+  <canvas id="overlayCanvas" width="900" height="550"></canvas>
+  <div class="overlay-label">La convergencia indica fiabilidad</div>
+  <div class="citation">Bishop et al. (1998) ModDmax | Skinner & McLellan (1980) two-threshold model | Jamnick et al. (2020)</div>
+</div>
+
+<!-- Scene 7: CTA -->
+<div class="scene" id="scene7">
+  <div class="cta-text">PeakAerobic calcula la<br>confianza automaticamente<br>en cada test</div>
+  <div class="logo-text pulse">PeakAerobic</div>
+  <div class="citation">Jamnick et al. (2020) Sports Med | Bishop et al. (1998) MSSE</div>
+</div>
+
+<script>
+(function() {
+  const TOTAL_DURATION = 30000;
+  const scenes = [
+    { id: 'scene1', start: 0, end: 3000 },
+    { id: 'scene2', start: 3000, end: 7000 },
+    { id: 'scene3', start: 7000, end: 12000 },
+    { id: 'scene4', start: 12000, end: 17000 },
+    { id: 'scene5', start: 17000, end: 22000 },
+    { id: 'scene6', start: 22000, end: 26000 },
+    { id: 'scene7', start: 26000, end: 30000 },
+  ];
+  const progress = document.getElementById('progress');
+  let startTime = null;
+  const triggered = {};
+
+  // Lactate curve helper
+  function lactateCurve(x) {
+    return 1.0 + 0.8 * Math.exp(0.018 * (x - 50));
+  }
+
+  function drawDivergent(canvas) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Axes
+    ctx.strokeStyle = 'rgba(247,246,244,0.15)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(80, h - 60); ctx.lineTo(w - 20, h - 60); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(80, h - 60); ctx.lineTo(80, 20); ctx.stroke();
+
+    ctx.fillStyle = 'rgba(247,246,244,0.3)';
+    ctx.font = '24px Source Sans 3';
+    ctx.fillText('Intensidad', w / 2 - 50, h - 20);
+    ctx.save(); ctx.translate(30, h / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Lactato (mmol/L)', -60, 0); ctx.restore();
+
+    // Draw base curve
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(247,246,244,0.5)';
+    ctx.lineWidth = 3;
+    for (let x = 0; x <= 100; x++) {
+      const px = 80 + (x / 100) * (w - 100);
+      const val = lactateCurve(x);
+      const py = h - 60 - (val / 10) * (h - 100);
+      if (x === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    // Three divergent threshold lines
+    const methods = [
+      { x: 55, color: '#ef4444', label: 'Metodo A' },
+      { x: 68, color: '#f97316', label: 'Metodo B' },
+      { x: 78, color: '#eab308', label: 'Metodo C' },
+    ];
+    methods.forEach(m => {
+      const px = 80 + (m.x / 100) * (w - 100);
+      ctx.beginPath();
+      ctx.strokeStyle = m.color;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 8]);
+      ctx.moveTo(px, h - 60);
+      ctx.lineTo(px, 40);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = m.color;
+      ctx.font = '24px Space Grotesk';
+      ctx.fillText(m.label, px - 40, 30);
+    });
+  }
+
+  function drawConvergent(canvas) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Axes
+    ctx.strokeStyle = 'rgba(247,246,244,0.15)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(80, h - 60); ctx.lineTo(w - 20, h - 60); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(80, h - 60); ctx.lineTo(80, 20); ctx.stroke();
+
+    // Base curve
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(247,246,244,0.5)';
+    ctx.lineWidth = 3;
+    for (let x = 0; x <= 100; x++) {
+      const px = 80 + (x / 100) * (w - 100);
+      const val = lactateCurve(x);
+      const py = h - 60 - (val / 10) * (h - 100);
+      if (x === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    // Three convergent threshold lines
+    const methods = [
+      { x: 66, color: '#22c55e', label: 'Baseline Rise' },
+      { x: 68, color: '#22c55e', label: 'ModDmax' },
+      { x: 67, color: '#22c55e', label: 'Sustained Inc.' },
+    ];
+    methods.forEach(m => {
+      const px = 80 + (m.x / 100) * (w - 100);
+      ctx.beginPath();
+      ctx.strokeStyle = m.color;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 8]);
+      ctx.moveTo(px, h - 60);
+      ctx.lineTo(px, 40);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    });
+
+    // Convergence zone highlight
+    const zoneLeft = 80 + (65 / 100) * (w - 100);
+    const zoneRight = 80 + (70 / 100) * (w - 100);
+    ctx.fillStyle = 'rgba(34,197,94,0.15)';
+    ctx.fillRect(zoneLeft, 40, zoneRight - zoneLeft, h - 100);
+
+    ctx.fillStyle = '#22c55e';
+    ctx.font = '26px Space Grotesk';
+    ctx.fillText('Convergencia', (zoneLeft + zoneRight) / 2 - 60, 30);
+  }
+
+  function drawOverlay(canvas) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Axes
+    ctx.strokeStyle = 'rgba(247,246,244,0.15)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(80, h - 60); ctx.lineTo(w - 20, h - 60); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(80, h - 60); ctx.lineTo(80, 20); ctx.stroke();
+
+    // Data points
+    const dataPoints = [
+      { x: 10, y: 1.2 }, { x: 25, y: 1.3 }, { x: 40, y: 1.5 },
+      { x: 55, y: 2.0 }, { x: 65, y: 2.8 }, { x: 75, y: 4.2 },
+      { x: 85, y: 6.5 }, { x: 95, y: 9.0 },
+    ];
+
+    // Base curve
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(247,246,244,0.6)';
+    ctx.lineWidth = 3;
+    for (let x = 0; x <= 100; x++) {
+      const px = 80 + (x / 100) * (w - 100);
+      const val = lactateCurve(x);
+      const py = h - 60 - (val / 10) * (h - 100);
+      if (x === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    // Data point dots
+    dataPoints.forEach(p => {
+      const px = 80 + (p.x / 100) * (w - 100);
+      const py = h - 60 - (p.y / 10) * (h - 100);
+      ctx.beginPath();
+      ctx.arc(px, py, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#f7f6f4';
+      ctx.fill();
+    });
+
+    // Methods overlay — all near x=67
+    const methods = [
+      { x: 66, color: '#22c55e', label: 'Baseline Rise' },
+      { x: 68, color: '#3b82f6', label: 'ModDmax (Bishop 1998)' },
+      { x: 67, color: '#d26a36', label: 'Sustained Inc.' },
+    ];
+    methods.forEach((m, i) => {
+      const px = 80 + (m.x / 100) * (w - 100);
+      ctx.beginPath();
+      ctx.strokeStyle = m.color;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([8, 6]);
+      ctx.moveTo(px, h - 60);
+      ctx.lineTo(px, 60);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = m.color;
+      ctx.font = '22px Space Grotesk';
+      ctx.fillText(m.label, px + 10, 80 + i * 30);
+    });
+
+    // Score badge
+    ctx.fillStyle = 'rgba(34,197,94,0.2)';
+    ctx.beginPath();
+    ctx.roundRect(w - 280, 20, 250, 70, 16);
+    ctx.fill();
+    ctx.fillStyle = '#22c55e';
+    ctx.font = '32px Space Grotesk';
+    ctx.fillText('Score: 0.91', w - 260, 65);
+  }
+
+  let confAnimStart = null;
+
+  function animate(timestamp) {
+    if (!startTime) startTime = timestamp;
+    const elapsed = timestamp - startTime;
+    const pct = Math.min((elapsed / TOTAL_DURATION) * 100, 100);
+    progress.style.width = pct + '%';
+
+    scenes.forEach(s => {
+      const el = document.getElementById(s.id);
+      if (elapsed >= s.start && elapsed < s.end) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    });
+
+    // Scene 1: zoom in
+    if (elapsed >= 100 && !triggered.hook) {
+      triggered.hook = true;
+      document.getElementById('hookText').classList.add('zoom-in');
+    }
+
+    // Scene 2: big number
+    if (elapsed >= 3300 && !triggered.num) {
+      triggered.num = true;
+      document.getElementById('bigNum').classList.add('visible');
+    }
+
+    // Scene 3: divergent
+    if (elapsed >= 7200 && !triggered.diverge) {
+      triggered.diverge = true;
+      drawDivergent(document.getElementById('divergeCanvas'));
+    }
+
+    // Scene 4: convergent
+    if (elapsed >= 12200 && !triggered.converge) {
+      triggered.converge = true;
+      drawConvergent(document.getElementById('convergeCanvas'));
+    }
+    if (elapsed >= 13000 && !triggered.convLabel) {
+      triggered.convLabel = true;
+      document.getElementById('convergeLabel').style.opacity = '1';
+    }
+
+    // Scene 5: confidence bar animation
+    if (elapsed >= 17500 && !triggered.conf) {
+      triggered.conf = true;
+      confAnimStart = elapsed;
+      const fill = document.getElementById('confFill');
+      fill.style.width = '90%';
+      fill.style.background = '#22c55e';
+      document.getElementById('confValue').style.color = '#22c55e';
+    }
+    if (confAnimStart && elapsed < 22000) {
+      const t = Math.min((elapsed - confAnimStart) / 2000, 1);
+      const val = 0.40 + t * 0.50;
+      document.getElementById('confValue').textContent = val.toFixed(2);
+    }
+
+    // Scene 6: overlay
+    if (elapsed >= 22200 && !triggered.overlay) {
+      triggered.overlay = true;
+      drawOverlay(document.getElementById('overlayCanvas'));
+    }
+
+    if (elapsed < TOTAL_DURATION) {
+      requestAnimationFrame(animate);
+    }
+  }
+
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>

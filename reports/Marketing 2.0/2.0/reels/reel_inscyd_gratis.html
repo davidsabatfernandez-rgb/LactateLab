@@ -1,0 +1,237 @@
+<!-- VOICEOVER SCRIPT (for AI voice generation):
+Scene 1 (0-5s): "INSCYD cobra cuarenta y nueve euros al mes. Y necesitas un coach certificado para poder usarlo. Si no estás certificado, no entras."
+Scene 2 (5-12s): "Comparemos. Umbrales de lactato: ambos. VLamax: ambos. Periodización automática: solo PeakAerobic. Transparencia científica: solo PeakAerobic. Precio: cuarenta y nueve euros contra cero."
+Scene 3 (12-18s): "Pero la diferencia real es esta: INSCYD te da números. PeakAerobic te dice qué entrenar. Como dicen en los foros: una vez tienes los números, estás solo."
+Scene 4 (18-25s): "PeakAerobic conecta toda la cadena. Test de lactato, perfil fisiológico, diagnóstico automático, selección de bloque, prescripción de sesiones, y envío directo a Garmin. De principio a fin."
+Scene 5 (25-30s): "Misma ciencia. Cero paywall. PeakAerobic punto com."
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>INSCYD cobra €50/mes. Esto es gratis.</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden;
+  font-family: 'Source Sans 3', sans-serif; color: #fff; position: relative;
+}
+.scene {
+  position: absolute; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.5s ease; padding: 60px;
+}
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.15; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.2; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f97316; }
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; z-index: 100; width: 0%;
+}
+.watermark {
+  position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif;
+  font-size: 32px; color: #d26a3660; z-index: 50;
+}
+.overlay-text {
+  font-size: 52px; font-weight: 600; opacity: 0; transform: translateY(30px);
+  transition: opacity 0.5s ease, transform 0.5s ease; text-align: center; margin-top: 20px;
+}
+.overlay-text.show { opacity: 1; transform: translateY(0); }
+.badge {
+  display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px;
+}
+.price-tag {
+  font-family: 'Space Grotesk', sans-serif; font-size: 160px; font-weight: 700; color: #ef4444;
+  opacity: 0; transform: scale(0.5); transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.price-tag.show { opacity: 1; transform: scale(1); }
+.compare-table {
+  width: 90%; border-collapse: separate; border-spacing: 0;
+  margin-top: 30px; font-size: 34px;
+}
+.compare-table th {
+  font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700;
+  padding: 20px; text-align: center;
+}
+.compare-table td {
+  padding: 18px 20px; text-align: center; border-top: 1px solid #ffffff15;
+}
+.compare-table tr { opacity: 0; transform: translateY(20px); transition: all 0.4s ease; }
+.compare-table tr.show { opacity: 1; transform: translateY(0); }
+.check { color: #22c55e; font-size: 40px; }
+.cross { color: #ef4444; font-size: 40px; }
+svg text { font-family: 'Space Grotesk', sans-serif; }
+.cta-logo {
+  font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36;
+  margin-bottom: 20px;
+}
+.cta-handle { font-size: 48px; color: #ffffff90; }
+.flow-step {
+  background: #ffffff10; border: 2px solid #d26a36; border-radius: 16px;
+  padding: 18px 30px; font-family: 'Space Grotesk', sans-serif; font-size: 36px;
+  font-weight: 600; opacity: 0; transform: translateX(-40px); transition: all 0.4s ease;
+}
+.flow-step.show { opacity: 1; transform: translateX(0); }
+.flow-arrow {
+  color: #d26a36; font-size: 36px; opacity: 0; transition: opacity 0.3s;
+  margin: 8px 0;
+}
+.flow-arrow.show { opacity: 1; }
+.quote-block {
+  background: #ffffff08; border-left: 6px solid #f97316; padding: 40px; border-radius: 16px;
+  width: 85%; margin-top: 30px;
+}
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progress"></div>
+
+<!-- Scene 1: Hook - Price -->
+<div class="scene" id="scene1">
+  <h2 style="margin-bottom: 40px; color: #ffffff80;">INSCYD cobra</h2>
+  <div class="price-tag" id="s1-price">€49/mes</div>
+  <div class="overlay-text" id="s1-cert" style="font-size: 44px; color: #ffffff80; margin-top: 40px;">
+    Y necesitas un coach certificado<br>para poder usarlo.
+  </div>
+</div>
+
+<!-- Scene 2: Comparison table -->
+<div class="scene" id="scene2">
+  <h2 style="font-size: 52px; margin-bottom: 20px;">Comparativa directa</h2>
+  <table class="compare-table">
+    <tr id="s2-r0" class="show">
+      <th style="text-align: left;"></th>
+      <th style="color: #ffffff60;">INSCYD</th>
+      <th class="accent">PeakAerobic</th>
+    </tr>
+    <tr id="s2-r1">
+      <td style="text-align: left; font-weight: 600;">Umbrales LT1/LT2</td>
+      <td><span class="check">&#10003;</span></td>
+      <td><span class="check">&#10003;</span></td>
+    </tr>
+    <tr id="s2-r2">
+      <td style="text-align: left; font-weight: 600;">VLamax</td>
+      <td><span class="check">&#10003;</span></td>
+      <td><span class="check">&#10003;</span></td>
+    </tr>
+    <tr id="s2-r3">
+      <td style="text-align: left; font-weight: 600;">Periodizacion auto</td>
+      <td><span class="cross">&#10007;</span></td>
+      <td><span class="check">&#10003;</span></td>
+    </tr>
+    <tr id="s2-r4">
+      <td style="text-align: left; font-weight: 600;">Transparencia</td>
+      <td><span class="cross">&#10007;</span></td>
+      <td><span class="check">&#10003;</span></td>
+    </tr>
+    <tr id="s2-r5">
+      <td style="text-align: left; font-weight: 600;">Precio</td>
+      <td><span class="red" style="font-weight: 700;">€49</span></td>
+      <td><span class="green" style="font-weight: 700; font-size: 44px;">€0</span></td>
+    </tr>
+  </table>
+</div>
+
+<!-- Scene 3: Real difference -->
+<div class="scene" id="scene3">
+  <h2 style="margin-bottom: 40px;">La diferencia <span class="accent">REAL</span></h2>
+  <div style="display: flex; gap: 40px; width: 85%; margin-bottom: 40px;">
+    <div style="flex: 1; background: #ef444420; border: 2px solid #ef4444; border-radius: 16px; padding: 30px; text-align: center;">
+      <h2 style="font-size: 44px; color: #ef4444; margin-bottom: 16px;">INSCYD</h2>
+      <p style="font-size: 38px;">Te da <strong>numeros</strong></p>
+    </div>
+    <div style="flex: 1; background: #22c55e20; border: 2px solid #22c55e; border-radius: 16px; padding: 30px; text-align: center;">
+      <h2 style="font-size: 44px; color: #22c55e; margin-bottom: 16px;">PeakAerobic</h2>
+      <p style="font-size: 38px;">Te dice <strong>que entrenar</strong></p>
+    </div>
+  </div>
+  <div class="quote-block">
+    <p style="font-size: 38px; font-style: italic; color: #ffffffcc;">
+      "Once you have the numbers, <span class="orange">you're on your own</span>"
+    </p>
+    <p style="font-size: 26px; color: #ffffff50; margin-top: 12px;">— Coaches using INSCYD, TrainerRoad Forum</p>
+  </div>
+</div>
+
+<!-- Scene 4: Flowchart -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom: 40px; font-size: 52px;">PeakAerobic: <span class="accent">cadena completa</span></h2>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 0;">
+    <div class="flow-step" id="s4-f1">Test de lactato</div>
+    <div class="flow-arrow" id="s4-a1">&#9660;</div>
+    <div class="flow-step" id="s4-f2">Perfil fisiologico</div>
+    <div class="flow-arrow" id="s4-a2">&#9660;</div>
+    <div class="flow-step" id="s4-f3">Diagnostico automatico</div>
+    <div class="flow-arrow" id="s4-a3">&#9660;</div>
+    <div class="flow-step" id="s4-f4">Seleccion de bloque</div>
+    <div class="flow-arrow" id="s4-a4">&#9660;</div>
+    <div class="flow-step" id="s4-f5">Prescripcion de sesiones</div>
+    <div class="flow-arrow" id="s4-a5">&#9660;</div>
+    <div class="flow-step" id="s4-f6" style="border-color: #22c55e; background: #22c55e15;">
+      <span class="green">Envio a Garmin</span>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 5: CTA -->
+<div class="scene" id="scene5">
+  <div class="cta-logo">PeakAerobic</div>
+  <h2 style="margin-bottom: 20px;">Misma ciencia.<br><span class="green">Cero paywall.</span></h2>
+  <div class="badge" style="background: #d26a36; color: #fff; margin-top: 30px; font-size: 44px;">peakaerobic.com</div>
+  <p class="cta-handle" style="margin-top: 30px;">@peakaerobic</p>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 5000 },
+  { id: 'scene2', start: 5000, end: 12000 },
+  { id: 'scene3', start: 12000, end: 18000 },
+  { id: 'scene4', start: 18000, end: 25000 },
+  { id: 'scene5', start: 25000, end: 30000 }
+];
+const events = [
+  { time: 800, action: () => document.getElementById('s1-price').classList.add('show') },
+  { time: 2500, action: () => document.getElementById('s1-cert').classList.add('show') },
+  { time: 5500, action: () => document.getElementById('s2-r1').classList.add('show') },
+  { time: 6200, action: () => document.getElementById('s2-r2').classList.add('show') },
+  { time: 6900, action: () => document.getElementById('s2-r3').classList.add('show') },
+  { time: 7600, action: () => document.getElementById('s2-r4').classList.add('show') },
+  { time: 8300, action: () => document.getElementById('s2-r5').classList.add('show') },
+  { time: 18500, action: () => { document.getElementById('s4-f1').classList.add('show'); }},
+  { time: 19000, action: () => { document.getElementById('s4-a1').classList.add('show'); document.getElementById('s4-f2').classList.add('show'); }},
+  { time: 19500, action: () => { document.getElementById('s4-a2').classList.add('show'); document.getElementById('s4-f3').classList.add('show'); }},
+  { time: 20000, action: () => { document.getElementById('s4-a3').classList.add('show'); document.getElementById('s4-f4').classList.add('show'); }},
+  { time: 20500, action: () => { document.getElementById('s4-a4').classList.add('show'); document.getElementById('s4-f5').classList.add('show'); }},
+  { time: 21000, action: () => { document.getElementById('s4-a5').classList.add('show'); document.getElementById('s4-f6').classList.add('show'); }},
+];
+const eventsFired = new Set();
+const startTime = performance.now();
+
+function tick(now) {
+  const elapsed = now - startTime;
+  const progress = Math.min(elapsed / DURATION, 1);
+  document.getElementById('progress').style.width = (progress * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  events.forEach((e, i) => {
+    if (elapsed >= e.time && !eventsFired.has(i)) { eventsFired.add(i); e.action(); }
+  });
+
+  if (elapsed < DURATION) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

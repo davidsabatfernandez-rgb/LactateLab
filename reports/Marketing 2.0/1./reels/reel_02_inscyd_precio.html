@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 02 - INSCYD cobra 50 euros por atleta</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1080px;
+    height: 1920px;
+    background: #0e1e24;
+    overflow: hidden;
+    font-family: 'Source Sans 3', sans-serif;
+    color: #f7f6f4;
+    position: relative;
+  }
+
+  .scene {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    padding: 60px;
+  }
+
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+
+  .overlay-text { font-size: 52px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-red { background: #ef444440; color: #ef4444; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  /* Price animation */
+  .price-big {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 180px;
+    font-weight: 700;
+    color: #ef4444;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .price-big.show {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  @keyframes pulseRed {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+
+  .pulse-red { animation: pulseRed 0.8s ease infinite; }
+
+  /* Calculator */
+  .calc-container {
+    background: #f7f6f408;
+    border: 2px solid #f7f6f420;
+    border-radius: 20px;
+    padding: 40px 60px;
+    width: 800px;
+    margin-top: 30px;
+  }
+
+  .calc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 44px;
+    padding: 15px 0;
+    border-bottom: 1px solid #f7f6f415;
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: all 0.4s ease;
+  }
+
+  .calc-row.show { opacity: 1; transform: translateX(0); }
+
+  .calc-total {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 56px;
+    color: #ef4444;
+    border-bottom: none;
+  }
+
+  /* Strikethrough */
+  .strikethrough {
+    position: relative;
+    display: inline-block;
+  }
+
+  .strikethrough::after {
+    content: '';
+    position: absolute;
+    left: -5px;
+    right: -5px;
+    top: 50%;
+    height: 6px;
+    background: #ef4444;
+    transform: scaleX(0);
+    transition: transform 0.5s ease;
+  }
+
+  .strikethrough.active::after {
+    transform: scaleX(1);
+  }
+
+  /* Feature comparison */
+  .compare-container {
+    display: flex;
+    gap: 30px;
+    margin-top: 30px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .compare-panel {
+    flex: 1;
+    max-width: 450px;
+    padding: 30px;
+    border-radius: 20px;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+  }
+
+  .compare-panel.show { opacity: 1; transform: translateY(0); }
+
+  .compare-old { background: #ef444410; border: 2px solid #ef444440; }
+  .compare-new { background: #22c55e10; border: 2px solid #22c55e40; }
+
+  .compare-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 34px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .compare-item {
+    font-size: 30px;
+    padding: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 42px;
+    font-weight: 600;
+    margin: 15px 0;
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: all 0.5s ease;
+  }
+
+  .feature-item.show { opacity: 1; transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook - Price shock -->
+<div class="scene scene-hook" id="scene1">
+  <div class="price-big pulse-red" id="priceNum">50&#8364;</div>
+  <h1 id="hook1" style="font-size:60px; margin-top:20px;">Por atleta. Por analisis.</h1>
+</div>
+
+<!-- Scene 2: Calculator -->
+<div class="scene" id="scene2">
+  <h2>Haz las cuentas</h2>
+  <div class="calc-container">
+    <div class="calc-row" id="cr1"><span>50&#8364; x atleta</span><span>x 20 atletas</span></div>
+    <div class="calc-row" id="cr2"><span>x 4 tests/ano</span><span></span></div>
+    <div class="calc-row calc-total" id="cr3"><span>= 4.000&#8364;/ano</span></div>
+  </div>
+  <div class="overlay-text" id="calcNote">Para un coach independiente, insostenible.</div>
+</div>
+
+<!-- Scene 3: Strikethrough "No gracias" -->
+<div class="scene" id="scene3">
+  <div class="strikethrough" id="strike" style="font-family: 'Space Grotesk'; font-size: 80px; font-weight: 700; color: #f7f6f4;">
+    4.000&#8364; al ano
+  </div>
+  <div class="overlay-text" id="noThanks" style="font-size: 72px; color: #ef4444;">No gracias.</div>
+</div>
+
+<!-- Scene 4: PeakAerobic features -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom:30px;">Misma ciencia. <span class="accent">Accesible.</span></h2>
+  <div class="feature-item" id="f1"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Deteccion LT1/LT2 automatica</div>
+  <div class="feature-item" id="f2"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Estimacion VLamax</div>
+  <div class="feature-item" id="f3"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Mesociclos Olbrecht</div>
+  <div class="feature-item" id="f4"><span style="color:#22c55e; font-size:48px;">&#10003;</span> ModDmax (Bishop 1998)</div>
+  <div class="feature-item" id="f5"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Push a Garmin Connect</div>
+  <div class="feature-item" id="f6"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Historial dinamico</div>
+</div>
+
+<!-- Scene 5: Price reveal -->
+<div class="scene" id="scene5">
+  <h2>Sin vender un rinon</h2>
+  <div style="margin-top:50px; opacity:0; transition: all 0.6s ease;" id="priceReveal">
+    <div style="font-family:'Space Grotesk'; font-size:120px; font-weight:700; color:#22c55e;">Accesible</div>
+    <div style="font-size:44px; color:#f7f6f480; margin-top:20px;">La ciencia no deberia tener paywall</div>
+  </div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">La ciencia no deberia<br>tener paywall</h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Link en bio. Empieza gratis.
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 40000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 2000 },
+  { id: 'scene2', start: 2000, end: 7000 },
+  { id: 'scene3', start: 7000, end: 12000 },
+  { id: 'scene4', start: 12000, end: 20000 },
+  { id: 'scene5', start: 20000, end: 34000 },
+  { id: 'scene6', start: 34000, end: 40000 },
+];
+
+const events = [
+  { time: 300, action: () => { document.getElementById('priceNum').classList.add('show'); }},
+  { time: 1000, action: () => { document.getElementById('hook1').classList.add('show'); }},
+
+  { time: 2500, action: () => { document.getElementById('cr1').classList.add('show'); }},
+  { time: 3500, action: () => { document.getElementById('cr2').classList.add('show'); }},
+  { time: 4500, action: () => { document.getElementById('cr3').classList.add('show'); }},
+  { time: 5500, action: () => { document.getElementById('calcNote').classList.add('show'); }},
+
+  { time: 7500, action: () => { document.getElementById('strike').classList.add('active'); }},
+  { time: 9000, action: () => { document.getElementById('noThanks').classList.add('show'); }},
+
+  { time: 12500, action: () => { document.getElementById('f1').classList.add('show'); }},
+  { time: 13300, action: () => { document.getElementById('f2').classList.add('show'); }},
+  { time: 14100, action: () => { document.getElementById('f3').classList.add('show'); }},
+  { time: 14900, action: () => { document.getElementById('f4').classList.add('show'); }},
+  { time: 15700, action: () => { document.getElementById('f5').classList.add('show'); }},
+  { time: 16500, action: () => { document.getElementById('f6').classList.add('show'); }},
+
+  { time: 21000, action: () => { document.getElementById('priceReveal').style.opacity = '1'; }},
+
+  { time: 34500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 35500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

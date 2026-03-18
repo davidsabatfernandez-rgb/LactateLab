@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 08 - VLamax: el numero que tu coach no conoce</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 60px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+
+  .overlay-text { font-size: 48px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+  .badge-orange { background: #f9731640; color: #f97316; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  /* Typewriter effect */
+  .typewriter {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 72px;
+    font-weight: 700;
+    color: #d26a36;
+    border-right: 4px solid #d26a36;
+    padding-right: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 0;
+    transition: width 2s steps(6);
+  }
+
+  .typewriter.show { width: 420px; }
+
+  /* Tank diagram */
+  .tank-container {
+    display: flex;
+    gap: 60px;
+    margin-top: 40px;
+    justify-content: center;
+  }
+
+  .tank {
+    width: 250px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.5s ease;
+  }
+
+  .tank.show { opacity: 1; transform: translateY(0); }
+
+  .tank-body {
+    width: 200px;
+    height: 350px;
+    border: 4px solid;
+    border-radius: 20px;
+    margin: 0 auto 15px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tank-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transition: height 1.5s ease;
+  }
+
+  .tank-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+  }
+
+  .tank-sublabel {
+    font-size: 26px;
+    color: #f7f6f460;
+    margin-top: 5px;
+  }
+
+  /* Athlete comparison */
+  .athlete-compare {
+    display: flex;
+    gap: 40px;
+    margin-top: 30px;
+    justify-content: center;
+  }
+
+  .athlete-card {
+    width: 400px;
+    padding: 35px;
+    border-radius: 20px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+  }
+
+  .athlete-card.show { opacity: 1; transform: translateY(0); }
+
+  .ath-sprinter { background: #ef444415; border: 2px solid #ef444440; }
+  .ath-endurance { background: #22c55e15; border: 2px solid #22c55e40; }
+
+  .ath-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 15px;
+  }
+
+  .ath-bar {
+    height: 30px;
+    border-radius: 15px;
+    margin: 10px 0;
+    transition: width 1s ease;
+  }
+
+  .ath-label {
+    font-size: 28px;
+    color: #f7f6f480;
+    text-align: left;
+  }
+
+  /* Insight card */
+  .insight-card {
+    width: 800px;
+    padding: 40px;
+    border-radius: 20px;
+    background: #d26a3615;
+    border: 2px solid #d26a3640;
+    margin-top: 30px;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.5s ease;
+  }
+
+  .insight-card.show { opacity: 1; transform: scale(1); }
+
+  .feature-item {
+    display: flex; align-items: center; gap: 20px; font-size: 42px; font-weight: 600; margin: 15px 0;
+    opacity: 0; transform: translateX(-30px); transition: all 0.5s ease;
+  }
+  .feature-item.show { opacity: 1; transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">Hay un numero que<br>predice tu rendimiento<br><span class="accent">y tu coach no lo mide</span></h1>
+</div>
+
+<!-- Scene 2: VLamax reveal -->
+<div class="scene" id="scene2">
+  <div class="typewriter" id="typeVla">VLamax</div>
+  <div style="margin-top:30px; font-size:48px; font-weight:600; opacity:0; transition: opacity 0.6s;" id="vlaDesc">
+    Velocidad maxima de<br>produccion de lactato
+  </div>
+  <div class="badge badge-orange" id="vlaBadge" style="opacity:0; transition:opacity 0.5s; margin-top:30px;">
+    El numero que falta
+  </div>
+</div>
+
+<!-- Scene 3: Two tanks -->
+<div class="scene" id="scene3">
+  <h2>Dos motores, dos combustibles</h2>
+  <div class="tank-container">
+    <div class="tank" id="tank1">
+      <div class="tank-body" style="border-color:#22c55e;">
+        <div class="tank-fill" id="tankFill1" style="background:#22c55e30; height:0;"></div>
+      </div>
+      <div class="tank-label" style="color:#22c55e;">VO2max</div>
+      <div class="tank-sublabel">Motor aerobico</div>
+    </div>
+    <div class="tank" id="tank2">
+      <div class="tank-body" style="border-color:#ef4444;">
+        <div class="tank-fill" id="tankFill2" style="background:#ef444430; height:0;"></div>
+      </div>
+      <div class="tank-label" style="color:#ef4444;">VLamax</div>
+      <div class="tank-sublabel">Motor glucolitico</div>
+    </div>
+  </div>
+  <div class="overlay-text" id="tankNote" style="font-size:40px;">El equilibrio define que tipo de atleta eres (Olbrecht)</div>
+</div>
+
+<!-- Scene 4: Sprinter vs Endurance -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom:20px;">VLamax alta vs baja</h2>
+  <div class="athlete-compare">
+    <div class="athlete-card ath-sprinter" id="athSprint">
+      <div class="ath-title" style="color:#ef4444;">VLamax ALTA</div>
+      <div class="ath-label">Potencia explosiva</div>
+      <div class="ath-bar" id="sprintBar" style="background:#ef444460; width:0;"></div>
+      <div class="ath-label" style="margin-top:15px;">Sprint, potencia</div>
+      <div style="font-size:28px; color:#ef4444; margin-top:15px; font-weight:700;">Sprinter</div>
+    </div>
+    <div class="athlete-card ath-endurance" id="athEnd">
+      <div class="ath-title" style="color:#22c55e;">VLamax BAJA</div>
+      <div class="ath-label">Eficiencia larga distancia</div>
+      <div class="ath-bar" id="endBar" style="background:#22c55e60; width:0;"></div>
+      <div class="ath-label" style="margin-top:15px;">Ironman, maraton</div>
+      <div style="font-size:28px; color:#22c55e; margin-top:15px; font-weight:700;">Fondista</div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 5: Insight -->
+<div class="scene" id="scene5">
+  <h2 style="margin-bottom:20px;">La implicacion</h2>
+  <div class="insight-card" id="insightCard">
+    <div style="font-size:44px; font-weight:700; color:#d26a36; margin-bottom:20px;">Si tu VLamax es alta y compites en fondo:</div>
+    <div style="font-size:40px; line-height:1.5; color:#f7f6f4a0;">
+      Menos intervalos.<br>
+      <span style="color:#22c55e; font-weight:700;">Mas base aerobica.</span>
+    </div>
+  </div>
+  <div class="feature-item" id="insF1" style="margin-top:30px;"><span style="color:#22c55e; font-size:48px;">&#10003;</span> PeakAerobic estima tu VLamax</div>
+  <div class="feature-item" id="insF2"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Desde tu curva de lactato</div>
+  <div class="feature-item" id="insF3"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Ratio LT1/LT2 como proxy</div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Conoce tu VLamax</h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Descubre tu VLamax<br>Link en bio
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 45000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 3000 },
+  { id: 'scene2', start: 3000, end: 8000 },
+  { id: 'scene3', start: 8000, end: 16000 },
+  { id: 'scene4', start: 16000, end: 24000 },
+  { id: 'scene5', start: 24000, end: 38000 },
+  { id: 'scene6', start: 38000, end: 45000 },
+];
+
+const events = [
+  { time: 300, action: () => { document.getElementById('hook1').classList.add('show'); }},
+
+  { time: 3500, action: () => { document.getElementById('typeVla').classList.add('show'); }},
+  { time: 5500, action: () => { document.getElementById('vlaDesc').style.opacity = '1'; }},
+  { time: 6500, action: () => { document.getElementById('vlaBadge').style.opacity = '1'; }},
+
+  { time: 8500, action: () => { document.getElementById('tank1').classList.add('show'); }},
+  { time: 9500, action: () => { document.getElementById('tank2').classList.add('show'); }},
+  { time: 10500, action: () => {
+    document.getElementById('tankFill1').style.height = '70%';
+    document.getElementById('tankFill2').style.height = '50%';
+  }},
+  { time: 13000, action: () => { document.getElementById('tankNote').classList.add('show'); }},
+
+  { time: 16500, action: () => { document.getElementById('athSprint').classList.add('show'); }},
+  { time: 18000, action: () => { document.getElementById('athEnd').classList.add('show'); }},
+  { time: 19500, action: () => {
+    document.getElementById('sprintBar').style.width = '90%';
+    document.getElementById('endBar').style.width = '40%';
+  }},
+
+  { time: 24500, action: () => { document.getElementById('insightCard').classList.add('show'); }},
+  { time: 28000, action: () => { document.getElementById('insF1').classList.add('show'); }},
+  { time: 29500, action: () => { document.getElementById('insF2').classList.add('show'); }},
+  { time: 31000, action: () => { document.getElementById('insF3').classList.add('show'); }},
+
+  { time: 38500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 39500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

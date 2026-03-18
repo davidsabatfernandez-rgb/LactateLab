@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Predice tu tiempo de carrera desde tu test de lactato</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px;
+    gap: 40px;
+    font-family: 'Source Sans 3', sans-serif;
+  }
+  .slide {
+    width: 1080px;
+    height: 1080px;
+    background: #0e1e24;
+    color: #f7f6f4;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide-number {
+    position: absolute;
+    top: 40px;
+    right: 50px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: rgba(247,246,244,0.4);
+    letter-spacing: 2px;
+  }
+  .progress-dots {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+  }
+  .progress-dots .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute;
+    bottom: 40px;
+    right: 50px;
+    text-align: right;
+    font-size: 13px;
+    color: rgba(247,246,244,0.25);
+    line-height: 1.4;
+  }
+  .watermark strong {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    display: block;
+    font-size: 14px;
+  }
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 48px;
+    line-height: 1.15;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 40px;
+    line-height: 1.2;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 30px;
+    line-height: 1.25;
+    margin-bottom: 16px;
+  }
+  p, li {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 25px;
+    line-height: 1.55;
+    color: rgba(247,246,244,0.85);
+  }
+  .tag {
+    display: inline-block;
+    background: rgba(210,106,54,0.15);
+    color: #d26a36;
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+  .card {
+    background: rgba(210,106,54,0.08);
+    border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px;
+    padding: 30px 34px;
+    width: 100%;
+    margin-bottom: 18px;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    border-radius: 20px;
+    padding: 40px 50px;
+    text-align: center;
+    width: 100%;
+  }
+  .cta-box h2, .cta-box p { color: #fff; }
+  .ref {
+    font-size: 18px;
+    color: rgba(247,246,244,0.4);
+    font-style: italic;
+    margin-top: 14px;
+  }
+  .big-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 80px;
+    font-weight: 700;
+    color: #d26a36;
+    line-height: 1;
+  }
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 16px;
+  }
+  table th {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 20px;
+    color: #d26a36;
+    text-align: left;
+    padding: 14px 20px;
+    border-bottom: 2px solid rgba(210,106,54,0.3);
+  }
+  table td {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 22px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(247,246,244,0.06);
+    color: rgba(247,246,244,0.8);
+  }
+  table tr:last-child td { border-bottom: none; }
+  .two-col {
+    display: flex;
+    gap: 24px;
+    width: 100%;
+  }
+  .two-col .card { flex: 1; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <div class="slide-number">01 / 07</div>
+  <div class="tag">Predicción de carrera</div>
+  <h1>Tu curva de lactato<br><span class="accent">predice tu tiempo</span><br>de carrera</h1>
+  <p style="text-align:center; font-size:26px; margin-top:16px;">No uses tablas genéricas.<br>Usa tu fisiología real.</p>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+<!-- SLIDE 2: El modelo -->
+<div class="slide">
+  <div class="slide-number">02 / 07</div>
+  <h2>El modelo: <span class="accent">di Prampero</span></h2>
+  <div class="card" style="margin-top:20px;">
+    <p style="font-size:24px; text-align:center; margin-bottom:16px;">Tres componentes fundamentales:</p>
+    <div style="display:flex; gap:20px; justify-content:center;">
+      <div style="text-align:center; flex:1;">
+        <p style="font-size:40px; margin-bottom:8px;">Cr</p>
+        <p style="font-size:18px; color:rgba(247,246,244,0.6);">Coste energético<br>de locomoción</p>
+      </div>
+      <div style="text-align:center; color:rgba(247,246,244,0.3); font-size:36px; align-self:center;">x</div>
+      <div style="text-align:center; flex:1;">
+        <p class="accent" style="font-size:40px; margin-bottom:8px;">F</p>
+        <p style="font-size:18px; color:rgba(247,246,244,0.6);">Fracción de VO2max<br>sostenible</p>
+      </div>
+      <div style="text-align:center; color:rgba(247,246,244,0.3); font-size:36px; align-self:center;">x</div>
+      <div style="text-align:center; flex:1;">
+        <p class="green" style="font-size:40px; margin-bottom:8px;">VO2max</p>
+        <p style="font-size:18px; color:rgba(247,246,244,0.6);">Capacidad aeróbica<br>máxima</p>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:24px; width:100%;">
+    <div style="border-left:4px solid #d26a36; padding-left:24px;">
+      <p style="font-size:23px;">No usa tablas genéricas ni "equivalent performances".<br>Calcula <strong>desde tu perfil metabólico real</strong>: umbrales, VO2max estimado y VLamax.</p>
+    </div>
+  </div>
+  <p class="ref" style="text-align:center;">di Prampero, P.E. (1986). The energy cost of human locomotion on land and in water. Int. J. Sports Med., 7(2), 55-72.<br>di Prampero, P.E. et al. (2003). Energetics of best performances in middle-distance running. J. Appl. Physiol., 94(3), 983-989.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+<!-- SLIDE 3: Fractional utilization -->
+<div class="slide">
+  <div class="slide-number">03 / 07</div>
+  <h2>Fractional utilization:<br>¿cuánto puedes <span class="accent">sostener</span>?</h2>
+  <p style="text-align:center; margin-bottom:24px; font-size:23px;">No es lo mismo correr 35 min que 4 horas.<br>Tu cuerpo solo sostiene un <strong class="accent">porcentaje de su VO2max</strong>.</p>
+  <!-- SVG: Fractional utilization bars -->
+  <svg width="750" height="340" viewBox="0 0 750 340">
+    <!-- 10K -->
+    <text x="100" y="45" fill="#f7f6f4" font-family="Space Grotesk" font-size="22" font-weight="600" text-anchor="end">10K</text>
+    <rect x="120" y="25" width="550" height="36" rx="8" fill="rgba(247,246,244,0.05)"/>
+    <rect x="120" y="25" width="505" height="36" rx="8" fill="rgba(210,106,54,0.35)"/>
+    <text x="540" y="50" fill="#d26a36" font-family="Space Grotesk" font-size="18" font-weight="700">90-95%</text>
+    <!-- Half Marathon -->
+    <text x="100" y="115" fill="#f7f6f4" font-family="Space Grotesk" font-size="22" font-weight="600" text-anchor="end">Media M.</text>
+    <rect x="120" y="95" width="550" height="36" rx="8" fill="rgba(247,246,244,0.05)"/>
+    <rect x="120" y="95" width="468" height="36" rx="8" fill="rgba(210,106,54,0.28)"/>
+    <text x="500" y="120" fill="#d26a36" font-family="Space Grotesk" font-size="18" font-weight="700">83-88%</text>
+    <!-- Marathon -->
+    <text x="100" y="185" fill="#f7f6f4" font-family="Space Grotesk" font-size="22" font-weight="600" text-anchor="end">Maratón</text>
+    <rect x="120" y="165" width="550" height="36" rx="8" fill="rgba(247,246,244,0.05)"/>
+    <rect x="120" y="165" width="422" height="36" rx="8" fill="rgba(249,115,22,0.3)"/>
+    <text x="455" y="190" fill="#f97316" font-family="Space Grotesk" font-size="18" font-weight="700">75-85%</text>
+    <!-- Ironman -->
+    <text x="100" y="255" fill="#f7f6f4" font-family="Space Grotesk" font-size="22" font-weight="600" text-anchor="end">Ironman</text>
+    <rect x="120" y="235" width="550" height="36" rx="8" fill="rgba(247,246,244,0.05)"/>
+    <rect x="120" y="235" width="370" height="36" rx="8" fill="rgba(34,197,94,0.25)"/>
+    <text x="405" y="260" fill="#22c55e" font-family="Space Grotesk" font-size="18" font-weight="700">65-75%</text>
+    <!-- Axis -->
+    <text x="120" y="310" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="14">0%</text>
+    <text x="395" y="310" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="14" text-anchor="middle">50%</text>
+    <text x="670" y="310" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="14" text-anchor="end">100%</text>
+    <text x="395" y="335" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="15" text-anchor="middle">% del VO2max sostenible</text>
+  </svg>
+  <p class="ref" style="text-align:center;">Hausswirth, C. & Brisswalter, J. (2013). Triathlon Medicine. Springer. / Billat, V. et al. (2003). The concept of maximal lactate steady state. Sports Med., 33(6), 407-426.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+<!-- SLIDE 4: Ejemplo running -->
+<div class="slide">
+  <div class="slide-number">04 / 07</div>
+  <div class="tag">Ejemplo real</div>
+  <h2>LT2 a <span class="accent">4:15/km</span> · VO2max <span class="accent">55</span></h2>
+  <div class="card" style="margin-top:16px; padding:20px 30px;">
+    <table>
+      <tr>
+        <th>Distancia</th>
+        <th>Ritmo estimado</th>
+        <th>Tiempo</th>
+        <th>%VO2max</th>
+      </tr>
+      <tr>
+        <td><strong>5K</strong></td>
+        <td>3:50/km</td>
+        <td style="color:#d26a36; font-weight:600;">19:10</td>
+        <td>96%</td>
+      </tr>
+      <tr>
+        <td><strong>10K</strong></td>
+        <td>3:57/km</td>
+        <td style="color:#d26a36; font-weight:600;">39:30</td>
+        <td>93%</td>
+      </tr>
+      <tr>
+        <td><strong>Media M.</strong></td>
+        <td>4:10/km</td>
+        <td style="color:#d26a36; font-weight:600;">1:28:00</td>
+        <td>86%</td>
+      </tr>
+      <tr>
+        <td><strong>Maratón</strong></td>
+        <td>4:32/km</td>
+        <td style="color:#d26a36; font-weight:600;">3:11:00</td>
+        <td>79%</td>
+      </tr>
+    </table>
+  </div>
+  <div style="margin-top:20px; width:100%; border-left:4px solid #d26a36; padding-left:24px;">
+    <p style="font-size:22px;">Estas predicciones no salen de una tabla.<br>Se calculan desde <strong class="accent">tu curva de lactato</strong>,<br>tu VO2max estimado y tu VLamax.</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+<!-- SLIDE 5: Por qué fallan las calculadoras genéricas -->
+<div class="slide">
+  <div class="slide-number">05 / 07</div>
+  <h2>Por qué las calculadoras<br>genéricas <span class="red">fallan</span></h2>
+  <div class="two-col" style="margin-top:24px;">
+    <div class="card" style="text-align:center;">
+      <p style="font-size:20px; color:rgba(247,246,244,0.5); margin-bottom:12px;">Atleta A: "Diesel"</p>
+      <p style="font-size:20px;">VLamax <span class="green" style="font-weight:700;">baja (0.28)</span></p>
+      <p style="font-size:20px; margin-top:8px;">VO2max: 55 ml/kg</p>
+      <div style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(247,246,244,0.1);">
+        <p style="font-size:19px;">5K: 19:40 <span style="color:rgba(247,246,244,0.4);">(normal)</span></p>
+        <p style="font-size:19px; margin-top:4px;">Maratón: <strong class="green">2:58</strong> <span class="green">(excelente)</span></p>
+      </div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <p style="font-size:20px; color:rgba(247,246,244,0.5); margin-bottom:12px;">Atleta B: "Explosivo"</p>
+      <p style="font-size:20px;">VLamax <span class="red" style="font-weight:700;">alta (0.55)</span></p>
+      <p style="font-size:20px; margin-top:8px;">VO2max: 55 ml/kg</p>
+      <div style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(247,246,244,0.1);">
+        <p style="font-size:19px;">5K: 18:50 <span style="color:rgba(247,246,244,0.4);">(bueno)</span></p>
+        <p style="font-size:19px; margin-top:4px;">Maratón: <strong class="red">3:18</strong> <span class="red">(mucho peor)</span></p>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px; text-align:center; background:rgba(210,106,54,0.12);">
+    <p style="font-size:23px;">Mismo VO2max. <strong class="accent">20 minutos de diferencia</strong> en maratón.</p>
+    <p style="font-size:21px; margin-top:8px; color:rgba(247,246,244,0.6);">Una calculadora genérica les daría el mismo tiempo.<br>El lactato explica la diferencia.</p>
+  </div>
+  <p class="ref" style="text-align:center;">Mader, A. (2003). Glycolysis and oxidative phosphorylation as a function of cytoplasmic phosphorylation state. Eur. J. Appl. Physiol.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+<!-- SLIDE 6: PeakAerobic -->
+<div class="slide">
+  <div class="slide-number">06 / 07</div>
+  <h2>Predicciones desde tu<br><span class="accent">perfil metabólico real</span></h2>
+  <div style="width:100%; margin-top:20px;">
+    <div class="card" style="display:flex; align-items:center; gap:20px;">
+      <span class="accent" style="font-size:36px; font-weight:700; font-family:'Space Grotesk';">1</span>
+      <p style="font-size:23px;">Tu <strong>curva de lactato</strong> define tus umbrales LT1/LT2</p>
+    </div>
+    <div class="card" style="display:flex; align-items:center; gap:20px;">
+      <span class="accent" style="font-size:36px; font-weight:700; font-family:'Space Grotesk';">2</span>
+      <p style="font-size:23px;">Estimamos tu <strong>VO2max</strong> (Swain 1994 + ACSM) y <strong>VLamax</strong> (Mader 2003)</p>
+    </div>
+    <div class="card" style="display:flex; align-items:center; gap:20px;">
+      <span class="accent" style="font-size:36px; font-weight:700; font-family:'Space Grotesk';">3</span>
+      <p style="font-size:23px;">El modelo <strong>di Prampero</strong> calcula tu velocidad sostenible para cada distancia</p>
+    </div>
+    <div class="card" style="display:flex; align-items:center; gap:20px;">
+      <span class="accent" style="font-size:36px; font-weight:700; font-family:'Space Grotesk';">4</span>
+      <p style="font-size:23px;">Resultado: <strong>predicción personalizada</strong>, no una tabla genérica</p>
+    </div>
+  </div>
+  <p style="text-align:center; margin-top:20px; font-size:21px; color:rgba(247,246,244,0.5);">Distancias disponibles: 5K, 10K, Media Maratón, Maratón, Ironman 70.3, Ironman</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">07 / 07</div>
+  <div class="cta-box">
+    <h2 style="font-size:42px; margin-bottom:20px;">Predice tu carrera<br>desde tu fisiología real</h2>
+    <p style="font-size:25px; margin-bottom:30px; opacity:0.95;">Sube tu test de lactato.<br>Obtén predicciones basadas en ciencia,<br>no en tablas.</p>
+    <div style="background:rgba(255,255,255,0.2); border-radius:14px; padding:20px 36px; display:inline-block;">
+      <p style="font-size:24px; font-weight:700; color:#fff;">peakaerobic.com</p>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><strong>PeakAerobic</strong>Endurance physiology</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 06 - El umbral que todo el mundo ignora</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1080px;
+    height: 1920px;
+    background: #0e1e24;
+    overflow: hidden;
+    font-family: 'Source Sans 3', sans-serif;
+    color: #f7f6f4;
+    position: relative;
+  }
+
+  .scene {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    padding: 60px;
+  }
+
+  .scene.active { opacity: 1; }
+
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 80px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.15;
+  }
+
+  h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 58px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .blue { color: #38bdf8; }
+  .dim { color: #f7f6f470; }
+
+  .overlay-text {
+    font-size: 44px;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 40px;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  .overlay-text.show {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.6s ease;
+  }
+
+  .progress-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 8px;
+    background: #d26a36;
+    width: 0%;
+    z-index: 100;
+    transition: width 0.1s linear;
+  }
+
+  .watermark {
+    position: absolute;
+    top: 60px;
+    right: 60px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: #d26a3660;
+  }
+
+  .citation {
+    position: absolute;
+    bottom: 40px;
+    left: 60px;
+    right: 60px;
+    font-size: 24px;
+    color: #f7f6f4;
+    opacity: 0.3;
+    text-align: center;
+    font-family: 'Source Sans 3', sans-serif;
+  }
+
+  /* Hook */
+  .scene-hook h1 {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  .scene-hook h1.show {
+    opacity: 1;
+    transform: scale(1);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  /* Chart */
+  .chart-container {
+    width: 900px;
+    height: 550px;
+    position: relative;
+    margin-top: 30px;
+  }
+
+  .curve-path {
+    fill: none;
+    stroke: #d26a36;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 1200;
+    stroke-dashoffset: 1200;
+  }
+
+  .curve-path.animate {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 2.5s ease-in-out;
+  }
+
+  .threshold-line {
+    stroke-width: 3;
+    stroke-dasharray: 12 8;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+
+  .threshold-line.show { opacity: 1; }
+
+  .threshold-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+
+  .threshold-label.show { opacity: 1; }
+
+  .axis-label {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 26px;
+    fill: #f7f6f480;
+  }
+
+  .grid-line {
+    stroke: #f7f6f415;
+    stroke-width: 1;
+  }
+
+  /* Foundation */
+  .foundation-container {
+    position: relative;
+    width: 700px;
+    height: 600px;
+    margin-top: 40px;
+  }
+
+  .building-block {
+    position: absolute;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 38px;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  .building-block.show {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.6s ease;
+  }
+
+  /* Pyramid */
+  .pyramid-container {
+    position: relative;
+    width: 800px;
+    height: 650px;
+    margin-top: 20px;
+  }
+
+  .pyramid-level {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    text-align: center;
+    opacity: 0;
+  }
+
+  .pyramid-level.show {
+    opacity: 1;
+    transition: all 0.6s ease;
+  }
+
+  /* Stat card */
+  .stat-card {
+    background: #162a33;
+    border-radius: 24px;
+    padding: 50px;
+    width: 860px;
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  .stat-card.show {
+    opacity: 1;
+    transform: scale(1);
+    transition: all 0.5s ease;
+  }
+
+  .stat-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 100px;
+    font-weight: 700;
+    color: #38bdf8;
+  }
+
+  .stat-label {
+    font-size: 38px;
+    color: #f7f6f480;
+    margin-top: 15px;
+    line-height: 1.4;
+  }
+
+  /* CTA */
+  .logo-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 72px;
+    font-weight: 700;
+    color: #d26a36;
+    margin-bottom: 30px;
+  }
+
+  .cta-text {
+    font-size: 44px;
+    font-weight: 600;
+    text-align: center;
+    opacity: 0;
+  }
+
+  .cta-text.show {
+    opacity: 1;
+    transition: opacity 0.6s ease;
+  }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">El umbral que<br>todo el mundo<br><span class="accent">ignora</span></h1>
+  <div class="citation">Skinner & McLellan (1980); Faude et al. (2009) Sports Med</div>
+</div>
+
+<!-- Scene 2: Curve with LT1 -->
+<div class="scene" id="scene2">
+  <h2>LT1: el primer punto de inflexion</h2>
+  <div class="chart-container">
+    <svg viewBox="0 0 900 550" width="900" height="550">
+      <line class="grid-line" x1="80" y1="50" x2="80" y2="460"/>
+      <line class="grid-line" x1="80" y1="460" x2="850" y2="460"/>
+      <line class="grid-line" x1="80" y1="280" x2="850" y2="280"/>
+      <text class="axis-label" x="15" y="40" font-size="22">Lactato (mmol/L)</text>
+      <text class="axis-label" x="420" y="520" text-anchor="middle" font-size="22">Intensidad</text>
+      <text class="axis-label" x="30" y="465">0</text>
+      <text class="axis-label" x="30" y="370">2</text>
+      <text class="axis-label" x="30" y="285">4</text>
+      <text class="axis-label" x="30" y="195">6</text>
+
+      <path class="curve-path" id="lacCurve"
+        d="M 120,440 C 180,438 250,432 330,420 C 400,408 460,385 520,345 C 570,315 620,265 680,195 C 720,145 780,90 830,60"/>
+
+      <line class="threshold-line" id="lt1Line" x1="350" y1="50" x2="350" y2="460" stroke="#38bdf8"/>
+      <text class="threshold-label" id="lt1Label" x="360" y="85" fill="#38bdf8" font-size="42">LT1</text>
+      <text class="threshold-label" id="lt1Sub" x="360" y="120" fill="#38bdf880" font-size="26">Umbral aerobico</text>
+
+      <line class="threshold-line" id="lt2Line" x1="580" y1="50" x2="580" y2="460" stroke="#d26a3660"/>
+      <text class="threshold-label" id="lt2Label" x="590" y="85" fill="#d26a3660" font-size="36">LT2</text>
+    </svg>
+  </div>
+  <div class="overlay-text" id="curveLabel">Primer incremento sostenido<br>sobre la linea base</div>
+  <div class="citation">Skinner & McLellan (1980): "two distinct breakpoints in the lactate curve"</div>
+</div>
+
+<!-- Scene 3: Foundation -->
+<div class="scene" id="scene3">
+  <h2>Sin base, no hay estructura</h2>
+  <div class="foundation-container">
+    <div class="building-block" id="block1" style="bottom: 0; left: 50px; width: 600px; height: 160px; background: #38bdf830; border: 3px solid #38bdf8;">
+      <span style="color: #38bdf8; font-size: 44px;">LT1 — CIMIENTOS</span>
+    </div>
+    <div class="building-block" id="block2" style="bottom: 180px; left: 100px; width: 500px; height: 140px; background: #d26a3630; border: 3px solid #d26a36;">
+      <span style="color: #d26a36; font-size: 40px;">LT2 — ESTRUCTURA</span>
+    </div>
+    <div class="building-block" id="block3" style="bottom: 340px; left: 160px; width: 380px; height: 120px; background: #22c55e30; border: 3px solid #22c55e;">
+      <span style="color: #22c55e; font-size: 36px;">VO2max — TECHO</span>
+    </div>
+  </div>
+  <div class="citation">Faude et al. (2009): aerobic threshold as foundational marker</div>
+</div>
+
+<!-- Scene 4: Pyramid -->
+<div class="scene" id="scene4">
+  <h2>LT1 sostiene todo lo demas</h2>
+  <div class="pyramid-container">
+    <div class="pyramid-level" id="pyr1" style="bottom: 20px; width: 720px; height: 150px; background: #38bdf825; border: 2px solid #38bdf860;">
+      <div>
+        <div style="font-size: 42px; color: #38bdf8;">LT1</div>
+        <div style="font-size: 28px; color: #f7f6f460;">Base aerobica</div>
+      </div>
+    </div>
+    <div class="pyramid-level" id="pyr2" style="bottom: 190px; width: 520px; height: 140px; background: #d26a3625; border: 2px solid #d26a3660;">
+      <div>
+        <div style="font-size: 40px; color: #d26a36;">LT2</div>
+        <div style="font-size: 28px; color: #f7f6f460;">Umbral anaerobico</div>
+      </div>
+    </div>
+    <div class="pyramid-level" id="pyr3" style="bottom: 350px; width: 340px; height: 130px; background: #22c55e25; border: 2px solid #22c55e60;">
+      <div>
+        <div style="font-size: 38px; color: #22c55e;">VO2max</div>
+        <div style="font-size: 26px; color: #f7f6f460;">Potencia aerobica</div>
+      </div>
+    </div>
+  </div>
+  <div class="citation">Seiler (2010) Sports Med — training intensity distribution</div>
+</div>
+
+<!-- Scene 5: Stat -->
+<div class="scene" id="scene5">
+  <div class="stat-card" id="statCard">
+    <div class="stat-number">~75-80%</div>
+    <div class="stat-label">
+      del volumen de entrenamiento de atletas<br>
+      de resistencia de elite se realiza<br>
+      por debajo de LT1
+    </div>
+    <div style="font-size: 28px; color: #f7f6f440; margin-top: 25px;">
+      Seiler (2010) Sports Med
+    </div>
+  </div>
+  <div class="overlay-text" id="statLabel">La base importa mas de lo que crees</div>
+  <div class="citation">Seiler (2010): polarized training intensity distribution in elite athletes</div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Conoce tu LT1 real</h2>
+  <div class="cta-text" id="cta1" style="font-size: 40px; color: #f7f6f490;">
+    Deteccion automatica de LT1 y LT2<br>desde tu curva de lactato
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px;">
+    <span class="accent">@peakaerobic</span>
+  </div>
+  <div class="citation">Skinner & McLellan (1980); Faude et al. (2009); Seiler (2010)</div>
+</div>
+
+<!-- Progress Bar -->
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 30000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 4000 },
+  { id: 'scene2', start: 4000, end: 10000 },
+  { id: 'scene3', start: 10000, end: 15000 },
+  { id: 'scene4', start: 15000, end: 20000 },
+  { id: 'scene5', start: 20000, end: 25000 },
+  { id: 'scene6', start: 25000, end: 30000 },
+];
+
+const events = [
+  { time: 300, action: () => document.getElementById('hook1').classList.add('show') },
+  { time: 4500, action: () => document.getElementById('lacCurve').classList.add('animate') },
+  { time: 6000, action: () => {
+    document.getElementById('lt1Line').classList.add('show');
+    document.getElementById('lt1Label').classList.add('show');
+    document.getElementById('lt1Sub').classList.add('show');
+  }},
+  { time: 7500, action: () => {
+    document.getElementById('lt2Line').classList.add('show');
+    document.getElementById('lt2Label').classList.add('show');
+  }},
+  { time: 8500, action: () => document.getElementById('curveLabel').classList.add('show') },
+  { time: 10500, action: () => document.getElementById('block1').classList.add('show') },
+  { time: 11500, action: () => document.getElementById('block2').classList.add('show') },
+  { time: 12500, action: () => document.getElementById('block3').classList.add('show') },
+  { time: 15500, action: () => document.getElementById('pyr1').classList.add('show') },
+  { time: 16500, action: () => document.getElementById('pyr2').classList.add('show') },
+  { time: 17500, action: () => document.getElementById('pyr3').classList.add('show') },
+  { time: 20500, action: () => document.getElementById('statCard').classList.add('show') },
+  { time: 22500, action: () => document.getElementById('statLabel').classList.add('show') },
+  { time: 25500, action: () => document.getElementById('cta1').classList.add('show') },
+  { time: 27000, action: () => document.getElementById('cta2').classList.add('show') },
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) {
+    requestAnimationFrame(update);
+  }
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

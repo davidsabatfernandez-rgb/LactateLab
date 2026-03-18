@@ -1,0 +1,230 @@
+<!--
+VOICEOVER SCRIPT (ESPAÑOL) — 30 segundos
+
+[0-5s] Entrenas triatlón con las MISMAS zonas para bici y running. Error.
+[5-12s] Diferentes músculos, diferentes umbrales. Un estudio de Bentley en 2007 lo demostró claramente.
+[12-18s] Ejemplo: LT2 en bici a 260 vatios, LT2 corriendo a 4:15 por kilómetro. ¿Misma zona 2 por frecuencia cardíaca? No.
+[18-24s] Necesitas un test de lactato separado por disciplina. Millet, 2009.
+[24-28s] PeakAerobic crea un perfil multi-disciplina. Cada deporte, sus propias zonas.
+[28-30s] Enlace en bio. PeakAerobic.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Tus umbrales de bici NO son tus umbrales de running</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden;
+  font-family: 'Source Sans 3', 'Space Grotesk', sans-serif; color: #fff;
+}
+.scene {
+  position: absolute; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.5s ease; padding: 60px;
+}
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.1; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.15; }
+p { font-family: 'Source Sans 3', sans-serif; font-size: 42px; text-align: center; line-height: 1.4; margin-top: 30px; color: #ffffffcc; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f97316; }
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 8px;
+  background: #d26a36; z-index: 100; width: 0%;
+}
+.watermark {
+  position: absolute; top: 60px; right: 60px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 32px; color: #d26a3660;
+  z-index: 50;
+}
+.ref { font-size: 30px; color: #ffffff40; margin-top: 20px; font-style: italic; }
+svg text { font-family: 'Space Grotesk', sans-serif; }
+.cta-box {
+  border: 3px solid #d26a36; border-radius: 24px; padding: 32px 56px;
+  margin-top: 40px; text-align: center;
+}
+.cta-box h2 { font-size: 56px; color: #d26a36; }
+.cta-box p { font-size: 38px; color: #ffffffaa; margin-top: 12px; }
+.neq {
+  font-size: 120px; font-weight: 700; color: #ef4444;
+  font-family: 'Space Grotesk', sans-serif; margin: 20px 0;
+}
+.discipline-card {
+  background: #ffffff08; border: 2px solid #ffffff20; border-radius: 24px;
+  padding: 36px 48px; margin-top: 24px; width: 100%;
+  display: flex; align-items: center; gap: 30px;
+}
+.discipline-icon {
+  font-size: 64px; min-width: 80px; text-align: center;
+}
+.discipline-info { flex: 1; }
+.discipline-info .label {
+  font-size: 32px; color: #ffffff60; font-weight: 600; text-transform: uppercase; letter-spacing: 3px;
+}
+.discipline-info .value {
+  font-size: 52px; font-weight: 700; margin-top: 8px;
+}
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene 1: Hook (0-5s) -->
+<div class="scene" id="scene1">
+  <h1>Entrenas triatlón con <span class="red">las mismas zonas</span> para bici y running</h1>
+  <p style="font-size:64px; margin-top:50px; color:#ef4444; font-weight:700;">Error.</p>
+</div>
+
+<!-- Scene 2: Different muscles (5-12s) -->
+<div class="scene" id="scene2">
+  <h2>Diferentes músculos =<br><span class="accent">Diferentes umbrales</span></h2>
+  <svg width="900" height="520" viewBox="0 0 900 520" style="margin-top:40px;">
+    <!-- Axes -->
+    <line x1="80" y1="440" x2="860" y2="440" stroke="#ffffff30" stroke-width="2"/>
+    <line x1="80" y1="40" x2="80" y2="440" stroke="#ffffff30" stroke-width="2"/>
+    <text x="470" y="490" fill="#ffffff60" font-size="26" text-anchor="middle">Intensidad relativa (%)</text>
+    <text x="30" y="240" fill="#ffffff60" font-size="26" text-anchor="middle" transform="rotate(-90,30,240)">Lactato</text>
+    <!-- Bike curve -->
+    <path d="M120,400 L220,395 L340,380 L460,340 L580,240 L720,80" fill="none" stroke="#f97316" stroke-width="5" stroke-dasharray="1000" stroke-dashoffset="1000" id="bikeCurve"/>
+    <text x="735" y="75" fill="#f97316" font-size="30" font-weight="700">Bici</text>
+    <!-- Run curve -->
+    <path d="M120,410 L220,405 L310,390 L420,350 L530,260 L660,80" fill="none" stroke="#22c55e" stroke-width="5" stroke-dasharray="1000" stroke-dashoffset="1000" id="runCurve"/>
+    <text x="675" y="75" fill="#22c55e" font-size="30" font-weight="700">Running</text>
+    <!-- LT2 markers -->
+    <line x1="530" y1="260" x2="530" y2="440" stroke="#22c55e" stroke-width="2" stroke-dasharray="6,4" opacity="0" id="runLT2line"/>
+    <line x1="580" y1="240" x2="580" y2="440" stroke="#f97316" stroke-width="2" stroke-dasharray="6,4" opacity="0" id="bikeLT2line"/>
+    <text x="530" y="465" fill="#22c55e" font-size="24" text-anchor="middle" opacity="0" id="runLT2text">LT2 run</text>
+    <text x="580" y="465" fill="#f97316" font-size="24" text-anchor="middle" opacity="0" id="bikeLT2text">LT2 bici</text>
+    <!-- Gap arrow -->
+    <line x1="535" y1="455" x2="575" y2="455" stroke="#ef4444" stroke-width="3" opacity="0" id="gapLine"/>
+  </svg>
+  <p class="ref">Bentley et al. 2007 — Journal of Science and Medicine in Sport</p>
+</div>
+
+<!-- Scene 3: Example (12-18s) -->
+<div class="scene" id="scene3">
+  <h2>Ejemplo real</h2>
+  <div class="discipline-card" style="border-color: #f97316;">
+    <div class="discipline-icon">&#x1F6B4;</div>
+    <div class="discipline-info">
+      <div class="label">LT2 Bici</div>
+      <div class="value" style="color: #f97316;">260 W</div>
+    </div>
+  </div>
+  <div class="discipline-card" style="border-color: #22c55e;">
+    <div class="discipline-icon">&#x1F3C3;</div>
+    <div class="discipline-info">
+      <div class="label">LT2 Running</div>
+      <div class="value" style="color: #22c55e;">4:15 /km</div>
+    </div>
+  </div>
+  <div style="margin-top:50px;">
+    <p style="font-size:48px;">Misma zona 2 por FC?</p>
+    <div class="neq">&#x2260;</div>
+  </div>
+</div>
+
+<!-- Scene 4: Separate tests (18-24s) -->
+<div class="scene" id="scene4">
+  <h2>Necesitas un test de lactato</h2>
+  <h1 style="margin-top:20px;"><span class="accent">SEPARADO</span></h1>
+  <h2 style="margin-top:20px;">por disciplina</h2>
+  <svg width="800" height="280" viewBox="0 0 800 280" style="margin-top:50px;">
+    <rect x="20" y="20" width="220" height="220" rx="24" fill="#f9731615" stroke="#f97316" stroke-width="3"/>
+    <text x="130" y="100" fill="#f97316" font-size="64" text-anchor="middle">&#x1F6B4;</text>
+    <text x="130" y="160" fill="#f97316" font-size="32" font-weight="700" text-anchor="middle">Test bici</text>
+    <rect x="290" y="20" width="220" height="220" rx="24" fill="#22c55e15" stroke="#22c55e" stroke-width="3"/>
+    <text x="400" y="100" fill="#22c55e" font-size="64" text-anchor="middle">&#x1F3C3;</text>
+    <text x="400" y="160" fill="#22c55e" font-size="32" font-weight="700" text-anchor="middle">Test run</text>
+    <rect x="560" y="20" width="220" height="220" rx="24" fill="#3b82f615" stroke="#3b82f6" stroke-width="3"/>
+    <text x="670" y="100" fill="#3b82f6" font-size="64" text-anchor="middle">&#x1F3CA;</text>
+    <text x="670" y="160" fill="#3b82f6" font-size="32" font-weight="700" text-anchor="middle">Test swim</text>
+  </svg>
+  <p class="ref">Millet et al. 2009 — Sports Medicine</p>
+</div>
+
+<!-- Scene 5: PeakAerobic (24-28s) -->
+<div class="scene" id="scene5">
+  <h2><span class="accent">PeakAerobic</span></h2>
+  <h2 style="margin-top:16px;">Perfil multi-disciplina</h2>
+  <p style="font-size:48px; margin-top:40px;">Cada deporte,<br><span class="green">sus propias zonas</span>.</p>
+  <svg width="800" height="200" viewBox="0 0 800 200" style="margin-top:50px;">
+    <!-- Three zone bars -->
+    <rect x="0" y="10" width="800" height="50" rx="12" fill="#f9731622"/>
+    <rect x="0" y="10" width="520" height="50" rx="12" fill="#f9731644"/>
+    <text x="20" y="44" fill="#fff" font-size="28" font-weight="600">Bici Z2: 180-220W</text>
+    <rect x="0" y="75" width="800" height="50" rx="12" fill="#22c55e22"/>
+    <rect x="0" y="75" width="480" height="50" rx="12" fill="#22c55e44"/>
+    <text x="20" y="109" fill="#fff" font-size="28" font-weight="600">Run Z2: 5:00-4:30 /km</text>
+    <rect x="0" y="140" width="800" height="50" rx="12" fill="#3b82f622"/>
+    <rect x="0" y="140" width="440" height="50" rx="12" fill="#3b82f644"/>
+    <text x="20" y="174" fill="#fff" font-size="28" font-weight="600">Swim Z2: 1:50-1:40 /100m</text>
+  </svg>
+</div>
+
+<!-- Scene 6: CTA (28-30s) -->
+<div class="scene" id="scene6">
+  <h1 class="accent">PeakAerobic</h1>
+  <p style="font-size:48px; margin-top:30px;">Tu laboratorio de lactato portátil.</p>
+  <div class="cta-box">
+    <h2>Enlace en bio</h2>
+    <p>peakaerobic.com</p>
+  </div>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 5000 },
+  { id: 'scene2', start: 5000, end: 12000 },
+  { id: 'scene3', start: 12000, end: 18000 },
+  { id: 'scene4', start: 18000, end: 24000 },
+  { id: 'scene5', start: 24000, end: 28000 },
+  { id: 'scene6', start: 28000, end: 30000 }
+];
+const events = [
+  { time: 5800, action: () => {
+    ['bikeCurve','runCurve'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.transition = 'stroke-dashoffset 1.8s ease'; el.style.strokeDashoffset = '0'; }
+    });
+  }},
+  { time: 8000, action: () => {
+    ['runLT2line','bikeLT2line','runLT2text','bikeLT2text','gapLine'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.transition = 'opacity 0.6s ease'; el.style.opacity = '1'; }
+    });
+  }}
+];
+let eventsFired = {};
+const startTime = performance.now();
+
+function tick(now) {
+  const elapsed = now - startTime;
+  const progress = Math.min(elapsed / DURATION, 1);
+  document.getElementById('progressBar').style.width = (progress * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  events.forEach((e, i) => {
+    if (elapsed >= e.time && !eventsFired[i]) { eventsFired[i] = true; e.action(); }
+  });
+
+  if (progress < 1) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

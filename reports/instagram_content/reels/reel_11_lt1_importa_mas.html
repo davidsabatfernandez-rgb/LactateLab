@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 11 - LT1 importa mas que LT2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .orange { color: #f97316; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; }
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .building {
+    display: flex; flex-direction: column; align-items: center;
+    margin: 30px 0;
+  }
+
+  .floor {
+    width: 500px; height: 80px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 32px;
+    margin: 4px 0;
+    opacity: 0; transform: translateY(20px);
+    transition: all 0.4s ease;
+  }
+  .floor.show { opacity: 1; transform: translateY(0); }
+
+  .floor-foundation { background: #22c55e30; border: 3px solid #22c55e; color: #22c55e; width: 600px; height: 100px; font-size: 40px; }
+  .floor-z2 { background: #22c55e20; border: 2px solid #22c55e60; color: #22c55e; }
+  .floor-z3 { background: #f9731620; border: 2px solid #f9731660; color: #f97316; }
+  .floor-roof { background: #f9731630; border: 3px solid #f97316; color: #f97316; width: 400px; }
+
+  .collapse { transform: translateY(40px) rotate(5deg) !important; opacity: 0.3 !important; }
+
+  .ratio-display {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 100px; font-weight: 700;
+    text-align: center;
+    opacity: 0; transform: scale(0.8);
+    transition: all 0.6s ease;
+  }
+  .ratio-display.show { opacity: 1; transform: scale(1); }
+
+  .ratio-bar {
+    width: 700px; height: 40px; background: #f7f6f410;
+    border-radius: 20px; overflow: hidden; margin: 20px 0;
+  }
+  .ratio-fill {
+    height: 100%; border-radius: 20px;
+    transition: width 1.5s ease;
+  }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <h1>Todo el mundo<br>obsesiona con <span class="orange">LT2</span></h1>
+  <h1 id="s1b" style="margin-top: 40px; opacity: 0; transition: opacity 0.5s;">Nadie habla de <span class="green">LT1</span></h1>
+</div>
+
+<!-- Scene 2: Building metaphor -->
+<div class="scene" id="scene2">
+  <h2 style="margin-bottom: 20px;">Tu rendimiento es un edificio</h2>
+  <div class="building">
+    <div class="floor floor-roof" id="f5">LT2 (techo)</div>
+    <div class="floor floor-z3" id="f4">Zona 3 - Tempo</div>
+    <div class="floor floor-z3" id="f3">Zona 3 - Sweet Spot</div>
+    <div class="floor floor-z2" id="f2">Zona 2 - Aerobico</div>
+    <div class="floor floor-z2" id="f1">Zona 2 - Easy</div>
+    <div class="floor floor-foundation" id="f0">LT1 (CIMIENTO)</div>
+  </div>
+  <div style="font-size: 44px; font-weight: 700; margin-top: 20px; opacity:0; transition: opacity 0.5s;" id="s2label">
+    <span class="green">LT1</span> es tu cimiento. <span class="orange">LT2</span> es tu techo.
+  </div>
+</div>
+
+<!-- Scene 3: Without foundation -->
+<div class="scene" id="scene3">
+  <h2 style="margin-bottom: 30px;"><span style="color: #ef4444;">Sin cimiento no hay techo</span></h2>
+  <div class="building">
+    <div class="floor floor-roof collapse" style="opacity: 0.3; transform: translateY(40px) rotate(8deg);">LT2?</div>
+    <div class="floor floor-z3 collapse" style="opacity: 0.3; transform: translateY(30px) rotate(-3deg);">???</div>
+    <div class="floor floor-z3 collapse" style="opacity: 0.3; transform: translateY(25px) rotate(5deg);">???</div>
+    <div class="floor floor-z2 collapse" style="opacity: 0.3; transform: translateY(15px) rotate(-2deg);">???</div>
+    <div class="floor floor-z2 collapse" style="opacity: 0.3; transform: translateY(10px);">???</div>
+    <div class="floor floor-foundation" style="opacity: 0.3; border-color: #ef4444; color: #ef4444; background: #ef444420;">LT1 DEBIL</div>
+  </div>
+  <div style="font-size: 42px; color: #ef4444; font-weight: 700; margin-top: 30px; text-align: center;">
+    Intervalos sin base<br>= techo de carton
+  </div>
+</div>
+
+<!-- Scene 4: Strong foundation -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom: 30px;"><span class="green">LT1 fuerte = LT2 sube solo</span></h2>
+  <div class="building" id="strongBuilding">
+    <div class="floor floor-roof" id="sf5">LT2 ALTO</div>
+    <div class="floor floor-z3" id="sf4">Zona 3</div>
+    <div class="floor floor-z3" id="sf3">Zona 3</div>
+    <div class="floor floor-z2" id="sf2">Zona 2</div>
+    <div class="floor floor-z2" id="sf1">Zona 2</div>
+    <div class="floor floor-foundation" id="sf0" style="width: 700px; height: 120px; font-size: 46px;">LT1 FUERTE</div>
+  </div>
+  <div style="font-size: 42px; color: #22c55e; font-weight: 700; margin-top: 30px; text-align: center;">
+    La base empuja todo hacia arriba
+  </div>
+</div>
+
+<!-- Scene 5: Elite ratio -->
+<div class="scene" id="scene5">
+  <h2 style="margin-bottom: 30px;">Atletas elite</h2>
+  <div style="font-size: 36px; color: #f7f6f480; margin-bottom: 20px;">Ratio LT1/LT2</div>
+  <div class="ratio-display" id="ratio1" style="color: #f7f6f440;">Aficionado: 0.70</div>
+  <div class="ratio-bar"><div class="ratio-fill" id="rf1" style="background: #f7f6f430; width: 0;"></div></div>
+  <div class="ratio-display" id="ratio2" style="color: #d26a36;">Intermedio: 0.80</div>
+  <div class="ratio-bar"><div class="ratio-fill" id="rf2" style="background: #d26a3660; width: 0;"></div></div>
+  <div class="ratio-display" id="ratio3" style="color: #22c55e;">Elite: 0.87+</div>
+  <div class="ratio-bar"><div class="ratio-fill" id="rf3" style="background: #22c55e; width: 0;"></div></div>
+  <div style="font-size: 40px; font-weight: 700; color: #22c55e; margin-top: 40px; opacity:0; transition: opacity 0.5s;" id="s5tip">
+    Cuanto mas alto el ratio,<br>mas fuerte la base
+  </div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-top: 30px;">Entrena tu <span class="green">LT1</span>.<br><span class="accent">El LT2 seguira.</span></h2>
+  <div style="font-size: 36px; color: #d26a36; margin-top: 40px;">@peakaerobic</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 35000;
+const startTime = Date.now();
+const scenes = [
+  { id: 'scene1', start: 0, end: 6000 },
+  { id: 'scene2', start: 6000, end: 14000 },
+  { id: 'scene3', start: 14000, end: 20000 },
+  { id: 'scene4', start: 20000, end: 26000 },
+  { id: 'scene5', start: 26000, end: 32000 },
+  { id: 'scene6', start: 32000, end: 35000 },
+];
+const events = [
+  { time: 3000, action: () => document.getElementById('s1b').style.opacity = '1' },
+  // Building floors
+  { time: 6500, action: () => document.getElementById('f0').classList.add('show') },
+  { time: 7200, action: () => document.getElementById('f1').classList.add('show') },
+  { time: 7900, action: () => document.getElementById('f2').classList.add('show') },
+  { time: 8600, action: () => document.getElementById('f3').classList.add('show') },
+  { time: 9300, action: () => document.getElementById('f4').classList.add('show') },
+  { time: 10000, action: () => document.getElementById('f5').classList.add('show') },
+  { time: 11500, action: () => document.getElementById('s2label').style.opacity = '1' },
+  // Strong building
+  { time: 20500, action: () => document.getElementById('sf0').classList.add('show') },
+  { time: 21000, action: () => document.getElementById('sf1').classList.add('show') },
+  { time: 21500, action: () => document.getElementById('sf2').classList.add('show') },
+  { time: 22000, action: () => document.getElementById('sf3').classList.add('show') },
+  { time: 22500, action: () => document.getElementById('sf4').classList.add('show') },
+  { time: 23000, action: () => document.getElementById('sf5').classList.add('show') },
+  // Ratios
+  { time: 26500, action: () => { document.getElementById('ratio1').classList.add('show'); document.getElementById('rf1').style.width = '70%'; }},
+  { time: 27500, action: () => { document.getElementById('ratio2').classList.add('show'); document.getElementById('rf2').style.width = '80%'; }},
+  { time: 28500, action: () => { document.getElementById('ratio3').classList.add('show'); document.getElementById('rf3').style.width = '87%'; }},
+  { time: 30000, action: () => document.getElementById('s5tip').style.opacity = '1' },
+];
+let eventIndex = 0;
+function update() {
+  const elapsed = Date.now() - startTime;
+  document.getElementById('progressBar').style.width = Math.min(elapsed / DURATION * 100, 100) + '%';
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!--
+VOICEOVER SCRIPT (30s):
+[0-5s] "Te dijeron que el lactato es un desecho metabólico. Que se acumula y te destruye los músculos. Te mintieron."
+[5-12s] "En 2018, George Brooks demostró el Lactate Shuttle. Tu músculo produce lactato y lo exporta. Otros tejidos lo captan y lo USAN como combustible. Es energía, no basura."
+[12-18s] "De hecho, tu corazón PREFIERE el lactato como fuente de energía por encima de la glucosa. Stanley lo demostró en 1991."
+[18-24s] "La fatiga que sientes no viene del lactato. Viene de los iones de hidrógeno, la acidosis. Robergs lo aclaró en 2004."
+[24-28s] "Entrena para USAR más lactato. Más mitocondrias significan más lanzaderas activas. Más capacidad aeróbica real."
+[28-30s] "PeakAerobic. Entrena con ciencia."
+
+REFERENCIAS:
+- Brooks GA (2018). The Science and Translation of Lactate Shuttle Theory. Cell Metabolism.
+- Stanley WC (1991). Myocardial lactate metabolism during exercise. Med Sci Sports Exerc.
+- Robergs RA (2004). Biochemistry of exercise-induced metabolic acidosis. Am J Physiol.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Lactato = Combustible</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #e8e8e8; position: relative; }
+.scene { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; line-height: 1.1; text-align: center; margin-bottom: 40px; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; line-height: 1.15; text-align: center; margin-bottom: 30px; }
+p { font-size: 42px; line-height: 1.4; text-align: center; color: #b0b0b0; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; z-index: 100; }
+.watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; color: #d26a3660; z-index: 100; }
+.ref { font-size: 32px; color: #d26a3680; margin-top: 30px; font-style: italic; }
+.myth-badge { display: inline-block; background: #ef444430; border: 2px solid #ef4444; border-radius: 16px; padding: 12px 36px; font-size: 38px; color: #ef4444; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 40px; }
+.truth-badge { display: inline-block; background: #22c55e20; border: 2px solid #22c55e; border-radius: 16px; padding: 12px 36px; font-size: 38px; color: #22c55e; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 40px; }
+.shuttle-svg { margin: 40px 0; }
+.heart-svg { margin: 30px 0; }
+.cta-box { background: linear-gradient(135deg, #d26a36, #e8884a); border-radius: 24px; padding: 40px 60px; text-align: center; }
+.cta-box h2 { color: #fff; margin-bottom: 10px; }
+.cta-box p { color: #ffffffcc; }
+.fade-up { transform: translateY(40px); opacity: 0; transition: all 0.6s ease; }
+.fade-up.show { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene 1: 0-5s -->
+<div class="scene" id="scene1">
+  <div class="myth-badge">MITO</div>
+  <h1>Te dijeron que el lactato es un <span class="red">desecho</span>.</h1>
+  <h2 style="font-size:72px;">Te <span class="accent">mintieron</span>.</h2>
+</div>
+
+<!-- Scene 2: 5-12s -->
+<div class="scene" id="scene2">
+  <h2><span class="accent">Lactate Shuttle</span></h2>
+  <p style="font-size:44px; color:#e8e8e8; margin-bottom:20px;">Tu músculo produce lactato<br>y lo <span class="green">USA como combustible</span>.</p>
+  <svg class="shuttle-svg" width="800" height="340" viewBox="0 0 800 340">
+    <!-- Muscle cell -->
+    <rect x="40" y="80" width="240" height="180" rx="30" fill="#1a3040" stroke="#d26a36" stroke-width="3"/>
+    <text x="160" y="155" text-anchor="middle" fill="#e8e8e8" font-family="Space Grotesk" font-size="32" font-weight="700">Músculo</text>
+    <text x="160" y="200" text-anchor="middle" fill="#d26a36" font-family="Source Sans 3" font-size="28">Produce La⁻</text>
+    <!-- Arrow shuttle -->
+    <g class="shuttle-arrow">
+      <line x1="290" y1="170" x2="500" y2="170" stroke="#d26a36" stroke-width="4" stroke-dasharray="12,8">
+        <animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.5s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="500,155 530,170 500,185" fill="#d26a36"/>
+      <!-- Lactate molecule -->
+      <circle cx="380" cy="170" r="18" fill="#d26a36">
+        <animate attributeName="cx" from="310" to="490" dur="1.5s" repeatCount="indefinite"/>
+      </circle>
+      <text x="380" y="178" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">La⁻
+        <animate attributeName="x" from="310" to="490" dur="1.5s" repeatCount="indefinite"/>
+      </text>
+    </g>
+    <!-- Target cell -->
+    <rect x="540" y="80" width="220" height="180" rx="30" fill="#1a3040" stroke="#22c55e" stroke-width="3"/>
+    <text x="650" y="155" text-anchor="middle" fill="#e8e8e8" font-family="Space Grotesk" font-size="32" font-weight="700">Tejido</text>
+    <text x="650" y="200" text-anchor="middle" fill="#22c55e" font-family="Source Sans 3" font-size="28">Oxida La⁻</text>
+    <!-- Label -->
+    <text x="400" y="320" text-anchor="middle" fill="#d26a3680" font-family="Space Grotesk" font-size="28" font-style="italic">Lactate Shuttle</text>
+  </svg>
+  <p class="ref">Brooks 2018 — Cell Metabolism</p>
+</div>
+
+<!-- Scene 3: 12-18s -->
+<div class="scene" id="scene3">
+  <svg class="heart-svg" width="260" height="240" viewBox="0 0 260 240">
+    <path d="M130 220 C130 220 20 150 20 80 C20 40 55 20 90 20 C110 20 125 30 130 45 C135 30 150 20 170 20 C205 20 240 40 240 80 C240 150 130 220 130 220Z" fill="#ef444440" stroke="#ef4444" stroke-width="3">
+      <animate attributeName="d" dur="1s" repeatCount="indefinite"
+        values="M130 220 C130 220 20 150 20 80 C20 40 55 20 90 20 C110 20 125 30 130 45 C135 30 150 20 170 20 C205 20 240 40 240 80 C240 150 130 220 130 220Z;
+                M130 215 C130 215 25 148 25 82 C25 44 57 24 90 24 C108 24 124 33 130 47 C136 33 152 24 170 24 C203 24 235 44 235 82 C235 148 130 215 130 215Z;
+                M130 220 C130 220 20 150 20 80 C20 40 55 20 90 20 C110 20 125 30 130 45 C135 30 150 20 170 20 C205 20 240 40 240 80 C240 150 130 220 130 220Z"/>
+    </path>
+    <text x="130" y="130" text-anchor="middle" fill="#fff" font-family="Space Grotesk" font-size="36" font-weight="700">La⁻</text>
+  </svg>
+  <h2>Tu corazn <span class="red">PREFIERE</span><br>el lactato como fuel.</h2>
+  <p style="font-size:40px;">Por encima de la glucosa.</p>
+  <p class="ref">Stanley 1991 — Med Sci Sports Exerc</p>
+</div>
+
+<!-- Scene 4: 18-24s -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom:50px;">Fatiga = <span class="red">H⁺</span><br>No lactato</h2>
+  <svg width="700" height="300" viewBox="0 0 700 300">
+    <!-- H+ side -->
+    <rect x="40" y="40" width="280" height="220" rx="24" fill="#ef444420" stroke="#ef4444" stroke-width="2"/>
+    <text x="180" y="110" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-size="72" font-weight="700">H⁺</text>
+    <text x="180" y="170" text-anchor="middle" fill="#ef4444" font-family="Source Sans 3" font-size="36">Acidosis</text>
+    <text x="180" y="220" text-anchor="middle" fill="#ef444480" font-family="Source Sans 3" font-size="30">= Fatiga real</text>
+    <!-- Lactate side -->
+    <rect x="380" y="40" width="280" height="220" rx="24" fill="#22c55e20" stroke="#22c55e" stroke-width="2"/>
+    <text x="520" y="110" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="72" font-weight="700">La⁻</text>
+    <text x="520" y="170" text-anchor="middle" fill="#22c55e" font-family="Source Sans 3" font-size="36">Combustible</text>
+    <text x="520" y="220" text-anchor="middle" fill="#22c55e80" font-family="Source Sans 3" font-size="30">= Energa</text>
+    <!-- VS -->
+    <text x="350" y="165" text-anchor="middle" fill="#e8e8e850" font-family="Space Grotesk" font-size="40" font-weight="700">vs</text>
+  </svg>
+  <p class="ref" style="margin-top:40px;">Robergs 2004 — Am J Physiol</p>
+</div>
+
+<!-- Scene 5: 24-28s -->
+<div class="scene" id="scene5">
+  <h2>Entrena para <span class="green">USAR</span><br>ms lactato.</h2>
+  <svg width="700" height="280" viewBox="0 0 700 280" style="margin:40px 0;">
+    <!-- Mitochondria -->
+    <ellipse cx="350" cy="140" rx="280" ry="110" fill="none" stroke="#22c55e" stroke-width="3" stroke-dasharray="8,6"/>
+    <ellipse cx="350" cy="140" rx="200" ry="70" fill="#22c55e10" stroke="#22c55e40" stroke-width="2"/>
+    <text x="350" y="125" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="40" font-weight="700">Mitocondrias</text>
+    <text x="350" y="175" text-anchor="middle" fill="#22c55e90" font-family="Source Sans 3" font-size="32">Ms shuttle = Ms capacidad</text>
+    <!-- Small lactate molecules entering -->
+    <circle cx="100" cy="140" r="14" fill="#d26a36"><animate attributeName="cx" from="60" to="160" dur="2s" repeatCount="indefinite"/></circle>
+    <circle cx="600" cy="140" r="14" fill="#d26a36"><animate attributeName="cx" from="640" to="540" dur="2s" repeatCount="indefinite"/></circle>
+  </svg>
+  <p style="font-size:40px; color:#b0b0b0;">Ms mitocondrias.<br>Ms lanzaderas activas.<br>Ms <span class="green">capacidad aerbica real</span>.</p>
+</div>
+
+<!-- Scene 6: 28-30s -->
+<div class="scene" id="scene6">
+  <div class="cta-box">
+    <h2 style="font-size:72px;">PeakAerobic</h2>
+    <p style="font-size:44px;">Entrena con ciencia.</p>
+  </div>
+  <p style="margin-top:40px; font-size:36px; color:#d26a36;">@peakaerobic</p>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 5000 },
+  { id: 'scene2', start: 5000, end: 12000 },
+  { id: 'scene3', start: 12000, end: 18000 },
+  { id: 'scene4', start: 18000, end: 24000 },
+  { id: 'scene5', start: 24000, end: 28000 },
+  { id: 'scene6', start: 28000, end: 30000 }
+];
+
+const startTime = performance.now();
+
+function tick() {
+  const elapsed = (performance.now() - startTime) % DURATION;
+  document.getElementById('progressBar').style.width = ((elapsed / DURATION) * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+
+  requestAnimationFrame(tick);
+}
+
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

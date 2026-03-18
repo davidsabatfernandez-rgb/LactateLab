@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 07 - TrainingPeaks no te dice ESTO</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 78px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 60px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+
+  .overlay-text { font-size: 48px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-red { background: #ef444440; color: #ef4444; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+  .badge-orange { background: #f9731640; color: #f97316; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  .grid-line { stroke: #f7f6f415; stroke-width: 1; }
+  .axis-label { font-family: 'Source Sans 3', sans-serif; font-size: 28px; fill: #f7f6f480; }
+
+  /* TP mock */
+  .tp-panel {
+    width: 800px;
+    padding: 40px;
+    border-radius: 20px;
+    background: #f7f6f408;
+    border: 2px solid #f7f6f420;
+    margin-top: 30px;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.5s ease;
+  }
+
+  .tp-panel.show { opacity: 1; transform: scale(1); }
+
+  .tp-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 0;
+    border-bottom: 1px solid #f7f6f415;
+    font-size: 36px;
+  }
+
+  .tp-label { color: #f7f6f470; }
+  .tp-value { font-weight: 700; }
+
+  /* Problem card */
+  .problem-card {
+    width: 800px;
+    padding: 40px;
+    border-radius: 20px;
+    background: #ef444410;
+    border: 2px solid #ef444430;
+    margin-top: 30px;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.5s ease;
+  }
+
+  .problem-card.show { opacity: 1; transform: translateY(0); }
+
+  /* Venn diagram */
+  .venn-container {
+    position: relative;
+    width: 700px;
+    height: 400px;
+    margin-top: 30px;
+  }
+
+  .venn-circle {
+    position: absolute;
+    width: 350px;
+    height: 350px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 30px;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  .venn-circle.show { opacity: 1; }
+
+  .venn-tp {
+    left: 50px;
+    top: 25px;
+    background: #3b82f620;
+    border: 3px solid #3b82f650;
+    color: #93c5fd;
+  }
+
+  .venn-pa {
+    right: 50px;
+    top: 25px;
+    background: #d26a3620;
+    border: 3px solid #d26a3650;
+    color: #d26a36;
+  }
+
+  .venn-overlap {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    color: #22c55e;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  .venn-overlap.show { opacity: 1; }
+
+  .feature-item {
+    display: flex; align-items: center; gap: 20px; font-size: 42px; font-weight: 600; margin: 15px 0;
+    opacity: 0; transform: translateX(-30px); transition: all 0.5s ease;
+  }
+  .feature-item.show { opacity: 1; transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">TrainingPeaks <span class="red">no sabe</span><br>donde esta tu umbral</h1>
+</div>
+
+<!-- Scene 2: TP zones -->
+<div class="scene" id="scene2">
+  <h2>TP calcula zonas con</h2>
+  <div class="tp-panel" id="tpPanel">
+    <div class="tp-row"><span class="tp-label">Metodo</span><span class="tp-value">FTP o % FC max</span></div>
+    <div class="tp-row"><span class="tp-label">Dato de lactato</span><span class="tp-value" style="color:#ef4444;">Ninguno</span></div>
+    <div class="tp-row"><span class="tp-label">LT1 detectado</span><span class="tp-value" style="color:#ef4444;">No</span></div>
+    <div class="tp-row"><span class="tp-label">LT2 real</span><span class="tp-value" style="color:#ef4444;">No</span></div>
+    <div class="tp-row" style="border:none;"><span class="tp-label">Precision</span><span class="tp-value" style="color:#f97316;">Aproximada</span></div>
+  </div>
+</div>
+
+<!-- Scene 3: FTP != LT2 -->
+<div class="scene" id="scene3">
+  <h2><span class="orange">FTP</span> no es igual a <span class="red">LT2</span></h2>
+  <div class="problem-card" id="probCard">
+    <div style="font-size:40px; margin-bottom:20px;">Coggan lo sabe.</div>
+    <div style="font-size:36px; color:#f7f6f480; line-height:1.5;">
+      La diferencia puede ser:<br>
+      <span style="color:#f97316; font-weight:700;">10-20W</span> en ciclismo<br>
+      <span style="color:#f97316; font-weight:700;">10-20 seg/km</span> en running
+    </div>
+  </div>
+  <div class="badge badge-orange" id="cogganBadge" style="opacity:0; transition:opacity 0.5s;">
+    FTP = estimacion, no umbral fisiologico
+  </div>
+</div>
+
+<!-- Scene 4: Solution -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom:30px;">Complementa con <span class="accent">datos reales</span></h2>
+  <div class="feature-item" id="f1"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Test de lactato real</div>
+  <div class="feature-item" id="f2"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Umbrales LT1 + LT2 detectados</div>
+  <div class="feature-item" id="f3"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Zonas basadas en fisiologia</div>
+  <div class="feature-item" id="f4"><span style="color:#22c55e; font-size:48px;">&#10003;</span> No adivinanzas</div>
+</div>
+
+<!-- Scene 5: Complementary -->
+<div class="scene" id="scene5">
+  <h2 style="margin-bottom:20px;">No compiten. Se complementan.</h2>
+  <div class="venn-container">
+    <div class="venn-circle venn-tp" id="vennTP">TrainingPeaks<br><span style="font-size:24px; font-weight:400;">Planificar<br>Cargar<br>Monitorizar</span></div>
+    <div class="venn-circle venn-pa" id="vennPA">PeakAerobic<br><span style="font-size:24px; font-weight:400;">Umbrales<br>Zonas<br>Bloques</span></div>
+    <div class="venn-overlap" id="vennOv">Mejor<br>entrenamiento</div>
+  </div>
+  <div class="overlay-text" id="compNote">Usa TP para planificar. Usa PeakAerobic para saber las zonas.</div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">El dato que TP no tiene</h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Complementa tu TrainingPeaks<br>Link en bio
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 40000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 2000 },
+  { id: 'scene2', start: 2000, end: 8000 },
+  { id: 'scene3', start: 8000, end: 14000 },
+  { id: 'scene4', start: 14000, end: 20000 },
+  { id: 'scene5', start: 20000, end: 34000 },
+  { id: 'scene6', start: 34000, end: 40000 },
+];
+
+const events = [
+  { time: 300, action: () => { document.getElementById('hook1').classList.add('show'); }},
+
+  { time: 2500, action: () => { document.getElementById('tpPanel').classList.add('show'); }},
+
+  { time: 8500, action: () => { document.getElementById('probCard').classList.add('show'); }},
+  { time: 11000, action: () => { document.getElementById('cogganBadge').style.opacity = '1'; }},
+
+  { time: 14500, action: () => { document.getElementById('f1').classList.add('show'); }},
+  { time: 15500, action: () => { document.getElementById('f2').classList.add('show'); }},
+  { time: 16500, action: () => { document.getElementById('f3').classList.add('show'); }},
+  { time: 17500, action: () => { document.getElementById('f4').classList.add('show'); }},
+
+  { time: 21000, action: () => { document.getElementById('vennTP').classList.add('show'); }},
+  { time: 23000, action: () => { document.getElementById('vennPA').classList.add('show'); }},
+  { time: 25000, action: () => { document.getElementById('vennOv').classList.add('show'); }},
+  { time: 27000, action: () => { document.getElementById('compNote').classList.add('show'); }},
+
+  { time: 34500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 35500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

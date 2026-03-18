@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 14 - Garmin + test de lactato = zonas perfectas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 76px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 60px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+
+  .overlay-text { font-size: 48px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  /* Step cards */
+  .step-card {
+    width: 800px;
+    padding: 40px;
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin: 15px 0;
+    background: #d26a3610;
+    border: 2px solid #d26a3630;
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: all 0.5s ease;
+  }
+
+  .step-card.show { opacity: 1; transform: translateX(0); }
+
+  .step-num {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: #d26a3630;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 48px;
+    font-weight: 700;
+    color: #d26a36;
+    flex-shrink: 0;
+  }
+
+  .step-info { flex: 1; }
+
+  .step-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 38px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .step-desc {
+    font-size: 30px;
+    color: #f7f6f480;
+  }
+
+  /* Watch mock */
+  .watch-mock {
+    width: 350px;
+    height: 350px;
+    border-radius: 50%;
+    border: 8px solid #f7f6f430;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 30px auto;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.5s ease;
+  }
+
+  .watch-mock.show { opacity: 1; transform: scale(1); }
+
+  .watch-zone-bar {
+    width: 200px;
+    height: 25px;
+    border-radius: 6px;
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: all 0.4s ease;
+  }
+
+  .watch-zone-bar.show { opacity: 1; transform: scaleX(1); }
+
+  /* Push button */
+  .push-btn {
+    padding: 25px 60px;
+    border-radius: 16px;
+    background: #d26a36;
+    color: #f7f6f4;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 40px;
+    font-weight: 700;
+    margin-top: 30px;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.4s ease;
+  }
+
+  .push-btn.show { opacity: 1; transform: scale(1); }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 #d26a3660; }
+    50% { box-shadow: 0 0 0 20px #d26a3600; }
+  }
+
+  .push-glow { animation: pulseGlow 1.5s ease infinite; }
+
+  .feature-item {
+    display: flex; align-items: center; gap: 20px; font-size: 42px; font-weight: 600; margin: 15px 0;
+    opacity: 0; transform: translateX(-30px); transition: all 0.5s ease;
+  }
+  .feature-item.show { opacity: 1; transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">Tus zonas de Garmin<br>pueden ser <span class="green">perfectas</span></h1>
+</div>
+
+<!-- Scene 2: Step 1 -->
+<div class="scene" id="scene2">
+  <h2 style="margin-bottom:20px;">3 pasos</h2>
+  <div class="step-card" id="s1">
+    <div class="step-num">1</div>
+    <div class="step-info">
+      <div class="step-title">Test de lactato</div>
+      <div class="step-desc">7 escalones, 20 minutos. Campo o laboratorio.</div>
+    </div>
+  </div>
+  <div class="step-card" id="s2">
+    <div class="step-num">2</div>
+    <div class="step-info">
+      <div class="step-title">Sube a PeakAerobic</div>
+      <div class="step-desc">Deteccion automatica LT1 + LT2. 3 metodos.</div>
+    </div>
+  </div>
+  <div class="step-card" id="s3">
+    <div class="step-num">3</div>
+    <div class="step-info">
+      <div class="step-title">Push a Garmin</div>
+      <div class="step-desc">Un click. Zonas actualizadas en tu reloj.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 3: Push button + watch -->
+<div class="scene" id="scene3">
+  <h2>Push a Garmin Connect</h2>
+  <div class="push-btn push-glow" id="pushBtn">Push a Garmin</div>
+  <div class="watch-mock" id="watch">
+    <div style="font-size:22px; color:#f7f6f460; margin-bottom:10px;">Zonas actualizadas</div>
+    <div class="watch-zone-bar" id="wz1" style="background:#22c55e40; width:200px; color:#22c55e;">Z1</div>
+    <div class="watch-zone-bar" id="wz2" style="background:#22c55e60; width:180px; color:#22c55e;">Z2</div>
+    <div class="watch-zone-bar" id="wz3" style="background:#f9731640; width:150px; color:#f97316;">Z3</div>
+    <div class="watch-zone-bar" id="wz4" style="background:#ef444440; width:120px; color:#ef4444;">Z4</div>
+    <div class="watch-zone-bar" id="wz5" style="background:#ef444460; width:90px; color:#ef4444;">Z5</div>
+  </div>
+  <div class="overlay-text" id="watchNote">Basadas en TU fisiologia. En TU muneca.</div>
+</div>
+
+<!-- Scene 4: Result -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom:30px;">Entrena sabiendo que<br>cada zona es <span class="green">real</span></h2>
+  <div class="feature-item" id="f1"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Zonas basadas en lactato</div>
+  <div class="feature-item" id="f2"><span style="color:#22c55e; font-size:48px;">&#10003;</span> No en formulas genericas</div>
+  <div class="feature-item" id="f3"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Actualizadas cada test</div>
+  <div class="feature-item" id="f4"><span style="color:#22c55e; font-size:48px;">&#10003;</span> En tu reloj cada sesion</div>
+  <div class="badge badge-green" id="resBadge" style="opacity:0; transition:opacity 0.5s; margin-top:20px; font-size:40px;">
+    Precision real
+  </div>
+</div>
+
+<!-- Scene 5: CTA -->
+<div class="scene" id="scene5">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Garmin + PeakAerobic</h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Conecta tu Garmin hoy<br>Link en bio
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 35000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 2000 },
+  { id: 'scene2', start: 2000, end: 14000 },
+  { id: 'scene3', start: 14000, end: 26000 },
+  { id: 'scene4', start: 26000, end: 30000 },
+  { id: 'scene5', start: 30000, end: 35000 },
+];
+
+const events = [
+  { time: 300, action: () => { document.getElementById('hook1').classList.add('show'); }},
+
+  { time: 2500, action: () => { document.getElementById('s1').classList.add('show'); }},
+  { time: 5000, action: () => { document.getElementById('s2').classList.add('show'); }},
+  { time: 7500, action: () => { document.getElementById('s3').classList.add('show'); }},
+
+  { time: 14500, action: () => { document.getElementById('pushBtn').classList.add('show'); }},
+  { time: 16500, action: () => { document.getElementById('watch').classList.add('show'); }},
+  { time: 17500, action: () => { document.getElementById('wz1').classList.add('show'); }},
+  { time: 18000, action: () => { document.getElementById('wz2').classList.add('show'); }},
+  { time: 18500, action: () => { document.getElementById('wz3').classList.add('show'); }},
+  { time: 19000, action: () => { document.getElementById('wz4').classList.add('show'); }},
+  { time: 19500, action: () => { document.getElementById('wz5').classList.add('show'); }},
+  { time: 21000, action: () => { document.getElementById('watchNote').classList.add('show'); }},
+
+  { time: 26500, action: () => { document.getElementById('f1').classList.add('show'); }},
+  { time: 27000, action: () => { document.getElementById('f2').classList.add('show'); }},
+  { time: 27500, action: () => { document.getElementById('f3').classList.add('show'); }},
+  { time: 28000, action: () => { document.getElementById('f4').classList.add('show'); }},
+  { time: 28500, action: () => { document.getElementById('resBadge').style.opacity = '1'; }},
+
+  { time: 30500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 31500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>80/20 Polarizado — PeakAerobic</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide {
+    width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .slide-number {
+    position: absolute; top: 28px; right: 36px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; font-weight: 500; color: rgba(247,246,244,0.35); z-index: 10;
+  }
+  .progress-dots {
+    position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 10;
+  }
+  .progress-dots .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute; bottom: 32px; right: 36px; text-align: right; z-index: 10;
+  }
+  .watermark .brand {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: 16px; color: rgba(210,106,54,0.35);
+  }
+  .watermark .sub {
+    font-family: 'Source Sans 3', sans-serif; font-weight: 300;
+    font-size: 11px; color: rgba(210,106,54,0.25); margin-top: 1px;
+  }
+  .tag {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    background: rgba(210,106,54,0.15); color: #d26a36;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 18px;
+  }
+  .divider {
+    width: 60px; height: 4px; background: #d26a36; border-radius: 2px;
+  }
+  .card {
+    background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px; padding: 36px;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    padding: 40px 50px; border-radius: 20px; text-align: center;
+  }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+  .content { padding: 80px 70px 80px 70px; height: 100%; display: flex; flex-direction: column; }
+
+  @media print {
+    .slide { page-break-after: always; }
+    body { padding: 0; gap: 0; background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; text-align: center; gap: 36px;">
+    <div class="tag">DISTRIBUCION DE INTENSIDAD</div>
+    <h1 style="font-size: 62px; line-height: 1.05; max-width: 850px;">
+      <span class="accent">80/20</span>: la regla que confundes<br>(y como aplicarla)
+    </h1>
+    <div class="divider" style="margin: 0 auto;"></div>
+    <p style="font-size: 26px; font-weight: 300; max-width: 680px; color: rgba(247,246,244,0.7); line-height: 1.5;">
+      El 80% debe ser bajo tu LT1.<br>No bajo tu "zona 2 de Garmin".
+    </p>
+    <svg width="360" height="80" viewBox="0 0 360 80">
+      <rect x="0" y="10" width="280" height="50" rx="10" fill="rgba(34,197,94,0.2)" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="140" y="42" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="22">80%</text>
+      <rect x="280" y="10" width="72" height="50" rx="10" fill="rgba(239,68,68,0.2)" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="316" y="42" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="22">20%</text>
+      <text x="140" y="75" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="12">bajo LT1</text>
+      <text x="316" y="75" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="12">sobre LT2</text>
+    </svg>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: SEILER 2010 -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">LA EVIDENCIA</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">Seiler (2010): los mejores hacen <span class="accent">~80% bajo LT1</span> y ~20% sobre LT2</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+      <svg viewBox="0 0 900 340" width="940" height="360" style="align-self: center;">
+        <!-- Bar chart: intensity distribution -->
+        <text x="450" y="25" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Space Grotesk" font-weight="600" font-size="16">DISTRIBUCION DE ATLETAS DE ELITE (Seiler 2010)</text>
+
+        <!-- Y axis -->
+        <line x1="120" y1="50" x2="120" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="110" y="58" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">100%</text>
+        <text x="110" y="130" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">70%</text>
+        <text x="110" y="178" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">50%</text>
+        <text x="110" y="290" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">0%</text>
+
+        <!-- Zone 1 bar (80%) -->
+        <rect x="200" y="98" width="140" height="192" rx="8" fill="rgba(34,197,94,0.3)" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="270" y="200" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="36">~80%</text>
+        <text x="270" y="310" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="16">Bajo LT1</text>
+
+        <!-- Zone 2 bar (5%) "tierra de nadie" -->
+        <rect x="400" y="278" width="140" height="12" rx="6" fill="rgba(249,115,22,0.3)" stroke="#f97316" stroke-width="1.5"/>
+        <text x="470" y="272" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="700" font-size="24">~5%</text>
+        <text x="470" y="310" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="600" font-size="16">LT1-LT2</text>
+        <text x="470" y="330" text-anchor="middle" fill="rgba(249,115,22,0.4)" font-family="Source Sans 3" font-size="12">"tierra de nadie"</text>
+
+        <!-- Zone 3 bar (15-20%) -->
+        <rect x="600" y="242" width="140" height="48" rx="8" fill="rgba(239,68,68,0.3)" stroke="#ef4444" stroke-width="1.5"/>
+        <text x="670" y="234" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="28">~15-20%</text>
+        <text x="670" y="310" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="16">Sobre LT2</text>
+      </svg>
+      <div class="card" style="padding: 24px 32px; text-align: center;">
+        <p style="font-size: 20px; font-weight: 300; line-height: 1.6;">
+          El patron se repite en <strong>remo, ciclismo, esqui de fondo, carrera</strong> y natacion.
+          La clave: <span class="accent">casi nada entre LT1 y LT2</span>. O estas por debajo de LT1, o por encima de LT2.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Seiler, S. (2010). <em>Int J Sports Physiol Perform</em>, 5(3), 276–291.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: EL ERROR -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">EL ERROR</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">"80% facil" <span class="red">no es</span> lo mismo que 80% bajo LT1</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06);">
+          <h3 style="font-size: 20px; color: #ef4444; margin-bottom: 16px; text-align: center;">Lo que mucha gente hace</h3>
+          <div style="text-align: center; margin-bottom: 16px;">
+            <svg viewBox="0 0 300 180" width="300" height="180">
+              <!-- Intensity bar: all in the grey zone -->
+              <rect x="20" y="20" width="260" height="30" rx="6" fill="rgba(247,246,244,0.05)" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+              <rect x="20" y="20" width="200" height="30" rx="6" fill="rgba(249,115,22,0.25)"/>
+              <text x="120" y="42" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="600" font-size="13">"80% facil"</text>
+              <text x="255" y="42" text-anchor="middle" fill="rgba(247,246,244,0.3)" font-family="Space Grotesk" font-size="11">20%</text>
+
+              <!-- LT1 line in the middle of "easy" -->
+              <line x1="100" y1="10" x2="100" y2="60" stroke="#22c55e" stroke-width="2" stroke-dasharray="4 3"/>
+              <text x="100" y="75" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="11">LT1 real</text>
+
+              <!-- Annotation -->
+              <rect x="40" y="90" width="220" height="70" rx="10" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.2)" stroke-width="1"/>
+              <text x="150" y="115" text-anchor="middle" fill="#ef4444" font-family="Source Sans 3" font-weight="600" font-size="13">La mitad de tu "facil"</text>
+              <text x="150" y="135" text-anchor="middle" fill="#ef4444" font-family="Source Sans 3" font-size="13">esta sobre tu LT1</text>
+              <text x="150" y="152" text-anchor="middle" fill="rgba(239,68,68,0.6)" font-family="Source Sans 3" font-size="11">= zona 3 encubierta</text>
+            </svg>
+          </div>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+          <h3 style="font-size: 20px; color: #22c55e; margin-bottom: 16px; text-align: center;">Lo correcto</h3>
+          <div style="text-align: center; margin-bottom: 16px;">
+            <svg viewBox="0 0 300 180" width="300" height="180">
+              <!-- Intensity bar: properly below LT1 -->
+              <rect x="20" y="20" width="260" height="30" rx="6" fill="rgba(247,246,244,0.05)" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+              <rect x="20" y="20" width="200" height="30" rx="6" fill="rgba(34,197,94,0.25)"/>
+              <text x="120" y="42" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="13">80% bajo LT1</text>
+              <rect x="230" y="20" width="50" height="30" rx="6" fill="rgba(239,68,68,0.25)"/>
+              <text x="255" y="42" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-size="11">20%</text>
+
+              <!-- LT1 line at the end of green -->
+              <line x1="220" y1="10" x2="220" y2="60" stroke="#22c55e" stroke-width="2" stroke-dasharray="4 3"/>
+              <text x="220" y="75" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="11">LT1 real</text>
+
+              <!-- Annotation -->
+              <rect x="40" y="90" width="220" height="70" rx="10" fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.2)" stroke-width="1"/>
+              <text x="150" y="115" text-anchor="middle" fill="#22c55e" font-family="Source Sans 3" font-weight="600" font-size="13">Todo tu "facil"</text>
+              <text x="150" y="135" text-anchor="middle" fill="#22c55e" font-family="Source Sans 3" font-size="13">esta bajo LT1</text>
+              <text x="150" y="152" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="11">= base aerobica real</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; text-align: center;">
+        <p style="font-size: 21px; font-weight: 300; line-height: 1.6;">
+          Si tu LT1 es <strong>mas bajo de lo que crees</strong>, tu "ritmo facil" es en realidad zona 3.
+          Estas acumulando fatiga sin el estimulo correcto: <span class="red">demasiado duro para base, demasiado suave para umbral</span>.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Seiler, S. & Kjerland, G. (2006). <em>Med Sci Sports Exerc</em>, 38(10), 1779–1786.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: ESTEVE-LANAO 2005 -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">ESTUDIO CLAVE</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">Esteve-Lanao (2005): polarizado <span class="green">supera</span> al "tempo"</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+      <svg viewBox="0 0 900 300" width="940" height="320" style="align-self: center;">
+        <text x="450" y="25" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Space Grotesk" font-weight="600" font-size="16">MEJORA EN CROSS-COUNTRY (5 meses)</text>
+
+        <!-- Group A: Polarized -->
+        <rect x="140" y="55" width="280" height="220" rx="14" fill="rgba(34,197,94,0.06)" stroke="rgba(34,197,94,0.2)" stroke-width="1"/>
+        <text x="280" y="82" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="18">GRUPO POLARIZADO</text>
+
+        <rect x="170" y="100" width="220" height="35" rx="6" fill="rgba(34,197,94,0.15)"/>
+        <text x="280" y="123" text-anchor="middle" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="14">80% bajo LT1</text>
+        <rect x="170" y="145" width="50" height="35" rx="6" fill="rgba(249,115,22,0.15)"/>
+        <text x="195" y="168" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="12">5%</text>
+        <rect x="230" y="145" width="55" height="35" rx="6" fill="rgba(239,68,68,0.15)"/>
+        <text x="258" y="168" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="12">15%</text>
+
+        <rect x="170" y="200" width="220" height="55" rx="10" fill="rgba(34,197,94,0.12)" stroke="rgba(34,197,94,0.3)" stroke-width="1"/>
+        <text x="280" y="225" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="24">+3.1%</text>
+        <text x="280" y="248" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">rendimiento en carrera</text>
+
+        <!-- Group B: Threshold-heavy -->
+        <rect x="480" y="55" width="280" height="220" rx="14" fill="rgba(239,68,68,0.06)" stroke="rgba(239,68,68,0.2)" stroke-width="1"/>
+        <text x="620" y="82" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="18">GRUPO "TEMPO"</text>
+
+        <rect x="510" y="100" width="150" height="35" rx="6" fill="rgba(34,197,94,0.15)"/>
+        <text x="585" y="123" text-anchor="middle" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="14">65% bajo LT1</text>
+        <rect x="670" y="100" width="80" height="35" rx="6" fill="rgba(249,115,22,0.25)"/>
+        <text x="710" y="123" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="12">25%</text>
+        <rect x="510" y="145" width="40" height="35" rx="6" fill="rgba(239,68,68,0.15)"/>
+        <text x="530" y="168" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="12">10%</text>
+
+        <rect x="510" y="200" width="220" height="55" rx="10" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.2)" stroke-width="1"/>
+        <text x="620" y="225" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="24">+1.8%</text>
+        <text x="620" y="248" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">rendimiento en carrera</text>
+      </svg>
+      <div class="card" style="padding: 24px 32px; text-align: center;">
+        <p style="font-size: 20px; font-weight: 300; line-height: 1.6;">
+          Los runners con distribucion polarizada mejoraron <span class="green" style="font-weight: 600;">casi el doble</span> que los que entrenaron con mas "tempo" (zona 3).
+          La zona 3 acumula fatiga sin dar el estimulo ni de base ni de umbral.
+        </p>
+      </div>
+      <div class="card" style="padding: 20px 28px; border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.06);">
+        <p style="font-size: 17px; font-weight: 300; line-height: 1.5; font-style: italic; color: rgba(247,246,244,0.8);">
+          "Runners who trained with more time below LT1 and less time between thresholds showed greater improvement in competitive performance."
+        </p>
+        <p style="font-size: 15px; font-weight: 600; color: #d26a36; margin-top: 8px;">
+          — Esteve-Lanao et al. (2005)
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Esteve-Lanao, J. et al. (2005). <em>Med Sci Sports Exerc</em>, 37(3), 496–504.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: NECESITAS SABER TU LT1 REAL -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">EL REQUISITO</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">Para aplicar 80/20 necesitas saber tu <span class="accent">LT1 real</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(239,68,68,0.25);">
+          <h3 style="font-size: 20px; color: #ef4444; margin-bottom: 16px; text-align: center;">Zona 2 de Garmin</h3>
+          <div style="text-align: center;">
+            <p style="font-size: 56px; font-weight: 700; color: rgba(239,68,68,0.6);">60-70%</p>
+            <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5); margin-top: 8px;">de FCmax estimada</p>
+          </div>
+          <div style="margin-top: 20px; padding: 16px; background: rgba(239,68,68,0.08); border-radius: 10px;">
+            <p style="font-size: 16px; font-weight: 400; color: rgba(247,246,244,0.7); line-height: 1.5; text-align: center;">
+              Basada en formula generica.<br>No refleja TUS umbrales.<br>
+              <span class="red" style="font-weight: 600;">Error: +/- 15 bpm</span>
+            </p>
+          </div>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; border-color: rgba(34,197,94,0.25);">
+          <h3 style="font-size: 20px; color: #22c55e; margin-bottom: 16px; text-align: center;">LT1 por lactato</h3>
+          <div style="text-align: center;">
+            <p style="font-size: 56px; font-weight: 700; color: rgba(34,197,94,0.8);">TU</p>
+            <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5); margin-top: 8px;">umbral aerobico individual</p>
+          </div>
+          <div style="margin-top: 20px; padding: 16px; background: rgba(34,197,94,0.08); border-radius: 10px;">
+            <p style="font-size: 16px; font-weight: 400; color: rgba(247,246,244,0.7); line-height: 1.5; text-align: center;">
+              Basada en tu curva de lactato.<br>Refleja TU fisiologia.<br>
+              <span class="green" style="font-weight: 600;">Dato: ritmo/potencia/FC exactos</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; text-align: center;">
+        <p style="font-size: 20px; font-weight: 400; line-height: 1.5;">
+          <span class="accent" style="font-weight: 600;">Ejemplo:</span> Un corredor con LT1 real a 5:30/km.
+          Garmin le dice zona 2 = 6:20-7:00/km. Esta corriendo 50" por km <strong>mas lento de lo necesario</strong>.
+          Pierde estimulo aerobico real.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Faude, O. et al. (2009). <em>Sports Med</em>, 39(6), 469–490. Robergs, R. & Landwehr, R. (2002). <em>J Exerc Physiol Online</em>, 5(2), 1–10.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: PEAKAEROBIC DETECTA TU LT1 -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">LA SOLUCION</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">PeakAerobic detecta tu LT1 con <span class="accent">3 metodos</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+      <svg viewBox="0 0 900 300" width="940" height="320" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="260" x2="840" y2="260" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="260" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="295" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Ritmo / Potencia</text>
+        <text x="35" y="145" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 145)">Lactato (mmol/L)</text>
+
+        <!-- Lactate curve -->
+        <polyline points="120,248 200,245 280,240 350,232 420,218 480,195 530,165 580,125 630,85 680,50 730,25"
+          fill="none" stroke="rgba(247,246,244,0.3)" stroke-width="2.5" stroke-linecap="round"/>
+
+        <!-- LT1 detected -->
+        <line x1="340" y1="35" x2="340" y2="260" stroke="#22c55e" stroke-width="2.5" stroke-dasharray="8 5"/>
+        <text x="340" y="28" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="16">TU LT1</text>
+
+        <!-- 80% zone -->
+        <rect x="90" y="35" width="250" height="220" fill="rgba(34,197,94,0.06)"/>
+        <text x="215" y="140" text-anchor="middle" fill="rgba(34,197,94,0.5)" font-family="Space Grotesk" font-weight="700" font-size="36">80%</text>
+        <text x="215" y="165" text-anchor="middle" fill="rgba(34,197,94,0.4)" font-family="Source Sans 3" font-size="14">aqui</text>
+
+        <!-- 3 method markers on LT1 line -->
+        <circle cx="330" cy="234" r="8" fill="#d26a36" stroke="#0e1e24" stroke-width="2"/>
+        <circle cx="345" cy="230" r="8" fill="#f97316" stroke="#0e1e24" stroke-width="2"/>
+        <circle cx="350" cy="228" r="8" fill="#22c55e" stroke="#0e1e24" stroke-width="2"/>
+
+        <!-- Method labels -->
+        <rect x="500" y="80" width="320" height="150" rx="14" fill="rgba(210,106,54,0.08)" stroke="rgba(210,106,54,0.2)" stroke-width="1"/>
+        <circle cx="530" cy="115" r="6" fill="#d26a36"/>
+        <text x="545" y="120" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="15">Baseline rise (+0.5 mmol)</text>
+        <circle cx="530" cy="150" r="6" fill="#f97316"/>
+        <text x="545" y="155" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="15">Sustained increase</text>
+        <circle cx="530" cy="185" r="6" fill="#22c55e"/>
+        <text x="545" y="190" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="15">ModDmax (Bishop 1998)</text>
+        <text x="660" y="220" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">Agregacion: mediana</text>
+      </svg>
+      <div class="card" style="padding: 24px 32px; text-align: center;">
+        <p style="font-size: 20px; font-weight: 300; line-height: 1.6;">
+          Si los 3 metodos coinciden: <span class="green" style="font-weight: 600;">alta confianza</span>.
+          Si divergen: te lo decimos.
+          <strong>Tu 80% empieza donde tu LT1 dice que empieza</strong>, no donde Garmin cree.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Faude, O. et al. (2009). <em>Sports Med</em>, 39(6), 469–490. Bishop, D. et al. (1998). <em>Med Sci Sports Exerc</em>, 30(8), 1270–1275.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; gap: 40px;">
+    <div class="cta-box" style="max-width: 800px; width: 100%;">
+      <h2 style="font-size: 44px; color: #f7f6f4; margin-bottom: 20px; line-height: 1.2;">
+        Conoce tu LT1 real<br>para aplicar 80/20 correctamente
+      </h2>
+      <div style="width: 60px; height: 4px; background: rgba(247,246,244,0.4); border-radius: 2px; margin: 0 auto 24px;"></div>
+      <p style="font-size: 22px; font-weight: 300; color: rgba(247,246,244,0.9); line-height: 1.5; margin-bottom: 28px;">
+        PeakAerobic analiza tu test de lactato con <strong>3 metodos cientificos</strong>,
+        calcula tu LT1 con confianza, y define donde empieza tu 80%.
+      </p>
+      <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <div style="background: rgba(247,246,244,0.15); padding: 12px 28px; border-radius: 10px;">
+          <p style="font-size: 18px; font-weight: 600; color: #f7f6f4;">Tu LT1 real. Tu 80% real. Gratis.</p>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 32px; align-items: center;">
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #22c55e;">LT1</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Tu umbral aerobico</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #d26a36;">80%</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Bajo tu LT1 real</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #f97316;">3 metodos</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Validados cientificamente</p>
+      </div>
+    </div>
+    <p style="font-size: 20px; font-weight: 500; color: #d26a36;">peakaerobic.com</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

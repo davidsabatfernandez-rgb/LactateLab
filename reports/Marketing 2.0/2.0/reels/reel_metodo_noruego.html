@@ -1,0 +1,157 @@
+<!--
+VOICEOVER SCRIPT (30s):
+[0-5s] "El método noruego está de moda. Pero NO es para todos."
+[5-12s] "Funciona para élite porque su ratio LT1/LT2 es mayor a 0.85. Lo demostró Seiler en 2006."
+[12-18s] "Si tu ratio es menor a 0.80, necesitas base aeróbica primero. Olbrecht lo llama bloque AEC."
+[18-24s] "¿Cómo saberlo? Test de lactato, calculas tu ratio, y tomas una decisión informada."
+[24-28s] "PeakAerobic analiza tu ratio y te dice exactamente qué bloque necesitas."
+[28-30s] "Enlace en bio. Entrena con ciencia."
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>El método noruego NO es para todos</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;background:#0e1e24;overflow:hidden;font-family:'Source Sans 3',sans-serif;color:#fff;position:relative}
+.scene{position:absolute;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.5s ease;padding:60px}
+.scene.active{opacity:1}
+h1{font-family:'Space Grotesk',sans-serif;font-size:82px;font-weight:700;text-align:center;line-height:1.1}
+h2{font-family:'Space Grotesk',sans-serif;font-size:64px;font-weight:700;text-align:center;line-height:1.15}
+p{font-family:'Source Sans 3',sans-serif;font-size:44px;text-align:center;line-height:1.4;color:#ffffffcc}
+.accent{color:#d26a36}
+.green{color:#22c55e}
+.red{color:#ef4444}
+.progress-bar{position:absolute;bottom:0;left:0;height:8px;background:#d26a36;z-index:100}
+.watermark{position:absolute;top:60px;right:60px;font-family:'Space Grotesk',sans-serif;font-size:32px;color:#d26a3660;z-index:100}
+.tag{display:inline-block;padding:16px 40px;border-radius:50px;font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;margin:20px 10px}
+.tag-red{background:#ef444420;border:3px solid #ef4444;color:#ef4444}
+.tag-green{background:#22c55e20;border:3px solid #22c55e;color:#22c55e}
+.ratio-box{background:#ffffff08;border:2px solid #ffffff20;border-radius:24px;padding:50px 60px;margin:30px 0;text-align:center}
+.ratio-big{font-family:'Space Grotesk',sans-serif;font-size:120px;font-weight:700}
+.ref{font-size:32px;color:#ffffff50;margin-top:20px;font-style:italic}
+.cta-btn{display:inline-block;padding:28px 80px;background:#d26a36;border-radius:60px;font-family:'Space Grotesk',sans-serif;font-size:48px;font-weight:700;color:#fff;margin-top:40px}
+svg text{font-family:'Space Grotesk',sans-serif}
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progress"></div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="s1">
+  <h1>El método noruego<br>está de moda.</h1>
+  <div style="height:60px"></div>
+  <h1>Pero <span class="red">NO</span> es<br>para todos.</h1>
+</div>
+
+<!-- Scene 2: Elite ratio -->
+<div class="scene" id="s2">
+  <h2>Funciona para <span class="accent">élite</span><br>porque su ratio<br>LT1/LT2 es:</h2>
+  <div class="ratio-box">
+    <div class="ratio-big green">&gt; 0.85</div>
+  </div>
+  <svg width="900" height="400" viewBox="0 0 900 400" style="margin-top:20px">
+    <defs>
+      <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#22c55e" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <line x1="60" y1="350" x2="860" y2="350" stroke="#ffffff20" stroke-width="2"/>
+    <line x1="60" y1="50" x2="60" y2="350" stroke="#ffffff20" stroke-width="2"/>
+    <text x="30" y="360" fill="#ffffff60" font-size="24">Intensidad</text>
+    <text x="860" y="380" fill="#ffffff60" font-size="24" text-anchor="end">[Lactato]</text>
+    <!-- Elite curve: flat then steep late -->
+    <path d="M80,320 Q200,310 350,300 Q500,280 600,240 Q700,170 800,60" fill="none" stroke="#22c55e" stroke-width="5"/>
+    <path d="M80,320 Q200,310 350,300 Q500,280 600,240 Q700,170 800,60 L800,350 L80,350 Z" fill="url(#g1)"/>
+    <!-- LT1 marker -->
+    <line x1="350" y1="300" x2="350" y2="350" stroke="#22c55e" stroke-width="2" stroke-dasharray="8,6"/>
+    <text x="350" y="380" fill="#22c55e" font-size="26" text-anchor="middle">LT1</text>
+    <!-- LT2 marker -->
+    <line x1="620" y1="230" x2="620" y2="350" stroke="#d26a36" stroke-width="2" stroke-dasharray="8,6"/>
+    <text x="620" y="380" fill="#d26a36" font-size="26" text-anchor="middle">LT2</text>
+    <text x="485" y="330" fill="#22c55e80" font-size="30" text-anchor="middle">Ratio alto</text>
+  </svg>
+  <p class="ref">Seiler, 2006 — Intensity distribution in elite endurance athletes</p>
+</div>
+
+<!-- Scene 3: Low ratio -->
+<div class="scene" id="s3">
+  <h2>Si tu ratio es</h2>
+  <div class="ratio-box">
+    <div class="ratio-big red">&lt; 0.80</div>
+  </div>
+  <h2>Necesitas <span class="accent">base<br>aeróbica</span> primero.</h2>
+  <div style="height:30px"></div>
+  <div class="tag tag-green">Olbrecht: Bloque AEC</div>
+  <p class="ref" style="margin-top:40px">Olbrecht, The Science of Winning</p>
+</div>
+
+<!-- Scene 4: How to know -->
+<div class="scene" id="s4">
+  <h2 style="margin-bottom:60px">¿Cómo saberlo?</h2>
+  <div style="display:flex;flex-direction:column;gap:40px;width:100%">
+    <div class="ratio-box" style="display:flex;align-items:center;gap:30px;padding:35px 50px">
+      <span style="font-size:64px">1</span>
+      <span style="font-size:44px">Test de lactato escalonado</span>
+    </div>
+    <div class="ratio-box" style="display:flex;align-items:center;gap:30px;padding:35px 50px">
+      <span style="font-size:64px">2</span>
+      <span style="font-size:44px">Calcula ratio LT1 / LT2</span>
+    </div>
+    <div class="ratio-box" style="display:flex;align-items:center;gap:30px;padding:35px 50px">
+      <span style="font-size:64px">3</span>
+      <span style="font-size:44px">Decisión <span class="accent">informada</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 5: PeakAerobic -->
+<div class="scene" id="s5">
+  <svg width="200" height="200" viewBox="0 0 200 200" style="margin-bottom:40px">
+    <circle cx="100" cy="100" r="90" fill="none" stroke="#d26a36" stroke-width="6"/>
+    <text x="100" y="115" fill="#d26a36" font-size="48" text-anchor="middle" font-weight="700">PA</text>
+  </svg>
+  <h2><span class="accent">PeakAerobic</span> analiza<br>tu ratio y te dice<br>qué bloque necesitas.</h2>
+  <p style="margin-top:40px;font-size:40px;color:#ffffff80">AEC · THR · AEP · ANC · ANP</p>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="s6">
+  <h1 style="font-size:72px">Entrena con <span class="accent">ciencia</span>,<br>no con modas.</h1>
+  <div class="cta-btn">Enlace en bio</div>
+  <p style="margin-top:40px;font-size:36px;color:#ffffff60">@peakaerobic</p>
+</div>
+
+<script>
+const DURATION=30000;
+const scenes=[
+  {id:'s1',start:0,end:5000},
+  {id:'s2',start:5000,end:12000},
+  {id:'s3',start:12000,end:18000},
+  {id:'s4',start:18000,end:24000},
+  {id:'s5',start:24000,end:28000},
+  {id:'s6',start:28000,end:30000}
+];
+const events=[];
+let startTime=null;
+function tick(now){
+  if(!startTime)startTime=now;
+  const elapsed=now-startTime;
+  const progress=Math.min(elapsed/DURATION,1);
+  document.getElementById('progress').style.width=(progress*100)+'%';
+  scenes.forEach(s=>{
+    const el=document.getElementById(s.id);
+    if(elapsed>=s.start&&elapsed<s.end){el.classList.add('active')}
+    else{el.classList.remove('active')}
+  });
+  if(elapsed<DURATION)requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

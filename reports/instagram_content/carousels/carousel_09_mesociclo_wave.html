@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>El principio de onda en tu entrenamiento</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0e1e24; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; }
+  .slide { width: 1080px; height: 1080px; position: relative; padding: 72px; display: flex; flex-direction: column; justify-content: center; overflow: hidden; page-break-after: always; }
+  .slide-number { position: absolute; top: 40px; right: 52px; font-family: 'Space Grotesk', sans-serif; font-size: 22px; color: rgba(247,246,244,0.35); font-weight: 600; }
+  .progress-dots { position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.2); }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark { position: absolute; bottom: 44px; right: 52px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; color: rgba(247,246,244,0.18); letter-spacing: 1px; }
+  .citation { position: absolute; bottom: 72px; left: 72px; font-size: 16px; color: rgba(247,246,244,0.25); font-family: 'Source Sans 3', sans-serif; max-width: 700px; line-height: 1.4; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; line-height: 1.15; }
+  .tag { display: inline-block; background: #d26a36; color: #0e1e24; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 20px; padding: 8px 20px; border-radius: 6px; margin-bottom: 28px; text-transform: uppercase; letter-spacing: 1.5px; }
+  .subtitle { font-size: 28px; font-weight: 300; color: rgba(247,246,244,0.7); margin-top: 20px; line-height: 1.4; }
+  .card { background: rgba(247,246,244,0.06); border: 1px solid rgba(247,246,244,0.08); border-radius: 16px; padding: 32px; margin-top: 20px; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .orange { color: #f97316; }
+  .red { color: #ef4444; }
+  .cta-box { background: linear-gradient(135deg, #d26a36 0%, #b8522a 100%); border-radius: 20px; padding: 48px; text-align: center; }
+  .cta-box h2 { color: #f7f6f4; font-size: 42px; margin-bottom: 16px; }
+  .cta-box .url { font-size: 32px; font-weight: 700; color: #0e1e24; background: #f7f6f4; display: inline-block; padding: 14px 36px; border-radius: 12px; margin-top: 24px; font-family: 'Space Grotesk', sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="tag">Periodization</div>
+  <h1 style="font-size: 64px;">El principio de onda<br>en tu <span class="accent">entrenamiento</span></h1>
+  <p class="subtitle">La variacion sistematica de la carga es el fundamento de la adaptacion. Asi funciona la ciencia detras de los mesociclos.</p>
+  <div class="progress-dots"><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 2: Why constant load fails -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <h2 style="font-size: 44px; margin-bottom: 12px;">Carga constante = <span class="red">estancamiento</span></h2>
+  <p style="font-size: 23px; color: rgba(247,246,244,0.65); margin-bottom: 28px;">El modelo impulso-respuesta de Banister (1991) describe el rendimiento como la diferencia entre fitness y fatiga. Con carga constante, ambas se estabilizan y el rendimiento se estanca.</p>
+  <div style="text-align:center; margin: 16px 0;">
+    <svg width="880" height="300" viewBox="0 0 880 300">
+      <!-- Constant load line -->
+      <text x="20" y="28" fill="rgba(247,246,244,0.4)" font-family="Space Grotesk" font-size="16">Carga constante</text>
+      <line x1="60" y1="70" x2="820" y2="70" stroke="#ef4444" stroke-width="3" stroke-dasharray="8,6"/>
+      <!-- Fitness plateau -->
+      <path d="M60,220 Q200,200 340,190 Q480,185 620,184 Q720,183 820,183" fill="none" stroke="rgba(247,246,244,0.3)" stroke-width="2.5"/>
+      <text x="830" y="179" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="15">Fitness → meseta</text>
+      <!-- Wave load line -->
+      <text x="20" y="128" fill="rgba(247,246,244,0.4)" font-family="Space Grotesk" font-size="16">Carga ondulada</text>
+      <path d="M60,160 Q120,120 180,140 Q220,80 280,110 Q320,60 380,90 Q420,40 480,70 Q520,30 580,55 Q620,20 680,45 Q720,15 780,35 L820,25" fill="none" stroke="#22c55e" stroke-width="3"/>
+      <!-- Fitness improvement -->
+      <path d="M60,220 Q200,195 340,165 Q480,130 620,100 Q720,80 820,55" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-dasharray="6,4"/>
+      <text x="830" y="51" fill="#22c55e" font-family="Source Sans 3" font-size="15">Fitness → mejora</text>
+      <!-- Axes -->
+      <line x1="55" y1="250" x2="830" y2="250" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <text x="420" y="275" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="16" text-anchor="middle">Semanas →</text>
+    </svg>
+  </div>
+  <div class="card" style="padding: 24px 32px;">
+    <p style="font-size: 22px; line-height: 1.6;"><span class="accent" style="font-weight:600;">Modelo impulso-respuesta:</span> el rendimiento resulta de la interaccion entre la ganancia de fitness (efecto positivo lento) y la fatiga acumulada (efecto negativo rapido). Variar la carga permite disipar fatiga sin perder fitness.</p>
+  </div>
+  <div class="citation">Banister EW (1991). Modeling elite athletic performance. In: Physiological Testing of Elite Athletes.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 3: The wave structure -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <h2 style="font-size: 44px; margin-bottom: 28px;">La estructura de onda: <span class="accent">carga progresiva + recuperacion</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.55); margin-bottom: 20px;">Issurin (2010) describe la periodizacion por bloques como una alternancia sistematica de fases de acumulacion y recuperacion dentro de cada mesociclo.</p>
+  <div style="text-align:center;">
+    <svg width="880" height="380" viewBox="0 0 880 380">
+      <!-- Week boxes -->
+      <rect x="40" y="280" width="180" height="80" rx="12" fill="rgba(247,246,244,0.06)" stroke="rgba(247,246,244,0.12)" stroke-width="1.5"/>
+      <rect x="250" y="280" width="180" height="80" rx="12" fill="rgba(247,246,244,0.06)" stroke="rgba(247,246,244,0.12)" stroke-width="1.5"/>
+      <rect x="460" y="280" width="180" height="80" rx="12" fill="#d26a36" fill-opacity="0.15" stroke="#d26a36" stroke-width="1.5"/>
+      <rect x="670" y="280" width="180" height="80" rx="12" fill="#22c55e" fill-opacity="0.1" stroke="#22c55e" stroke-width="1.5"/>
+      <!-- Labels -->
+      <text x="130" y="315" fill="#f7f6f4" font-family="Space Grotesk" font-size="22" font-weight="600" text-anchor="middle">LOAD</text>
+      <text x="130" y="342" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="17" text-anchor="middle">Carga moderada</text>
+      <text x="340" y="315" fill="#f7f6f4" font-family="Space Grotesk" font-size="22" font-weight="600" text-anchor="middle">BUILD</text>
+      <text x="340" y="342" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="17" text-anchor="middle">Carga alta</text>
+      <text x="550" y="315" fill="#d26a36" font-family="Space Grotesk" font-size="22" font-weight="600" text-anchor="middle">BUILD PEAK</text>
+      <text x="550" y="342" fill="rgba(210,106,54,0.7)" font-family="Source Sans 3" font-size="17" text-anchor="middle">Carga maxima</text>
+      <text x="760" y="315" fill="#22c55e" font-family="Space Grotesk" font-size="22" font-weight="600" text-anchor="middle">RECOVERY</text>
+      <text x="760" y="342" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-size="17" text-anchor="middle">Adaptacion</text>
+      <!-- Wave curve -->
+      <path d="M130,210 Q185,170 235,150 Q295,110 340,90 Q410,50 490,40 Q560,35 550,40 L620,70 Q680,140 760,190" fill="none" stroke="#d26a36" stroke-width="4" stroke-linecap="round"/>
+      <!-- Dots on wave -->
+      <circle cx="130" cy="210" r="8" fill="#f7f6f4"/>
+      <circle cx="340" cy="90" r="8" fill="#f7f6f4"/>
+      <circle cx="550" cy="38" r="8" fill="#d26a36"/>
+      <circle cx="760" cy="190" r="8" fill="#22c55e"/>
+      <!-- Arrow showing supercompensation -->
+      <path d="M790,180 L820,150" stroke="#22c55e" stroke-width="2.5" marker-end="url(#arrow)"/>
+      <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#22c55e"/></marker></defs>
+      <text x="835" y="148" fill="#22c55e" font-family="Source Sans 3" font-size="15">Super-</text>
+      <text x="835" y="165" fill="#22c55e" font-family="Source Sans 3" font-size="15">compensacion</text>
+    </svg>
+  </div>
+  <p style="font-size: 21px; color: rgba(247,246,244,0.55); text-align: center; margin-top: 12px;">La semana de recuperacion no es descanso — es la ventana donde el cuerpo materializa las adaptaciones acumuladas.</p>
+  <div class="citation">Issurin VB (2010). New horizons for the methodology and physiology of training periodization. Sports Medicine, 40(3), 189-206.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 4: Block periodization -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <h2 style="font-size: 42px; margin-bottom: 24px;">Periodizacion por bloques: <span class="accent">un objetivo por mesociclo</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.55); margin-bottom: 24px;">Issurin (2010) propone concentrar el estimulo en una capacidad dominante por bloque, en lugar de trabajar todo simultaneamente. Olbrecht (2000) aplica este concepto al entrenamiento por umbrales de lactato.</p>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div class="card" style="margin:0; padding: 20px 24px; border-left: 3px solid #22c55e;">
+      <p style="font-family:'Space Grotesk'; font-weight:600; font-size:19px; color:#22c55e;">Bloque de Capacidad Aerobica</p>
+      <p style="font-size:16px; color:rgba(247,246,244,0.5); margin-top:6px;">Volumen sub-LT1. Construir el cimiento metabolico.</p>
+    </div>
+    <div class="card" style="margin:0; padding: 20px 24px; border-left: 3px solid #f97316;">
+      <p style="font-family:'Space Grotesk'; font-weight:600; font-size:19px; color:#f97316;">Bloque de Desarrollo Umbral</p>
+      <p style="font-size:16px; color:rgba(247,246,244,0.5); margin-top:6px;">Trabajo en zona LT2. Desplazar el umbral anaerobico.</p>
+    </div>
+    <div class="card" style="margin:0; padding: 20px 24px; border-left: 3px solid #d26a36;">
+      <p style="font-family:'Space Grotesk'; font-weight:600; font-size:19px; color:#d26a36;">Bloque de Potencia Aerobica</p>
+      <p style="font-size:16px; color:rgba(247,246,244,0.5); margin-top:6px;">Intervalos VO2max. Elevar el techo aerobico.</p>
+    </div>
+    <div class="card" style="margin:0; padding: 20px 24px; border-left: 3px solid #ef4444;">
+      <p style="font-family:'Space Grotesk'; font-weight:600; font-size:19px; color:#ef4444;">Bloque Especifico Competicion</p>
+      <p style="font-size:16px; color:rgba(247,246,244,0.5); margin-top:6px;">Simular demandas de carrera. Transferencia al rendimiento.</p>
+    </div>
+  </div>
+  <div class="card" style="padding: 24px 28px;">
+    <p style="font-size: 20px; line-height: 1.6; color: rgba(247,246,244,0.6);">La secuencia de bloques depende del perfil fisiologico del atleta: sus umbrales, su capacidad glucolitica y la distancia de competicion objetivo.</p>
+  </div>
+  <div class="citation">Issurin VB (2010). Sports Medicine, 40(3); Olbrecht J (2000). The Science of Winning. Swimshop.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 5: Recovery week science -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <h2 style="font-size: 44px; margin-bottom: 24px;">La semana de recuperacion<br><span class="green">es donde ocurre la adaptacion</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); margin-bottom: 24px;">El modelo de Banister (1991) predice que el rendimiento mejora cuando la fatiga se disipa mas rapido que el fitness. La semana de descarga permite exactamente eso.</p>
+  <div style="display: flex; gap: 24px; margin-top: 8px;">
+    <div class="card" style="flex:1; text-align: center; border-color: #ef4444; margin-top:0;">
+      <p style="font-size: 18px; font-weight: 600; color: #ef4444; margin-bottom: 12px;">Sin recovery</p>
+      <svg width="320" height="160" viewBox="0 0 320 160">
+        <path d="M20,120 L80,75 L140,40 L200,25 L260,40 L300,70" fill="none" stroke="#ef4444" stroke-width="3"/>
+        <text x="260" y="90" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">Overreaching</text>
+        <path d="M20,130 Q160,115 300,135" fill="none" stroke="rgba(247,246,244,0.2)" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="160" y="155" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12" text-anchor="middle">Fatiga acumulada</text>
+      </svg>
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5); margin-top: 8px;">Fatiga crece, fitness cae</p>
+    </div>
+    <div class="card" style="flex:1; text-align: center; border-color: #22c55e; margin-top:0;">
+      <p style="font-size: 18px; font-weight: 600; color: #22c55e; margin-bottom: 12px;">Con recovery</p>
+      <svg width="320" height="160" viewBox="0 0 320 160">
+        <path d="M20,120 L80,75 L140,40 L180,25 L220,50 L260,60 L300,40" fill="none" stroke="#22c55e" stroke-width="3"/>
+        <text x="260" y="30" fill="#22c55e" font-family="Source Sans 3" font-size="13">Supercomp.</text>
+        <path d="M20,130 Q100,120 180,125 Q220,135 260,130 Q280,125 300,110" fill="none" stroke="rgba(247,246,244,0.2)" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="160" y="155" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12" text-anchor="middle">Fatiga controlada</text>
+      </svg>
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5); margin-top: 8px;">Disipacion de fatiga → nuevo nivel</p>
+    </div>
+  </div>
+  <div class="card" style="padding: 24px 28px;">
+    <p style="font-size: 20px; line-height: 1.6; color: rgba(247,246,244,0.6);">La evidencia indica que la fatiga se disipa con una constante de tiempo mas rapida (~7 dias) que el fitness (~42 dias). Esto significa que una semana de descarga reduce la fatiga drasticamente mientras conserva casi todo el fitness acumulado.</p>
+  </div>
+  <div class="citation">Banister EW (1991). Modeling elite athletic performance. Physiological Testing of Elite Athletes.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 6: Dose progression within a block -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <h2 style="font-size: 42px; margin-bottom: 24px;">Progresion de dosis: <span class="accent">escalera, no salto</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.55); margin-bottom: 24px;">Olbrecht (2000) enfatiza que la progresion dentro de cada bloque debe ser gradual. Cada semana incrementa volumen o intensidad de forma controlada, respetando el principio de sobrecarga progresiva.</p>
+  <div class="card" style="padding: 28px 32px; margin-top: 0;">
+    <p style="font-family: 'Space Grotesk'; font-size: 20px; font-weight: 600; color: #d26a36; margin-bottom: 16px;">Ejemplo: progresion en un bloque de 4 semanas</p>
+    <svg width="780" height="240" viewBox="0 0 780 240">
+      <!-- Steps -->
+      <rect x="30" y="170" width="150" height="50" rx="10" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="105" y="200" fill="#22c55e" font-family="Source Sans 3" font-size="16" font-weight="600" text-anchor="middle">Sem 1: LOAD</text>
+      <rect x="210" y="130" width="150" height="50" rx="10" fill="rgba(249,115,22,0.15)" stroke="#f97316" stroke-width="1.5"/>
+      <text x="285" y="160" fill="#f97316" font-family="Source Sans 3" font-size="16" font-weight="600" text-anchor="middle">Sem 2: BUILD</text>
+      <rect x="390" y="90" width="150" height="50" rx="10" fill="rgba(210,106,54,0.2)" stroke="#d26a36" stroke-width="1.5"/>
+      <text x="465" y="120" fill="#d26a36" font-family="Source Sans 3" font-size="16" font-weight="600" text-anchor="middle">Sem 3: PEAK</text>
+      <rect x="570" y="160" width="170" height="50" rx="10" fill="rgba(34,197,94,0.1)" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="655" y="190" fill="#22c55e" font-family="Source Sans 3" font-size="16" font-weight="600" text-anchor="middle">Sem 4: RECOVERY</text>
+      <!-- Connecting line -->
+      <path d="M105,168 L285,128 L465,88 L655,158" fill="none" stroke="rgba(247,246,244,0.15)" stroke-width="1.5" stroke-dasharray="4,4"/>
+    </svg>
+  </div>
+  <div class="card" style="padding: 24px 28px;">
+    <p style="font-size: 20px; line-height: 1.6; color: rgba(247,246,244,0.6);">Cada sesion clave tiene peldanos de dificultad (dose ladders). La seleccion del peldano correcto depende de la fase de temporada, la respuesta al bloque anterior y el estado de fatiga acumulada.</p>
+  </div>
+  <div class="citation">Olbrecht J (2000). The Science of Winning. Swimshop; Issurin VB (2010). Sports Medicine, 40(3), 189-206.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+    <div class="cta-box">
+      <p style="font-size: 22px; font-weight: 500; color: rgba(247,246,244,0.85); margin-bottom: 16px;">Deja de programar mesociclos a ciegas</p>
+      <h2>PeakAerobic aplica el<br>principio de onda con<br>tus datos reales</h2>
+      <p style="font-size: 22px; color: rgba(247,246,244,0.75); margin-top: 16px;">Seleccion automatica de bloque, progresion de dosis y semanas de recuperacion. Basado en Issurin, Banister y Olbrecht.</p>
+      <div class="url">peakaerobic.com</div>
+    </div>
+  </div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+</body>
+</html>

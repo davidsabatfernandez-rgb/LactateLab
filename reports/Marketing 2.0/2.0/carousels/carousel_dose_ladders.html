@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dose Ladders: progresión inteligente</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+.slide { width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 80px; position: relative; overflow: hidden; flex-shrink: 0; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+p, li { font-family: 'Source Sans 3', sans-serif; }
+.accent { color: #d26a36; }
+.accent-green { color: #22c55e; }
+.accent-orange { color: #f97316; }
+.slide-number { position: absolute; top: 40px; right: 50px; font-size: 20px; color: rgba(247,246,244,0.35); font-family: 'Space Grotesk', sans-serif; }
+.progress-dots { position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+.progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.25); }
+.progress-dots .dot.active { background: #d26a36; }
+.watermark { position: absolute; bottom: 44px; right: 50px; text-align: right; font-family: 'Space Grotesk', sans-serif; }
+.watermark .brand { font-size: 18px; font-weight: 600; color: rgba(247,246,244,0.3); }
+.watermark .sub { font-size: 12px; color: rgba(247,246,244,0.2); }
+.cta-box { background: linear-gradient(135deg, #d26a36, #e07b44); border-radius: 20px; padding: 30px 50px; text-align: center; }
+.card { background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2); border-radius: 20px; padding: 30px; width: 100%; }
+.ref { font-size: 16px; color: rgba(247,246,244,0.4); margin-top: 16px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <div class="slide-number">1/7</div>
+  <div style="text-align: center;">
+    <p style="font-size: 22px; text-transform: uppercase; letter-spacing: 4px; color: rgba(247,246,244,0.5); margin-bottom: 30px;">Planificación del entrenamiento</p>
+    <h1 style="font-size: 68px; line-height: 1.1; margin-bottom: 30px;">Dose Ladders:<br>cómo progresar <span class="accent">sin adivinar</span></h1>
+    <p style="font-size: 28px; color: rgba(247,246,244,0.7); max-width: 700px; margin: 0 auto;">Cada familia de sesión tiene una escalera. Cada peldaño tiene un propósito.</p>
+    <div style="margin-top: 50px;">
+      <svg width="200" height="120" viewBox="0 0 200 120">
+        <rect x="10" y="90" width="30" height="25" rx="4" fill="rgba(210,106,54,0.3)" stroke="#d26a36" stroke-width="1.5"/>
+        <rect x="45" y="72" width="30" height="43" rx="4" fill="rgba(210,106,54,0.4)" stroke="#d26a36" stroke-width="1.5"/>
+        <rect x="80" y="54" width="30" height="61" rx="4" fill="rgba(210,106,54,0.5)" stroke="#d26a36" stroke-width="1.5"/>
+        <rect x="115" y="36" width="30" height="79" rx="4" fill="rgba(210,106,54,0.65)" stroke="#d26a36" stroke-width="1.5"/>
+        <rect x="150" y="18" width="30" height="97" rx="4" fill="rgba(210,106,54,0.8)" stroke="#d26a36" stroke-width="1.5"/>
+        <text x="25" y="108" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Space Grotesk" font-size="11">P1</text>
+        <text x="60" y="108" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Space Grotesk" font-size="11">P2</text>
+        <text x="95" y="108" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Space Grotesk" font-size="11">P3</text>
+        <text x="130" y="108" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Space Grotesk" font-size="11">P4</text>
+        <text x="165" y="108" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Space Grotesk" font-size="11">P5</text>
+      </svg>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: Qué es una dose ladder -->
+<div class="slide">
+  <div class="slide-number">2/7</div>
+  <h2 style="font-size: 44px; margin-bottom: 15px; text-align: center;">Una escalera por cada <span class="accent">familia de sesión</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 35px;">De conservador a máximo estímulo, en peldaños definidos</p>
+  <div style="margin: 20px 0;">
+    <svg width="800" height="380" viewBox="0 0 800 380">
+      <!-- Staircase -->
+      <rect x="60" y="290" width="100" height="60" rx="8" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="2"/>
+      <text x="110" y="325" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="20" font-weight="600">P1</text>
+      <text x="110" y="345" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">Conservador</text>
+
+      <rect x="185" y="240" width="100" height="110" rx="8" fill="rgba(34,197,94,0.12)" stroke="rgba(34,197,94,0.5)" stroke-width="2"/>
+      <text x="235" y="275" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="20" font-weight="600">P2</text>
+      <text x="235" y="295" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">Moderado</text>
+
+      <rect x="310" y="190" width="100" height="160" rx="8" fill="rgba(210,106,54,0.12)" stroke="rgba(210,106,54,0.5)" stroke-width="2"/>
+      <text x="360" y="225" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="20" font-weight="600">P3</text>
+      <text x="360" y="245" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">Estándar</text>
+
+      <rect x="435" y="140" width="100" height="210" rx="8" fill="rgba(210,106,54,0.18)" stroke="rgba(210,106,54,0.6)" stroke-width="2"/>
+      <text x="485" y="175" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="20" font-weight="600">P4</text>
+      <text x="485" y="195" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">Progresivo</text>
+
+      <rect x="560" y="90" width="100" height="260" rx="8" fill="rgba(249,115,22,0.15)" stroke="#f97316" stroke-width="2"/>
+      <text x="610" y="125" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="20" font-weight="600">P5</text>
+      <text x="610" y="145" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">Avanzado</text>
+
+      <rect x="685" y="50" width="100" height="300" rx="8" fill="rgba(249,115,22,0.2)" stroke="#f97316" stroke-width="2"/>
+      <text x="735" y="85" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="20" font-weight="600">P6</text>
+      <text x="735" y="105" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">Máximo</text>
+
+      <!-- Labels -->
+      <text x="400" y="375" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="16">Volumen / Intensidad / Complejidad</text>
+    </svg>
+  </div>
+  <div class="card" style="text-align: center;">
+    <p style="font-size: 22px; line-height: 1.6;">Cada peldaño aumenta <span class="accent">volumen, intensidad o complejidad</span> de forma predefinida. Sin improvisar.</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: Ejemplo LT1 extensivo -->
+<div class="slide">
+  <div class="slide-number">3/7</div>
+  <h2 style="font-size: 40px; margin-bottom: 15px; text-align: center;">Ejemplo: <span class="accent-green">LT1 Extensivo</span> (running)</h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 35px;">8 peldaños, de 3x8 minutos hasta 2x25 minutos</p>
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; width: 100%; margin-bottom: 25px;">
+    <div class="card" style="text-align: center; padding: 20px;">
+      <p style="font-size: 16px; color: #22c55e; margin-bottom: 8px;">P1</p>
+      <p style="font-size: 26px; font-weight: 600;">3x8'</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.5); margin-top: 6px;">~40 min total</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 20px;">
+      <p style="font-size: 16px; color: #22c55e; margin-bottom: 8px;">P2</p>
+      <p style="font-size: 26px; font-weight: 600;">4x8'</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.5); margin-top: 6px;">~50 min total</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 20px; border-color: rgba(210,106,54,0.4);">
+      <p style="font-size: 16px; color: #d26a36; margin-bottom: 8px;">P3</p>
+      <p style="font-size: 26px; font-weight: 600;">4x10'</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.5); margin-top: 6px;">~55 min total</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 20px; border-color: rgba(210,106,54,0.4);">
+      <p style="font-size: 16px; color: #d26a36; margin-bottom: 8px;">P4</p>
+      <p style="font-size: 26px; font-weight: 600;">3x12'</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.5); margin-top: 6px;">~55 min total</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 20px; border-color: rgba(210,106,54,0.4);">
+      <p style="font-size: 16px; color: #d26a36; margin-bottom: 8px;">P5</p>
+      <p style="font-size: 26px; font-weight: 600;">3x15'</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.5); margin-top: 6px;">~65 min total</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 20px; border-color: rgba(249,115,22,0.4);">
+      <p style="font-size: 16px; color: #f97316; margin-bottom: 8px;">P6</p>
+      <p style="font-size: 26px; font-weight: 600;">2x20'</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.5); margin-top: 6px;">~60 min total</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 20px; border-color: rgba(249,115,22,0.4);">
+      <p style="font-size: 16px; color: #f97316; margin-bottom: 8px;">P7</p>
+      <p style="font-size: 26px; font-weight: 600;">2x22'</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.5); margin-top: 6px;">~65 min total</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 20px; border-color: rgba(249,115,22,0.5); background: rgba(249,115,22,0.08);">
+      <p style="font-size: 16px; color: #f97316; margin-bottom: 8px;">P8</p>
+      <p style="font-size: 26px; font-weight: 600;">2x25'</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.5); margin-top: 6px;">~70 min total</p>
+    </div>
+  </div>
+  <div class="card" style="text-align: center;">
+    <p style="font-size: 20px; line-height: 1.6;">La progresión va de <span class="accent-green">más repeticiones cortas</span> a <span class="accent-orange">menos repeticiones largas</span>. Mismo estímulo fisiológico, mayor densidad.</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: Selección por fase -->
+<div class="slide">
+  <div class="slide-number">4/7</div>
+  <h2 style="font-size: 42px; margin-bottom: 15px; text-align: center;">Cada fase del mesociclo elige su <span class="accent">peldaño</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 35px;">La carga ondula — no sube en línea recta</p>
+  <div style="margin: 20px 0;">
+    <svg width="800" height="320" viewBox="0 0 800 320">
+      <!-- Grid -->
+      <line x1="80" y1="260" x2="750" y2="260" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <line x1="80" y1="200" x2="750" y2="200" stroke="rgba(247,246,244,0.08)" stroke-width="1"/>
+      <line x1="80" y1="140" x2="750" y2="140" stroke="rgba(247,246,244,0.08)" stroke-width="1"/>
+      <line x1="80" y1="80" x2="750" y2="80" stroke="rgba(247,246,244,0.08)" stroke-width="1"/>
+      <!-- Y labels -->
+      <text x="70" y="265" text-anchor="end" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="14">P0</text>
+      <text x="70" y="205" text-anchor="end" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="14">P2</text>
+      <text x="70" y="145" text-anchor="end" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="14">P4</text>
+      <text x="70" y="85" text-anchor="end" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="14">P6</text>
+      <!-- Bars -->
+      <rect x="120" y="200" width="110" height="60" rx="8" fill="rgba(34,197,94,0.2)" stroke="#22c55e" stroke-width="2"/>
+      <text x="175" y="235" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="18" font-weight="600">LOAD</text>
+      <text x="175" y="290" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">P1-P2</text>
+
+      <rect x="260" y="140" width="110" height="120" rx="8" fill="rgba(210,106,54,0.2)" stroke="#d26a36" stroke-width="2"/>
+      <text x="315" y="205" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="18" font-weight="600">BUILD</text>
+      <text x="315" y="290" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">P3-P4</text>
+
+      <rect x="400" y="80" width="110" height="180" rx="8" fill="rgba(249,115,22,0.2)" stroke="#f97316" stroke-width="2"/>
+      <text x="455" y="175" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="17" font-weight="600">BUILD</text>
+      <text x="455" y="195" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="17" font-weight="600">PEAK</text>
+      <text x="455" y="290" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">P5-P6</text>
+
+      <rect x="540" y="230" width="110" height="30" rx="8" fill="rgba(100,180,255,0.15)" stroke="rgba(100,180,255,0.5)" stroke-width="2"/>
+      <text x="595" y="252" text-anchor="middle" fill="rgba(100,180,255,0.8)" font-family="Space Grotesk" font-size="18" font-weight="600">RECOVERY</text>
+      <text x="595" y="290" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">P0</text>
+    </svg>
+  </div>
+  <div class="card" style="text-align: center;">
+    <p style="font-size: 22px; line-height: 1.6;"><span class="accent-green">Load</span> introduce el estímulo suave. <span class="accent">Build</span> progresa. <span class="accent-orange">Build Peak</span> es el clímax. <span style="color: rgba(100,180,255,0.8);">Recovery</span> absorbe la carga.</p>
+  </div>
+  <p class="ref">Olbrecht, J. The Science of Winning. Wave Principle: training load oscillation within mesocycles.</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: Wave principle -->
+<div class="slide">
+  <div class="slide-number">5/7</div>
+  <h2 style="font-size: 44px; margin-bottom: 15px; text-align: center;">La carga <span class="accent">ondula</span>, no sube en línea recta</h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 30px;">Olbrecht Wave Principle: cada mesociclo es una ola</p>
+  <div style="margin: 20px 0;">
+    <svg width="800" height="340" viewBox="0 0 800 340">
+      <!-- Axis -->
+      <line x1="50" y1="280" x2="780" y2="280" stroke="rgba(247,246,244,0.2)" stroke-width="1"/>
+      <!-- Wave 1 -->
+      <path d="M70 240 Q130 220 170 180 Q210 120 250 100 Q270 90 290 240" fill="none" stroke="#d26a36" stroke-width="3"/>
+      <text x="180" y="60" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="16" font-weight="600">Mesociclo 1</text>
+      <!-- Wave 2 -->
+      <path d="M290 240 Q350 210 390 160 Q430 95 470 75 Q490 65 510 230" fill="none" stroke="#22c55e" stroke-width="3"/>
+      <text x="400" y="45" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="16" font-weight="600">Mesociclo 2</text>
+      <!-- Wave 3 -->
+      <path d="M510 230 Q570 195 610 140 Q650 75 690 55 Q710 48 730 220" fill="none" stroke="#f97316" stroke-width="3"/>
+      <text x="620" y="30" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="16" font-weight="600">Mesociclo 3</text>
+      <!-- Trend line -->
+      <line x1="70" y1="240" x2="730" y2="180" stroke="rgba(247,246,244,0.15)" stroke-width="2" stroke-dasharray="8,6"/>
+      <text x="760" y="185" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="13">Tendencia</text>
+      <!-- X labels -->
+      <text x="180" y="310" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">Semanas 1-4</text>
+      <text x="400" y="310" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">Semanas 5-8</text>
+      <text x="620" y="310" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">Semanas 9-12</text>
+    </svg>
+  </div>
+  <div style="display: flex; gap: 20px; width: 100%;">
+    <div class="card" style="flex: 1; text-align: center; padding: 20px;">
+      <p style="font-size: 18px; color: rgba(247,246,244,0.5); margin-bottom: 8px;">Error frecuente</p>
+      <p style="font-size: 20px;">Subir carga linealmente semana tras semana hasta reventar</p>
+    </div>
+    <div class="card" style="flex: 1; text-align: center; padding: 20px; border-color: rgba(34,197,94,0.3);">
+      <p style="font-size: 18px; color: #22c55e; margin-bottom: 8px;">Correcto</p>
+      <p style="font-size: 20px;">Ondular: subir, pico, bajar, repetir con más base</p>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: PeakAerobic selecciona -->
+<div class="slide">
+  <div class="slide-number">6/7</div>
+  <h2 style="font-size: 44px; margin-bottom: 20px; text-align: center;">PeakAerobic selecciona el peldaño <span class="accent">automáticamente</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 40px;">3 factores determinan qué peldaño te toca</p>
+  <div style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
+    <div class="card" style="display: flex; align-items: center; gap: 25px;">
+      <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(210,106,54,0.15); border: 2px solid #d26a36; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <span style="font-family: Space Grotesk; font-size: 24px; font-weight: 700; color: #d26a36;">1</span>
+      </div>
+      <div>
+        <h2 style="font-size: 24px; margin-bottom: 6px;">Fase del mesociclo</h2>
+        <p style="font-size: 19px; color: rgba(247,246,244,0.7);">Load, Build, Build Peak o Recovery determinan el rango de peldaños disponibles</p>
+      </div>
+    </div>
+    <div class="card" style="display: flex; align-items: center; gap: 25px;">
+      <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(34,197,94,0.15); border: 2px solid #22c55e; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <span style="font-family: Space Grotesk; font-size: 24px; font-weight: 700; color: #22c55e;">2</span>
+      </div>
+      <div>
+        <h2 style="font-size: 24px; margin-bottom: 6px;">Historial de tolerancia</h2>
+        <p style="font-size: 19px; color: rgba(247,246,244,0.7);">Si completaste bien el peldaño anterior, subes. Si hubo señales de fatiga, repites o bajas.</p>
+      </div>
+    </div>
+    <div class="card" style="display: flex; align-items: center; gap: 25px;">
+      <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(249,115,22,0.15); border: 2px solid #f97316; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <span style="font-family: Space Grotesk; font-size: 24px; font-weight: 700; color: #f97316;">3</span>
+      </div>
+      <div>
+        <h2 style="font-size: 24px; margin-bottom: 6px;">Señal del bloque de validación</h2>
+        <p style="font-size: 19px; color: rgba(247,246,244,0.7);">El test de lactato confirma si la adaptación responde. Si sí, progresa. Si no, consolida.</p>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7/7</div>
+  <div style="text-align: center; max-width: 800px;">
+    <p style="font-size: 22px; color: rgba(247,246,244,0.5); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 30px;">Progresión con fundamento</p>
+    <h1 style="font-size: 52px; line-height: 1.2; margin-bottom: 40px;">Deja de adivinar cuánto subir.<br><span class="accent">La escalera ya está definida.</span></h1>
+    <div class="cta-box" style="margin-bottom: 30px;">
+      <h2 style="font-size: 32px; color: #f7f6f4; margin-bottom: 10px;">PeakAerobic</h2>
+      <p style="font-size: 22px; color: rgba(247,246,244,0.9);">Progresión basada en ciencia. Cada sesión, cada peldaño, cada semana.</p>
+    </div>
+    <p style="font-size: 20px; color: rgba(247,246,244,0.5); margin-top: 20px;">10 familias de sesión. Hasta 8 peldaños por familia. Cero improvisación.</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

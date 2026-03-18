@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3 atletas, 3 transformaciones</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+.slide { width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 80px; position: relative; overflow: hidden; flex-shrink: 0; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+p, li { font-family: 'Source Sans 3', sans-serif; }
+.accent { color: #d26a36; }
+.accent-green { color: #22c55e; }
+.accent-orange { color: #f97316; }
+.slide-number { position: absolute; top: 40px; right: 50px; font-size: 20px; color: rgba(247,246,244,0.35); font-family: 'Space Grotesk', sans-serif; }
+.progress-dots { position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+.progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.25); }
+.progress-dots .dot.active { background: #d26a36; }
+.watermark { position: absolute; bottom: 44px; right: 50px; text-align: right; font-family: 'Space Grotesk', sans-serif; }
+.watermark .brand { font-size: 18px; font-weight: 600; color: rgba(247,246,244,0.3); }
+.watermark .sub { font-size: 12px; color: rgba(247,246,244,0.2); }
+.cta-box { background: linear-gradient(135deg, #d26a36, #e07b44); border-radius: 20px; padding: 30px 50px; text-align: center; }
+.card { background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2); border-radius: 20px; padding: 30px; width: 100%; }
+.ref { font-size: 16px; color: rgba(247,246,244,0.4); margin-top: 16px; font-style: italic; }
+.metric-box { background: rgba(210,106,54,0.06); border: 1px solid rgba(210,106,54,0.15); border-radius: 14px; padding: 18px; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <div class="slide-number">1/7</div>
+  <div style="text-align: center;">
+    <p style="font-size: 22px; text-transform: uppercase; letter-spacing: 4px; color: rgba(247,246,244,0.5); margin-bottom: 30px;">Casos reales</p>
+    <h1 style="font-size: 64px; line-height: 1.1; margin-bottom: 30px;">3 atletas.<br>3 bloques distintos.<br><span class="accent">3 mejoras reales.</span></h1>
+    <p style="font-size: 26px; color: rgba(247,246,244,0.7); max-width: 700px; margin: 0 auto;">El diagnóstico fisiológico decide el bloque. El bloque decide la transformación.</p>
+    <div style="display: flex; gap: 30px; justify-content: center; margin-top: 50px;">
+      <div style="text-align: center;">
+        <div style="width: 70px; height: 70px; border-radius: 50%; border: 2px solid #22c55e; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;">
+          <span style="font-size: 28px;">🏃</span>
+        </div>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.5);">Runner 10K</p>
+      </div>
+      <div style="text-align: center;">
+        <div style="width: 70px; height: 70px; border-radius: 50%; border: 2px solid #d26a36; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;">
+          <span style="font-size: 28px;">🚴</span>
+        </div>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.5);">Ciclista TT</p>
+      </div>
+      <div style="text-align: center;">
+        <div style="width: 70px; height: 70px; border-radius: 50%; border: 2px solid #f97316; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;">
+          <span style="font-size: 28px;">🏊</span>
+        </div>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.5);">Triatleta IM</p>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: Runner 10K -->
+<div class="slide">
+  <div class="slide-number">2/7</div>
+  <h2 style="font-size: 40px; margin-bottom: 10px; text-align: center;">Runner 10K: <span class="accent-green">Bloque AEC 8 semanas</span></h2>
+  <p style="font-size: 20px; color: rgba(247,246,244,0.5); text-align: center; margin-bottom: 30px;">Diagnóstico: VLamax alta, ratio LT1/LT2 = 0.71 (umbral bajo)</p>
+  <div style="display: flex; gap: 25px; width: 100%; margin-bottom: 25px;">
+    <div class="metric-box" style="flex: 1;">
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5); margin-bottom: 8px;">LT2 antes</p>
+      <p style="font-size: 42px; font-family: Space Grotesk; font-weight: 700;">4:50<span style="font-size: 22px; color: rgba(247,246,244,0.5);">/km</span></p>
+    </div>
+    <div style="display: flex; align-items: center;">
+      <svg width="50" height="30" viewBox="0 0 50 30"><path d="M5 15 L40 15" stroke="#22c55e" stroke-width="3"/><polygon points="38,8 50,15 38,22" fill="#22c55e"/></svg>
+    </div>
+    <div class="metric-box" style="flex: 1; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.08);">
+      <p style="font-size: 16px; color: #22c55e; margin-bottom: 8px;">LT2 después</p>
+      <p style="font-size: 42px; font-family: Space Grotesk; font-weight: 700; color: #22c55e;">4:25<span style="font-size: 22px; color: rgba(34,197,94,0.6);">/km</span></p>
+    </div>
+  </div>
+  <div style="margin: 15px 0;">
+    <svg width="750" height="280" viewBox="0 0 750 280">
+      <line x1="70" y1="240" x2="700" y2="240" stroke="rgba(247,246,244,0.2)" stroke-width="1"/>
+      <line x1="70" y1="240" x2="70" y2="30" stroke="rgba(247,246,244,0.2)" stroke-width="1"/>
+      <text x="60" y="245" text-anchor="end" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12">0</text>
+      <text x="60" y="170" text-anchor="end" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12">4</text>
+      <text x="60" y="100" text-anchor="end" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12">8</text>
+      <!-- Before curve -->
+      <path d="M100 230 Q180 225 260 215 Q340 195 400 150 Q440 110 480 50" fill="none" stroke="rgba(247,246,244,0.3)" stroke-width="2.5" stroke-dasharray="6,4"/>
+      <text x="490" y="45" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">Antes</text>
+      <!-- After curve -->
+      <path d="M100 230 Q200 228 320 220 Q420 205 500 150 Q550 110 600 50" fill="none" stroke="#22c55e" stroke-width="2.5"/>
+      <text x="610" y="45" fill="#22c55e" font-family="Source Sans 3" font-size="14" font-weight="600">Después</text>
+      <!-- LT2 line -->
+      <line x1="70" y1="165" x2="700" y2="165" stroke="rgba(210,106,54,0.25)" stroke-width="1" stroke-dasharray="5,3"/>
+      <text x="710" y="170" fill="rgba(210,106,54,0.5)" font-family="Source Sans 3" font-size="12">LT2</text>
+    </svg>
+  </div>
+  <div class="card" style="display: flex; gap: 30px; align-items: center;">
+    <div style="flex: 1; text-align: center;">
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5);">Ratio LT1/LT2</p>
+      <p style="font-size: 28px; font-family: Space Grotesk; font-weight: 600;">0.71 <span class="accent-green">→ 0.83</span></p>
+    </div>
+    <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+    <div style="flex: 1; text-align: center;">
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5);">Prescripción</p>
+      <p style="font-size: 18px;">80% Z2 + LT1 extensivas</p>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: Ciclista TT -->
+<div class="slide">
+  <div class="slide-number">3/7</div>
+  <h2 style="font-size: 40px; margin-bottom: 10px; text-align: center;">Ciclista TT: <span class="accent">Bloque AEP 6 semanas</span></h2>
+  <p style="font-size: 20px; color: rgba(247,246,244,0.5); text-align: center; margin-bottom: 30px;">Diagnóstico: buena base aeróbica, gap LT2 mínimo, listo para potencia</p>
+  <div style="display: flex; gap: 25px; width: 100%; margin-bottom: 25px;">
+    <div class="metric-box" style="flex: 1;">
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5); margin-bottom: 8px;">FTP antes</p>
+      <p style="font-size: 42px; font-family: Space Grotesk; font-weight: 700;">240<span style="font-size: 22px; color: rgba(247,246,244,0.5);">W</span></p>
+    </div>
+    <div style="display: flex; align-items: center;">
+      <svg width="50" height="30" viewBox="0 0 50 30"><path d="M5 15 L40 15" stroke="#d26a36" stroke-width="3"/><polygon points="38,8 50,15 38,22" fill="#d26a36"/></svg>
+    </div>
+    <div class="metric-box" style="flex: 1; border-color: rgba(210,106,54,0.4); background: rgba(210,106,54,0.08);">
+      <p style="font-size: 16px; color: #d26a36; margin-bottom: 8px;">FTP después</p>
+      <p style="font-size: 42px; font-family: Space Grotesk; font-weight: 700; color: #d26a36;">265<span style="font-size: 22px; color: rgba(210,106,54,0.6);">W</span></p>
+    </div>
+  </div>
+  <div style="margin: 15px 0;">
+    <svg width="750" height="280" viewBox="0 0 750 280">
+      <line x1="70" y1="240" x2="700" y2="240" stroke="rgba(247,246,244,0.2)" stroke-width="1"/>
+      <line x1="70" y1="240" x2="70" y2="30" stroke="rgba(247,246,244,0.2)" stroke-width="1"/>
+      <text x="400" y="270" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">Potencia (W)</text>
+      <!-- Before curve -->
+      <path d="M100 225 Q200 220 280 205 Q350 180 400 130 Q430 95 460 45" fill="none" stroke="rgba(247,246,244,0.3)" stroke-width="2.5" stroke-dasharray="6,4"/>
+      <text x="470" y="40" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="14">Antes</text>
+      <!-- After curve -->
+      <path d="M100 225 Q220 222 340 210 Q430 190 510 130 Q550 95 580 45" fill="none" stroke="#d26a36" stroke-width="2.5"/>
+      <text x="590" y="40" fill="#d26a36" font-family="Source Sans 3" font-size="14" font-weight="600">Después</text>
+      <!-- FTP line -->
+      <line x1="70" y1="155" x2="700" y2="155" stroke="rgba(210,106,54,0.25)" stroke-width="1" stroke-dasharray="5,3"/>
+      <text x="710" y="160" fill="rgba(210,106,54,0.5)" font-family="Source Sans 3" font-size="12">LT2</text>
+    </svg>
+  </div>
+  <div class="card" style="display: flex; gap: 30px; align-items: center;">
+    <div style="flex: 1; text-align: center;">
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5);">Mejora</p>
+      <p style="font-size: 28px; font-family: Space Grotesk; font-weight: 600;"><span class="accent">+10.4%</span> FTP</p>
+    </div>
+    <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+    <div style="flex: 1; text-align: center;">
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5);">Prescripción</p>
+      <p style="font-size: 18px;">Over/under + cruise intervals LT2</p>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: Triatleta IM -->
+<div class="slide">
+  <div class="slide-number">4/7</div>
+  <h2 style="font-size: 40px; margin-bottom: 10px; text-align: center;">Triatleta Ironman: <span class="accent-orange">AEC 10 semanas</span></h2>
+  <p style="font-size: 20px; color: rgba(247,246,244,0.5); text-align: center; margin-bottom: 30px;">Diagnóstico: VLamax demasiado alta para larga distancia, consumo de CHO excesivo</p>
+  <div style="display: flex; gap: 25px; width: 100%; margin-bottom: 25px;">
+    <div class="metric-box" style="flex: 1;">
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5); margin-bottom: 8px;">LT2 run antes</p>
+      <p style="font-size: 40px; font-family: Space Grotesk; font-weight: 700;">5:10<span style="font-size: 22px; color: rgba(247,246,244,0.5);">/km</span></p>
+    </div>
+    <div style="display: flex; align-items: center;">
+      <svg width="50" height="30" viewBox="0 0 50 30"><path d="M5 15 L40 15" stroke="#f97316" stroke-width="3"/><polygon points="38,8 50,15 38,22" fill="#f97316"/></svg>
+    </div>
+    <div class="metric-box" style="flex: 1; border-color: rgba(249,115,22,0.4); background: rgba(249,115,22,0.08);">
+      <p style="font-size: 16px; color: #f97316; margin-bottom: 8px;">LT2 run después</p>
+      <p style="font-size: 40px; font-family: Space Grotesk; font-weight: 700; color: #f97316;">4:45<span style="font-size: 22px; color: rgba(249,115,22,0.6);">/km</span></p>
+    </div>
+  </div>
+  <div style="margin: 15px 0;">
+    <svg width="750" height="200" viewBox="0 0 750 200">
+      <!-- Fuel tanks -->
+      <!-- Before -->
+      <text x="190" y="25" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Space Grotesk" font-size="16">Antes</text>
+      <rect x="100" y="35" width="180" height="50" rx="10" fill="none" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+      <rect x="102" y="37" width="126" height="46" rx="8" fill="rgba(249,115,22,0.3)"/>
+      <text x="190" y="65" text-anchor="middle" fill="#f7f6f4" font-family="Source Sans 3" font-size="14">CHO: 70%</text>
+      <rect x="100" y="95" width="180" height="50" rx="10" fill="none" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+      <rect x="102" y="97" width="54" height="46" rx="8" fill="rgba(34,197,94,0.3)"/>
+      <text x="190" y="125" text-anchor="middle" fill="#f7f6f4" font-family="Source Sans 3" font-size="14">Fat: 30%</text>
+      <!-- After -->
+      <text x="560" y="25" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="16" font-weight="600">Después</text>
+      <rect x="470" y="35" width="180" height="50" rx="10" fill="none" stroke="rgba(249,115,22,0.3)" stroke-width="2"/>
+      <rect x="472" y="37" width="81" height="46" rx="8" fill="rgba(249,115,22,0.3)"/>
+      <text x="560" y="65" text-anchor="middle" fill="#f7f6f4" font-family="Source Sans 3" font-size="14">CHO: 45%</text>
+      <rect x="470" y="95" width="180" height="50" rx="10" fill="none" stroke="rgba(34,197,94,0.4)" stroke-width="2"/>
+      <rect x="472" y="97" width="99" height="46" rx="8" fill="rgba(34,197,94,0.3)"/>
+      <text x="560" y="125" text-anchor="middle" fill="#22c55e" font-family="Source Sans 3" font-size="14" font-weight="600">Fat: 55%</text>
+      <!-- Arrow -->
+      <path d="M310 85 L440 85" stroke="rgba(247,246,244,0.3)" stroke-width="2" marker-end="url(#arrowIM)"/>
+      <defs><marker id="arrowIM" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="rgba(247,246,244,0.4)"/></marker></defs>
+      <text x="375" y="75" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">AEC 10 sem</text>
+    </svg>
+  </div>
+  <div class="card" style="display: flex; gap: 30px; align-items: center;">
+    <div style="flex: 1; text-align: center;">
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5);">FatMax</p>
+      <p style="font-size: 28px; font-family: Space Grotesk; font-weight: 600;"><span class="accent-green">+15%</span></p>
+    </div>
+    <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+    <div style="flex: 1; text-align: center;">
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5);">Prescripción</p>
+      <p style="font-size: 18px;">Alto volumen Z2, LT1 extensivas, sin HIIT</p>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: En común -->
+<div class="slide">
+  <div class="slide-number">5/7</div>
+  <h2 style="font-size: 46px; margin-bottom: 20px; text-align: center;">¿Qué tienen <span class="accent">en común</span>?</h2>
+  <p style="font-size: 24px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 45px;">El mismo proceso. Tres resultados completamente distintos.</p>
+  <div style="display: flex; flex-direction: column; gap: 25px; width: 100%;">
+    <div class="card" style="display: flex; align-items: center; gap: 25px;">
+      <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(210,106,54,0.15); border: 2px solid #d26a36; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <span style="font-family: Space Grotesk; font-size: 28px; font-weight: 700; color: #d26a36;">1</span>
+      </div>
+      <div>
+        <h2 style="font-size: 26px; margin-bottom: 6px;">Test de lactato</h2>
+        <p style="font-size: 20px; color: rgba(247,246,244,0.7);">Datos objetivos: curva de lactato, umbrales LT1/LT2, ratio, VLamax proxy</p>
+      </div>
+    </div>
+    <div class="card" style="display: flex; align-items: center; gap: 25px;">
+      <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(34,197,94,0.15); border: 2px solid #22c55e; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <span style="font-family: Space Grotesk; font-size: 28px; font-weight: 700; color: #22c55e;">2</span>
+      </div>
+      <div>
+        <h2 style="font-size: 26px; margin-bottom: 6px;">Diagnóstico fisiológico</h2>
+        <p style="font-size: 20px; color: rgba(247,246,244,0.7);">PeakAerobic identifica el limitante principal y selecciona el bloque óptimo</p>
+      </div>
+    </div>
+    <div class="card" style="display: flex; align-items: center; gap: 25px;">
+      <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(249,115,22,0.15); border: 2px solid #f97316; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <span style="font-family: Space Grotesk; font-size: 28px; font-weight: 700; color: #f97316;">3</span>
+      </div>
+      <div>
+        <h2 style="font-size: 26px; margin-bottom: 6px;">Bloque específico con dosis progresiva</h2>
+        <p style="font-size: 20px; color: rgba(247,246,244,0.7);">Mesociclo con dose ladders, wave principle y validación con nuevo test</p>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: PeakAerobic diagnóstico -->
+<div class="slide">
+  <div class="slide-number">6/7</div>
+  <h2 style="font-size: 44px; margin-bottom: 20px; text-align: center;">El diagnóstico que te dice <span class="accent">QUÉ bloque</span> necesitas</h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.6); text-align: center; margin-bottom: 40px;">6 bloques Olbrecht, seleccionados por tu perfil metabólico</p>
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; width: 100%;">
+    <div class="card" style="text-align: center; padding: 22px;">
+      <h2 style="font-size: 20px; color: #22c55e; margin-bottom: 8px;">AEC</h2>
+      <p style="font-size: 16px; color: rgba(247,246,244,0.6);">Capacidad Aeróbica</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.4); margin-top: 8px;">VLamax alta, base insuficiente</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 22px;">
+      <h2 style="font-size: 20px; color: #d26a36; margin-bottom: 8px;">THR</h2>
+      <p style="font-size: 16px; color: rgba(247,246,244,0.6);">Desarrollo Umbral</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.4); margin-top: 8px;">Gap LT2, fase específica</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 22px;">
+      <h2 style="font-size: 20px; color: #f97316; margin-bottom: 8px;">AEP</h2>
+      <p style="font-size: 16px; color: rgba(247,246,244,0.6);">Potencia Aeróbica</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.4); margin-top: 8px;">Base sólida, gap mínimo</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 22px;">
+      <h2 style="font-size: 20px; color: #22c55e; margin-bottom: 8px;">ANC</h2>
+      <p style="font-size: 16px; color: rgba(247,246,244,0.6);">Capacidad Anaeróbica</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.4); margin-top: 8px;">VLamax baja, "diesel"</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 22px;">
+      <h2 style="font-size: 20px; color: #d26a36; margin-bottom: 8px;">ANP</h2>
+      <p style="font-size: 16px; color: rgba(247,246,244,0.6);">Potencia Anaeróbica</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.4); margin-top: 8px;">Pre-comp, evento corto</p>
+    </div>
+    <div class="card" style="text-align: center; padding: 22px;">
+      <h2 style="font-size: 20px; color: #f97316; margin-bottom: 8px;">COMP</h2>
+      <p style="font-size: 16px; color: rgba(247,246,244,0.6);">Específico Competición</p>
+      <p style="font-size: 14px; color: rgba(247,246,244,0.4); margin-top: 8px;">Pre-comp, larga distancia</p>
+    </div>
+  </div>
+  <p class="ref">Olbrecht, J. The Science of Winning. Training model by metabolic profile (AEC/AEP/ANC/ANP).</p>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7/7</div>
+  <div style="text-align: center; max-width: 800px;">
+    <p style="font-size: 22px; color: rgba(247,246,244,0.5); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 30px;">Tu transformación</p>
+    <h1 style="font-size: 52px; line-height: 1.2; margin-bottom: 40px;">Tu transformación empieza con <span class="accent">tu curva de lactato</span></h1>
+    <div class="cta-box" style="margin-bottom: 30px;">
+      <h2 style="font-size: 32px; color: #f7f6f4; margin-bottom: 10px;">PeakAerobic</h2>
+      <p style="font-size: 22px; color: rgba(247,246,244,0.9);">Diagnóstico fisiológico + bloque específico + progresión con dose ladders</p>
+    </div>
+    <p style="font-size: 20px; color: rgba(247,246,244,0.5); margin-top: 20px;">No entrenes más. Entrena lo que necesitas.</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

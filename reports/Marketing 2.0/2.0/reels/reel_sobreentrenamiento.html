@@ -1,0 +1,239 @@
+<!--
+VOICEOVER SCRIPT (ESPAÑOL) — 30 segundos
+
+[0-5s] Tu curva de lactato sabe algo que tú no: que estás sobreentrenado.
+[5-12s] Señal uno: tu lactato basal sube sin razón. Señal dos: tu pico máximo de lactato se reduce. Meeusen 2013.
+[12-18s] Señal tres: tu LT2 baja entre tests sin que hayas cambiado la carga. Halson y Jeukendrup, 2004.
+[18-24s] Si tu curva se aplana Y tu frecuencia cardíaca máxima baja… para. Lehmann, 1993.
+[24-28s] PeakAerobic compara tus tests en el tiempo. Detecta el sobreentrenamiento antes de que sea tarde.
+[28-30s] Enlace en bio. PeakAerobic.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Tu curva de lactato sabe si estás sobreentrenado</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden;
+  font-family: 'Source Sans 3', 'Space Grotesk', sans-serif; color: #fff;
+}
+.scene {
+  position: absolute; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.5s ease; padding: 60px;
+}
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.1; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.15; }
+p { font-family: 'Source Sans 3', sans-serif; font-size: 42px; text-align: center; line-height: 1.4; margin-top: 30px; color: #ffffffcc; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f97316; }
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 8px;
+  background: #d26a36; z-index: 100; width: 0%;
+}
+.watermark {
+  position: absolute; top: 60px; right: 60px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 32px; color: #d26a3660;
+  z-index: 50;
+}
+.ref {
+  font-size: 30px; color: #ffffff40; margin-top: 20px; font-style: italic;
+}
+.warning-badge {
+  display: inline-flex; align-items: center; gap: 16px;
+  background: #ef444422; border: 3px solid #ef4444; border-radius: 24px;
+  padding: 24px 48px; margin-top: 40px; font-size: 48px; font-weight: 700; color: #ef4444;
+}
+.signal-row {
+  display: flex; align-items: flex-start; gap: 24px; margin-top: 36px; width: 100%;
+}
+.signal-num {
+  font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700;
+  color: #d26a36; min-width: 80px; text-align: center;
+}
+.signal-text {
+  font-size: 44px; line-height: 1.3; color: #ffffffdd; text-align: left;
+}
+svg text { font-family: 'Space Grotesk', sans-serif; }
+.cta-box {
+  border: 3px solid #d26a36; border-radius: 24px; padding: 32px 56px;
+  margin-top: 40px; text-align: center;
+}
+.cta-box h2 { font-size: 56px; color: #d26a36; }
+.cta-box p { font-size: 38px; color: #ffffffaa; margin-top: 12px; }
+
+.arrow-down {
+  width: 0; height: 0; border-left: 40px solid transparent; border-right: 40px solid transparent;
+  border-top: 60px solid #ef4444; margin: 30px auto;
+  opacity: 0; transition: opacity 0.6s ease 0.3s;
+}
+.scene.active .arrow-down { opacity: 1; }
+.scene.active .anim-fade {
+  animation: fadeUp 0.6s ease forwards;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene 1: Hook (0-5s) -->
+<div class="scene" id="scene1">
+  <h1>Tu curva de lactato sabe algo que <span class="accent">tú no</span></h1>
+  <p style="font-size:52px; margin-top:40px;">Que estás <span class="red">sobreentrenado</span>.</p>
+</div>
+
+<!-- Scene 2: Señales 1 y 2 (5-12s) -->
+<div class="scene" id="scene2">
+  <h2>Las señales</h2>
+  <div class="signal-row" style="margin-top:50px;">
+    <div class="signal-num">1</div>
+    <div class="signal-text">Lactato basal <span class="red">elevado</span> sin razón aparente</div>
+  </div>
+  <div class="signal-row">
+    <div class="signal-num">2</div>
+    <div class="signal-text">Pico máximo de lactato <span class="red">reducido</span></div>
+  </div>
+  <svg width="900" height="420" viewBox="0 0 900 420" style="margin-top:40px;">
+    <!-- Axes -->
+    <line x1="80" y1="360" x2="860" y2="360" stroke="#ffffff30" stroke-width="2"/>
+    <line x1="80" y1="40" x2="80" y2="360" stroke="#ffffff30" stroke-width="2"/>
+    <text x="470" y="410" fill="#ffffff60" font-size="28" text-anchor="middle">Intensidad</text>
+    <text x="30" y="200" fill="#ffffff60" font-size="28" text-anchor="middle" transform="rotate(-90,30,200)">Lactato</text>
+    <!-- Healthy curve -->
+    <path d="M120,340 C200,335 350,320 480,280 C560,260 650,180 750,60" fill="none" stroke="#22c55e" stroke-width="5" stroke-dasharray="1200" stroke-dashoffset="1200" id="healthyCurve"/>
+    <text x="760" y="55" fill="#22c55e" font-size="28" font-weight="600">Sana</text>
+    <!-- Overtrained curve -->
+    <path d="M120,300 C200,295 350,285 480,270 C560,260 650,240 750,200" fill="none" stroke="#ef4444" stroke-width="5" stroke-dasharray="1200" stroke-dashoffset="1200" id="overtrainedCurve"/>
+    <text x="760" y="195" fill="#ef4444" font-size="28" font-weight="600">Sobreentrenado</text>
+    <!-- Baseline markers -->
+    <circle cx="120" cy="340" r="8" fill="#22c55e" opacity="0.7"/>
+    <circle cx="120" cy="300" r="8" fill="#ef4444" opacity="0.7"/>
+    <line x1="125" y1="305" x2="125" y2="335" stroke="#ef4444" stroke-width="2" stroke-dasharray="6,4"/>
+    <text x="145" y="326" fill="#ef4444" font-size="22">↑ basal</text>
+  </svg>
+  <p class="ref">Meeusen et al. 2013 — European Journal of Sport Science</p>
+</div>
+
+<!-- Scene 3: Señal 3 (12-18s) -->
+<div class="scene" id="scene3">
+  <div class="signal-row" style="margin-top:0;">
+    <div class="signal-num">3</div>
+    <div class="signal-text" style="font-size:52px;">Tu <span class="accent">LT2</span> baja entre tests<br><span style="color:#ffffff80;">sin cambio de carga</span></div>
+  </div>
+  <div class="arrow-down"></div>
+  <svg width="500" height="240" viewBox="0 0 500 240" style="margin-top:10px;">
+    <rect x="60" y="40" width="160" height="160" rx="16" fill="#d26a3622" stroke="#d26a36" stroke-width="3"/>
+    <text x="140" y="100" fill="#d26a36" font-size="32" font-weight="700" text-anchor="middle">Test 1</text>
+    <text x="140" y="145" fill="#ffffffcc" font-size="28" text-anchor="middle">LT2: 4:10</text>
+    <rect x="280" y="80" width="160" height="160" rx="16" fill="#ef444422" stroke="#ef4444" stroke-width="3"/>
+    <text x="360" y="140" fill="#ef4444" font-size="32" font-weight="700" text-anchor="middle">Test 2</text>
+    <text x="360" y="185" fill="#ffffffcc" font-size="28" text-anchor="middle">LT2: 4:25</text>
+    <line x1="230" y1="120" x2="270" y2="155" stroke="#ef4444" stroke-width="4" marker-end="url(#arrowRed)"/>
+    <defs><marker id="arrowRed" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ef4444"/></marker></defs>
+  </svg>
+  <p class="ref">Halson & Jeukendrup 2004 — Sports Medicine</p>
+</div>
+
+<!-- Scene 4: Combinación letal (18-24s) -->
+<div class="scene" id="scene4">
+  <h2>Si tu curva se <span class="red">aplana</span></h2>
+  <h2 style="margin-top:20px;">Y tu FC máx <span class="red">baja</span></h2>
+  <div class="warning-badge">
+    <svg width="56" height="56" viewBox="0 0 24 24" fill="none"><path d="M12 2L1 21h22L12 2z" fill="none" stroke="#ef4444" stroke-width="2.5"/><text x="12" y="18" fill="#ef4444" font-size="14" font-weight="bold" text-anchor="middle">!</text></svg>
+    STOP
+  </div>
+  <p style="margin-top:40px; font-size:46px;">Estás en la zona roja.</p>
+  <p class="ref">Lehmann et al. 1993 — International Journal of Sports Medicine</p>
+</div>
+
+<!-- Scene 5: PeakAerobic (24-28s) -->
+<div class="scene" id="scene5">
+  <h2><span class="accent">PeakAerobic</span> compara tus tests en el tiempo</h2>
+  <p style="font-size:48px; margin-top:40px;">Detecta el sobreentrenamiento<br><span class="green">antes de que sea tarde</span>.</p>
+  <svg width="700" height="120" viewBox="0 0 700 120" style="margin-top:50px;">
+    <rect x="0" y="20" width="700" height="80" rx="40" fill="#22c55e18" stroke="#22c55e" stroke-width="2"/>
+    <circle cx="100" cy="60" r="18" fill="#22c55e"/>
+    <circle cx="270" cy="60" r="18" fill="#22c55e"/>
+    <circle cx="440" cy="60" r="18" fill="#f97316"/>
+    <circle cx="600" cy="60" r="18" fill="#ef4444"/>
+    <text x="100" y="110" fill="#ffffff60" font-size="22" text-anchor="middle">Ene</text>
+    <text x="270" y="110" fill="#ffffff60" font-size="22" text-anchor="middle">Feb</text>
+    <text x="440" y="110" fill="#ffffff60" font-size="22" text-anchor="middle">Mar</text>
+    <text x="600" y="110" fill="#ffffff60" font-size="22" text-anchor="middle">Abr</text>
+  </svg>
+</div>
+
+<!-- Scene 6: CTA (28-30s) -->
+<div class="scene" id="scene6">
+  <h1 class="accent">PeakAerobic</h1>
+  <p style="font-size:48px; margin-top:30px;">Tu laboratorio de lactato portátil.</p>
+  <div class="cta-box">
+    <h2>Enlace en bio</h2>
+    <p>peakaerobic.com</p>
+  </div>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 5000 },
+  { id: 'scene2', start: 5000, end: 12000 },
+  { id: 'scene3', start: 12000, end: 18000 },
+  { id: 'scene4', start: 18000, end: 24000 },
+  { id: 'scene5', start: 24000, end: 28000 },
+  { id: 'scene6', start: 28000, end: 30000 }
+];
+const events = [
+  { time: 5500, action: () => animateSVGCurve('healthyCurve', 1200) },
+  { time: 6200, action: () => animateSVGCurve('overtrainedCurve', 1200) }
+];
+let eventsFired = {};
+const startTime = performance.now();
+
+function animateSVGCurve(id, length) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.transition = 'stroke-dashoffset 1.5s ease';
+  el.style.strokeDashoffset = '0';
+}
+
+function tick(now) {
+  const elapsed = now - startTime;
+  const progress = Math.min(elapsed / DURATION, 1);
+  document.getElementById('progressBar').style.width = (progress * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+
+  events.forEach((e, i) => {
+    if (elapsed >= e.time && !eventsFired[i]) {
+      eventsFired[i] = true;
+      e.action();
+    }
+  });
+
+  if (progress < 1) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5 señales de sobreentrenamiento en tu curva de lactato</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #1a1a1a;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  font-family: 'Source Sans 3', sans-serif;
+}
+
+.slide {
+  width: 1080px;
+  height: 1080px;
+  background: #0e1e24;
+  color: #f7f6f4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 80px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; line-height: 1.2; }
+h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+p, li { font-family: 'Source Sans 3', sans-serif; }
+
+.accent { color: #d26a36; }
+.accent-green { color: #22c55e; }
+.accent-orange { color: #f97316; }
+
+.slide-number {
+  position: absolute;
+  top: 40px;
+  right: 50px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 20px;
+  color: rgba(247,246,244,0.35);
+}
+
+.progress-dots {
+  position: absolute;
+  bottom: 45px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+}
+
+.progress-dots .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(247,246,244,0.2);
+}
+
+.progress-dots .dot.active {
+  background: #d26a36;
+}
+
+.watermark {
+  position: absolute;
+  bottom: 44px;
+  right: 50px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  color: rgba(210,106,54,0.35);
+  text-align: right;
+}
+
+.watermark span {
+  display: block;
+  font-size: 11px;
+  color: rgba(210,106,54,0.25);
+}
+
+.tag {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 6px;
+  background: rgba(210,106,54,0.15);
+  color: #d26a36;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+}
+
+.divider {
+  width: 60px;
+  height: 4px;
+  background: #d26a36;
+  border-radius: 2px;
+}
+
+.cta-box {
+  background: linear-gradient(135deg, #d26a36, #e07b44);
+  padding: 40px 50px;
+  border-radius: 20px;
+  color: #f7f6f4;
+}
+
+.card {
+  background: rgba(210,106,54,0.08);
+  border: 1px solid rgba(210,106,54,0.2);
+  border-radius: 20px;
+  padding: 40px;
+}
+
+.reference {
+  font-size: 18px;
+  color: rgba(247,246,244,0.4);
+  font-style: italic;
+  margin-top: 20px;
+}
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:40px; align-items:flex-start;">
+    <div class="tag">SOBREENTRENAMIENTO</div>
+    <h1 style="font-size:62px;">5 señales de <span class="accent">sobreentrenamiento</span> en tu curva de lactato</h1>
+    <div class="divider"></div>
+    <p style="font-size:28px; color:rgba(247,246,244,0.7); max-width:750px; line-height:1.6;">
+      Tu curva habla antes que tu cuerpo. Aprende a detectar el sobreentrenamiento antes de que sea demasiado tarde.
+    </p>
+    <svg width="600" height="250" viewBox="0 0 600 250" style="margin-top:20px;">
+      <defs>
+        <linearGradient id="curveGrad1" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#22c55e;stop-opacity:0.6"/>
+          <stop offset="100%" style="stop-color:#d26a36;stop-opacity:0.8"/>
+        </linearGradient>
+      </defs>
+      <line x1="50" y1="220" x2="560" y2="220" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <line x1="50" y1="30" x2="50" y2="220" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <text x="25" y="225" fill="rgba(247,246,244,0.3)" font-size="12" font-family="Space Grotesk">0</text>
+      <text x="25" y="125" fill="rgba(247,246,244,0.3)" font-size="12" font-family="Space Grotesk">6</text>
+      <text x="25" y="45" fill="rgba(247,246,244,0.3)" font-size="12" font-family="Space Grotesk">12</text>
+      <!-- Normal curve -->
+      <path d="M70,200 Q150,195 230,185 Q310,170 380,130 Q430,100 480,50 L530,30" fill="none" stroke="#22c55e" stroke-width="3" opacity="0.6"/>
+      <!-- Overtraining curve -->
+      <path d="M70,180 Q150,178 230,175 Q310,172 380,165 Q430,155 480,140 L530,120" fill="none" stroke="#d26a36" stroke-width="3" stroke-dasharray="8,5"/>
+      <text x="540" y="30" fill="#22c55e" font-size="13" font-family="Source Sans 3" opacity="0.7">Normal</text>
+      <text x="540" y="120" fill="#d26a36" font-size="13" font-family="Source Sans 3">OTS</text>
+      <circle cx="70" cy="180" r="6" fill="#d26a36" opacity="0.8"/>
+      <text x="80" y="175" fill="#d26a36" font-size="12" font-family="Source Sans 3" opacity="0.7">Basal elevado</text>
+    </svg>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 2: SEÑAL 1 -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">SEÑAL 1</div>
+    <h2 style="font-size:48px; max-width:850px;">Curva desplazada a la derecha pero con <span class="accent">lactato basal elevado</span></h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        Un baseline <span class="accent">&gt;1.5 mmol/L</span> en reposo sugiere estrés sistémico acumulado. La curva puede parecer "mejor" (desplazada a la derecha), pero el punto de partida elevado revela fatiga crónica subyacente.
+      </p>
+    </div>
+    <svg width="700" height="300" viewBox="0 0 700 300">
+      <line x1="60" y1="260" x2="660" y2="260" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <line x1="60" y1="30" x2="60" y2="260" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <text x="20" y="265" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">0</text>
+      <text x="20" y="175" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">4</text>
+      <text x="20" y="85" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">8</text>
+      <text x="350" y="290" fill="rgba(247,246,244,0.3)" font-size="14" font-family="Source Sans 3">Intensidad</text>
+      <text x="10" y="15" fill="rgba(247,246,244,0.3)" font-size="14" font-family="Source Sans 3">[La] mmol/L</text>
+      <!-- Normal -->
+      <path d="M90,240 L180,238 L270,232 L360,210 L450,160 L540,90 L620,40" fill="none" stroke="#22c55e" stroke-width="3" opacity="0.5"/>
+      <circle cx="90" cy="240" r="5" fill="#22c55e" opacity="0.6"/>
+      <!-- Overtraining: elevated baseline -->
+      <path d="M90,215 L180,213 L270,208 L360,195 L450,165 L540,120 L620,85" fill="none" stroke="#d26a36" stroke-width="3"/>
+      <circle cx="90" cy="215" r="5" fill="#d26a36"/>
+      <!-- Baseline zone -->
+      <rect x="75" y="205" width="120" height="40" rx="6" fill="rgba(210,106,54,0.12)" stroke="rgba(210,106,54,0.3)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="100" y="252" fill="#d26a36" font-size="12" font-family="Source Sans 3">Baseline elevado</text>
+      <!-- Labels -->
+      <text x="625" y="38" fill="#22c55e" font-size="14" font-family="Source Sans 3" opacity="0.7">Normal</text>
+      <text x="625" y="83" fill="#d26a36" font-size="14" font-family="Source Sans 3">OTS</text>
+      <!-- Arrow annotation -->
+      <line x1="90" y1="240" x2="90" y2="215" stroke="#d26a36" stroke-width="2" marker-end="url(#arrowOT)"/>
+      <defs><marker id="arrowOT" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#d26a36"/></marker></defs>
+    </svg>
+    <p class="reference">Meeusen et al. 2013 — ECSS consensus statement on overtraining syndrome</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 3: SEÑAL 2 -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">SEÑAL 2</div>
+    <h2 style="font-size:48px; max-width:850px;">LT2 que <span class="accent">baja entre tests</span> sin cambio de entrenamiento</h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        Si tu LT2 retrocede (ej. de 4:10/km a 4:25/km) sin que hayas cambiado tu carga, es una señal clara de <span class="accent">fatiga acumulada</span>. El umbral anaeróbico es muy sensible al overreaching.
+      </p>
+    </div>
+    <svg width="700" height="300" viewBox="0 0 700 300">
+      <line x1="60" y1="260" x2="660" y2="260" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <line x1="60" y1="30" x2="60" y2="260" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <text x="20" y="265" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">0</text>
+      <text x="20" y="175" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">4</text>
+      <text x="20" y="85" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">8</text>
+      <!-- Horizontal 4mmol line -->
+      <line x1="60" y1="175" x2="660" y2="175" stroke="rgba(247,246,244,0.1)" stroke-width="1" stroke-dasharray="5,5"/>
+      <text x="665" y="178" fill="rgba(247,246,244,0.25)" font-size="12" font-family="Source Sans 3">4 mmol</text>
+      <!-- Test 1: good -->
+      <path d="M90,242 L170,240 L260,230 L350,200 L440,140 L530,70 L610,35" fill="none" stroke="#22c55e" stroke-width="3" opacity="0.6"/>
+      <!-- LT2 marker test 1 -->
+      <line x1="405" y1="175" x2="405" y2="260" stroke="#22c55e" stroke-width="2" stroke-dasharray="4,3" opacity="0.5"/>
+      <circle cx="405" cy="175" r="7" fill="none" stroke="#22c55e" stroke-width="2" opacity="0.6"/>
+      <text x="380" y="278" fill="#22c55e" font-size="13" font-family="Space Grotesk" opacity="0.7">4:10</text>
+      <!-- Test 2: regressed -->
+      <path d="M90,240 L170,237 L260,228 L350,210 L440,175 L530,110 L610,60" fill="none" stroke="#d26a36" stroke-width="3"/>
+      <!-- LT2 marker test 2 -->
+      <line x1="315" y1="175" x2="315" y2="260" stroke="#d26a36" stroke-width="2" stroke-dasharray="4,3"/>
+      <circle cx="315" cy="207" r="7" fill="none" stroke="#d26a36" stroke-width="2"/>
+      <text x="290" y="278" fill="#d26a36" font-size="13" font-family="Space Grotesk">4:25</text>
+      <!-- Arrow showing regression -->
+      <line x1="400" y1="270" x2="320" y2="270" stroke="#d26a36" stroke-width="2" marker-end="url(#arrowReg)"/>
+      <defs><marker id="arrowReg" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#d26a36"/></marker></defs>
+      <text x="330" y="268" fill="#d26a36" font-size="11" font-family="Source Sans 3">Regresion</text>
+      <!-- Labels -->
+      <text x="615" y="33" fill="#22c55e" font-size="14" font-family="Source Sans 3" opacity="0.7">Test 1</text>
+      <text x="615" y="58" fill="#d26a36" font-size="14" font-family="Source Sans 3">Test 2</text>
+    </svg>
+    <p class="reference">Halson &amp; Jeukendrup 2004 — Does overtraining exist? An analysis of overreaching and overtraining research</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 4: SEÑAL 3 -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">SEÑAL 3</div>
+    <h2 style="font-size:48px; max-width:850px;">Pico de <span class="accent">lactato maximo reducido</span></h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        Si antes alcanzabas <span class="accent">12-14 mmol/L</span> en un test maximo y ahora solo llegas a 8-10, tu sistema neuromuscular no puede reclutar fibras rapidas. Es un marcador clasico de overtraining parasimpatico.
+      </p>
+    </div>
+    <svg width="700" height="300" viewBox="0 0 700 300">
+      <line x1="60" y1="260" x2="660" y2="260" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <line x1="60" y1="30" x2="60" y2="260" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <text x="15" y="265" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">0</text>
+      <text x="15" y="145" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">8</text>
+      <text x="15" y="55" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">14</text>
+      <!-- Normal curve reaching high peak -->
+      <path d="M90,245 L170,240 L260,225 L350,190 L440,120 L530,55 L600,40" fill="none" stroke="#22c55e" stroke-width="3" opacity="0.5"/>
+      <circle cx="600" cy="40" r="7" fill="#22c55e" opacity="0.6"/>
+      <text x="610" y="44" fill="#22c55e" font-size="14" font-family="Space Grotesk" opacity="0.7">14 mmol</text>
+      <!-- OTS curve with reduced peak -->
+      <path d="M90,240 L170,237 L260,228 L350,205 L440,170 L530,135 L600,120" fill="none" stroke="#d26a36" stroke-width="3"/>
+      <circle cx="600" cy="120" r="7" fill="#d26a36"/>
+      <text x="610" y="124" fill="#d26a36" font-size="14" font-family="Space Grotesk">9 mmol</text>
+      <!-- Delta arrow -->
+      <line x1="595" y1="50" x2="595" y2="112" stroke="rgba(247,246,244,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="555" y="85" fill="rgba(247,246,244,0.5)" font-size="16" font-family="Space Grotesk">-36%</text>
+      <!-- Bar comparison -->
+      <rect x="130" y="90" width="50" height="145" rx="8" fill="rgba(34,197,94,0.2)" stroke="rgba(34,197,94,0.3)" stroke-width="1"/>
+      <text x="140" y="82" fill="#22c55e" font-size="13" font-family="Space Grotesk" opacity="0.7">Normal</text>
+      <rect x="200" y="155" width="50" height="80" rx="8" fill="rgba(210,106,54,0.2)" stroke="rgba(210,106,54,0.3)" stroke-width="1"/>
+      <text x="215" y="147" fill="#d26a36" font-size="13" font-family="Space Grotesk">OTS</text>
+    </svg>
+    <p class="reference">Urhausen &amp; Kindermann 2002 — Diagnosis of overtraining: what tools do we have?</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 5: SEÑAL 4 -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">SEÑAL 4</div>
+    <h2 style="font-size:48px; max-width:850px;">FC maxima reducida + lactato maximo reducido = <span class="accent">fatiga central</span></h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        Cuando <span class="accent">ambos marcadores caen simultaneamente</span>, el problema no es periferico (muscular) sino central (SNC). El cerebro limita el reclutamiento motor como mecanismo de proteccion.
+      </p>
+    </div>
+    <svg width="700" height="280" viewBox="0 0 700 280">
+      <!-- Two paired bars -->
+      <!-- FC max -->
+      <text x="120" y="30" fill="rgba(247,246,244,0.6)" font-size="18" font-family="Space Grotesk" text-anchor="middle">FC max</text>
+      <rect x="60" y="50" width="55" height="180" rx="10" fill="rgba(34,197,94,0.25)" stroke="rgba(34,197,94,0.35)" stroke-width="1"/>
+      <text x="87" y="245" fill="#22c55e" font-size="15" font-family="Space Grotesk" text-anchor="middle">195</text>
+      <text x="87" y="263" fill="rgba(247,246,244,0.3)" font-size="12" font-family="Source Sans 3" text-anchor="middle">bpm</text>
+      <rect x="130" y="90" width="55" height="140" rx="10" fill="rgba(210,106,54,0.25)" stroke="rgba(210,106,54,0.35)" stroke-width="1"/>
+      <text x="157" y="245" fill="#d26a36" font-size="15" font-family="Space Grotesk" text-anchor="middle">182</text>
+      <text x="157" y="263" fill="rgba(247,246,244,0.3)" font-size="12" font-family="Source Sans 3" text-anchor="middle">bpm</text>
+      <!-- Arrow down -->
+      <text x="210" y="160" fill="#d26a36" font-size="24" font-family="Space Grotesk">-7%</text>
+      <!-- La max -->
+      <text x="430" y="30" fill="rgba(247,246,244,0.6)" font-size="18" font-family="Space Grotesk" text-anchor="middle">[La] max</text>
+      <rect x="370" y="50" width="55" height="180" rx="10" fill="rgba(34,197,94,0.25)" stroke="rgba(34,197,94,0.35)" stroke-width="1"/>
+      <text x="397" y="245" fill="#22c55e" font-size="15" font-family="Space Grotesk" text-anchor="middle">13.2</text>
+      <text x="397" y="263" fill="rgba(247,246,244,0.3)" font-size="12" font-family="Source Sans 3" text-anchor="middle">mmol</text>
+      <rect x="440" y="110" width="55" height="120" rx="10" fill="rgba(210,106,54,0.25)" stroke="rgba(210,106,54,0.35)" stroke-width="1"/>
+      <text x="467" y="245" fill="#d26a36" font-size="15" font-family="Space Grotesk" text-anchor="middle">8.5</text>
+      <text x="467" y="263" fill="rgba(247,246,244,0.3)" font-size="12" font-family="Source Sans 3" text-anchor="middle">mmol</text>
+      <!-- Arrow down -->
+      <text x="510" y="160" fill="#d26a36" font-size="24" font-family="Space Grotesk">-36%</text>
+      <!-- Doble señal badge -->
+      <rect x="240" y="85" width="100" height="100" rx="50" fill="rgba(210,106,54,0.15)" stroke="rgba(210,106,54,0.3)" stroke-width="2"/>
+      <text x="290" y="128" fill="#d26a36" font-size="14" font-family="Space Grotesk" text-anchor="middle" font-weight="700">DOBLE</text>
+      <text x="290" y="148" fill="#d26a36" font-size="14" font-family="Space Grotesk" text-anchor="middle" font-weight="700">SEÑAL</text>
+    </svg>
+    <p class="reference">Lehmann et al. 1993 — Autonomic imbalance hypothesis and overtraining syndrome</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 6: SEÑAL 5 -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">SEÑAL 5</div>
+    <h2 style="font-size:44px; max-width:850px;">Ratio LT1/LT2 que sube abruptamente <span class="accent">(&gt;0.92)</span></h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        <span class="accent">Paradoja peligrosa:</span> un ratio alto parece "mejor aerobicamente". Pero si sube de golpe, no es porque LT1 mejoro — es porque <span class="accent">LT2 cayo</span>. La ventana entre umbrales se comprime.
+      </p>
+    </div>
+    <svg width="700" height="260" viewBox="0 0 700 260">
+      <!-- Timeline -->
+      <line x1="80" y1="200" x2="620" y2="200" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <text x="150" y="230" fill="rgba(247,246,244,0.3)" font-size="14" font-family="Source Sans 3" text-anchor="middle">Test 1</text>
+      <text x="350" y="230" fill="rgba(247,246,244,0.3)" font-size="14" font-family="Source Sans 3" text-anchor="middle">Test 2</text>
+      <text x="550" y="230" fill="rgba(247,246,244,0.3)" font-size="14" font-family="Source Sans 3" text-anchor="middle">Test 3</text>
+      <!-- Test 1: normal ratio -->
+      <rect x="110" y="100" width="80" height="95" rx="8" fill="rgba(34,197,94,0.15)" stroke="rgba(34,197,94,0.25)" stroke-width="1"/>
+      <text x="150" y="90" fill="#22c55e" font-size="15" font-family="Space Grotesk" text-anchor="middle">LT2</text>
+      <rect x="110" y="140" width="80" height="55" rx="0" fill="rgba(34,197,94,0.25)" stroke="none"/>
+      <text x="150" y="170" fill="#22c55e" font-size="14" font-family="Space Grotesk" text-anchor="middle">LT1</text>
+      <text x="150" y="60" fill="rgba(247,246,244,0.5)" font-size="16" font-family="Space Grotesk" text-anchor="middle">0.82</text>
+      <!-- Test 2: ratio rising -->
+      <rect x="310" y="110" width="80" height="85" rx="8" fill="rgba(249,115,22,0.15)" stroke="rgba(249,115,22,0.25)" stroke-width="1"/>
+      <text x="350" y="102" fill="#f97316" font-size="15" font-family="Space Grotesk" text-anchor="middle">LT2</text>
+      <rect x="310" y="140" width="80" height="55" rx="0" fill="rgba(249,115,22,0.25)" stroke="none"/>
+      <text x="350" y="170" fill="#f97316" font-size="14" font-family="Space Grotesk" text-anchor="middle">LT1</text>
+      <text x="350" y="60" fill="rgba(247,246,244,0.5)" font-size="16" font-family="Space Grotesk" text-anchor="middle">0.88</text>
+      <!-- Test 3: danger -->
+      <rect x="510" y="125" width="80" height="70" rx="8" fill="rgba(210,106,54,0.2)" stroke="rgba(210,106,54,0.4)" stroke-width="2"/>
+      <text x="550" y="118" fill="#d26a36" font-size="15" font-family="Space Grotesk" text-anchor="middle">LT2</text>
+      <rect x="510" y="140" width="80" height="55" rx="0" fill="rgba(210,106,54,0.3)" stroke="none"/>
+      <text x="550" y="170" fill="#d26a36" font-size="14" font-family="Space Grotesk" text-anchor="middle">LT1</text>
+      <text x="550" y="60" fill="#d26a36" font-size="20" font-family="Space Grotesk" text-anchor="middle" font-weight="700">0.93</text>
+      <!-- Warning icon -->
+      <text x="550" y="248" fill="#d26a36" font-size="22" font-family="Source Sans 3" text-anchor="middle">ALERTA</text>
+    </svg>
+    <p style="font-size:22px; color:rgba(247,246,244,0.6); line-height:1.5;">
+      Un ratio &gt;0.92 que aparece de golpe siempre debe investigarse. El entrenador debe confirmar si LT1 subio (positivo) o LT2 bajo (alerta roja).
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:40px; align-items:center; text-align:center;">
+    <h2 style="font-size:46px; max-width:800px;">Detecta el sobreentrenamiento <span class="accent">antes de que sea tarde</span></h2>
+    <div class="divider" style="margin:0 auto;"></div>
+    <div class="cta-box" style="width:100%; text-align:center;">
+      <h2 style="font-size:38px; margin-bottom:20px; color:#fff;">PeakAerobic trackea tu evolucion</h2>
+      <p style="font-size:24px; color:rgba(255,255,255,0.9); line-height:1.6; max-width:700px; margin:0 auto;">
+        Sube tus tests de lactato. Compara entre sesiones. Detecta automaticamente las 5 señales de sobreentrenamiento en tu curva.
+      </p>
+    </div>
+    <div style="display:flex; gap:20px; flex-wrap:wrap; justify-content:center; margin-top:10px;">
+      <div class="card" style="padding:25px 30px; text-align:center; flex:1; min-width:200px;">
+        <h3 style="font-size:36px; color:#d26a36;">Gratis</h3>
+        <p style="font-size:18px; color:rgba(247,246,244,0.6);">Para siempre</p>
+      </div>
+      <div class="card" style="padding:25px 30px; text-align:center; flex:1; min-width:200px;">
+        <h3 style="font-size:36px; color:#22c55e;">60 seg</h3>
+        <p style="font-size:18px; color:rgba(247,246,244,0.6);">Analisis completo</p>
+      </div>
+      <div class="card" style="padding:25px 30px; text-align:center; flex:1; min-width:200px;">
+        <h3 style="font-size:36px; color:#f97316;">5 señales</h3>
+        <p style="font-size:18px; color:rgba(247,246,244,0.6);">Monitorizadas</p>
+      </div>
+    </div>
+    <p style="font-size:26px; color:rgba(247,246,244,0.7); margin-top:10px;">
+      peakaerobic.com
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VO2max sin espirometria</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #1a1a1a;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  font-family: 'Source Sans 3', sans-serif;
+}
+
+.slide {
+  width: 1080px;
+  height: 1080px;
+  background: #0e1e24;
+  color: #f7f6f4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 80px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; line-height: 1.2; }
+h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+p, li { font-family: 'Source Sans 3', sans-serif; }
+
+.accent { color: #d26a36; }
+.accent-green { color: #22c55e; }
+.accent-orange { color: #f97316; }
+
+.slide-number {
+  position: absolute;
+  top: 40px;
+  right: 50px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 20px;
+  color: rgba(247,246,244,0.35);
+}
+
+.progress-dots {
+  position: absolute;
+  bottom: 45px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+}
+
+.progress-dots .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(247,246,244,0.2);
+}
+
+.progress-dots .dot.active {
+  background: #d26a36;
+}
+
+.watermark {
+  position: absolute;
+  bottom: 44px;
+  right: 50px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  color: rgba(210,106,54,0.35);
+  text-align: right;
+}
+
+.watermark span {
+  display: block;
+  font-size: 11px;
+  color: rgba(210,106,54,0.25);
+}
+
+.tag {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 6px;
+  background: rgba(210,106,54,0.15);
+  color: #d26a36;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+}
+
+.divider {
+  width: 60px;
+  height: 4px;
+  background: #d26a36;
+  border-radius: 2px;
+}
+
+.cta-box {
+  background: linear-gradient(135deg, #d26a36, #e07b44);
+  padding: 40px 50px;
+  border-radius: 20px;
+  color: #f7f6f4;
+}
+
+.card {
+  background: rgba(210,106,54,0.08);
+  border: 1px solid rgba(210,106,54,0.2);
+  border-radius: 20px;
+  padding: 40px;
+}
+
+.reference {
+  font-size: 18px;
+  color: rgba(247,246,244,0.4);
+  font-style: italic;
+  margin-top: 20px;
+}
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:40px; align-items:flex-start;">
+    <div class="tag">VO2MAX</div>
+    <h1 style="font-size:66px;"><span class="accent">VO2max</span> sin espirometria</h1>
+    <div class="divider"></div>
+    <p style="font-size:28px; color:rgba(247,246,244,0.7); max-width:750px; line-height:1.6;">
+      Como estimar tu consumo maximo de oxigeno desde un test de lactato, sin necesidad de mascara ni laboratorio.
+    </p>
+    <div style="display:flex; gap:30px; margin-top:30px;">
+      <div class="card" style="padding:30px 35px; text-align:center;">
+        <h3 style="font-size:48px; color:#d26a36;">60-80</h3>
+        <p style="font-size:18px; color:rgba(247,246,244,0.5);">ml/kg/min (elite)</p>
+      </div>
+      <div class="card" style="padding:30px 35px; text-align:center;">
+        <h3 style="font-size:48px; color:#22c55e;">40-60</h3>
+        <p style="font-size:18px; color:rgba(247,246,244,0.5);">ml/kg/min (amateur)</p>
+      </div>
+      <div class="card" style="padding:30px 35px; text-align:center;">
+        <h3 style="font-size:48px; color:#f97316;">0</h3>
+        <p style="font-size:18px; color:rgba(247,246,244,0.5);">euros necesarios</p>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 2: EL PROBLEMA -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">EL PROBLEMA</div>
+    <h2 style="font-size:48px; max-width:850px;">La espirometria es el <span class="accent">gold standard</span>, pero...</h2>
+    <div class="divider"></div>
+    <div style="display:flex; gap:25px;">
+      <div class="card" style="flex:1; padding:30px; text-align:center;">
+        <h3 style="font-size:42px; color:#d26a36;">200-500</h3>
+        <p style="font-size:20px; color:rgba(247,246,244,0.6);">euros por test</p>
+      </div>
+      <div class="card" style="flex:1; padding:30px; text-align:center;">
+        <h3 style="font-size:42px; color:#d26a36;">Laboratorio</h3>
+        <p style="font-size:20px; color:rgba(247,246,244,0.6);">con mascara y gas</p>
+      </div>
+      <div class="card" style="flex:1; padding:30px; text-align:center;">
+        <h3 style="font-size:42px; color:#d26a36;">Poca</h3>
+        <p style="font-size:20px; color:rgba(247,246,244,0.6);">disponibilidad</p>
+      </div>
+    </div>
+    <div class="card" style="padding:35px 40px; margin-top:10px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        Existen <span class="accent-green">alternativas indirectas</span> validadas cientificamente que permiten estimar VO2max con precision razonable desde datos de campo: frecuencia cardiaca, velocidad y potencia.
+      </p>
+    </div>
+    <p class="reference">Swain et al. 1994 — Target heart rates for the development of cardiorespiratory fitness; ACSM Guidelines for Exercise Testing and Prescription (11th ed.)</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 3: MÉTODO 1 -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">METODO 1</div>
+    <h2 style="font-size:44px; max-width:850px;">Ecuacion metabolica <span class="accent">ACSM</span></h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        La ecuacion ACSM convierte <span class="accent">velocidad y pendiente</span> en consumo de oxigeno:
+      </p>
+      <div style="background:rgba(14,30,36,0.8); border-radius:12px; padding:25px 30px; margin-top:20px; text-align:center;">
+        <p style="font-size:26px; font-family:'Space Grotesk',sans-serif; color:#d26a36; font-weight:600;">
+          VO2 = 3.5 + 0.2 x velocidad + 0.9 x velocidad x pendiente
+        </p>
+        <p style="font-size:16px; color:rgba(247,246,244,0.4); margin-top:10px;">ml/kg/min | velocidad en m/min | pendiente en fraccion decimal</p>
+      </div>
+    </div>
+    <svg width="700" height="250" viewBox="0 0 700 250">
+      <line x1="60" y1="210" x2="660" y2="210" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <line x1="60" y1="30" x2="60" y2="210" stroke="rgba(247,246,244,0.15)" stroke-width="1"/>
+      <text x="20" y="215" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">0</text>
+      <text x="10" y="120" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">35</text>
+      <text x="10" y="45" fill="rgba(247,246,244,0.3)" font-size="13" font-family="Space Grotesk">70</text>
+      <text x="350" y="240" fill="rgba(247,246,244,0.3)" font-size="14" font-family="Source Sans 3" text-anchor="middle">Velocidad (km/h)</text>
+      <!-- Linear relationship -->
+      <path d="M90,195 L200,170 L310,140 L420,105 L530,68 L630,38" fill="none" stroke="#d26a36" stroke-width="3"/>
+      <circle cx="90" cy="195" r="5" fill="#d26a36"/>
+      <circle cx="200" cy="170" r="5" fill="#d26a36"/>
+      <circle cx="310" cy="140" r="5" fill="#d26a36"/>
+      <circle cx="420" cy="105" r="5" fill="#d26a36"/>
+      <circle cx="530" cy="68" r="5" fill="#d26a36"/>
+      <circle cx="630" cy="38" r="5" fill="#d26a36"/>
+      <!-- Speed labels -->
+      <text x="90" y="208" fill="rgba(247,246,244,0.35)" font-size="12" font-family="Source Sans 3" text-anchor="middle">8</text>
+      <text x="200" y="208" fill="rgba(247,246,244,0.35)" font-size="12" font-family="Source Sans 3" text-anchor="middle">10</text>
+      <text x="310" y="208" fill="rgba(247,246,244,0.35)" font-size="12" font-family="Source Sans 3" text-anchor="middle">12</text>
+      <text x="420" y="208" fill="rgba(247,246,244,0.35)" font-size="12" font-family="Source Sans 3" text-anchor="middle">14</text>
+      <text x="530" y="208" fill="rgba(247,246,244,0.35)" font-size="12" font-family="Source Sans 3" text-anchor="middle">16</text>
+      <text x="630" y="208" fill="rgba(247,246,244,0.35)" font-size="12" font-family="Source Sans 3" text-anchor="middle">18</text>
+      <!-- VO2 labels -->
+      <text x="95" y="188" fill="rgba(247,246,244,0.45)" font-size="11" font-family="Source Sans 3">30</text>
+      <text x="315" y="133" fill="rgba(247,246,244,0.45)" font-size="11" font-family="Source Sans 3">43</text>
+      <text x="535" y="61" fill="rgba(247,246,244,0.45)" font-size="11" font-family="Source Sans 3">57</text>
+    </svg>
+    <p class="reference">ACSM Guidelines for Exercise Testing and Prescription, 11th Edition (2021)</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 4: MÉTODO 2 -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">METODO 2</div>
+    <h2 style="font-size:44px; max-width:850px;">Utilizacion fraccional: <span class="accent">LT2 como ancla</span></h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        En atletas entrenados, el LT2 ocurre a aproximadamente el <span class="accent">75-85% del VO2max</span>. Si conoces el VO2 en tu LT2, puedes estimar el maximo:
+      </p>
+      <div style="background:rgba(14,30,36,0.8); border-radius:12px; padding:25px 30px; margin-top:20px; text-align:center;">
+        <p style="font-size:28px; font-family:'Space Grotesk',sans-serif; color:#22c55e; font-weight:600;">
+          VO2max ≈ VO2 en LT2 / 0.80
+        </p>
+        <p style="font-size:16px; color:rgba(247,246,244,0.4); margin-top:10px;">Factor 0.75-0.85 segun nivel de entrenamiento</p>
+      </div>
+    </div>
+    <svg width="700" height="240" viewBox="0 0 700 240">
+      <!-- VO2max bar -->
+      <rect x="100" y="30" width="500" height="60" rx="12" fill="rgba(210,106,54,0.15)" stroke="rgba(210,106,54,0.3)" stroke-width="1"/>
+      <text x="350" y="65" fill="#d26a36" font-size="20" font-family="Space Grotesk" text-anchor="middle" font-weight="600">VO2max = 100%</text>
+      <!-- LT2 portion -->
+      <rect x="100" y="110" width="400" height="60" rx="12" fill="rgba(34,197,94,0.15)" stroke="rgba(34,197,94,0.3)" stroke-width="1"/>
+      <text x="300" y="145" fill="#22c55e" font-size="20" font-family="Space Grotesk" text-anchor="middle" font-weight="600">LT2 ≈ 75-85% VO2max</text>
+      <!-- Arrow -->
+      <line x1="500" y1="140" x2="600" y2="60" stroke="rgba(247,246,244,0.3)" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <!-- Examples -->
+      <text x="100" y="210" fill="rgba(247,246,244,0.5)" font-size="17" font-family="Source Sans 3">Ejemplo: LT2 a 14 km/h → VO2@LT2 ≈ 50 ml/kg/min → VO2max ≈ 50/0.80 = 62 ml/kg/min</text>
+    </svg>
+    <p class="reference">Hausswirth &amp; Brisswalter 2013 — Training and Environmental Factors in Marathon Running; Billat 2001 — VO2 kinetics</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 5: LIMITACIONES -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">HONESTIDAD</div>
+    <h2 style="font-size:48px; max-width:850px;">Limitaciones: <span class="accent">lo que debes saber</span></h2>
+    <div class="divider"></div>
+    <div style="display:flex; flex-direction:column; gap:20px;">
+      <div class="card" style="padding:30px 40px; display:flex; gap:25px; align-items:center;">
+        <div style="min-width:70px; height:70px; border-radius:50%; background:rgba(210,106,54,0.15); display:flex; align-items:center; justify-content:center;">
+          <span style="font-size:30px; font-family:'Space Grotesk'; color:#d26a36; font-weight:700;">±</span>
+        </div>
+        <div>
+          <h3 style="font-size:24px; color:#f7f6f4; margin-bottom:8px;">Error de ±5-10%</h3>
+          <p style="font-size:20px; color:rgba(247,246,244,0.65); line-height:1.5;">Las estimaciones indirectas tienen un margen inherente. No sustituyen una espirometria para un valor absoluto preciso.</p>
+        </div>
+      </div>
+      <div class="card" style="padding:30px 40px; display:flex; gap:25px; align-items:center;">
+        <div style="min-width:70px; height:70px; border-radius:50%; background:rgba(34,197,94,0.15); display:flex; align-items:center; justify-content:center;">
+          <span style="font-size:30px; font-family:'Space Grotesk'; color:#22c55e; font-weight:700;">T</span>
+        </div>
+        <div>
+          <h3 style="font-size:24px; color:#f7f6f4; margin-bottom:8px;">La TENDENCIA es lo que importa</h3>
+          <p style="font-size:20px; color:rgba(247,246,244,0.65); line-height:1.5;">Si tu VO2max estimado sube de 52 a 56 entre tests, la mejora es real. El valor absoluto importa menos que la direccion.</p>
+        </div>
+      </div>
+      <div class="card" style="padding:30px 40px; display:flex; gap:25px; align-items:center;">
+        <div style="min-width:70px; height:70px; border-radius:50%; background:rgba(249,115,22,0.15); display:flex; align-items:center; justify-content:center;">
+          <span style="font-size:30px; font-family:'Space Grotesk'; color:#f97316; font-weight:700;">FC</span>
+        </div>
+        <div>
+          <h3 style="font-size:24px; color:#f7f6f4; margin-bottom:8px;">Requiere FC maxima fiable</h3>
+          <p style="font-size:20px; color:rgba(247,246,244,0.65); line-height:1.5;">La formula de Swain necesita una FCmax real (no la formula 220-edad). Un test maximo previo mejora mucho la estimacion.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 6: PEAKAEROBIC -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:30px;">
+    <div class="tag">PEAKAEROBIC</div>
+    <h2 style="font-size:48px; max-width:850px;">Estimacion <span class="accent">automatica</span> desde tu test</h2>
+    <div class="divider"></div>
+    <div class="card" style="padding:35px 40px;">
+      <p style="font-size:24px; line-height:1.7; color:rgba(247,246,244,0.85);">
+        PeakAerobic combina <span class="accent">Swain + ACSM</span> para estimar tu VO2max directamente desde los datos de tu test de lactato escalonado. Sin equipamiento adicional.
+      </p>
+    </div>
+    <div style="display:flex; gap:25px; margin-top:10px;">
+      <div class="card" style="flex:1; padding:30px; text-align:center;">
+        <svg width="80" height="80" viewBox="0 0 80 80" style="margin:0 auto 15px;">
+          <circle cx="40" cy="40" r="35" fill="none" stroke="#d26a36" stroke-width="3"/>
+          <path d="M40,15 L40,40 L58,52" fill="none" stroke="#d26a36" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <h3 style="font-size:20px; color:#d26a36;">Velocidad / Potencia</h3>
+        <p style="font-size:17px; color:rgba(247,246,244,0.5); margin-top:8px;">Ecuacion ACSM metabolica</p>
+      </div>
+      <div class="card" style="flex:1; padding:30px; text-align:center;">
+        <svg width="80" height="80" viewBox="0 0 80 80" style="margin:0 auto 15px;">
+          <path d="M20,55 L30,40 L35,50 L45,20 L55,50 L60,40 L65,55" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <h3 style="font-size:20px; color:#22c55e;">FC + FCmax</h3>
+        <p style="font-size:17px; color:rgba(247,246,244,0.5); margin-top:8px;">Swain %HRR → %VO2R</p>
+      </div>
+      <div class="card" style="flex:1; padding:30px; text-align:center;">
+        <svg width="80" height="80" viewBox="0 0 80 80" style="margin:0 auto 15px;">
+          <circle cx="40" cy="40" r="25" fill="none" stroke="#f97316" stroke-width="3"/>
+          <text x="40" y="46" fill="#f97316" font-size="20" font-family="Space Grotesk" text-anchor="middle" font-weight="700">%</text>
+        </svg>
+        <h3 style="font-size:20px; color:#f97316;">Utilizacion fraccional</h3>
+        <p style="font-size:17px; color:rgba(247,246,244,0.5); margin-top:8px;">LT2 como ancla fisiologica</p>
+      </div>
+    </div>
+    <p style="font-size:22px; color:rgba(247,246,244,0.55); line-height:1.5; margin-top:15px; text-align:center;">
+      No reemplaza la espirometria — te da una <span class="accent">referencia evolutiva</span> entre tests.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div style="display:flex; flex-direction:column; gap:40px; align-items:center; text-align:center;">
+    <h2 style="font-size:50px; max-width:800px;">Estima tu <span class="accent">VO2max</span> desde tu test de lactato</h2>
+    <div class="divider" style="margin:0 auto;"></div>
+    <div class="cta-box" style="width:100%; text-align:center;">
+      <h2 style="font-size:36px; margin-bottom:20px; color:#fff;">Sube tu test. Obtén tu estimacion.</h2>
+      <p style="font-size:24px; color:rgba(255,255,255,0.9); line-height:1.6; max-width:700px; margin:0 auto;">
+        PeakAerobic calcula automaticamente tu VO2max estimado, utilizacion fraccional y perfil metabolico completo.
+      </p>
+    </div>
+    <div style="display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">
+      <div class="card" style="padding:25px 30px; text-align:center;">
+        <h3 style="font-size:36px; color:#d26a36;">Gratis</h3>
+        <p style="font-size:18px; color:rgba(247,246,244,0.5);">Sin coste</p>
+      </div>
+      <div class="card" style="padding:25px 30px; text-align:center;">
+        <h3 style="font-size:36px; color:#22c55e;">Swain+ACSM</h3>
+        <p style="font-size:18px; color:rgba(247,246,244,0.5);">Validado</p>
+      </div>
+      <div class="card" style="padding:25px 30px; text-align:center;">
+        <h3 style="font-size:36px; color:#f97316;">Evolutivo</h3>
+        <p style="font-size:18px; color:rgba(247,246,244,0.5);">Compara entre tests</p>
+      </div>
+    </div>
+    <p style="font-size:28px; color:rgba(247,246,244,0.7); margin-top:10px;">
+      peakaerobic.com
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,296 @@
+<!-- VOICEOVER SCRIPT (for AI voice generation):
+Scene 1 (0-5s): "¿Estás entrenando en Zona 2? ... No lo estás."
+Scene 2 (5-12s): "Mira. Zona 2 en un modelo de tres zonas es completamente distinta a Zona 2 en cinco zonas o en siete. Es el mismo nombre, pero rangos totalmente diferentes. Seiler, 2010."
+Scene 3 (12-18s): "Garmin usa porcentaje de frecuencia cardíaca máxima. Pero tu LT1 puede estar en el sesenta por ciento o en el setenta y ocho. Depende de tu fisiología, no de una fórmula."
+Scene 4 (18-24s): "La única Zona 2 que importa es la que está por debajo de tu LT1. Tu primer umbral de lactato. Kindermann, mil novecientos setenta y nueve."
+Scene 5 (24-28s): "PeakAerobic calcula tu LT1 real con tres métodos independientes. No con fórmulas genéricas."
+Scene 6 (28-30s): "PeakAerobic. Entrena con ciencia."
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Tu Zona 2 no es Zona 2</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden;
+  font-family: 'Source Sans 3', sans-serif; color: #e8e8e8;
+}
+.scene {
+  position: absolute; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.5s ease; padding: 60px;
+}
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.1; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.15; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f97316; }
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 8px;
+  background: #d26a36; z-index: 100; width: 0%;
+}
+.watermark {
+  position: absolute; top: 60px; right: 60px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 32px;
+  color: #d26a3660;
+}
+.overlay-text {
+  font-size: 52px; font-weight: 600; text-align: center;
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.overlay-text.show { opacity: 1; transform: translateY(0); }
+.badge {
+  display: inline-block; padding: 12px 30px; border-radius: 50px;
+  font-weight: 700; font-size: 36px;
+}
+.badge-red { background: #ef444440; color: #ef4444; }
+.badge-green { background: #22c55e40; color: #22c55e; }
+
+/* Scene 1 */
+.hook-line {
+  font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700;
+  text-align: center; line-height: 1.2;
+}
+.hook-no {
+  font-family: 'Space Grotesk', sans-serif; font-size: 110px; font-weight: 700;
+  color: #ef4444; margin-top: 40px;
+  opacity: 0; transition: opacity 0.6s ease;
+}
+
+/* Scene 2 */
+.zone-model {
+  display: flex; gap: 40px; margin-top: 50px; align-items: flex-end;
+}
+.zone-col {
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.zone-col.show { opacity: 1; transform: translateY(0); }
+.zone-col-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700;
+  margin-bottom: 16px; color: #ffffff90;
+}
+.zone-block {
+  width: 220px; display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 30px;
+  border: 1px solid #ffffff15;
+}
+.zone-block.highlight {
+  border: 3px solid #d26a36; background: #d26a3630; color: #d26a36;
+}
+.ref-text {
+  font-size: 32px; color: #ffffff50; margin-top: 40px; font-style: italic;
+}
+
+/* Scene 3 */
+.hr-bar-container {
+  width: 800px; height: 120px; background: #ffffff10; border-radius: 16px;
+  position: relative; margin-top: 50px; overflow: hidden;
+}
+.hr-bar-fill {
+  height: 100%; background: linear-gradient(90deg, #22c55e30, #d26a3660, #ef444440);
+  border-radius: 16px;
+}
+.hr-dot {
+  position: absolute; top: 50%; width: 36px; height: 36px;
+  border-radius: 50%; transform: translate(-50%, -50%);
+  border: 3px solid #fff;
+  opacity: 0; transition: opacity 0.5s;
+}
+.hr-label {
+  position: absolute; top: -50px; font-family: 'Space Grotesk', sans-serif;
+  font-size: 32px; font-weight: 700; transform: translateX(-50%);
+  opacity: 0; transition: opacity 0.5s;
+}
+
+/* Scene 4 */
+.lt1-box {
+  width: 700px; padding: 50px; border: 3px solid #22c55e; border-radius: 24px;
+  background: #22c55e10; margin-top: 40px; text-align: center;
+}
+.lt1-label {
+  font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700;
+  color: #22c55e;
+}
+.lt1-desc {
+  font-size: 40px; color: #ffffffb0; margin-top: 16px;
+}
+
+/* Scene 5 */
+.method-list {
+  display: flex; flex-direction: column; gap: 24px; margin-top: 50px;
+}
+.method-item {
+  display: flex; align-items: center; gap: 24px;
+  opacity: 0; transform: translateX(-30px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.method-item.show { opacity: 1; transform: translateX(0); }
+.method-num {
+  width: 70px; height: 70px; border-radius: 50%; background: #d26a3630;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700;
+  color: #d26a36; flex-shrink: 0;
+}
+.method-name {
+  font-size: 42px; font-weight: 600;
+}
+
+/* Scene 6 */
+.cta-brand {
+  font-family: 'Space Grotesk', sans-serif; font-size: 100px; font-weight: 700;
+  color: #d26a36; margin-bottom: 20px;
+}
+.cta-handle { font-family: 'Space Grotesk', sans-serif; font-size: 44px; color: #ffffff80; }
+.cta-tagline { font-size: 42px; font-weight: 600; color: #e8e8e8; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <div class="hook-line">¿Estás entrenando<br>en <span class="accent">Zona 2</span>?</div>
+  <div class="hook-no" id="hookNo">No lo estás.</div>
+</div>
+
+<!-- Scene 2: Zone models -->
+<div class="scene" id="scene2">
+  <h2>"Zona 2" depende del <span class="accent">modelo</span></h2>
+  <div class="zone-model">
+    <div class="zone-col" id="zc1">
+      <div class="zone-col-title">3 Zonas</div>
+      <div class="zone-block" style="height:200px;background:#22c55e15;">Z1</div>
+      <div class="zone-block highlight" style="height:160px;">Z2</div>
+      <div class="zone-block" style="height:160px;background:#ef444415;">Z3</div>
+    </div>
+    <div class="zone-col" id="zc2">
+      <div class="zone-col-title">5 Zonas</div>
+      <div class="zone-block" style="height:100px;background:#22c55e15;">Z1</div>
+      <div class="zone-block highlight" style="height:100px;">Z2</div>
+      <div class="zone-block" style="height:100px;background:#f9731615;">Z3</div>
+      <div class="zone-block" style="height:100px;background:#ef444415;">Z4</div>
+      <div class="zone-block" style="height:120px;background:#ef444425;">Z5</div>
+    </div>
+    <div class="zone-col" id="zc3">
+      <div class="zone-col-title">7 Zonas</div>
+      <div class="zone-block" style="height:70px;background:#22c55e15;">Z1</div>
+      <div class="zone-block highlight" style="height:70px;">Z2</div>
+      <div class="zone-block" style="height:70px;background:#22c55e08;">Z3</div>
+      <div class="zone-block" style="height:70px;background:#f9731615;">Z4</div>
+      <div class="zone-block" style="height:70px;background:#f9731625;">Z5</div>
+      <div class="zone-block" style="height:70px;background:#ef444415;">Z6</div>
+      <div class="zone-block" style="height:70px;background:#ef444425;">Z7</div>
+    </div>
+  </div>
+  <div class="ref-text">Seiler, 2010</div>
+</div>
+
+<!-- Scene 3: Garmin HR -->
+<div class="scene" id="scene3">
+  <h2>Garmin usa <span class="red">% FCmax</span>.</h2>
+  <p class="overlay-text show" style="margin-top:20px;font-size:44px;opacity:0.7;">Tu LT1 puede estar en sitios muy distintos.</p>
+  <div class="hr-bar-container">
+    <div class="hr-bar-fill"></div>
+    <div class="hr-dot" id="dot1" style="left:37.5%;background:#22c55e;"></div>
+    <div class="hr-label" id="lbl1" style="left:37.5%;color:#22c55e;">60%</div>
+    <div class="hr-dot" id="dot2" style="left:65%;background:#d26a36;"></div>
+    <div class="hr-label" id="lbl2" style="left:65%;color:#d26a36;">78%</div>
+  </div>
+  <p style="font-size:40px;margin-top:50px;text-align:center;color:#ffffff80;">Mismo atleta, distinto día, distinta realidad.</p>
+</div>
+
+<!-- Scene 4: Real Zone 2 -->
+<div class="scene" id="scene4">
+  <h2>La <span class="green">ÚNICA</span> Zona 2<br>que importa:</h2>
+  <div class="lt1-box">
+    <div class="lt1-label">Bajo tu LT1</div>
+    <div class="lt1-desc">Tu primer umbral de lactato</div>
+  </div>
+  <div class="ref-text" style="margin-top:30px;">Kindermann et al., 1979</div>
+</div>
+
+<!-- Scene 5: PeakAerobic -->
+<div class="scene" id="scene5">
+  <h2>PeakAerobic calcula<br>tu <span class="accent">LT1 real</span>.</h2>
+  <div class="method-list">
+    <div class="method-item" id="m1">
+      <div class="method-num">1</div>
+      <div class="method-name">Baseline Rise (Faude 2009)</div>
+    </div>
+    <div class="method-item" id="m2">
+      <div class="method-num">2</div>
+      <div class="method-name">Sustained Increase</div>
+    </div>
+    <div class="method-item" id="m3">
+      <div class="method-num">3</div>
+      <div class="method-name">ModDmax (Bishop 1998)</div>
+    </div>
+  </div>
+  <p class="overlay-text" id="s5tag" style="margin-top:40px;">3 métodos. Resultado agregado.</p>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="cta-brand">PeakAerobic</div>
+  <div class="cta-handle">@peakaerobic</div>
+  <div class="cta-tagline">Entrena con ciencia.</div>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 5000 },
+  { id: 'scene2', start: 5000, end: 12000 },
+  { id: 'scene3', start: 12000, end: 18000 },
+  { id: 'scene4', start: 18000, end: 24000 },
+  { id: 'scene5', start: 24000, end: 28000 },
+  { id: 'scene6', start: 28000, end: 30000 }
+];
+const events = [
+  { time: 2500, action: () => { document.getElementById('hookNo').style.opacity = '1'; }},
+  { time: 6000, action: () => { document.getElementById('zc1').classList.add('show'); }},
+  { time: 7200, action: () => { document.getElementById('zc2').classList.add('show'); }},
+  { time: 8400, action: () => { document.getElementById('zc3').classList.add('show'); }},
+  { time: 13000, action: () => {
+    document.getElementById('dot1').style.opacity = '1';
+    document.getElementById('lbl1').style.opacity = '1';
+  }},
+  { time: 14500, action: () => {
+    document.getElementById('dot2').style.opacity = '1';
+    document.getElementById('lbl2').style.opacity = '1';
+  }},
+  { time: 25000, action: () => { document.getElementById('m1').classList.add('show'); }},
+  { time: 25600, action: () => { document.getElementById('m2').classList.add('show'); }},
+  { time: 26200, action: () => { document.getElementById('m3').classList.add('show'); }},
+  { time: 26800, action: () => { document.getElementById('s5tag').classList.add('show'); }}
+];
+const startTime = performance.now();
+const firedEvents = new Set();
+function loop(now) {
+  const elapsed = now - startTime;
+  if (elapsed > DURATION) return;
+  document.getElementById('progressBar').style.width = ((elapsed / DURATION) * 100) + '%';
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+  events.forEach((e, i) => {
+    if (elapsed >= e.time && !firedEvents.has(i)) { firedEvents.add(i); e.action(); }
+  });
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

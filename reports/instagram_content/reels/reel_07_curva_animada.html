@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 07 - Tu curva de lactato, explicada</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px; height: 1920px;
+    background: #0e1e24; overflow: hidden;
+    font-family: 'Source Sans 3', sans-serif;
+    color: #f7f6f4; position: relative;
+  }
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 76px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+  .yellow { color: #eab308; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; }
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; z-index: 50; }
+
+  .main-chart { margin: 10px auto; }
+
+  .dot-main { fill: #d26a36; opacity: 0; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  .dot-main.show { opacity: 1; }
+
+  .curve-draw {
+    fill: none; stroke: #d26a36; stroke-width: 5; stroke-linecap: round;
+    stroke-dasharray: 2000; stroke-dashoffset: 2000;
+  }
+
+  .phase-label {
+    font-family: 'Space Grotesk', sans-serif; font-size: 42px; font-weight: 700;
+    text-align: center; padding: 20px 40px; border-radius: 16px; margin-top: 20px;
+    opacity: 0; transform: translateY(20px); transition: all 0.5s ease;
+  }
+  .phase-label.show { opacity: 1; transform: translateY(0); }
+  .phase-green { background: #22c55e20; color: #22c55e; }
+  .phase-yellow { background: #eab30820; color: #eab308; }
+  .phase-orange { background: #f9731620; color: #f97316; }
+  .phase-red { background: #ef444420; color: #ef4444; }
+
+  .zone-fill { opacity: 0; transition: opacity 1s ease; }
+  .zone-fill.show { opacity: 1; }
+
+  .explanation {
+    font-size: 38px; font-weight: 600; text-align: center;
+    max-width: 860px; line-height: 1.4; margin-top: 15px;
+    color: #f7f6f4a0;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  .explanation.show { opacity: 1; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 44px; font-weight: 600; text-align: center; opacity: 0; transition: opacity 0.6s; }
+  .cta-text.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook + Axes -->
+<div class="scene" id="scene1">
+  <h1 id="hookTxt" style="opacity: 0; transition: opacity 0.5s;">Esto es lo que pasa<br>cuando corres<br><span class="accent">mas rapido</span></h1>
+</div>
+
+<!-- Scene 2: Main curve building -->
+<div class="scene" id="scene2">
+  <h2 id="phaseTitle" style="margin-bottom: 5px; min-height: 80px;">&nbsp;</h2>
+  <div class="main-chart">
+    <svg width="960" height="800" viewBox="0 0 960 800">
+      <!-- Grid -->
+      <line x1="80" y1="60" x2="80" y2="680" stroke="#f7f6f415" stroke-width="1"/>
+      <line x1="80" y1="680" x2="920" y2="680" stroke="#f7f6f415" stroke-width="1"/>
+      <line x1="80" y1="525" x2="920" y2="525" stroke="#f7f6f410" stroke-width="1"/>
+      <line x1="80" y1="370" x2="920" y2="370" stroke="#f7f6f410" stroke-width="1"/>
+      <line x1="80" y1="215" x2="920" y2="215" stroke="#f7f6f410" stroke-width="1"/>
+
+      <!-- Y labels -->
+      <text x="25" y="685" fill="#f7f6f460" font-family="Source Sans 3" font-size="26">0</text>
+      <text x="25" y="530" fill="#f7f6f460" font-family="Source Sans 3" font-size="26">2</text>
+      <text x="25" y="375" fill="#f7f6f460" font-family="Source Sans 3" font-size="26">4</text>
+      <text x="25" y="220" fill="#f7f6f460" font-family="Source Sans 3" font-size="26">6</text>
+      <text x="25" y="65" fill="#f7f6f460" font-family="Source Sans 3" font-size="26">8</text>
+      <text x="15" y="40" fill="#f7f6f440" font-family="Source Sans 3" font-size="22">mmol/L</text>
+
+      <!-- X labels -->
+      <text x="140" y="720" fill="#f7f6f460" font-family="Source Sans 3" font-size="24">5:30</text>
+      <text x="270" y="720" fill="#f7f6f460" font-family="Source Sans 3" font-size="24">5:00</text>
+      <text x="400" y="720" fill="#f7f6f460" font-family="Source Sans 3" font-size="24">4:30</text>
+      <text x="530" y="720" fill="#f7f6f460" font-family="Source Sans 3" font-size="24">4:00</text>
+      <text x="660" y="720" fill="#f7f6f460" font-family="Source Sans 3" font-size="24">3:30</text>
+      <text x="800" y="720" fill="#f7f6f460" font-family="Source Sans 3" font-size="24">3:00</text>
+      <text x="450" y="760" fill="#f7f6f440" font-family="Source Sans 3" font-size="22" text-anchor="middle">Ritmo (min/km)</text>
+
+      <!-- Zone fills (behind curve) -->
+      <rect class="zone-fill" id="zGreen" x="80" y="600" width="840" height="80" fill="#22c55e08"/>
+      <rect class="zone-fill" id="zYellow" x="80" y="460" width="840" height="140" fill="#eab30808"/>
+      <rect class="zone-fill" id="zOrange" x="80" y="340" width="840" height="120" fill="#f9731608"/>
+      <rect class="zone-fill" id="zRed" x="80" y="60" width="840" height="280" fill="#ef444408"/>
+
+      <!-- Curve path -->
+      <path class="curve-draw" id="mainCurve"
+        d="M 155,655 C 220,650 285,645 350,635 C 415,625 450,610 500,580 C 540,555 580,520 630,460 C 670,410 720,330 770,240 C 810,170 840,110 870,75"/>
+
+      <!-- Data points -->
+      <circle class="dot-main" id="d1" cx="155" cy="655" r="14"/>
+      <circle class="dot-main" id="d2" cx="285" cy="645" r="14"/>
+      <circle class="dot-main" id="d3" cx="370" cy="632" r="14"/>
+      <circle class="dot-main" id="d4" cx="460" cy="605" r="14"/>
+      <circle class="dot-main" id="d5" cx="540" cy="555" r="14"/>
+      <circle class="dot-main" id="d6" cx="630" cy="460" r="14"/>
+      <circle class="dot-main" id="d7" cx="720" cy="330" r="14"/>
+      <circle class="dot-main" id="d8" cx="800" cy="210" r="14"/>
+      <circle class="dot-main" id="d9" cx="870" cy="75" r="14"/>
+
+      <!-- Lactate values -->
+      <text class="dot-main" id="v1" x="155" y="638" fill="#f7f6f4" font-family="Space Grotesk" font-weight="700" font-size="26" text-anchor="middle">0.9</text>
+      <text class="dot-main" id="v2" x="285" y="628" fill="#f7f6f4" font-family="Space Grotesk" font-weight="700" font-size="26" text-anchor="middle">1.1</text>
+      <text class="dot-main" id="v3" x="370" y="615" fill="#f7f6f4" font-family="Space Grotesk" font-weight="700" font-size="26" text-anchor="middle">1.4</text>
+      <text class="dot-main" id="v4" x="460" y="588" fill="#f7f6f4" font-family="Space Grotesk" font-weight="700" font-size="26" text-anchor="middle">1.9</text>
+      <text class="dot-main" id="v5" x="540" y="538" fill="#f7f6f4" font-family="Space Grotesk" font-weight="700" font-size="26" text-anchor="middle">2.8</text>
+      <text class="dot-main" id="v6" x="630" y="443" fill="#f7f6f4" font-family="Space Grotesk" font-weight="700" font-size="26" text-anchor="middle">4.1</text>
+      <text class="dot-main" id="v7" x="720" y="313" fill="#f7f6f4" font-family="Space Grotesk" font-weight="700" font-size="26" text-anchor="middle">5.8</text>
+      <text class="dot-main" id="v8" x="800" y="193" fill="#f7f6f4" font-family="Space Grotesk" font-weight="700" font-size="26" text-anchor="middle">7.2</text>
+      <text class="dot-main" id="v9" x="870" y="58" fill="#f7f6f4" font-family="Space Grotesk" font-weight="700" font-size="26" text-anchor="middle">8.9</text>
+
+      <!-- LT1 line -->
+      <line id="lt1Line" x1="80" y1="600" x2="920" y2="600" stroke="#22c55e" stroke-width="4" stroke-dasharray="12 8" opacity="0" style="transition: opacity 0.8s"/>
+      <text id="lt1Label" x="925" y="605" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="34" opacity="0" style="transition: opacity 0.8s">LT1</text>
+
+      <!-- LT2 line -->
+      <line id="lt2Line" x1="80" y1="400" x2="920" y2="400" stroke="#f97316" stroke-width="4" stroke-dasharray="12 8" opacity="0" style="transition: opacity 0.8s"/>
+      <text id="lt2Label" x="925" y="405" fill="#f97316" font-family="Space Grotesk" font-weight="700" font-size="34" opacity="0" style="transition: opacity 0.8s">LT2</text>
+    </svg>
+  </div>
+  <div class="phase-label phase-green" id="phase1">Ritmo suave: tu cuerpo elimina todo el lactato</div>
+  <div class="phase-label phase-yellow" id="phase2">LT1: el lactato empieza a acumularse</div>
+  <div class="phase-label phase-orange" id="phase3">Zona mixta: produces mas de lo que eliminas</div>
+  <div class="phase-label phase-red" id="phase4">LT2: el punto de no retorno</div>
+  <div class="phase-label phase-red" id="phase5">Por encima de LT2: solo minutos</div>
+  <div class="explanation" id="explZones">Tus zonas REALES estan aqui</div>
+</div>
+
+<!-- Scene 3: CTA -->
+<div class="scene" id="scene3">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Tu curva.<br>Tus zonas.</h2>
+  <div class="cta-text" id="cta3" style="font-size: 36px; color: #d26a36;">@peakaerobic</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 45000;
+const startTime = Date.now();
+const curve = document.getElementById('mainCurve');
+const curveLength = 2000;
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 3500 },
+  { id: 'scene2', start: 3500, end: 41000 },
+  { id: 'scene3', start: 41000, end: 45000 },
+];
+
+const phaseTexts = [
+  '', 'Ritmo suave', 'LT1: acumulacion', 'Zona mixta', 'LT2: punto de no retorno', 'Maximo'
+];
+
+const events = [
+  // Scene 1
+  { time: 200, action: () => document.getElementById('hookTxt').style.opacity = '1' },
+
+  // Scene 2 - Points appearing
+  { time: 4000, action: () => { showDot('d1','v1'); setPhaseTitle('Ritmo suave: eliminacion = produccion'); }},
+  { time: 5500, action: () => showDot('d2','v2') },
+  { time: 7500, action: () => document.getElementById('phase1').classList.add('show') },
+
+  { time: 9500, action: () => { showDot('d3','v3'); hidePhase('phase1'); setPhaseTitle('LT1: primer aumento sostenido'); }},
+  { time: 11000, action: () => {
+    showDot('d4','v4');
+    document.getElementById('lt1Line').style.opacity = '1';
+    document.getElementById('lt1Label').style.opacity = '1';
+  }},
+  { time: 12500, action: () => document.getElementById('phase2').classList.add('show') },
+
+  { time: 15000, action: () => { showDot('d5','v5'); hidePhase('phase2'); setPhaseTitle('Zona mixta: acumulacion progresiva'); }},
+  { time: 17000, action: () => { showDot('d6','v6'); document.getElementById('phase3').classList.add('show'); }},
+
+  { time: 20000, action: () => {
+    hidePhase('phase3');
+    setPhaseTitle('LT2: el punto de no retorno');
+    document.getElementById('lt2Line').style.opacity = '1';
+    document.getElementById('lt2Label').style.opacity = '1';
+  }},
+  { time: 21500, action: () => document.getElementById('phase4').classList.add('show') },
+
+  { time: 24000, action: () => { showDot('d7','v7'); hidePhase('phase4'); setPhaseTitle('Subida exponencial'); }},
+  { time: 26500, action: () => showDot('d8','v8') },
+  { time: 29000, action: () => { showDot('d9','v9'); document.getElementById('phase5').classList.add('show'); }},
+
+  // Zone colors
+  { time: 32000, action: () => {
+    hidePhase('phase5');
+    setPhaseTitle('Tus zonas reales');
+    document.getElementById('zGreen').classList.add('show');
+    document.getElementById('zYellow').classList.add('show');
+    document.getElementById('zOrange').classList.add('show');
+    document.getElementById('zRed').classList.add('show');
+  }},
+  { time: 35000, action: () => document.getElementById('explZones').classList.add('show') },
+
+  // CTA
+  { time: 41500, action: () => document.getElementById('cta3').classList.add('show') },
+];
+
+function showDot(dotId, valId) {
+  document.getElementById(dotId).classList.add('show');
+  document.getElementById(valId).classList.add('show');
+}
+
+function hidePhase(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('show');
+}
+
+function setPhaseTitle(txt) {
+  document.getElementById('phaseTitle').innerHTML = txt;
+}
+
+let eventIndex = 0;
+let curveStarted = false;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  document.getElementById('progressBar').style.width = Math.min(elapsed / DURATION * 100, 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  // Draw curve progressively based on how many points are shown
+  if (elapsed > 4000 && elapsed < 32000) {
+    const progress = Math.min((elapsed - 4000) / 25000, 1);
+    curve.style.strokeDashoffset = curveLength * (1 - progress);
+  } else if (elapsed >= 32000) {
+    curve.style.strokeDashoffset = 0;
+  }
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

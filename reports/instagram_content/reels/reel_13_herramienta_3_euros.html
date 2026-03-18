@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 13 - La herramienta de 3 euros</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; }
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .price-big {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 200px; font-weight: 700; color: #22c55e;
+    opacity: 0; transform: scale(0.5);
+    transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .price-big.show { opacity: 1; transform: scale(1); }
+
+  .test-strip {
+    width: 300px; height: 80px; background: linear-gradient(90deg, #fff 0%, #fff 60%, #d4a574 60%, #d4a574 100%);
+    border-radius: 8px; margin: 30px 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  .cascade-step {
+    width: 800px; display: flex; align-items: center; gap: 20px;
+    padding: 20px; margin: 8px 0;
+    opacity: 0; transform: translateX(-30px);
+    transition: all 0.5s ease;
+  }
+  .cascade-step.show { opacity: 1; transform: translateX(0); }
+  .cascade-num {
+    width: 50px; height: 50px; border-radius: 50%;
+    background: #d26a3630; color: #d26a36;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 28px;
+    flex-shrink: 0;
+  }
+  .cascade-text { font-size: 36px; font-weight: 600; }
+  .cascade-arrow { color: #d26a36; font-size: 36px; margin: 5px 0; text-align: center; opacity: 0; transition: opacity 0.3s; }
+  .cascade-arrow.show { opacity: 1; }
+
+  .cost-compare {
+    display: flex; gap: 30px; width: 860px; margin: 30px 0;
+  }
+  .cost-card {
+    flex: 1; padding: 35px 25px; border-radius: 20px; text-align: center;
+    opacity: 0; transform: translateY(20px); transition: all 0.5s ease;
+  }
+  .cost-card.show { opacity: 1; transform: translateY(0); }
+  .cost-value { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; margin: 15px 0; }
+  .cost-label { font-size: 32px; font-weight: 700; margin-bottom: 10px; }
+  .cost-detail { font-size: 26px; color: #f7f6f480; line-height: 1.4; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <div class="test-strip"></div>
+  <div class="price-big" id="price3">3</div>
+  <div style="font-size: 60px; font-weight: 700; color: #22c55e;">euros</div>
+  <h2 style="margin-top: 40px; opacity:0; transition: opacity 0.5s;" id="s1sub">
+    Te dice mas que un test<br>de laboratorio de <span style="color: #ef4444;">500 euros</span>
+  </h2>
+</div>
+
+<!-- Scene 2: Setup -->
+<div class="scene" id="scene2">
+  <h2 style="margin-bottom: 30px;">Test de campo</h2>
+  <div style="font-size: 38px; color: #f7f6f480; text-align: center; line-height: 1.6; margin-bottom: 30px;">
+    Medidor portatil + tiras reactivas<br>= analisis completo en pista
+  </div>
+  <div class="cost-compare">
+    <div class="cost-card" id="cc1" style="background: #22c55e15; border: 2px solid #22c55e40;">
+      <div class="cost-label green">Test de campo</div>
+      <div class="cost-value green">20</div>
+      <div class="cost-detail">7-8 tiras por test<br>Repetible cada 4-6 semanas</div>
+    </div>
+    <div class="cost-card" id="cc2" style="background: #ef444415; border: 2px solid #ef444440;">
+      <div class="cost-label" style="color: #ef4444;">Laboratorio</div>
+      <div class="cost-value" style="color: #ef4444;">500</div>
+      <div class="cost-detail">Cita previa, desplazamiento<br>1-2 veces al ano maximo</div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 3: Cascade -->
+<div class="scene" id="scene3">
+  <h2 style="margin-bottom: 20px;"><span class="accent">20 euros</span> se convierten en:</h2>
+  <div class="cascade-step" id="cs1">
+    <div class="cascade-num">1</div>
+    <div class="cascade-text">Curva de lactato completa</div>
+  </div>
+  <div class="cascade-arrow" id="ca1">|</div>
+  <div class="cascade-step" id="cs2">
+    <div class="cascade-num">2</div>
+    <div class="cascade-text">LT1 + LT2 detectados</div>
+  </div>
+  <div class="cascade-arrow" id="ca2">|</div>
+  <div class="cascade-step" id="cs3">
+    <div class="cascade-num">3</div>
+    <div class="cascade-text">VLamax estimada</div>
+  </div>
+  <div class="cascade-arrow" id="ca3">|</div>
+  <div class="cascade-step" id="cs4">
+    <div class="cascade-num">4</div>
+    <div class="cascade-text">Mesociclo Olbrecht</div>
+  </div>
+  <div class="cascade-arrow" id="ca4">|</div>
+  <div class="cascade-step" id="cs5">
+    <div class="cascade-num">5</div>
+    <div class="cascade-text">Sesiones en tu Garmin</div>
+  </div>
+</div>
+
+<!-- Scene 4: CTA -->
+<div class="scene" id="scene4">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-top: 30px;">Ciencia accesible.<br><span class="accent">Coaching de campo.</span></h2>
+  <div style="font-size: 36px; color: #d26a36; margin-top: 40px;">@peakaerobic</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 35000;
+const startTime = Date.now();
+const scenes = [
+  { id: 'scene1', start: 0, end: 6000 },
+  { id: 'scene2', start: 6000, end: 14000 },
+  { id: 'scene3', start: 14000, end: 30000 },
+  { id: 'scene4', start: 30000, end: 35000 },
+];
+const events = [
+  { time: 500, action: () => document.getElementById('price3').classList.add('show') },
+  { time: 3000, action: () => document.getElementById('s1sub').style.opacity = '1' },
+  { time: 7000, action: () => document.getElementById('cc1').classList.add('show') },
+  { time: 9000, action: () => document.getElementById('cc2').classList.add('show') },
+  { time: 15000, action: () => { document.getElementById('cs1').classList.add('show'); }},
+  { time: 16500, action: () => { document.getElementById('ca1').classList.add('show'); document.getElementById('cs2').classList.add('show'); }},
+  { time: 18000, action: () => { document.getElementById('ca2').classList.add('show'); document.getElementById('cs3').classList.add('show'); }},
+  { time: 19500, action: () => { document.getElementById('ca3').classList.add('show'); document.getElementById('cs4').classList.add('show'); }},
+  { time: 21000, action: () => { document.getElementById('ca4').classList.add('show'); document.getElementById('cs5').classList.add('show'); }},
+];
+let eventIndex = 0;
+function update() {
+  const elapsed = Date.now() - startTime;
+  document.getElementById('progressBar').style.width = Math.min(elapsed / DURATION * 100, 100) + '%';
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

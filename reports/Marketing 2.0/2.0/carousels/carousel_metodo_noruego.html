@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El método noruego — PeakAerobic</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide {
+    width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .slide-number {
+    position: absolute; top: 28px; right: 36px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; font-weight: 500; color: rgba(247,246,244,0.35); z-index: 10;
+  }
+  .progress-dots {
+    position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 10;
+  }
+  .progress-dots .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute; bottom: 32px; right: 36px; text-align: right; z-index: 10;
+  }
+  .watermark .brand {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: 16px; color: rgba(210,106,54,0.35);
+  }
+  .watermark .sub {
+    font-family: 'Source Sans 3', sans-serif; font-weight: 300;
+    font-size: 11px; color: rgba(210,106,54,0.25); margin-top: 1px;
+  }
+  .tag {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    background: rgba(210,106,54,0.15); color: #d26a36;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 18px;
+  }
+  .divider {
+    width: 60px; height: 4px; background: #d26a36; border-radius: 2px;
+  }
+  .card {
+    background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px; padding: 36px;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    padding: 40px 50px; border-radius: 20px; text-align: center;
+  }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+  .content { padding: 80px 70px 80px 70px; height: 100%; display: flex; flex-direction: column; }
+
+  @media print {
+    .slide { page-break-after: always; }
+    body { padding: 0; gap: 0; background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; text-align: center; gap: 36px;">
+    <div class="tag">FISIOLOGIA DEL ENTRENAMIENTO</div>
+    <h1 style="font-size: 64px; line-height: 1.05; max-width: 850px;">
+      El <span class="accent">método noruego</span>:<br>ciencia detrás del hype
+    </h1>
+    <div class="divider" style="margin: 0 auto;"></div>
+    <p style="font-size: 26px; font-weight: 300; max-width: 680px; color: rgba(247,246,244,0.7); line-height: 1.5;">
+      Por qué funciona para los Ingebrigtsen<br>y por qué puede no funcionar para ti.
+    </p>
+    <svg width="400" height="100" viewBox="0 0 400 100">
+      <!-- Simplified lactate curve with threshold zone highlighted -->
+      <polyline points="40,85 100,82 160,78 210,70 250,55 290,35 330,15" fill="none" stroke="rgba(247,246,244,0.3)" stroke-width="2.5" stroke-linecap="round"/>
+      <rect x="195" y="5" width="70" height="90" rx="8" fill="rgba(210,106,54,0.15)" stroke="#d26a36" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <text x="230" y="105" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="600" font-size="12">UMBRAL</text>
+      <circle cx="230" cy="60" r="5" fill="#d26a36"/>
+    </svg>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: QUE ES -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">EL ORIGEN</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">De Marius Bakken a los <span class="accent">hermanos Ingebrigtsen</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <div class="card" style="padding: 28px;">
+        <h3 style="font-size: 22px; color: #d26a36; margin-bottom: 14px;">Los principios clave</h3>
+        <ul style="font-size: 20px; font-weight: 300; line-height: 2; color: rgba(247,246,244,0.8); list-style: none; padding: 0;">
+          <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #d26a36; font-weight: 600;">1.</span> Distribución <strong>polarizada 80/20</strong> (Seiler & Kjerland 2006)</li>
+          <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #d26a36; font-weight: 600;">2.</span> Intervalos largos <strong>en/cerca del umbral de lactato</strong> (LT2)</li>
+          <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #d26a36; font-weight: 600;">3.</span> Control de lactato en <strong>cada sesión</strong> de calidad</li>
+          <li style="padding-left: 24px; position: relative;"><span style="position: absolute; left: 0; color: #d26a36; font-weight: 600;">4.</span> Nunca superar <strong>~4 mmol/L</strong> en intervalos de umbral</li>
+        </ul>
+      </div>
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 24px; text-align: center;">
+          <p style="font-size: 48px; font-weight: 700; color: #d26a36;">80%</p>
+          <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.6);">bajo LT1 (base aerobica)</p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px; text-align: center;">
+          <p style="font-size: 48px; font-weight: 700; color: #f97316;">~0%</p>
+          <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.6);">en zona 3 ("tierra de nadie")</p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px; text-align: center;">
+          <p style="font-size: 48px; font-weight: 700; color: #ef4444;">20%</p>
+          <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.6);">en/sobre LT2 (umbral)</p>
+        </div>
+      </div>
+      <div class="card" style="padding: 20px 28px; border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.06);">
+        <p style="font-size: 17px; font-weight: 300; line-height: 1.5; font-style: italic; color: rgba(247,246,244,0.8);">
+          "The key is training at the speed of the lactate threshold, not above it. You accumulate more quality minutes this way."
+        </p>
+        <p style="font-size: 15px; font-weight: 600; color: #d26a36; margin-top: 8px;">
+          — Gjert Ingebrigtsen
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Seiler, S. & Kjerland, G. (2006). <em>Med Sci Sports Exerc</em>, 38(10), 1779–1786.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: LA CIENCIA -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">LA CIENCIA</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">Entrenar en LT2 <span class="accent">maximiza adaptaciones</span> sin fatiga excesiva</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+      <svg viewBox="0 0 900 340" width="940" height="360" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="290" x2="840" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="330" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Intensidad relativa</text>
+        <text x="35" y="160" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 160)">Lactato (mmol/L)</text>
+
+        <!-- Lactate curve -->
+        <polyline points="120,278 200,275 280,270 350,260 420,244 480,220 530,185 580,145 630,100 680,60 730,30"
+          fill="none" stroke="#d26a36" stroke-width="3.5" stroke-linecap="round"/>
+
+        <!-- LT2 zone highlight -->
+        <rect x="460" y="35" width="100" height="250" fill="rgba(210,106,54,0.1)" stroke="rgba(210,106,54,0.3)" stroke-width="1.5" stroke-dasharray="6 4" rx="8"/>
+        <text x="510" y="28" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="16">ZONA NORUEGA</text>
+
+        <!-- LT2 line -->
+        <line x1="510" y1="40" x2="510" y2="290" stroke="#ef4444" stroke-width="2" stroke-dasharray="8 5"/>
+        <text x="510" y="308" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="14">LT2</text>
+
+        <!-- Above LT2 = too much fatigue -->
+        <text x="680" y="210" text-anchor="middle" fill="rgba(239,68,68,0.5)" font-family="Source Sans 3" font-weight="600" font-size="13">Fatiga excesiva</text>
+        <text x="680" y="228" text-anchor="middle" fill="rgba(239,68,68,0.5)" font-family="Source Sans 3" font-size="13">Menos volumen total</text>
+
+        <!-- Norwegian sweet spot annotation -->
+        <line x1="510" y1="200" x2="600" y2="170" stroke="rgba(210,106,54,0.4)" stroke-width="1"/>
+        <rect x="600" y="145" width="220" height="55" rx="10" fill="rgba(210,106,54,0.12)" stroke="rgba(210,106,54,0.3)" stroke-width="1"/>
+        <text x="710" y="168" text-anchor="middle" fill="#d26a36" font-family="Source Sans 3" font-weight="600" font-size="14">Maxima estimulacion</text>
+        <text x="710" y="188" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">con fatiga manejable</text>
+      </svg>
+      <div class="card" style="padding: 24px 32px;">
+        <p style="font-size: 20px; font-weight: 300; line-height: 1.6; text-align: center;">
+          Billat (2003) demostro que el tiempo acumulado <strong>cerca del LT2</strong> es el estimulo clave para mejorar el umbral.
+          Los noruegos lo aplican con <span class="accent">intervalos de 5-6' a ritmo de umbral</span>, controlando que el lactato no suba de ~4 mmol/L.
+        </p>
+      </div>
+      <div class="card" style="padding: 20px 28px; text-align: center;">
+        <p style="font-size: 18px; font-weight: 400; line-height: 1.5; color: rgba(247,246,244,0.7);">
+          <span class="accent" style="font-weight: 600;">Resultado:</span> mas minutos de calidad por sesion, menos fatiga residual, mayor consistencia semanal.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Billat, V. et al. (2003). <em>Med Sci Sports Exerc</em>, 35(1), 65–73. Seiler, S. (2010). <em>IJSPP</em>, 5(3), 276–291.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: POR QUE FUNCIONA PARA ELITE -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">PARA ELITE</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">Funciona porque <span class="green">ya tienen base</span>. Su ratio LT1/LT2 es &gt;0.85</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+      <svg viewBox="0 0 900 300" width="940" height="320" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="260" x2="840" y2="260" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="260" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="295" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Intensidad</text>
+        <text x="35" y="145" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 145)">Lactato (mmol/L)</text>
+
+        <!-- Elite curve: flat then very steep -->
+        <polyline points="120,248 200,246 300,244 400,240 480,236 540,228 580,210 620,175 660,130 700,75 740,30"
+          fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+        <text x="300" y="228" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="14">Elite (ratio &gt;0.85)</text>
+
+        <!-- LT1 and LT2 very close -->
+        <line x1="510" y1="35" x2="510" y2="260" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="510" y="28" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="13">LT1</text>
+        <line x1="600" y1="35" x2="600" y2="260" stroke="#d26a36" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="600" y="28" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="600" font-size="13">LT2</text>
+
+        <!-- Small gap annotation -->
+        <line x1="520" y1="48" x2="590" y2="48" stroke="rgba(247,246,244,0.4)" stroke-width="1.5"/>
+        <text x="555" y="65" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="12">Gap pequeno</text>
+      </svg>
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 24px;">
+          <h3 style="font-size: 18px; color: #22c55e; margin-bottom: 10px;">Base aerobica masiva</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Decadas de entrenamiento aerobico. Su LT1 esta muy cerca de su LT2. La "zona muerta" entre umbrales es minima.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px;">
+          <h3 style="font-size: 18px; color: #22c55e; margin-bottom: 10px;">VLamax baja</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Produccion de lactato baja. Pueden sostener intensidades altas sin acumular acido lactico rapidamente.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 24px;">
+          <h3 style="font-size: 18px; color: #22c55e; margin-bottom: 10px;">Motor listo para afinar</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Solo necesitan "afinar" el umbral. Los intervalos noruegos son la herramienta perfecta para eso.
+          </p>
+        </div>
+      </div>
+      <div class="card" style="padding: 20px 28px; text-align: center; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+        <p style="font-size: 19px; font-weight: 400; line-height: 1.5;">
+          <span class="green" style="font-weight: 600;">Ratio LT1/LT2 &gt; 0.85</span> = el motor esta construido. Solo falta afinarlo. El metodo noruego es ideal aqui.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Tjelta, L. I. (2016). <em>Int J Sports Sci Coach</em>, 11(3), 401–410. Haugen, T. et al. (2022). <em>Sports Med</em>, 52, 1729–1752.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: POR QUE PUEDE NO FUNCIONAR -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">PARA TI</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">Si tu ratio es <span class="red">&lt;0.80</span>, necesitas construir base primero</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+      <svg viewBox="0 0 900 300" width="940" height="320" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="260" x2="840" y2="260" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="260" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="295" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Intensidad</text>
+
+        <!-- Amateur curve: rises early -->
+        <polyline points="120,245 200,238 280,225 350,200 420,165 480,120 530,80 580,45 630,25"
+          fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+        <text x="250" y="210" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="14">Amateur (ratio &lt;0.80)</text>
+
+        <!-- LT1 and LT2 far apart -->
+        <line x1="280" y1="35" x2="280" y2="260" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="280" y="28" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="13">LT1</text>
+        <line x1="500" y1="35" x2="500" y2="260" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="500" y="28" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="13">LT2</text>
+
+        <!-- Large gap annotation -->
+        <line x1="295" y1="48" x2="485" y2="48" stroke="rgba(239,68,68,0.5)" stroke-width="2"/>
+        <text x="390" y="70" text-anchor="middle" fill="#ef4444" font-family="Source Sans 3" font-weight="600" font-size="14">GAP GRANDE</text>
+
+        <!-- Warning zone -->
+        <rect x="280" y="55" width="220" height="200" fill="rgba(239,68,68,0.06)"/>
+        <text x="390" y="110" text-anchor="middle" fill="rgba(239,68,68,0.4)" font-family="Source Sans 3" font-size="13">"Zona muerta" amplia</text>
+        <text x="390" y="130" text-anchor="middle" fill="rgba(239,68,68,0.4)" font-family="Source Sans 3" font-size="13">No hay base para afinar</text>
+      </svg>
+      <div class="card" style="padding: 24px 32px; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06);">
+        <p style="font-size: 20px; font-weight: 300; line-height: 1.6; text-align: center;">
+          Si tu LT1 esta lejos de tu LT2, hacer intervalos de umbral <strong>no resuelve el problema principal</strong>:
+          tu capacidad aerobica es insuficiente. Los intervalos noruegos se acumulan sobre una base que no existe.
+        </p>
+      </div>
+      <div class="card" style="padding: 24px 32px;">
+        <p style="font-size: 20px; font-weight: 300; line-height: 1.6; text-align: center; font-style: italic; color: rgba(247,246,244,0.8);">
+          "Build the engine before you tune it."
+        </p>
+        <p style="font-size: 16px; font-weight: 600; color: #d26a36; margin-top: 8px; text-align: center;">
+          — Jan Olbrecht, <em>The Science of Winning</em>
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Olbrecht, J. (2000). <em>The Science of Winning</em>. Faude, O. et al. (2009). <em>Sports Med</em>, 39(6), 469–490.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: COMO SABER -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">TU DIAGNOSTICO</div>
+    <h2 style="font-size: 38px; line-height: 1.15;">Analiza tu curva de lactato y <span class="accent">calcula tu ratio</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <p style="font-size: 18px; font-weight: 500; color: rgba(247,246,244,0.6); margin-bottom: 8px;">Ratio</p>
+          <p style="font-size: 56px; font-weight: 700; color: #22c55e;">&gt;0.85</p>
+          <div style="height: 2px; background: rgba(34,197,94,0.3); margin: 16px 0;"></div>
+          <p style="font-size: 18px; font-weight: 400; line-height: 1.5; color: rgba(247,246,244,0.7);">
+            Metodo noruego <span class="green" style="font-weight: 600;">viable</span>. Tu base esta construida. Intervalos de umbral son el siguiente paso logico.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <p style="font-size: 18px; font-weight: 500; color: rgba(247,246,244,0.6); margin-bottom: 8px;">Ratio</p>
+          <p style="font-size: 56px; font-weight: 700; color: #f97316;">0.80–0.85</p>
+          <div style="height: 2px; background: rgba(249,115,22,0.3); margin: 16px 0;"></div>
+          <p style="font-size: 18px; font-weight: 400; line-height: 1.5; color: rgba(247,246,244,0.7);">
+            <span class="orange" style="font-weight: 600;">Zona gris.</span> Puedes incluir algo de trabajo de umbral, pero la prioridad sigue siendo base aerobica.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <p style="font-size: 18px; font-weight: 500; color: rgba(247,246,244,0.6); margin-bottom: 8px;">Ratio</p>
+          <p style="font-size: 56px; font-weight: 700; color: #ef4444;">&lt;0.80</p>
+          <div style="height: 2px; background: rgba(239,68,68,0.3); margin: 16px 0;"></div>
+          <p style="font-size: 18px; font-weight: 400; line-height: 1.5; color: rgba(247,246,244,0.7);">
+            Metodo noruego <span class="red" style="font-weight: 600;">prematuro</span>. Necesitas un bloque de capacidad aerobica (AEC) antes de afinar el umbral.
+          </p>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 32px; text-align: center;">
+        <p style="font-size: 20px; font-weight: 400; line-height: 1.5;">
+          <span class="accent" style="font-weight: 600;">PeakAerobic calcula tu ratio LT1/LT2 automaticamente</span> a partir de tu test de lactato y te dice que tipo de bloque necesitas.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Faude, O. et al. (2009). <em>Sports Med</em>, 39(6), 469–490. Olbrecht, J. (2000). <em>The Science of Winning</em>.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; gap: 40px;">
+    <div class="cta-box" style="max-width: 800px; width: 100%;">
+      <h2 style="font-size: 44px; color: #f7f6f4; margin-bottom: 20px; line-height: 1.2;">
+        Descubre si el metodo<br>noruego es para ti
+      </h2>
+      <div style="width: 60px; height: 4px; background: rgba(247,246,244,0.4); border-radius: 2px; margin: 0 auto 24px;"></div>
+      <p style="font-size: 22px; font-weight: 300; color: rgba(247,246,244,0.9); line-height: 1.5; margin-bottom: 28px;">
+        PeakAerobic analiza tu curva de lactato, calcula tu <strong>ratio LT1/LT2</strong>
+        y prescribe el bloque de entrenamiento correcto para tu fisiologia actual.
+      </p>
+      <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <div style="background: rgba(247,246,244,0.15); padding: 12px 28px; border-radius: 10px;">
+          <p style="font-size: 18px; font-weight: 600; color: #f7f6f4;">Ratio + diagnostico + prescripcion</p>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 32px; align-items: center;">
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #22c55e;">LT1/LT2</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Ratio individual</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #d26a36;">Bloque</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">AEC / THR / AEP</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #f97316;">Gratis</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Para siempre</p>
+      </div>
+    </div>
+    <p style="font-size: 20px; font-weight: 500; color: #d26a36;">peakaerobic.com</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

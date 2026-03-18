@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 10 — El Principio de Onda</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px; height: 1920px; overflow: hidden;
+    background: #0e1e24; color: #f7f6f4;
+    font-family: 'Source Sans 3', sans-serif;
+    position: relative;
+  }
+  .watermark {
+    position: absolute; top: 40px; right: 40px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px; color: rgba(247,246,244,0.4);
+    z-index: 100;
+  }
+  .progress-bar {
+    position: absolute; bottom: 0; left: 0; height: 8px;
+    background: #d26a36; z-index: 100; width: 0%;
+    transition: width 0.1s linear;
+  }
+  .scene {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.5s ease;
+    padding: 60px;
+  }
+  .scene.active { opacity: 1; }
+  .citation {
+    position: absolute; bottom: 80px; left: 60px; right: 60px;
+    font-size: 24px; color: rgba(247,246,244,0.3);
+    text-align: center; font-style: italic;
+  }
+
+  /* Scene 1: Hook */
+  .hook-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 84px; font-weight: 700; text-align: center;
+    line-height: 1.15;
+  }
+  .hook-text .accent { color: #d26a36; }
+
+  /* Scene 2: Wave overview */
+  .wave-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 46px; font-weight: 600; text-align: center;
+    margin-bottom: 60px; line-height: 1.3;
+  }
+  .wave-chart {
+    display: flex; align-items: flex-end; gap: 40px;
+    height: 500px; padding: 0 40px;
+  }
+  .week-col {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    flex: 1;
+  }
+  .week-bar {
+    width: 140px; border-radius: 16px 16px 0 0;
+    transition: height 1s ease, background 0.5s ease;
+    height: 0;
+  }
+  .week-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px; font-weight: 600;
+  }
+  .week-type {
+    font-size: 26px; color: rgba(247,246,244,0.5);
+  }
+
+  /* Scene 3-5: Week details */
+  .week-detail-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 64px; font-weight: 700; margin-bottom: 20px;
+  }
+  .week-detail-phase {
+    font-size: 40px; color: rgba(247,246,244,0.6); margin-bottom: 50px;
+    letter-spacing: 3px; text-transform: uppercase;
+  }
+  .week-detail-bar {
+    width: 600px; height: 24px; border-radius: 12px;
+    background: rgba(247,246,244,0.1); overflow: hidden;
+    margin-bottom: 40px;
+  }
+  .week-detail-fill {
+    height: 100%; border-radius: 12px; width: 0%;
+    transition: width 1s ease;
+  }
+  .week-detail-desc {
+    font-size: 38px; text-align: center; line-height: 1.5;
+    max-width: 800px; color: rgba(247,246,244,0.85);
+  }
+
+  /* Scene 6: Banister model */
+  .model-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 52px; font-weight: 700; margin-bottom: 40px; text-align: center;
+  }
+  .model-formula {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 42px; font-weight: 600; text-align: center;
+    margin-top: 40px; color: #d26a36;
+  }
+  .model-legend {
+    display: flex; gap: 40px; margin-top: 30px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 12px; font-size: 28px;
+  }
+  .legend-dot {
+    width: 20px; height: 20px; border-radius: 50%;
+  }
+
+  /* Scene 7: CTA */
+  .cta-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 48px; font-weight: 600; text-align: center;
+    line-height: 1.4; margin-bottom: 50px;
+  }
+  .logo-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 64px; font-weight: 700; color: #d26a36;
+  }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  .pulse { animation: pulse 1.5s ease infinite; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progress"></div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <div class="hook-text">
+    Entrenas <span class="accent">igual</span><br>todas las<br>semanas?
+  </div>
+</div>
+
+<!-- Scene 2: Wave chart overview -->
+<div class="scene" id="scene2">
+  <div class="wave-title">La variacion sistematica de carga<br>es esencial para la adaptacion</div>
+  <div class="wave-chart">
+    <div class="week-col">
+      <div class="week-bar" id="wbar1" style="background:#22c55e"></div>
+      <div class="week-label">S1</div>
+      <div class="week-type">Carga</div>
+    </div>
+    <div class="week-col">
+      <div class="week-bar" id="wbar2" style="background:#f97316"></div>
+      <div class="week-label">S2</div>
+      <div class="week-type">Build</div>
+    </div>
+    <div class="week-col">
+      <div class="week-bar" id="wbar3" style="background:#d26a36"></div>
+      <div class="week-label">S3</div>
+      <div class="week-type">Peak</div>
+    </div>
+    <div class="week-col">
+      <div class="week-bar" id="wbar4" style="background:#3b82f6"></div>
+      <div class="week-label">S4</div>
+      <div class="week-type">Recup.</div>
+    </div>
+  </div>
+  <div class="citation">Issurin, V.B. (2010). New horizons for the methodology and physiology of training periodization. Sports Med, 40(3), 189-206.</div>
+</div>
+
+<!-- Scene 3: Load week -->
+<div class="scene" id="scene3">
+  <div class="week-detail-title" style="color:#22c55e">Semana 1</div>
+  <div class="week-detail-phase">CARGA</div>
+  <div class="week-detail-bar"><div class="week-detail-fill" id="fill-s1" style="background:#22c55e"></div></div>
+  <div class="week-detail-desc">Estimulo inicial.<br>El organismo recibe la senal<br>de adaptacion. Carga moderada.</div>
+  <div class="citation">Banister, E.W. (1991). Modeling elite athletic performance. In: Physiological Testing of the High-Performance Athlete.</div>
+</div>
+
+<!-- Scene 4: Build weeks -->
+<div class="scene" id="scene4">
+  <div class="week-detail-title" style="color:#f97316">Semanas 2-3</div>
+  <div class="week-detail-phase">CONSTRUCCION</div>
+  <div class="week-detail-bar"><div class="week-detail-fill" id="fill-s23" style="background:#f97316"></div></div>
+  <div class="week-detail-desc">Sobrecarga progresiva.<br>El fitness sube, pero tambien<br>la fatiga acumulada.</div>
+  <div class="citation">Banister, E.W. (1991). Modeling elite athletic performance.</div>
+</div>
+
+<!-- Scene 5: Recovery week -->
+<div class="scene" id="scene5">
+  <div class="week-detail-title" style="color:#3b82f6">Semana 4</div>
+  <div class="week-detail-phase">RECUPERACION</div>
+  <div class="week-detail-bar"><div class="week-detail-fill" id="fill-s4" style="background:#3b82f6"></div></div>
+  <div class="week-detail-desc">La fatiga cae mas rapido<br>que el fitness.<br>Aqui ocurre la supercompensacion.</div>
+  <div class="citation">Hausswirth, C. & Mujika, I. (2013). Recovery for Performance in Sport. Human Kinetics.</div>
+</div>
+
+<!-- Scene 6: Banister model -->
+<div class="scene" id="scene6">
+  <div class="model-title">Modelo Impulse-Response</div>
+  <canvas id="banisterCanvas" width="900" height="450"></canvas>
+  <div class="model-formula">Rendimiento = Fitness - Fatiga</div>
+  <div class="model-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Fitness</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Fatiga</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d26a36"></div> Rendimiento neto</div>
+  </div>
+  <div class="citation">Banister, E.W. (1991). Modeling elite athletic performance. In: Physiological Testing of the High-Performance Athlete.</div>
+</div>
+
+<!-- Scene 7: CTA -->
+<div class="scene" id="scene7">
+  <div class="cta-text">PeakAerobic aplica el<br>principio de onda en<br>cada mesociclo</div>
+  <div class="logo-text pulse">PeakAerobic</div>
+  <div class="citation">Issurin (2010) Sports Med | Banister (1991) Physiological Testing</div>
+</div>
+
+<script>
+(function() {
+  const TOTAL_DURATION = 30000;
+  const scenes = [
+    { id: 'scene1', start: 0, end: 3000 },
+    { id: 'scene2', start: 3000, end: 7000 },
+    { id: 'scene3', start: 7000, end: 12000 },
+    { id: 'scene4', start: 12000, end: 17000 },
+    { id: 'scene5', start: 17000, end: 22000 },
+    { id: 'scene6', start: 22000, end: 26000 },
+    { id: 'scene7', start: 26000, end: 30000 },
+  ];
+  const progress = document.getElementById('progress');
+  let startTime = null;
+  const triggered = {};
+
+  // Draw Banister impulse-response model
+  function drawBanister(canvas) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const points = 200;
+    const fitnessData = [], fatigueData = [], perfData = [];
+    for (let i = 0; i < points; i++) {
+      const t = i / points;
+      // Fitness: slow rise, slow decay (tau1 ~ large)
+      const fitness = 60 * (1 - Math.exp(-3 * t)) * Math.exp(-0.3 * t);
+      // Fatigue: fast rise, fast decay (tau2 ~ small)
+      const fatigue = 75 * (1 - Math.exp(-5 * t)) * Math.exp(-1.5 * t);
+      const perf = fitness - fatigue;
+      fitnessData.push(fitness);
+      fatigueData.push(fatigue);
+      perfData.push(perf);
+    }
+
+    function drawCurve(data, color, maxVal) {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 4;
+      for (let i = 0; i < data.length; i++) {
+        const x = (i / data.length) * w;
+        const y = h / 2 - (data[i] / maxVal) * (h / 2 - 20);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    // Zero axis
+    ctx.strokeStyle = 'rgba(247,246,244,0.15)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, h / 2);
+    ctx.lineTo(w, h / 2);
+    ctx.stroke();
+
+    // Axis labels
+    ctx.fillStyle = 'rgba(247,246,244,0.3)';
+    ctx.font = '22px Source Sans 3';
+    ctx.fillText('Tiempo', w - 100, h / 2 + 30);
+    ctx.fillText('+', 10, 30);
+    ctx.fillText('-', 10, h - 10);
+
+    const maxAbs = 50;
+    drawCurve(fitnessData, '#22c55e', maxAbs);
+    drawCurve(fatigueData, '#ef4444', maxAbs);
+    drawCurve(perfData, '#d26a36', maxAbs);
+  }
+
+  function animate(timestamp) {
+    if (!startTime) startTime = timestamp;
+    const elapsed = timestamp - startTime;
+    const pct = Math.min((elapsed / TOTAL_DURATION) * 100, 100);
+    progress.style.width = pct + '%';
+
+    scenes.forEach(s => {
+      const el = document.getElementById(s.id);
+      if (elapsed >= s.start && elapsed < s.end) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    });
+
+    // Wave bars animation (staggered)
+    if (elapsed >= 3300 && !triggered.w1) { triggered.w1 = true; document.getElementById('wbar1').style.height = '200px'; }
+    if (elapsed >= 3700 && !triggered.w2) { triggered.w2 = true; document.getElementById('wbar2').style.height = '320px'; }
+    if (elapsed >= 4100 && !triggered.w3) { triggered.w3 = true; document.getElementById('wbar3').style.height = '420px'; }
+    if (elapsed >= 4500 && !triggered.w4) { triggered.w4 = true; document.getElementById('wbar4').style.height = '140px'; }
+
+    // Week detail fills
+    if (elapsed >= 7500 && !triggered.f1) { triggered.f1 = true; document.getElementById('fill-s1').style.width = '45%'; }
+    if (elapsed >= 12500 && !triggered.f23) { triggered.f23 = true; document.getElementById('fill-s23').style.width = '80%'; }
+    if (elapsed >= 17500 && !triggered.f4) { triggered.f4 = true; document.getElementById('fill-s4').style.width = '30%'; }
+
+    // Banister canvas
+    if (elapsed >= 22200 && !triggered.banister) {
+      triggered.banister = true;
+      drawBanister(document.getElementById('banisterCanvas'));
+    }
+
+    if (elapsed < TOTAL_DURATION) {
+      requestAnimationFrame(animate);
+    }
+  }
+
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 06 - Hice un test de lactato y cambie TODO</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 78px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 60px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+
+  .overlay-text { font-size: 48px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-red { background: #ef444440; color: #ef4444; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+  .badge-orange { background: #f9731640; color: #f97316; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  .grid-line { stroke: #f7f6f415; stroke-width: 1; }
+  .axis-label { font-family: 'Source Sans 3', sans-serif; font-size: 28px; fill: #f7f6f480; }
+
+  /* Timeline */
+  .timeline {
+    width: 800px;
+    margin-top: 40px;
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: 25px;
+    margin-bottom: 25px;
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: all 0.5s ease;
+  }
+
+  .timeline-item.show { opacity: 1; transform: translateX(0); }
+
+  .timeline-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-top: 10px;
+    flex-shrink: 0;
+  }
+
+  .timeline-content {
+    font-size: 38px;
+    line-height: 1.4;
+  }
+
+  /* Before/After cards */
+  .ba-container {
+    display: flex;
+    gap: 30px;
+    margin-top: 30px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ba-card {
+    flex: 1;
+    max-width: 450px;
+    padding: 35px;
+    border-radius: 20px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+  }
+
+  .ba-card.show { opacity: 1; transform: translateY(0); }
+
+  .ba-before { background: #ef444415; border: 2px solid #ef444440; }
+  .ba-after { background: #22c55e15; border: 2px solid #22c55e40; }
+
+  .ba-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+
+  .ba-item {
+    font-size: 32px;
+    padding: 8px 0;
+    color: #f7f6f4a0;
+  }
+
+  /* Result list */
+  .result-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 44px;
+    font-weight: 600;
+    margin: 15px 0;
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: all 0.5s ease;
+  }
+
+  .result-item.show { opacity: 1; transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">Un test de <span class="accent">30 minutos</span><br>cambio 2 anos<br>de entrenamiento</h1>
+</div>
+
+<!-- Scene 2: Before - training by feel -->
+<div class="scene" id="scene2">
+  <h2>Antes</h2>
+  <div class="timeline">
+    <div class="timeline-item" id="tl1">
+      <div class="timeline-dot" style="background:#f97316;"></div>
+      <div class="timeline-content">Entrenaba <span class="orange">"a sensaciones"</span></div>
+    </div>
+    <div class="timeline-item" id="tl2">
+      <div class="timeline-dot" style="background:#f97316;"></div>
+      <div class="timeline-content">Z2 era <span class="orange">"lo que se sentia comodo"</span></div>
+    </div>
+    <div class="timeline-item" id="tl3">
+      <div class="timeline-dot" style="background:#ef4444;"></div>
+      <div class="timeline-content">Siempre cansado, <span class="red">sin mejorar</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 3: The test -->
+<div class="scene" id="scene3">
+  <h2>El test</h2>
+  <div style="margin-top:40px;">
+    <svg width="800" height="500" viewBox="0 0 800 500">
+      <rect x="0" y="0" width="800" height="500" rx="20" fill="#f7f6f408" stroke="#f7f6f420" stroke-width="2"/>
+      <text class="axis-label" x="400" y="40" text-anchor="middle" font-size="28">7 escalones, 20 minutos</text>
+
+      <!-- Steps visualization -->
+      <rect id="step1" x="80" y="380" width="80" height="60" rx="8" fill="#22c55e40" opacity="0" style="transition: opacity 0.3s;"/>
+      <rect id="step2" x="180" y="350" width="80" height="90" rx="8" fill="#22c55e40" opacity="0" style="transition: opacity 0.3s;"/>
+      <rect id="step3" x="280" y="310" width="80" height="130" rx="8" fill="#22c55e40" opacity="0" style="transition: opacity 0.3s;"/>
+      <rect id="step4" x="380" y="260" width="80" height="180" rx="8" fill="#f9731640" opacity="0" style="transition: opacity 0.3s;"/>
+      <rect id="step5" x="480" y="200" width="80" height="240" rx="8" fill="#f9731640" opacity="0" style="transition: opacity 0.3s;"/>
+      <rect id="step6" x="580" y="130" width="80" height="310" rx="8" fill="#ef444440" opacity="0" style="transition: opacity 0.3s;"/>
+      <rect id="step7" x="680" y="70" width="80" height="370" rx="8" fill="#ef444440" opacity="0" style="transition: opacity 0.3s;"/>
+
+      <!-- LT1 line -->
+      <line id="testLT1" x1="60" y1="330" x2="780" y2="330" stroke="#22c55e" stroke-width="3" stroke-dasharray="10 5" opacity="0" style="transition: opacity 0.5s;"/>
+      <text id="testLT1Label" x="780" y="325" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="26" opacity="0" style="transition: opacity 0.5s;">LT1</text>
+    </svg>
+  </div>
+  <div class="overlay-text" id="testNote">Mi LT1 estaba 12 ppm por debajo de donde yo pensaba.</div>
+</div>
+
+<!-- Scene 4: Before vs After zones -->
+<div class="scene" id="scene4">
+  <h2>Mi <span class="red">"Zona 2"</span> era <span class="orange">Zona 3</span></h2>
+  <div class="ba-container">
+    <div class="ba-card ba-before" id="cardBefore">
+      <div class="ba-title" style="color:#ef4444;">ANTES</div>
+      <div class="ba-item">Z2: 130-145 ppm</div>
+      <div class="ba-item">Basado en sensaciones</div>
+      <div class="ba-item" style="color:#ef4444; font-weight:700;">= Zona 3 real</div>
+    </div>
+    <div class="ba-card ba-after" id="cardAfter">
+      <div class="ba-title" style="color:#22c55e;">DESPUES</div>
+      <div class="ba-item">Z2: 118-132 ppm</div>
+      <div class="ba-item">Basado en lactato</div>
+      <div class="ba-item" style="color:#22c55e; font-weight:700;">= Zona 2 real</div>
+    </div>
+  </div>
+  <div class="badge badge-red" id="fatBadge" style="opacity:0; transition:opacity 0.5s; margin-top:20px;">
+    Acumulaba fatiga sin saberlo
+  </div>
+</div>
+
+<!-- Scene 5: 8 weeks result -->
+<div class="scene" id="scene5">
+  <h2 style="margin-bottom:30px;"><span class="green">8 semanas</span> con zonas correctas</h2>
+  <div class="result-item" id="r1"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Mejor recuperacion</div>
+  <div class="result-item" id="r2"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Mas frescura</div>
+  <div class="result-item" id="r3"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Sesiones de calidad cuando toca</div>
+  <div class="result-item" id="r4"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Por fin progresion real</div>
+  <div class="badge badge-green" id="resultBadge" style="opacity:0; transition:opacity 0.5s; margin-top:30px; font-size:40px;">
+    El cambio fue inmediato
+  </div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Tu primer paso:<br>un test de lactato</h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Haz tu primer analisis<br>Link en bio
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 50000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 3000 },
+  { id: 'scene2', start: 3000, end: 10000 },
+  { id: 'scene3', start: 10000, end: 24000 },
+  { id: 'scene4', start: 24000, end: 32000 },
+  { id: 'scene5', start: 32000, end: 45000 },
+  { id: 'scene6', start: 45000, end: 50000 },
+];
+
+const events = [
+  { time: 300, action: () => { document.getElementById('hook1').classList.add('show'); }},
+
+  { time: 3500, action: () => { document.getElementById('tl1').classList.add('show'); }},
+  { time: 5000, action: () => { document.getElementById('tl2').classList.add('show'); }},
+  { time: 6500, action: () => { document.getElementById('tl3').classList.add('show'); }},
+
+  { time: 11000, action: () => { document.getElementById('step1').style.opacity = '1'; }},
+  { time: 11500, action: () => { document.getElementById('step2').style.opacity = '1'; }},
+  { time: 12000, action: () => { document.getElementById('step3').style.opacity = '1'; }},
+  { time: 12500, action: () => { document.getElementById('step4').style.opacity = '1'; }},
+  { time: 13000, action: () => { document.getElementById('step5').style.opacity = '1'; }},
+  { time: 13500, action: () => { document.getElementById('step6').style.opacity = '1'; }},
+  { time: 14000, action: () => { document.getElementById('step7').style.opacity = '1'; }},
+  { time: 16000, action: () => {
+    document.getElementById('testLT1').style.opacity = '1';
+    document.getElementById('testLT1Label').style.opacity = '1';
+  }},
+  { time: 18000, action: () => { document.getElementById('testNote').classList.add('show'); }},
+
+  { time: 24500, action: () => { document.getElementById('cardBefore').classList.add('show'); }},
+  { time: 26000, action: () => { document.getElementById('cardAfter').classList.add('show'); }},
+  { time: 28000, action: () => { document.getElementById('fatBadge').style.opacity = '1'; }},
+
+  { time: 32500, action: () => { document.getElementById('r1').classList.add('show'); }},
+  { time: 34000, action: () => { document.getElementById('r2').classList.add('show'); }},
+  { time: 35500, action: () => { document.getElementById('r3').classList.add('show'); }},
+  { time: 37000, action: () => { document.getElementById('r4').classList.add('show'); }},
+  { time: 39000, action: () => { document.getElementById('resultBadge').style.opacity = '1'; }},
+
+  { time: 45500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 46500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

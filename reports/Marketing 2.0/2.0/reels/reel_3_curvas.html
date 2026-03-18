@@ -1,0 +1,188 @@
+<!--
+VOICEOVER SCRIPT (30s):
+[0-4s] "3 atletas. Mismo VO2max. Mismo ritmo de carrera."
+[4-12s] "Pero mira sus curvas de lactato. Completamente distintas. El diesel sube tarde. El explosivo sube pronto. El equilibrado, en medio."
+[12-18s] "El diesel: bloque threshold. El explosivo: bloque aerobic capacity. El equilibrado: depende del objetivo."
+[18-24s] "Mismos números. Planes completamente distintos. La curva lo decide todo."
+[24-28s] "PeakAerobic lee tu curva y prescribe el bloque correcto automáticamente."
+[28-30s] "Enlace en bio."
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>3 atletas, 3 curvas, 3 planes</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;background:#0e1e24;overflow:hidden;font-family:'Source Sans 3',sans-serif;color:#fff;position:relative}
+.scene{position:absolute;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.5s ease;padding:60px}
+.scene.active{opacity:1}
+h1{font-family:'Space Grotesk',sans-serif;font-size:82px;font-weight:700;text-align:center;line-height:1.1}
+h2{font-family:'Space Grotesk',sans-serif;font-size:64px;font-weight:700;text-align:center;line-height:1.15}
+p{font-family:'Source Sans 3',sans-serif;font-size:44px;text-align:center;line-height:1.4;color:#ffffffcc}
+.accent{color:#d26a36}
+.green{color:#22c55e}
+.red{color:#ef4444}
+.blue{color:#3b82f6}
+.progress-bar{position:absolute;bottom:0;left:0;height:8px;background:#d26a36;z-index:100}
+.watermark{position:absolute;top:60px;right:60px;font-family:'Space Grotesk',sans-serif;font-size:32px;color:#d26a3660;z-index:100}
+.stat-row{display:flex;gap:40px;margin:30px 0}
+.stat-box{background:#ffffff08;border:2px solid #ffffff20;border-radius:20px;padding:40px;text-align:center;flex:1}
+.stat-num{font-family:'Space Grotesk',sans-serif;font-size:80px;font-weight:700;color:#d26a36}
+.stat-label{font-size:34px;color:#ffffff80;margin-top:10px}
+.plan-card{background:#ffffff08;border-radius:20px;padding:40px 50px;margin:18px 0;width:100%;display:flex;align-items:center;gap:30px}
+.plan-dot{width:28px;height:28px;border-radius:50%;flex-shrink:0}
+.plan-text{font-size:42px;font-weight:600}
+.plan-block{font-family:'Space Grotesk',sans-serif;font-size:36px;padding:10px 28px;border-radius:30px;margin-left:auto;flex-shrink:0}
+.ref{font-size:30px;color:#ffffff50;margin-top:20px;font-style:italic}
+.cta-btn{display:inline-block;padding:28px 80px;background:#d26a36;border-radius:60px;font-family:'Space Grotesk',sans-serif;font-size:48px;font-weight:700;color:#fff;margin-top:40px}
+svg text{font-family:'Space Grotesk',sans-serif}
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progress"></div>
+
+<!-- Scene 1: Same numbers -->
+<div class="scene" id="s1">
+  <h1>3 atletas.</h1>
+  <div style="height:50px"></div>
+  <div class="stat-row">
+    <div class="stat-box">
+      <div class="stat-num">58</div>
+      <div class="stat-label">VO2max</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">4:15</div>
+      <div class="stat-label">min/km</div>
+    </div>
+  </div>
+  <div style="height:30px"></div>
+  <h2>Mismo VO2max.<br>Mismo ritmo.</h2>
+</div>
+
+<!-- Scene 2: 3 curves -->
+<div class="scene" id="s2">
+  <h2 style="margin-bottom:30px">3 curvas <span class="accent">distintas</span></h2>
+  <svg width="960" height="700" viewBox="0 0 960 700">
+    <defs>
+      <linearGradient id="gd" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#22c55e" stop-opacity="0.15"/>
+        <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="ge" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#ef4444" stop-opacity="0.15"/>
+        <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.15"/>
+        <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <!-- Axes -->
+    <line x1="80" y1="600" x2="900" y2="600" stroke="#ffffff20" stroke-width="2"/>
+    <line x1="80" y1="50" x2="80" y2="600" stroke="#ffffff20" stroke-width="2"/>
+    <text x="490" y="660" fill="#ffffff60" font-size="28" text-anchor="middle">Intensidad (velocidad)</text>
+    <text x="40" y="330" fill="#ffffff60" font-size="28" text-anchor="middle" transform="rotate(-90,40,330)">[Lactato] mmol/L</text>
+    <!-- Y axis labels -->
+    <text x="65" y="600" fill="#ffffff40" font-size="22" text-anchor="end">1</text>
+    <text x="65" y="460" fill="#ffffff40" font-size="22" text-anchor="end">3</text>
+    <text x="65" y="320" fill="#ffffff40" font-size="22" text-anchor="end">5</text>
+    <text x="65" y="180" fill="#ffffff40" font-size="22" text-anchor="end">7</text>
+    <text x="65" y="80" fill="#ffffff40" font-size="22" text-anchor="end">9</text>
+    <!-- Diesel: flat then steep late -->
+    <path d="M100,580 Q250,570 400,560 Q550,540 650,480 Q750,350 850,100" fill="none" stroke="#22c55e" stroke-width="5"/>
+    <path d="M100,580 Q250,570 400,560 Q550,540 650,480 Q750,350 850,100 L850,600 L100,600 Z" fill="url(#gd)"/>
+    <!-- Explosive: steep early -->
+    <path d="M100,560 Q200,500 300,380 Q400,250 500,160 Q600,100 750,70 L850,60" fill="none" stroke="#ef4444" stroke-width="5"/>
+    <path d="M100,560 Q200,500 300,380 Q400,250 500,160 Q600,100 750,70 L850,60 L850,600 L100,600 Z" fill="url(#ge)"/>
+    <!-- Balanced -->
+    <path d="M100,575 Q250,555 380,510 Q500,420 620,280 Q740,160 850,80" fill="none" stroke="#3b82f6" stroke-width="5"/>
+    <path d="M100,575 Q250,555 380,510 Q500,420 620,280 Q740,160 850,80 L850,600 L100,600 Z" fill="url(#gb)"/>
+    <!-- Legend -->
+    <circle cx="200" cy="80" r="12" fill="#22c55e"/>
+    <text x="225" y="90" fill="#22c55e" font-size="32">Diesel</text>
+    <circle cx="420" cy="80" r="12" fill="#ef4444"/>
+    <text x="445" y="90" fill="#ef4444" font-size="32">Explosivo</text>
+    <circle cx="680" cy="80" r="12" fill="#3b82f6"/>
+    <text x="705" y="90" fill="#3b82f6" font-size="32">Equilibrado</text>
+  </svg>
+  <p class="ref">VLamax alta vs baja — Mader 2003, Olbrecht 2000</p>
+</div>
+
+<!-- Scene 3: Different plans -->
+<div class="scene" id="s3">
+  <h2 style="margin-bottom:40px">Cada curva = <span class="accent">un plan</span></h2>
+  <div class="plan-card">
+    <div class="plan-dot" style="background:#22c55e"></div>
+    <span class="plan-text">Diesel</span>
+    <span class="plan-block" style="background:#22c55e20;color:#22c55e">Threshold</span>
+  </div>
+  <div class="plan-card">
+    <div class="plan-dot" style="background:#ef4444"></div>
+    <span class="plan-text">Explosivo</span>
+    <span class="plan-block" style="background:#ef444420;color:#ef4444">Aerobic Capacity</span>
+  </div>
+  <div class="plan-card">
+    <div class="plan-dot" style="background:#3b82f6"></div>
+    <span class="plan-text">Equilibrado</span>
+    <span class="plan-block" style="background:#3b82f620;color:#3b82f6">Depende del objetivo</span>
+  </div>
+  <p style="margin-top:50px;font-size:38px;color:#ffffff60">Olbrecht — The Science of Winning</p>
+</div>
+
+<!-- Scene 4: Same numbers different plans -->
+<div class="scene" id="s4">
+  <h1>Mismos números.</h1>
+  <div style="height:40px"></div>
+  <h1>Planes<br><span class="accent">completamente</span><br>distintos.</h1>
+  <div style="height:50px"></div>
+  <h2 style="font-size:56px;color:#ffffff80">La curva lo decide.</h2>
+</div>
+
+<!-- Scene 5: PeakAerobic -->
+<div class="scene" id="s5">
+  <svg width="200" height="200" viewBox="0 0 200 200" style="margin-bottom:40px">
+    <circle cx="100" cy="100" r="90" fill="none" stroke="#d26a36" stroke-width="6"/>
+    <text x="100" y="115" fill="#d26a36" font-size="48" text-anchor="middle" font-weight="700">PA</text>
+  </svg>
+  <h2><span class="accent">PeakAerobic</span> lee<br>tu curva y prescribe<br>el bloque correcto.</h2>
+  <p style="margin-top:40px">Automáticamente.<br>Basado en ciencia.</p>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="s6">
+  <h1 style="font-size:72px">Tu curva.<br>Tu plan.<br><span class="accent">Tu resultado.</span></h1>
+  <div class="cta-btn">Enlace en bio</div>
+  <p style="margin-top:40px;font-size:36px;color:#ffffff60">@peakaerobic</p>
+</div>
+
+<script>
+const DURATION=30000;
+const scenes=[
+  {id:'s1',start:0,end:4000},
+  {id:'s2',start:4000,end:12000},
+  {id:'s3',start:12000,end:18000},
+  {id:'s4',start:18000,end:24000},
+  {id:'s5',start:24000,end:28000},
+  {id:'s6',start:28000,end:30000}
+];
+let startTime=null;
+function tick(now){
+  if(!startTime)startTime=now;
+  const elapsed=now-startTime;
+  const progress=Math.min(elapsed/DURATION,1);
+  document.getElementById('progress').style.width=(progress*100)+'%';
+  scenes.forEach(s=>{
+    const el=document.getElementById(s.id);
+    if(elapsed>=s.start&&elapsed<s.end){el.classList.add('active')}
+    else{el.classList.remove('active')}
+  });
+  if(elapsed<DURATION)requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

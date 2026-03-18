@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El calentamiento que necesitas antes de tu test de lactato — PeakAerobic</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide {
+    width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .slide-number {
+    position: absolute; top: 40px; right: 50px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; font-weight: 500; color: rgba(247,246,244,0.35); z-index: 10;
+  }
+  .progress-dots {
+    position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 10;
+  }
+  .progress-dots .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute; bottom: 44px; right: 50px; text-align: right; z-index: 10;
+  }
+  .watermark .brand {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+    font-size: 16px; color: rgba(210,106,54,0.35);
+  }
+  .watermark .sub {
+    font-family: 'Source Sans 3', sans-serif; font-weight: 300;
+    font-size: 11px; color: rgba(210,106,54,0.25); margin-top: 1px;
+  }
+  .tag {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    background: rgba(210,106,54,0.15); color: #d26a36;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 20px;
+  }
+  .divider {
+    width: 60px; height: 4px; background: #d26a36; border-radius: 2px;
+  }
+  .card {
+    background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px; padding: 40px 30px;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    padding: 40px 50px; border-radius: 20px; text-align: center;
+  }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+  .accent { color: #d26a36; }
+  .accent-green { color: #22c55e; }
+  .accent-orange { color: #f97316; }
+  .red { color: #ef4444; }
+  .content { padding: 80px 70px 80px 70px; height: 100%; display: flex; flex-direction: column; }
+
+  @media print {
+    .slide { page-break-after: always; }
+    body { padding: 0; gap: 0; background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; text-align: center; gap: 36px;">
+    <div class="tag">PROTOCOLO DE TEST</div>
+    <h1 style="font-size: 62px; max-width: 820px;">
+      El calentamiento que <span class="accent">NECESITAS</span> antes de tu test de lactato
+    </h1>
+    <div class="divider" style="margin: 0 auto;"></div>
+    <p style="font-size: 26px; font-weight: 300; max-width: 640px; color: rgba(247,246,244,0.7); line-height: 1.5;">
+      Lo que haces en los 15 minutos previos<br>puede cambiar tus resultados un 10%.
+    </p>
+    <svg width="500" height="100" viewBox="0 0 500 100">
+      <!-- Timeline -->
+      <line x1="40" y1="50" x2="460" y2="50" stroke="rgba(247,246,244,0.2)" stroke-width="2"/>
+      <!-- Warmup phase -->
+      <rect x="40" y="30" width="180" height="40" rx="8" fill="rgba(34,197,94,0.2)" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="130" y="55" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="14">10' CALENTAMIENTO</text>
+      <!-- Rest phase -->
+      <rect x="230" y="30" width="100" height="40" rx="8" fill="rgba(210,106,54,0.2)" stroke="#d26a36" stroke-width="1.5"/>
+      <text x="280" y="55" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="600" font-size="14">5' REPOSO</text>
+      <!-- Test start -->
+      <rect x="340" y="30" width="120" height="40" rx="8" fill="rgba(239,68,68,0.2)" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="400" y="55" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="14">TEST</text>
+      <!-- Arrows -->
+      <polygon points="220,50 230,44 230,56" fill="#22c55e"/>
+      <polygon points="330,50 340,44 340,56" fill="#d26a36"/>
+      <text x="250" y="90" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">PROTOCOLO OPTIMO</text>
+    </svg>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: Sin calentamiento = oxygen debt -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">EL PROBLEMA</div>
+    <h2 style="font-size: 42px; line-height: 1.15;">Sin calentamiento: <span class="red">oxygen debt</span> en los primeros escalones</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 320" width="940" height="340" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="280" x2="840" y2="280" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="280" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="310" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Escalon del test</text>
+        <text x="35" y="155" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 155)">Lactato (mmol/L)</text>
+
+        <!-- Cold start curve (bad) - starts high -->
+        <polyline points="150,200 250,210 350,220 450,210 530,180 610,140 700,90 780,50"
+          fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+        <text x="160" y="192" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="14">Sin calentar</text>
+        <!-- Elevated first points annotation -->
+        <circle cx="150" cy="200" r="6" fill="#ef4444" stroke="#0e1e24" stroke-width="2"/>
+        <circle cx="250" cy="210" r="6" fill="#ef4444" stroke="#0e1e24" stroke-width="2"/>
+        <rect x="155" y="165" width="140" height="25" rx="6" fill="rgba(239,68,68,0.15)"/>
+        <text x="225" y="182" text-anchor="middle" fill="#ef4444" font-family="Source Sans 3" font-weight="600" font-size="12">LACTATO INFLADO</text>
+
+        <!-- Normal curve (good) - starts low -->
+        <polyline points="150,258 250,254 350,248 450,234 530,200 610,150 700,95 780,50"
+          fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+        <text x="160" y="272" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="14">Con calentamiento</text>
+        <circle cx="150" cy="258" r="6" fill="#22c55e" stroke="#0e1e24" stroke-width="2"/>
+        <circle cx="250" cy="254" r="6" fill="#22c55e" stroke="#0e1e24" stroke-width="2"/>
+
+        <!-- Y labels -->
+        <text x="75" y="268" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">0.5</text>
+        <text x="75" y="218" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">1.5</text>
+        <text x="75" y="168" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">2.5</text>
+        <text x="75" y="118" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">3.5</text>
+        <text x="75" y="68" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">4.5</text>
+
+        <!-- Difference arrow -->
+        <line x1="200" y1="205" x2="200" y2="256" stroke="#f97316" stroke-width="2"/>
+        <line x1="194" y1="205" x2="206" y2="205" stroke="#f97316" stroke-width="2"/>
+        <line x1="194" y1="256" x2="206" y2="256" stroke="#f97316" stroke-width="2"/>
+        <text x="220" y="235" fill="#f97316" font-family="Space Grotesk" font-weight="700" font-size="15">+0.8 mmol</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px;">
+        <p style="font-size: 20px; font-weight: 300; line-height: 1.6; font-style: italic; color: rgba(247,246,244,0.8);">
+          "A prior warm-up significantly <strong>reduces the oxygen deficit</strong> at the onset of exercise and stabilizes lactate responses during incremental protocols."
+        </p>
+        <p style="font-size: 16px; font-weight: 600; color: #d26a36; margin-top: 12px;">
+          — Bishop, D. (2003). <em>Sports Medicine</em>
+        </p>
+      </div>
+      <p style="font-size: 22px; font-weight: 400; text-align: center; color: rgba(247,246,244,0.7);">
+        Los primeros escalones sin calentar producen lactato por <span class="red" style="font-weight: 700;">deuda de oxigeno</span>, no por intensidad real.
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Bishop, D. (2003). Warm Up I: Potential mechanisms and the effects of passive warm up on exercise performance. <em>Sports Medicine</em>, 33(6), 439-454.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: Protocolo optimo -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">PROTOCOLO OPTIMO</div>
+    <h2 style="font-size: 42px; line-height: 1.15;"><span class="accent-green">10 min</span> suave + <span class="accent">5 min</span> reposo</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 300" width="940" height="320" style="align-self: center;">
+        <!-- Timeline -->
+        <line x1="80" y1="150" x2="820" y2="150" stroke="rgba(247,246,244,0.2)" stroke-width="2"/>
+
+        <!-- Phase 1: Warmup -->
+        <rect x="80" y="80" width="280" height="140" rx="16" fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.3)" stroke-width="2"/>
+        <text x="220" y="115" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="24">CALENTAMIENTO</text>
+        <text x="220" y="145" text-anchor="middle" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="17">10 minutos</text>
+        <text x="220" y="172" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">Intensidad MUY baja</text>
+        <text x="220" y="195" text-anchor="middle" fill="rgba(34,197,94,0.6)" font-family="Source Sans 3" font-weight="500" font-size="14">Por debajo de LT1</text>
+
+        <!-- Phase 2: Rest -->
+        <rect x="380" y="80" width="180" height="140" rx="16" fill="rgba(210,106,54,0.08)" stroke="rgba(210,106,54,0.3)" stroke-width="2"/>
+        <text x="470" y="115" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="24">REPOSO</text>
+        <text x="470" y="145" text-anchor="middle" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="17">5 minutos</text>
+        <text x="470" y="172" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">Parado o caminando</text>
+        <text x="470" y="195" text-anchor="middle" fill="rgba(210,106,54,0.6)" font-family="Source Sans 3" font-weight="500" font-size="14">Lactato vuelve a baseline</text>
+
+        <!-- Phase 3: Test -->
+        <rect x="580" y="80" width="240" height="140" rx="16" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.3)" stroke-width="2"/>
+        <text x="700" y="115" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="24">TEST</text>
+        <text x="700" y="145" text-anchor="middle" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="17">Protocolo incremental</text>
+        <text x="700" y="172" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">Escalones de 3-5 min</text>
+        <text x="700" y="195" text-anchor="middle" fill="rgba(239,68,68,0.6)" font-family="Source Sans 3" font-weight="500" font-size="14">Datos limpios desde E1</text>
+
+        <!-- Arrows -->
+        <polygon points="360,150 370,144 370,156" fill="#22c55e"/>
+        <polygon points="560,150 570,144 570,156" fill="#d26a36"/>
+
+        <!-- Bottom note -->
+        <text x="450" y="260" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="15">Faude et al. (2009): protocolo estandarizado para tests de lactato incrementales</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          <span class="accent-green" style="font-weight: 700;">Objetivo del calentamiento</span>: activar la cadena de transporte de electrones mitocondrial sin generar acumulacion de lactato. Las enzimas oxidativas necesitan "arrancar".
+        </p>
+      </div>
+      <p style="font-size: 20px; font-weight: 300; text-align: center; color: rgba(247,246,244,0.6);">
+        Demasiado corto = oxygen debt. Demasiado largo = fatiga periferica.
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Faude, O., Kindermann, W. & Meyer, T. (2009). <em>Sports Medicine</em>, 39(6), 469-490.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: Error #1 — calentar demasiado fuerte -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">ERROR #1</div>
+    <h2 style="font-size: 42px; line-height: 1.15;">Calentar <span class="red">demasiado fuerte</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 300" width="940" height="320" style="align-self: center;">
+        <!-- Timeline showing lactate behavior -->
+        <line x1="80" y1="260" x2="820" y2="260" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="450" y="290" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Tiempo</text>
+
+        <!-- Y axis -->
+        <line x1="80" y1="40" x2="80" y2="260" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="25" y="150" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 25 150)">Lactato</text>
+
+        <!-- Warmup too hard: lactate spikes -->
+        <polyline points="100,240 160,230 220,180 280,130 300,120"
+          fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+        <text x="200" y="105" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="16">Calentamiento Z3!</text>
+        <text x="200" y="125" fill="rgba(239,68,68,0.6)" font-family="Source Sans 3" font-size="13">Lactato sube a 3+ mmol</text>
+
+        <!-- Rest period - slow clearance -->
+        <polyline points="300,120 340,135 380,150 420,165 460,175"
+          fill="none" stroke="#f97316" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 4"/>
+        <rect x="330" y="60" width="110" height="28" rx="8" fill="rgba(249,115,22,0.15)"/>
+        <text x="385" y="80" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="600" font-size="13">5' REPOSO</text>
+        <text x="385" y="145" text-anchor="middle" fill="rgba(249,115,22,0.6)" font-family="Source Sans 3" font-size="13">Aun elevado!</text>
+
+        <!-- Test starts with elevated baseline -->
+        <polyline points="460,175 520,180 580,190 640,195 700,185 760,150 800,100"
+          fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+        <rect x="460" y="195" width="80" height="25" rx="6" fill="rgba(239,68,68,0.15)"/>
+        <text x="500" y="212" text-anchor="middle" fill="#ef4444" font-family="Source Sans 3" font-weight="600" font-size="12">TEST EMPIEZA</text>
+
+        <!-- Correct baseline reference -->
+        <line x1="460" y1="235" x2="800" y2="235" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <text x="810" y="238" fill="#22c55e" font-family="Source Sans 3" font-size="12">baseline real</text>
+
+        <!-- Gap annotation -->
+        <line x1="475" y1="175" x2="475" y2="235" stroke="#f97316" stroke-width="2"/>
+        <text x="510" y="210" fill="#f97316" font-family="Space Grotesk" font-weight="700" font-size="15">+1.2 mmol</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06);">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          Si calientas en Z3, acumulas lactato que tarda <span class="red" style="font-weight: 700;">15-20 minutos</span> en eliminarse completamente. 5 minutos de reposo no son suficientes.
+        </p>
+      </div>
+      <p style="font-size: 20px; font-weight: 300; text-align: center; color: rgba(247,246,244,0.6);">
+        El half-life del aclaramiento de lactato: ~15 min (Menzies et al. 2010).
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Menzies, P. et al. (2010). Blood lactate clearance during active recovery after an intense running bout. <em>J Sports Sci</em>, 28(9), 975-982.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: Error #2 — no calentar nada -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">ERROR #2</div>
+    <h2 style="font-size: 42px; line-height: 1.15;">No calentar <span class="red">nada</span>: el "cold start"</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 340" width="940" height="360" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="290" x2="840" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="40" x2="90" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="325" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Escalon del test</text>
+
+        <!-- Y labels -->
+        <text x="75" y="278" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">0.5</text>
+        <text x="75" y="228" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">1.5</text>
+        <text x="75" y="178" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">2.5</text>
+        <text x="75" y="128" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">3.5</text>
+        <text x="75" y="78" text-anchor="end" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">4.5</text>
+
+        <!-- Without warmup: initial bump then normal -->
+        <polyline points="140,218 230,228 320,238 410,228 500,198 590,148 680,90 770,50"
+          fill="none" stroke="#ef4444" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="140" cy="218" r="8" fill="#ef4444" stroke="#0e1e24" stroke-width="2"/>
+        <circle cx="230" cy="228" r="8" fill="#ef4444" stroke="#0e1e24" stroke-width="2"/>
+        <text x="180" y="205" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="16">Cold start</text>
+
+        <!-- With warmup: clean from beginning -->
+        <polyline points="140,270 230,266 320,260 410,248 500,218 590,160 680,98 770,55"
+          fill="none" stroke="#22c55e" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="140" cy="270" r="8" fill="#22c55e" stroke="#0e1e24" stroke-width="2"/>
+        <circle cx="230" cy="266" r="8" fill="#22c55e" stroke="#0e1e24" stroke-width="2"/>
+        <text x="180" y="286" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="600" font-size="14">Calentado</text>
+
+        <!-- LT1 detection zone -->
+        <rect x="250" y="230" width="200" height="40" rx="8" fill="rgba(249,115,22,0.1)"/>
+        <text x="350" y="255" text-anchor="middle" fill="#f97316" font-family="Source Sans 3" font-weight="600" font-size="13">ZONA CRITICA: deteccion de LT1</text>
+
+        <!-- False LT1 marker (cold start) -->
+        <line x1="320" y1="50" x2="320" y2="290" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <text x="305" y="55" text-anchor="end" fill="#ef4444" font-family="Source Sans 3" font-weight="600" font-size="12">LT1 falso</text>
+
+        <!-- Real LT1 marker -->
+        <line x1="410" y1="50" x2="410" y2="290" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <text x="425" y="55" fill="#22c55e" font-family="Source Sans 3" font-weight="600" font-size="12">LT1 real</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px;">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          Sin calentamiento, el primer escalon refleja un <span class="red" style="font-weight: 700;">"cold start"</span> metabolico. Los algoritmos de deteccion pueden confundir esta subida inicial con el punto de inflexion real (LT1).
+        </p>
+      </div>
+      <p style="font-size: 20px; font-weight: 300; text-align: center; color: rgba(247,246,244,0.6);">
+        El resultado: un LT1 detectado a <span class="accent" style="font-weight: 600;">menor intensidad de la real</span>.
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Bishop, D. (2003). Warm Up II: Performance changes following active warm up. <em>Sports Medicine</em>, 33(7), 483-498.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: Impacto en resultados -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">IMPACTO REAL</div>
+    <h2 style="font-size: 42px; line-height: 1.15;">Un mal calentamiento puede mover tu LT1 <span class="red">+-10%</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 32px; text-align: center; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06);">
+          <svg width="80" height="80" viewBox="0 0 80 80" style="margin-bottom: 16px;">
+            <circle cx="40" cy="40" r="35" fill="none" stroke="#ef4444" stroke-width="3"/>
+            <text x="40" y="35" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="14">LT1</text>
+            <text x="40" y="55" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="18">-10%</text>
+          </svg>
+          <h3 style="font-size: 20px; color: #ef4444; margin-bottom: 8px;">Sin calentamiento</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            LT1 detectado a menor intensidad. Tus zonas de base se <strong>comprimen</strong>. Entrenas demasiado suave.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 32px; text-align: center; border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.06);">
+          <svg width="80" height="80" viewBox="0 0 80 80" style="margin-bottom: 16px;">
+            <circle cx="40" cy="40" r="35" fill="none" stroke="#f97316" stroke-width="3"/>
+            <text x="40" y="35" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="700" font-size="14">LT1</text>
+            <text x="40" y="55" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-weight="700" font-size="18">+5%</text>
+          </svg>
+          <h3 style="font-size: 20px; color: #f97316; margin-bottom: 8px;">Calentamiento fuerte</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Baseline elevado enmascara LT1. Parece que tu umbral es <strong>mas alto de lo real</strong>. Entrenas demasiado fuerte.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 32px; text-align: center; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+          <svg width="80" height="80" viewBox="0 0 80 80" style="margin-bottom: 16px;">
+            <circle cx="40" cy="40" r="35" fill="none" stroke="#22c55e" stroke-width="3"/>
+            <polyline points="20,42 35,55 60,28" fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h3 style="font-size: 20px; color: #22c55e; margin-bottom: 8px;">Calentamiento correcto</h3>
+          <p style="font-size: 17px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.7);">
+            Baseline estable, curva limpia. LT1 y LT2 se detectan con <strong>maxima precision</strong>.
+          </p>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 36px;">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          Para un corredor con LT1 en 5:00/km, un error del 10% = diferencia entre <span class="accent-green" style="font-weight: 700;">5:00</span> y <span class="red" style="font-weight: 700;">5:30</span>/km. Eso cambia <strong>completamente</strong> la prescripcion de entrenamiento.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Faude, O., Kindermann, W. & Meyer, T. (2009). <em>Sports Medicine</em>, 39(6), 469-490.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; gap: 40px;">
+    <div class="cta-box" style="max-width: 800px; width: 100%;">
+      <h2 style="font-size: 44px; color: #f7f6f4; margin-bottom: 20px; line-height: 1.2;">
+        Protocolo de test correcto + analisis automatico
+      </h2>
+      <div style="width: 60px; height: 4px; background: rgba(247,246,244,0.4); border-radius: 2px; margin: 0 auto 24px;"></div>
+      <p style="font-size: 22px; font-weight: 300; color: rgba(247,246,244,0.9); line-height: 1.5; margin-bottom: 28px;">
+        PeakAerobic te guia con el protocolo de calentamiento correcto y <strong>detecta anomalias</strong> en tu curva cuando el baseline esta alterado. Datos limpios = decisiones precisas.
+      </p>
+      <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <div style="background: rgba(247,246,244,0.15); padding: 12px 28px; border-radius: 10px;">
+          <p style="font-size: 18px; font-weight: 600; color: #f7f6f4;">Guia de calentamiento pre-test</p>
+        </div>
+        <div style="background: rgba(247,246,244,0.15); padding: 12px 28px; border-radius: 10px;">
+          <p style="font-size: 18px; font-weight: 600; color: #f7f6f4;">Deteccion de baseline alterado</p>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 32px; align-items: center;">
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #22c55e;">10'</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Calentamiento</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #d26a36;">5'</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Reposo</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #ef4444;">100%</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Precision</p>
+      </div>
+    </div>
+    <p style="font-size: 20px; font-weight: 500; color: #d26a36;">peakaerobic.com</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

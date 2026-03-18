@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carousel VS — PeakAerobic vs TrainingPeaks</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide { width: 1080px; height: 1080px; position: relative; overflow: hidden; background: #0e1e24; color: #f7f6f4; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 80px; }
+  .slide-number { position: absolute; top: 40px; right: 50px; font-family: 'Space Grotesk', sans-serif; font-size: 20px; color: rgba(247,246,244,0.35); font-weight: 500; letter-spacing: 2px; }
+  .progress-dots { position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.2); }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark { position: absolute; bottom: 44px; right: 50px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; color: rgba(210,106,54,0.35); font-weight: 600; letter-spacing: 1px; }
+  .watermark span { font-weight: 400; font-size: 11px; display: block; letter-spacing: 0.5px; color: rgba(210,106,54,0.25); }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; line-height: 1.15; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; line-height: 1.2; }
+  p, li { font-family: 'Source Sans 3', sans-serif; line-height: 1.5; }
+  .accent { color: #d26a36; }
+  .accent-green { color: #22c55e; }
+  .accent-orange { color: #f97316; }
+  .tag { display: inline-block; padding: 8px 20px; border-radius: 6px; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 500; background: rgba(210,106,54,0.15); color: #d26a36; margin-bottom: 20px; letter-spacing: 1px; }
+  .divider { width: 60px; height: 4px; background: #d26a36; border-radius: 2px; margin: 24px 0; }
+  .cta-box { background: linear-gradient(135deg, #d26a36, #e07b44); padding: 40px 50px; border-radius: 20px; text-align: center; max-width: 820px; }
+  .cta-box h2 { color: #fff; }
+  .cta-box p { color: rgba(255,255,255,0.85); }
+  svg text { font-family: 'Source Sans 3', sans-serif; }
+  @media print { body { padding: 0; gap: 0; background: white; } .slide { page-break-after: always; margin: 0; } }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide" style="background: linear-gradient(160deg, #0e1e24 0%, #132a33 50%, #0e1e24 100%);">
+  <div class="slide-number">01 / 07</div>
+  <div style="text-align: center; position: relative; z-index: 1;">
+    <div class="tag">COMPARATIVA</div>
+    <h1 style="font-size: 58px; margin-bottom: 30px;"><span class="accent">PeakAerobic</span><br>vs TrainingPeaks</h1>
+    <div class="divider" style="margin: 24px auto;"></div>
+    <p style="font-size: 28px; color: rgba(247,246,244,0.6); max-width: 650px;">
+      No son competidores.<br>Son complementarios. Pero...
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 2: What each does -->
+<div class="slide">
+  <div class="slide-number">02 / 07</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 42px; margin-bottom: 40px;">Que hace cada uno</h2>
+    <div style="display: flex; gap: 40px; justify-content: center;">
+      <div style="width: 400px; background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.15); border-radius: 16px; padding: 30px;">
+        <h3 style="font-size: 26px; color: #f97316; margin-bottom: 20px; text-align: center;">TrainingPeaks</h3>
+        <div style="text-align: left;">
+          <p style="font-size: 19px; color: rgba(247,246,244,0.6); margin-bottom: 12px;">&#10003; Calendario de entrenamiento</p>
+          <p style="font-size: 19px; color: rgba(247,246,244,0.6); margin-bottom: 12px;">&#10003; TSS / CTL / ATL (PMC)</p>
+          <p style="font-size: 19px; color: rgba(247,246,244,0.6); margin-bottom: 12px;">&#10003; Sync con todos los dispositivos</p>
+          <p style="font-size: 19px; color: rgba(247,246,244,0.6); margin-bottom: 12px;">&#10003; Marketplace de planes</p>
+          <p style="font-size: 19px; color: rgba(247,246,244,0.6); margin-bottom: 12px;">&#10003; Workflow coach-atleta</p>
+          <p style="font-size: 19px; color: rgba(247,246,244,0.35); margin-bottom: 12px;">&#10007; Analisis de lactato</p>
+          <p style="font-size: 19px; color: rgba(247,246,244,0.35);">&#10007; Periodizacion inteligente</p>
+        </div>
+      </div>
+      <div style="width: 400px; background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.15); border-radius: 16px; padding: 30px;">
+        <h3 style="font-size: 26px; color: #22c55e; margin-bottom: 20px; text-align: center;">PeakAerobic</h3>
+        <div style="text-align: left;">
+          <p style="font-size: 19px; color: rgba(247,246,244,0.6); margin-bottom: 12px;">&#10003; Analisis de lactato (3 metodos)</p>
+          <p style="font-size: 19px; color: rgba(247,246,244,0.6); margin-bottom: 12px;">&#10003; Umbrales dinamicos</p>
+          <p style="font-size: 19px; color: rgba(247,246,244,0.6); margin-bottom: 12px;">&#10003; Periodizacion Olbrecht</p>
+          <p style="font-size: 19px; color: rgba(247,246,244,0.6); margin-bottom: 12px;">&#10003; VO2max + VLamax proxy</p>
+          <p style="font-size: 19px; color: rgba(247,246,244,0.6); margin-bottom: 12px;">&#10003; Push workouts a Garmin</p>
+          <p style="font-size: 19px; color: rgba(247,246,244,0.6); margin-bottom: 12px;">&#10003; Score de confianza</p>
+          <p style="font-size: 19px; color: rgba(247,246,244,0.6);">&#10003; Prediccion de carrera</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 3: The gap TP doesn't fill -->
+<div class="slide">
+  <div class="slide-number">03 / 07</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 42px; margin-bottom: 40px;">El agujero que TrainingPeaks<br><span class="accent-orange">no llena</span></h2>
+    <svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg" style="width: 780px;">
+      <!-- Pipeline with gap -->
+      <rect x="30" y="80" width="180" height="100" rx="14" fill="rgba(34,197,94,0.08)" stroke="#22c55e" stroke-width="2"/>
+      <text x="120" y="120" fill="#22c55e" font-size="18" text-anchor="middle" font-weight="600">Test de lactato</text>
+      <text x="120" y="145" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Datos crudos</text>
+      <!-- Arrow -->
+      <path d="M 215 130 L 260 130" stroke="rgba(247,246,244,0.15)" stroke-width="2"/>
+      <!-- GAP -->
+      <rect x="265" y="60" width="270" height="140" rx="14" fill="rgba(239,68,68,0.06)" stroke="#ef4444" stroke-width="2" stroke-dasharray="8 5"/>
+      <text x="400" y="110" fill="#ef4444" font-size="24" text-anchor="middle" font-weight="700">GAP</text>
+      <text x="400" y="140" fill="rgba(247,246,244,0.4)" font-size="16" text-anchor="middle">Analisis de lactato</text>
+      <text x="400" y="165" fill="rgba(247,246,244,0.4)" font-size="16" text-anchor="middle">Deteccion de umbrales</text>
+      <text x="400" y="188" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Periodizacion basada en fisiologia</text>
+      <!-- Arrow -->
+      <path d="M 540 130 L 585 130" stroke="rgba(247,246,244,0.15)" stroke-width="2"/>
+      <!-- TP -->
+      <rect x="590" y="80" width="180" height="100" rx="14" fill="rgba(249,115,22,0.08)" stroke="#f97316" stroke-width="2"/>
+      <text x="680" y="120" fill="#f97316" font-size="18" text-anchor="middle" font-weight="600">TrainingPeaks</text>
+      <text x="680" y="145" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Calendario + TSS</text>
+      <!-- PA fills the gap -->
+      <rect x="265" y="240" width="270" height="70" rx="14" fill="rgba(34,197,94,0.1)" stroke="#22c55e" stroke-width="2"/>
+      <text x="400" y="272" fill="#22c55e" font-size="20" text-anchor="middle" font-weight="700">PeakAerobic llena este gap</text>
+      <text x="400" y="298" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Analisis + periodizacion + prescripcion</text>
+      <!-- Arrow from PA to gap -->
+      <path d="M 400 240 L 400 200" stroke="#22c55e" stroke-width="2" stroke-dasharray="5 3"/>
+      <polygon points="395,205 405,205 400,198" fill="#22c55e"/>
+    </svg>
+    <p style="font-size: 24px; margin-top: 15px; color: rgba(247,246,244,0.5);">
+      TP es el mejor <strong style="color:#f7f6f4;">calendario</strong>. Pero no sabe nada de<br><strong style="color:#d26a36;">lactato, umbrales ni fisiologia</strong>.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 4: TP forum quotes -->
+<div class="slide">
+  <div class="slide-number">04 / 07</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 42px; margin-bottom: 40px;">Lo que dicen los usuarios de TP</h2>
+    <div style="max-width: 750px; margin: 0 auto;">
+      <div style="background: rgba(249,115,22,0.06); border-left: 4px solid #f97316; border-radius: 0 14px 14px 0; padding: 28px 35px; margin-bottom: 22px; text-align: left;">
+        <p style="font-size: 21px; color: rgba(247,246,244,0.7); font-style: italic;">"Uso TrainingPeaks pero no hay forma de introducir datos de lactato y que calcule umbrales. Sigo haciendo todo en Excel."</p>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.35); margin-top: 8px;">-- TrainingPeaks Community</p>
+      </div>
+      <div style="background: rgba(249,115,22,0.06); border-left: 4px solid #f97316; border-radius: 0 14px 14px 0; padding: 28px 35px; margin-bottom: 22px; text-align: left;">
+        <p style="font-size: 21px; color: rgba(247,246,244,0.7); font-style: italic;">"Anoto mis resultados de lactato en el campo de notas de TP. Tiene que haber una forma mejor."</p>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.35); margin-top: 8px;">-- r/triathlon</p>
+      </div>
+      <div style="background: rgba(249,115,22,0.06); border-left: 4px solid #f97316; border-radius: 0 14px 14px 0; padding: 28px 35px; text-align: left;">
+        <p style="font-size: 21px; color: rgba(247,246,244,0.7); font-style: italic;">"TP es genial para el calendario pero la analitica no ha innovado en anos. Las graficas de TSS son lo mismo de siempre."</p>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.35); margin-top: 8px;">-- DC Rainmaker comentarios</p>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 5: Complementary positioning -->
+<div class="slide">
+  <div class="slide-number">05 / 07</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 42px; margin-bottom: 40px;">No es TP <span class="accent-orange">O</span> PA.<br>Es TP <span class="accent-green">+</span> PA.</h2>
+    <svg viewBox="0 0 800 340" xmlns="http://www.w3.org/2000/svg" style="width: 780px;">
+      <!-- TP circle -->
+      <circle cx="290" cy="170" r="150" fill="rgba(249,115,22,0.05)" stroke="#f97316" stroke-width="2"/>
+      <text x="210" y="120" fill="#f97316" font-size="18" text-anchor="middle" font-weight="600">TrainingPeaks</text>
+      <text x="210" y="150" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Calendario</text>
+      <text x="210" y="170" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">TSS/CTL/ATL</text>
+      <text x="210" y="190" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Device sync</text>
+      <text x="210" y="210" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Compliance</text>
+      <!-- PA circle -->
+      <circle cx="510" cy="170" r="150" fill="rgba(34,197,94,0.05)" stroke="#22c55e" stroke-width="2"/>
+      <text x="590" y="120" fill="#22c55e" font-size="18" text-anchor="middle" font-weight="600">PeakAerobic</text>
+      <text x="590" y="150" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Lactato + umbrales</text>
+      <text x="590" y="170" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Periodizacion</text>
+      <text x="590" y="190" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">VO2max / VLamax</text>
+      <text x="590" y="210" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Garmin push</text>
+      <!-- Overlap -->
+      <text x="400" y="165" fill="#d26a36" font-size="16" text-anchor="middle" font-weight="600">Zonas</text>
+      <text x="400" y="185" fill="#d26a36" font-size="16" text-anchor="middle" font-weight="600">Workouts</text>
+    </svg>
+    <div style="margin-top: 30px; background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.15); border-radius: 14px; padding: 25px 40px; max-width: 700px; margin-left: auto; margin-right: auto;">
+      <p style="font-size: 22px; color: rgba(247,246,244,0.6);">
+        <span style="color: #d26a36; font-style: italic; font-weight: 500;">"TrainingPeaks es tu calendario de entrenamiento.<br>PeakAerobic es tu cerebro de entrenamiento."</span>
+      </p>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 6: Price -->
+<div class="slide">
+  <div class="slide-number">06 / 07</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 44px; margin-bottom: 45px;">Y el precio?</h2>
+    <div style="display: flex; gap: 40px; justify-content: center;">
+      <div style="background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.15); border-radius: 18px; padding: 35px; width: 350px; text-align: center;">
+        <h3 style="font-size: 24px; color: #f97316; margin-bottom: 20px;">TrainingPeaks</h3>
+        <p style="font-size: 40px; color: #f97316; font-weight: 700; font-family: 'Space Grotesk';">$20-55</p>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.4);">/mes</p>
+        <div style="margin-top: 20px; padding: 15px; background: rgba(249,115,22,0.08); border-radius: 10px;">
+          <p style="font-size: 16px; color: rgba(247,246,244,0.4);">Atleta Premium: $134/ano<br>Coach Pro: $55/mes<br>+ $5-9/atleta/mes</p>
+        </div>
+      </div>
+      <div style="background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.15); border-radius: 18px; padding: 35px; width: 350px; text-align: center;">
+        <h3 style="font-size: 24px; color: #22c55e; margin-bottom: 20px;">PeakAerobic</h3>
+        <p style="font-size: 50px; color: #22c55e; font-weight: 700; font-family: 'Space Grotesk';">$0</p>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.4);">siempre</p>
+        <div style="margin-top: 20px; padding: 15px; background: rgba(34,197,94,0.08); border-radius: 10px;">
+          <p style="font-size: 16px; color: rgba(247,246,244,0.4);">Todo incluido<br>Sin limite de atletas<br>Sin funciones bloqueadas</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide" style="background: linear-gradient(160deg, #0e1e24 0%, #1a2e36 50%, #0e1e24 100%);">
+  <div class="slide-number">07 / 07</div>
+  <div style="text-align: center; width: 100%;">
+    <div class="cta-box">
+      <h2 style="font-size: 48px; margin-bottom: 20px;">La capa de fisiologia<br>que TP no tiene</h2>
+      <div style="width: 60px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin: 20px auto;"></div>
+      <p style="font-size: 26px; margin-top: 20px;">
+        Analisis de lactato. Periodizacion.<br>Umbrales dinamicos. Gratis.
+      </p>
+      <div style="margin-top: 40px; padding: 20px 40px; background: rgba(255,255,255,0.15); border-radius: 12px; display: inline-block;">
+        <p style="font-size: 36px; font-family: 'Space Grotesk'; font-weight: 700; color: #fff;">peakaerobic.com</p>
+      </div>
+      <p style="font-size: 24px; margin-top: 20px; color: rgba(255,255,255,0.6);">El complemento perfecto para tu TP.</p>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+</body>
+</html>

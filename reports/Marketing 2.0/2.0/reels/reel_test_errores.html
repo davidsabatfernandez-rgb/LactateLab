@@ -1,0 +1,236 @@
+<!--
+VOICEOVER SCRIPT (ESPAÑOL) — 30 segundos
+
+[0-4s] Hiciste un test de lactato. Pero cometiste ESTOS errores.
+[4-10s] Error uno: sin calentamiento previo. Error dos: escalones de menos de tres minutos. Faude 2009, Beneke 1996.
+[10-16s] Error tres: entrenamiento intenso menos de 48 horas antes. Error cuatro: comida alta en carbohidratos justo antes del test.
+[16-22s] Error cinco: usar la primera gota de sangre para la tira. Siempre descarta la primera y usa la segunda. Tanner y Gore, 2013.
+[22-27s] Un test mal hecho significa zonas mal calculadas, que significa entrenamiento equivocado. PeakAerobic detecta tests sospechosos.
+[27-30s] Enlace en bio. PeakAerobic.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>5 errores que arruinan tu test de lactato</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden;
+  font-family: 'Source Sans 3', 'Space Grotesk', sans-serif; color: #fff;
+}
+.scene {
+  position: absolute; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.5s ease; padding: 60px;
+}
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.1; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.15; }
+p { font-family: 'Source Sans 3', sans-serif; font-size: 42px; text-align: center; line-height: 1.4; margin-top: 30px; color: #ffffffcc; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f97316; }
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 8px;
+  background: #d26a36; z-index: 100; width: 0%;
+}
+.watermark {
+  position: absolute; top: 60px; right: 60px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 32px; color: #d26a3660;
+  z-index: 50;
+}
+.ref { font-size: 30px; color: #ffffff40; margin-top: 20px; font-style: italic; text-align: center; }
+svg text { font-family: 'Space Grotesk', sans-serif; }
+.cta-box {
+  border: 3px solid #d26a36; border-radius: 24px; padding: 32px 56px;
+  margin-top: 40px; text-align: center;
+}
+.cta-box h2 { font-size: 56px; color: #d26a36; }
+.cta-box p { font-size: 38px; color: #ffffffaa; margin-top: 12px; }
+.error-card {
+  display: flex; align-items: center; gap: 28px; width: 100%;
+  background: #ef444410; border: 2px solid #ef444440; border-radius: 20px;
+  padding: 28px 36px; margin-top: 24px;
+}
+.error-x {
+  min-width: 64px; height: 64px; border-radius: 50%; background: #ef444430;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; font-weight: 700; color: #ef4444;
+}
+.error-text {
+  font-size: 42px; line-height: 1.3; color: #ffffffdd; text-align: left;
+}
+.error-num {
+  font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700;
+  color: #ef4444; letter-spacing: 2px; margin-bottom: 4px;
+}
+.chain {
+  display: flex; align-items: center; gap: 20px; margin-top: 40px; flex-wrap: wrap;
+  justify-content: center;
+}
+.chain-item {
+  background: #ffffff0a; border: 2px solid #ffffff20; border-radius: 16px;
+  padding: 20px 28px; text-align: center; font-size: 36px; font-weight: 600;
+}
+.chain-arrow {
+  font-size: 48px; color: #ef4444;
+}
+.drop-visual {
+  position: relative; margin-top: 40px;
+}
+.drop {
+  width: 80px; height: 100px; background: #ef4444; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  position: relative; margin: 0 auto;
+  opacity: 0.3;
+}
+.drop.second {
+  opacity: 1; margin-top: 20px;
+}
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene 1: Hook (0-4s) -->
+<div class="scene" id="scene1">
+  <h1>Hiciste un test de lactato</h1>
+  <p style="font-size:58px; margin-top:50px;">Pero cometiste <span class="red">ESTOS</span> errores.</p>
+</div>
+
+<!-- Scene 2: Errors 1 & 2 (4-10s) -->
+<div class="scene" id="scene2">
+  <div class="error-card">
+    <div class="error-x">&#x2717;</div>
+    <div>
+      <div class="error-num">ERROR 1</div>
+      <div class="error-text">Sin <span class="red">calentamiento</span> previo</div>
+    </div>
+  </div>
+  <div class="error-card">
+    <div class="error-x">&#x2717;</div>
+    <div>
+      <div class="error-num">ERROR 2</div>
+      <div class="error-text">Escalones de <span class="red">&lt;3 minutos</span></div>
+    </div>
+  </div>
+  <p style="margin-top:50px; font-size:38px; color:#ffffff90;">El lactato necesita tiempo para estabilizarse.<br>Mínimo 3 minutos por escalón.</p>
+  <p class="ref">Faude et al. 2009; Beneke et al. 1996</p>
+</div>
+
+<!-- Scene 3: Errors 3 & 4 (10-16s) -->
+<div class="scene" id="scene3">
+  <div class="error-card">
+    <div class="error-x">&#x2717;</div>
+    <div>
+      <div class="error-num">ERROR 3</div>
+      <div class="error-text">Entrenamiento intenso <span class="red">&lt;48h</span> antes</div>
+    </div>
+  </div>
+  <div class="error-card">
+    <div class="error-x">&#x2717;</div>
+    <div>
+      <div class="error-num">ERROR 4</div>
+      <div class="error-text">Comida alta en <span class="red">CHO</span> pre-test</div>
+    </div>
+  </div>
+  <p style="margin-top:50px; font-size:38px; color:#ffffff90;">La fatiga residual eleva tu baseline.<br>Los carbohidratos alteran la cinética del lactato.</p>
+</div>
+
+<!-- Scene 4: Error 5 (16-22s) -->
+<div class="scene" id="scene4">
+  <div class="error-card" style="border-color: #ef4444;">
+    <div class="error-x">&#x2717;</div>
+    <div>
+      <div class="error-num">ERROR 5</div>
+      <div class="error-text">Usar la <span class="red">primera gota</span> para la tira</div>
+    </div>
+  </div>
+  <div style="display:flex; align-items:center; gap:60px; margin-top:60px;">
+    <div style="text-align:center;">
+      <svg width="140" height="180" viewBox="0 0 140 180">
+        <ellipse cx="70" cy="100" rx="45" ry="60" fill="#ef444440" stroke="#ef4444" stroke-width="3"/>
+        <text x="70" y="108" fill="#ef4444" font-size="28" font-weight="700" text-anchor="middle">1a</text>
+        <line x1="50" y1="60" x2="90" y2="140" stroke="#ef4444" stroke-width="4"/>
+        <line x1="90" y1="60" x2="50" y2="140" stroke="#ef4444" stroke-width="4"/>
+      </svg>
+      <p style="font-size:32px; color:#ef4444; margin-top:8px;">Descarta</p>
+    </div>
+    <svg width="80" height="60" viewBox="0 0 80 60">
+      <polygon points="20,5 60,30 20,55" fill="none" stroke="#22c55e" stroke-width="3"/>
+      <polygon points="40,5 80,30 40,55" fill="none" stroke="#22c55e" stroke-width="3"/>
+    </svg>
+    <div style="text-align:center;">
+      <svg width="140" height="180" viewBox="0 0 140 180">
+        <ellipse cx="70" cy="100" rx="45" ry="60" fill="#22c55e20" stroke="#22c55e" stroke-width="3"/>
+        <text x="70" y="108" fill="#22c55e" font-size="28" font-weight="700" text-anchor="middle">2a</text>
+      </svg>
+      <p style="font-size:32px; color:#22c55e; margin-top:8px;">Usa esta</p>
+    </div>
+  </div>
+  <p class="ref">Tanner & Gore 2013 — Physiological Tests for Elite Athletes</p>
+</div>
+
+<!-- Scene 5: Consequence (22-27s) -->
+<div class="scene" id="scene5">
+  <div class="chain">
+    <div class="chain-item" style="border-color:#ef4444; color:#ef4444;">Test mal hecho</div>
+    <div class="chain-arrow">&#x2192;</div>
+    <div class="chain-item" style="border-color:#f97316; color:#f97316;">Zonas mal calculadas</div>
+    <div class="chain-arrow">&#x2192;</div>
+    <div class="chain-item" style="border-color:#ef4444; color:#ef4444;">Entrenamiento equivocado</div>
+  </div>
+  <h2 style="margin-top:60px;"><span class="accent">PeakAerobic</span> detecta<br>tests sospechosos</h2>
+  <p style="font-size:38px; margin-top:30px; color:#ffffff80;">Baseline anómala, curva inconsistente, pocos puntos...</p>
+</div>
+
+<!-- Scene 6: CTA (27-30s) -->
+<div class="scene" id="scene6">
+  <h1 class="accent">PeakAerobic</h1>
+  <p style="font-size:48px; margin-top:30px;">Tu laboratorio de lactato portátil.</p>
+  <div class="cta-box">
+    <h2>Enlace en bio</h2>
+    <p>peakaerobic.com</p>
+  </div>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 4000 },
+  { id: 'scene2', start: 4000, end: 10000 },
+  { id: 'scene3', start: 10000, end: 16000 },
+  { id: 'scene4', start: 16000, end: 22000 },
+  { id: 'scene5', start: 22000, end: 27000 },
+  { id: 'scene6', start: 27000, end: 30000 }
+];
+const events = [];
+let eventsFired = {};
+const startTime = performance.now();
+
+function tick(now) {
+  const elapsed = now - startTime;
+  const progress = Math.min(elapsed / DURATION, 1);
+  document.getElementById('progressBar').style.width = (progress * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  events.forEach((e, i) => {
+    if (elapsed >= e.time && !eventsFired[i]) { eventsFired[i] = true; e.action(); }
+  });
+
+  if (progress < 1) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

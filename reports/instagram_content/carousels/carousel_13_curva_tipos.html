@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>4 patrones comunes en curvas de lactato</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0e1e24; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; }
+  .slide { width: 1080px; height: 1080px; position: relative; padding: 72px; display: flex; flex-direction: column; justify-content: center; overflow: hidden; page-break-after: always; }
+  .slide-number { position: absolute; top: 40px; right: 52px; font-family: 'Space Grotesk', sans-serif; font-size: 22px; color: rgba(247,246,244,0.35); font-weight: 600; }
+  .progress-dots { position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.2); }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark { position: absolute; bottom: 44px; right: 52px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; color: rgba(247,246,244,0.18); letter-spacing: 1px; }
+  .citation { position: absolute; bottom: 72px; left: 72px; font-size: 16px; color: rgba(247,246,244,0.25); font-family: 'Source Sans 3', sans-serif; max-width: 700px; line-height: 1.4; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; line-height: 1.15; }
+  .tag { display: inline-block; background: #d26a36; color: #0e1e24; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 20px; padding: 8px 20px; border-radius: 6px; margin-bottom: 28px; text-transform: uppercase; letter-spacing: 1.5px; }
+  .subtitle { font-size: 28px; font-weight: 300; color: rgba(247,246,244,0.7); margin-top: 20px; line-height: 1.4; }
+  .card { background: rgba(247,246,244,0.06); border: 1px solid rgba(247,246,244,0.08); border-radius: 16px; padding: 32px; margin-top: 20px; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .orange { color: #f97316; }
+  .red { color: #ef4444; }
+  .cta-box { background: linear-gradient(135deg, #d26a36 0%, #b8522a 100%); border-radius: 20px; padding: 48px; text-align: center; }
+  .cta-box h2 { color: #f7f6f4; font-size: 42px; margin-bottom: 16px; }
+  .cta-box .url { font-size: 32px; font-weight: 700; color: #0e1e24; background: #f7f6f4; display: inline-block; padding: 14px 36px; border-radius: 12px; margin-top: 24px; font-family: 'Space Grotesk', sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="tag">Diagnostico</div>
+  <h1 style="font-size: 60px;">4 patrones comunes<br>en curvas de <span class="accent">lactato</span></h1>
+  <p class="subtitle">La forma de la curva refleja el equilibrio entre produccion y aclaramiento de lactato. Cada patron tiene implicaciones para el entrenamiento.</p>
+  <div class="progress-dots"><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 2: Type 1 — Classic exponential -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <h2 style="font-size: 42px; margin-bottom: 8px;">Patron 1: <span class="green">Exponencial clasica</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.55); margin-bottom: 24px;">Lactato estable en intensidades bajas, seguido de una elevacion progresiva y despues exponencial. Es el patron descrito en los modelos clasicos de umbral (Kindermann et al., 1979).</p>
+  <div style="display: flex; gap: 28px; align-items: flex-start;">
+    <div style="flex: 1;">
+      <svg width="460" height="340" viewBox="0 0 460 340">
+        <line x1="60" y1="290" x2="420" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="60" y1="40" x2="60" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="240" y="330" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Intensidad →</text>
+        <text x="25" y="165" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="13" text-anchor="middle" transform="rotate(-90,25,165)">[La] mmol/L</text>
+        <path d="M80,268 Q120,265 160,258 Q200,250 240,232 Q280,200 320,150 Q360,85 400,45" fill="none" stroke="#22c55e" stroke-width="3.5"/>
+        <circle cx="80" cy="268" r="5" fill="#22c55e"/><circle cx="120" cy="265" r="5" fill="#22c55e"/>
+        <circle cx="160" cy="258" r="5" fill="#22c55e"/><circle cx="200" cy="250" r="5" fill="#22c55e"/>
+        <circle cx="240" cy="232" r="5" fill="#22c55e"/><circle cx="280" cy="200" r="5" fill="#22c55e"/>
+        <circle cx="320" cy="150" r="5" fill="#22c55e"/><circle cx="360" cy="85" r="5" fill="#22c55e"/>
+        <circle cx="400" cy="45" r="5" fill="#22c55e"/>
+        <line x1="200" y1="250" x2="200" y2="290" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="200" y="308" fill="#22c55e" font-family="Source Sans 3" font-size="13" text-anchor="middle">LT1</text>
+        <line x1="300" y1="175" x2="300" y2="290" stroke="rgba(249,115,22,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="300" y="308" fill="#f97316" font-family="Source Sans 3" font-size="13" text-anchor="middle">LT2</text>
+      </svg>
+    </div>
+    <div style="flex: 1;">
+      <div class="card" style="margin: 0; border-left: 3px solid #22c55e;">
+        <p style="font-family:'Space Grotesk'; font-weight: 600; font-size: 20px; color: #22c55e; margin-bottom: 12px;">Caracteristicas</p>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.6); line-height: 1.6;">Equilibrio entre produccion y aclaramiento de lactato en un rango amplio de intensidades. Las dos transiciones (LT1 y LT2) son claramente identificables. Es el patron mas frecuente en atletas recreativos y sub-elite.</p>
+      </div>
+      <div class="card" style="border-left: 3px solid rgba(247,246,244,0.15);">
+        <p style="font-family:'Space Grotesk'; font-weight: 600; font-size: 18px; margin-bottom: 8px;">Deteccion</p>
+        <p style="font-size: 17px; color: rgba(247,246,244,0.5); line-height: 1.5;">Los metodos clasicos de deteccion convergen bien en este patron. Alta concordancia entre metodos.</p>
+      </div>
+    </div>
+  </div>
+  <div class="citation">Kindermann W et al. (1979). The significance of the aerobic-anaerobic transition for the determination of work load intensities. Eur J Appl Physiol, 42(1), 25-34.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 3: Type 2 — Early inflection -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <h2 style="font-size: 42px; margin-bottom: 8px;">Patron 2: <span class="orange">Inflexion temprana</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.55); margin-bottom: 24px;">El lactato comienza a elevarse a intensidades relativamente bajas. Brooks (2018) explica que la produccion de lactato refleja la tasa de glucolisis, no necesariamente la presencia de hipoxia muscular.</p>
+  <div style="display: flex; gap: 28px; align-items: flex-start;">
+    <div style="flex: 1;">
+      <svg width="460" height="340" viewBox="0 0 460 340">
+        <line x1="60" y1="290" x2="420" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="60" y1="40" x2="60" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="240" y="330" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Intensidad →</text>
+        <path d="M80,262 Q110,254 140,238 Q170,215 200,180 Q240,120 280,72 Q320,48 380,40" fill="none" stroke="#f97316" stroke-width="3.5"/>
+        <circle cx="80" cy="262" r="5" fill="#f97316"/><circle cx="120" cy="248" r="5" fill="#f97316"/>
+        <circle cx="160" cy="228" r="5" fill="#f97316"/><circle cx="200" cy="180" r="5" fill="#f97316"/>
+        <circle cx="240" cy="120" r="5" fill="#f97316"/><circle cx="280" cy="72" r="5" fill="#f97316"/>
+        <circle cx="320" cy="50" r="5" fill="#f97316"/><circle cx="380" cy="42" r="5" fill="#f97316"/>
+        <line x1="130" y1="244" x2="130" y2="290" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="130" y="308" fill="#22c55e" font-family="Source Sans 3" font-size="13" text-anchor="middle">LT1</text>
+        <line x1="210" y1="170" x2="210" y2="290" stroke="rgba(249,115,22,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="210" y="308" fill="#f97316" font-family="Source Sans 3" font-size="13" text-anchor="middle">LT2</text>
+        <line x1="130" y1="285" x2="210" y2="285" stroke="#d26a36" stroke-width="1.5"/>
+        <text x="170" y="280" fill="#d26a36" font-family="Source Sans 3" font-size="11" text-anchor="middle">gap estrecho</text>
+      </svg>
+    </div>
+    <div style="flex: 1;">
+      <div class="card" style="margin: 0; border-left: 3px solid #f97316;">
+        <p style="font-family:'Space Grotesk'; font-weight: 600; font-size: 20px; color: #f97316; margin-bottom: 12px;">Caracteristicas</p>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.6); line-height: 1.6;">Alta tasa de glucolisis incluso a intensidades moderadas. El gap entre LT1 y LT2 es estrecho. Frecuente en atletas con alta capacidad glucolitica, deportistas jovenes o de deportes intermitentes.</p>
+      </div>
+      <div class="card" style="border-left: 3px solid rgba(247,246,244,0.15);">
+        <p style="font-family:'Space Grotesk'; font-weight: 600; font-size: 18px; margin-bottom: 8px;">Implicacion</p>
+        <p style="font-size: 17px; color: rgba(247,246,244,0.5); line-height: 1.5;">La investigacion sugiere que el entrenamiento extensivo sub-LT1 es prioritario para ampliar la base aerobica y desplazar la curva hacia la derecha.</p>
+      </div>
+    </div>
+  </div>
+  <div class="citation">Brooks GA (2018). The science and translation of lactate shuttle theory. Cell Metabolism, 27(4), 757-785.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 4: Type 3 — Flat + late spike (diesel) -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <h2 style="font-size: 42px; margin-bottom: 8px;">Patron 3: <span class="accent">Plana + pico tardio</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.55); margin-bottom: 24px;">Lactato muy estable durante la mayor parte del test, con una subida abrupta solo en las ultimas etapas. Refleja una alta capacidad de aclaramiento de lactato y baja tasa de glucolisis (Billat et al., 2003).</p>
+  <div style="display: flex; gap: 28px; align-items: flex-start;">
+    <div style="flex: 1;">
+      <svg width="460" height="340" viewBox="0 0 460 340">
+        <line x1="60" y1="290" x2="420" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="60" y1="40" x2="60" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="240" y="330" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Intensidad →</text>
+        <path d="M80,262 Q130,260 180,258 Q230,255 280,250 Q310,242 340,212 Q360,152 380,65 Q390,44 400,38" fill="none" stroke="#d26a36" stroke-width="3.5"/>
+        <circle cx="80" cy="262" r="5" fill="#d26a36"/><circle cx="130" cy="260" r="5" fill="#d26a36"/>
+        <circle cx="180" cy="258" r="5" fill="#d26a36"/><circle cx="230" cy="255" r="5" fill="#d26a36"/>
+        <circle cx="280" cy="250" r="5" fill="#d26a36"/><circle cx="320" cy="232" r="5" fill="#d26a36"/>
+        <circle cx="355" cy="178" r="5" fill="#d26a36"/><circle cx="385" cy="60" r="5" fill="#d26a36"/>
+        <line x1="80" y1="272" x2="280" y2="272" stroke="rgba(210,106,54,0.3)" stroke-width="1.5"/>
+        <text x="180" y="288" fill="rgba(210,106,54,0.6)" font-family="Source Sans 3" font-size="12" text-anchor="middle">zona plana — lactato bajo</text>
+        <line x1="290" y1="248" x2="290" y2="290" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="290" y="308" fill="#22c55e" font-family="Source Sans 3" font-size="13" text-anchor="middle">LT1</text>
+        <line x1="350" y1="188" x2="350" y2="290" stroke="rgba(249,115,22,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="350" y="308" fill="#f97316" font-family="Source Sans 3" font-size="13" text-anchor="middle">LT2</text>
+      </svg>
+    </div>
+    <div style="flex: 1;">
+      <div class="card" style="margin: 0; border-left: 3px solid #d26a36;">
+        <p style="font-family:'Space Grotesk'; font-weight: 600; font-size: 20px; color: #d26a36; margin-bottom: 12px;">Caracteristicas</p>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.6); line-height: 1.6;">Excelente eficiencia aerobica. LT1 y LT2 se encuentran a un porcentaje alto de la capacidad maxima. Tipico de atletas de ultra-distancia o con muchos anos de entrenamiento de base.</p>
+      </div>
+      <div class="card" style="border-left: 3px solid rgba(247,246,244,0.15);">
+        <p style="font-family:'Space Grotesk'; font-weight: 600; font-size: 18px; margin-bottom: 8px;">Nota metodologica</p>
+        <p style="font-size: 17px; color: rgba(247,246,244,0.5); line-height: 1.5;">El metodo Dmax clasico (Cheng, 1992) puede fallar con curvas convexas. Bishop et al. (1998) propusieron el ModDmax que corrige este problema iniciando la linea de referencia desde el primer aumento significativo.</p>
+      </div>
+    </div>
+  </div>
+  <div class="citation">Billat V et al. (2003). The concept of maximal lactate steady state. Sports Med, 33(6); Bishop D et al. (1998). J Sports Sci.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 5: Type 4 — Noisy / irregular -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <h2 style="font-size: 42px; margin-bottom: 8px;">Patron 4: <span class="red">Irregular / ruidosa</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.55); margin-bottom: 24px;">Valores que suben, bajan y vuelven a subir sin un patron claro. Faude et al. (2009) senalan que la calidad del protocolo y la toma de muestra son determinantes para la fiabilidad de la curva obtenida.</p>
+  <div style="display: flex; gap: 28px; align-items: flex-start;">
+    <div style="flex: 1;">
+      <svg width="460" height="340" viewBox="0 0 460 340">
+        <line x1="60" y1="290" x2="420" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="60" y1="40" x2="60" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="240" y="330" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="14" text-anchor="middle">Intensidad →</text>
+        <path d="M80,252 L120,232 L160,262 L200,192 L240,222 L280,152 L320,182 L360,92 L400,62" fill="none" stroke="#ef4444" stroke-width="3"/>
+        <circle cx="80" cy="252" r="5" fill="#ef4444"/><circle cx="120" cy="232" r="5" fill="#ef4444"/>
+        <circle cx="160" cy="262" r="6" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="3,2"/>
+        <circle cx="200" cy="192" r="5" fill="#ef4444"/>
+        <circle cx="240" cy="222" r="6" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="3,2"/>
+        <circle cx="280" cy="152" r="5" fill="#ef4444"/><circle cx="320" cy="182" r="5" fill="#ef4444"/>
+        <circle cx="360" cy="92" r="5" fill="#ef4444"/><circle cx="400" cy="62" r="5" fill="#ef4444"/>
+        <text x="160" y="288" fill="rgba(239,68,68,0.5)" font-family="Source Sans 3" font-size="11" text-anchor="middle">outlier?</text>
+        <text x="240" y="248" fill="rgba(239,68,68,0.5)" font-family="Source Sans 3" font-size="11" text-anchor="middle">outlier?</text>
+        <text x="230" y="140" fill="rgba(239,68,68,0.25)" font-family="Space Grotesk" font-size="50" text-anchor="middle">?</text>
+      </svg>
+    </div>
+    <div style="flex: 1;">
+      <div class="card" style="margin: 0; border-left: 3px solid #ef4444;">
+        <p style="font-family:'Space Grotesk'; font-weight: 600; font-size: 20px; color: #ef4444; margin-bottom: 12px;">Causas frecuentes</p>
+        <ul style="font-size: 17px; color: rgba(247,246,244,0.55); line-height: 1.7; padding-left: 20px;">
+          <li>Escalones demasiado cortos (&lt;3 min)</li>
+          <li>Muestra de sangre contaminada con sudor</li>
+          <li>Ingesta durante el test</li>
+          <li>Calentamiento insuficiente</li>
+          <li>Estabilizacion incompleta en cada etapa</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left: 3px solid rgba(247,246,244,0.15);">
+        <p style="font-size: 17px; color: rgba(247,246,244,0.5); line-height: 1.5;">Un dato de baja calidad es peor que no tener dato. Cuando la curva es muy ruidosa, lo mas honesto es repetir el test con un protocolo mejorado.</p>
+      </div>
+    </div>
+  </div>
+  <div class="citation">Faude O et al. (2009). Lactate threshold concepts: how valid are they? Sports Med, 39(6), 469-490.</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 6: What curve shape tells you -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <h2 style="font-size: 42px; margin-bottom: 24px;">La forma de la curva revela tu <span class="accent">perfil metabolico</span></h2>
+  <p style="font-size: 22px; color: rgba(247,246,244,0.55); margin-bottom: 24px;">Brooks (2018) establecio que el lactato es un metabolito intermediario clave, no un producto de desecho. La forma de la curva refleja el equilibrio entre su produccion (glucolisis) y su aclaramiento (oxidacion, gluconeogenesis).</p>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+    <div class="card" style="margin:0; padding: 22px; border-left: 3px solid #22c55e;">
+      <p style="font-family:'Space Grotesk'; font-weight: 600; font-size: 19px; color: #22c55e;">Exponencial clasica</p>
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5); margin-top: 8px;">Equilibrio metabolico. Ambos umbrales claramente diferenciados. Responde bien a multiples tipos de estimulo.</p>
+    </div>
+    <div class="card" style="margin:0; padding: 22px; border-left: 3px solid #f97316;">
+      <p style="font-family:'Space Grotesk'; font-weight: 600; font-size: 19px; color: #f97316;">Inflexion temprana</p>
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5); margin-top: 8px;">Alta tasa glucolitica. Gap LT1-LT2 estrecho. La evidencia sugiere priorizar volumen sub-LT1 para ampliar la base aerobica.</p>
+    </div>
+    <div class="card" style="margin:0; padding: 22px; border-left: 3px solid #d26a36;">
+      <p style="font-family:'Space Grotesk'; font-weight: 600; font-size: 19px; color: #d26a36;">Plana + pico tardio</p>
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5); margin-top: 8px;">Excelente eficiencia aerobica. Requiere metodos de deteccion especificos (ModDmax). Para competiciones cortas, puede necesitar estimulos glucoliticos.</p>
+    </div>
+    <div class="card" style="margin:0; padding: 22px; border-left: 3px solid #ef4444;">
+      <p style="font-family:'Space Grotesk'; font-weight: 600; font-size: 19px; color: #ef4444;">Irregular / ruidosa</p>
+      <p style="font-size: 16px; color: rgba(247,246,244,0.5); margin-top: 8px;">Generalmente indica problemas de protocolo, no de fisiologia. Priorizar la calidad del test antes de tomar decisiones de entrenamiento.</p>
+    </div>
+  </div>
+  <div class="card" style="padding: 22px 28px; text-align: center;">
+    <p style="font-size: 19px; color: rgba(247,246,244,0.6);">El metodo de deteccion debe adaptarse a la forma de la curva. Ningun metodo unico es optimo para todos los patrones.</p>
+  </div>
+  <div class="citation">Brooks GA (2018). Cell Metabolism, 27(4); Faude O et al. (2009). Sports Med, 39(6); Billat V et al. (2003). Sports Med, 33(6).</div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+    <div class="cta-box">
+      <p style="font-size: 22px; font-weight: 500; color: rgba(247,246,244,0.85); margin-bottom: 16px;">Cada curva necesita su metodo. PeakAerobic los aplica todos.</p>
+      <h2>Sube tu test de lactato.<br>Identificacion automatica<br>del patron y analisis<br>con <em>confianza</em>.</h2>
+      <div class="url">peakaerobic.com</div>
+    </div>
+  </div>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+</body>
+</html>

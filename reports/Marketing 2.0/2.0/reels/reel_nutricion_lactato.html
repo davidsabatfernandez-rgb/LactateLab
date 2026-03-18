@@ -1,0 +1,159 @@
+<!--
+VOICEOVER SCRIPT (30s):
+[0-5s] "¿Cuántos geles necesitas en un maratón? Tu curva de lactato lo sabe."
+[5-12s] "VLamax alta significa que quemas más glucógeno por minuto. Necesitas unos 90 gramos de carbohidratos por hora."
+[12-18s] "VLamax baja, eres diesel. Quemas más grasa. Con 60 gramos por hora vas sobrado."
+[18-24s] "30 gramos de diferencia por hora. En 4 horas de maratón, eso son 120 gramos. 4 geles extra que te sobran o te faltan."
+[24-28s] "Sin conocer tu VLamax, tu estrategia de nutrición es un guess."
+[28-30s] "PeakAerobic. Enlace en bio."
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Tu curva decide cuántos geles necesitas</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:1920px;background:#0e1e24;overflow:hidden;font-family:'Source Sans 3',sans-serif;color:#fff;position:relative}
+.scene{position:absolute;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.5s ease;padding:60px}
+.scene.active{opacity:1}
+h1{font-family:'Space Grotesk',sans-serif;font-size:82px;font-weight:700;text-align:center;line-height:1.1}
+h2{font-family:'Space Grotesk',sans-serif;font-size:64px;font-weight:700;text-align:center;line-height:1.15}
+p{font-family:'Source Sans 3',sans-serif;font-size:44px;text-align:center;line-height:1.4;color:#ffffffcc}
+.accent{color:#d26a36}
+.green{color:#22c55e}
+.red{color:#ef4444}
+.progress-bar{position:absolute;bottom:0;left:0;height:8px;background:#d26a36;z-index:100}
+.watermark{position:absolute;top:60px;right:60px;font-family:'Space Grotesk',sans-serif;font-size:32px;color:#d26a3660;z-index:100}
+.fuel-card{background:#ffffff08;border-radius:24px;padding:50px 60px;margin:24px 0;width:100%;text-align:center}
+.fuel-big{font-family:'Space Grotesk',sans-serif;font-size:110px;font-weight:700}
+.fuel-unit{font-size:44px;color:#ffffff80}
+.fuel-label{font-size:38px;margin-top:10px}
+.compare-row{display:flex;gap:30px;width:100%;margin:30px 0}
+.compare-col{flex:1;background:#ffffff08;border-radius:24px;padding:40px 30px;text-align:center}
+.diff-box{background:#d26a3615;border:3px solid #d26a36;border-radius:24px;padding:40px 50px;margin:30px 0;text-align:center}
+.ref{font-size:30px;color:#ffffff50;margin-top:20px;font-style:italic}
+.cta-btn{display:inline-block;padding:28px 80px;background:#d26a36;border-radius:60px;font-family:'Space Grotesk',sans-serif;font-size:48px;font-weight:700;color:#fff;margin-top:40px}
+svg text{font-family:'Space Grotesk',sans-serif}
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progress"></div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="s1">
+  <h1>¿Cuántos <span class="accent">geles</span><br>necesitas en<br>un maratón?</h1>
+  <div style="height:60px"></div>
+  <h2 style="color:#ffffff80">Tu curva de lactato<br>lo sabe.</h2>
+</div>
+
+<!-- Scene 2: VLamax alta -->
+<div class="scene" id="s2">
+  <h2><span class="red">VLamax alta</span></h2>
+  <p style="margin:20px 0 30px">Quemas más glucógeno por minuto</p>
+  <svg width="900" height="350" viewBox="0 0 900 350">
+    <line x1="80" y1="300" x2="850" y2="300" stroke="#ffffff20" stroke-width="2"/>
+    <line x1="80" y1="40" x2="80" y2="300" stroke="#ffffff20" stroke-width="2"/>
+    <!-- Steep curve -->
+    <path d="M100,280 Q200,250 300,190 Q400,120 500,70 Q600,45 750,35" fill="none" stroke="#ef4444" stroke-width="5"/>
+    <!-- Fill -->
+    <path d="M100,280 Q200,250 300,190 Q400,120 500,70 Q600,45 750,35 L750,300 L100,300 Z" fill="#ef444415"/>
+    <text x="420" y="200" fill="#ef444480" font-size="36" text-anchor="middle">Glucolisis alta</text>
+  </svg>
+  <div class="fuel-card" style="border:3px solid #ef444440">
+    <div class="fuel-big red">~90g</div>
+    <div class="fuel-unit">CHO / hora</div>
+  </div>
+  <p class="ref">Mader 2003, San-Millan & Brooks 2018</p>
+</div>
+
+<!-- Scene 3: VLamax baja -->
+<div class="scene" id="s3">
+  <h2><span class="green">VLamax baja</span></h2>
+  <p style="margin:20px 0 30px">Diesel. Quemas más grasa.</p>
+  <svg width="900" height="350" viewBox="0 0 900 350">
+    <line x1="80" y1="300" x2="850" y2="300" stroke="#ffffff20" stroke-width="2"/>
+    <line x1="80" y1="40" x2="80" y2="300" stroke="#ffffff20" stroke-width="2"/>
+    <!-- Flat curve -->
+    <path d="M100,285 Q250,278 400,268 Q550,250 650,200 Q750,120 820,50" fill="none" stroke="#22c55e" stroke-width="5"/>
+    <path d="M100,285 Q250,278 400,268 Q550,250 650,200 Q750,120 820,50 L820,300 L100,300 Z" fill="#22c55e15"/>
+    <text x="350" y="240" fill="#22c55e80" font-size="36" text-anchor="middle">Fat oxidation alta</text>
+  </svg>
+  <div class="fuel-card" style="border:3px solid #22c55e40">
+    <div class="fuel-big green">~60g</div>
+    <div class="fuel-unit">CHO / hora</div>
+  </div>
+  <p class="ref">Spriet 2014, Jeukendrup 2014</p>
+</div>
+
+<!-- Scene 4: The difference -->
+<div class="scene" id="s4">
+  <h2>La diferencia:</h2>
+  <div class="diff-box">
+    <span style="font-family:'Space Grotesk',sans-serif;font-size:56px;font-weight:700"><span class="accent">30g</span> / hora</span>
+  </div>
+  <div style="height:20px"></div>
+  <div class="compare-row">
+    <div class="compare-col">
+      <p style="font-size:36px;color:#ffffff60">En 4 horas</p>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:80px;font-weight:700;color:#d26a36;margin:10px 0">120g</div>
+      <p style="font-size:36px;color:#ffffff60">de diferencia</p>
+    </div>
+    <div class="compare-col">
+      <p style="font-size:36px;color:#ffffff60">Eso son</p>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:80px;font-weight:700;color:#d26a36;margin:10px 0">4</div>
+      <p style="font-size:36px;color:#ffffff60">geles extra</p>
+    </div>
+  </div>
+  <p style="margin-top:30px;font-size:38px">Que te sobran.<br>O te faltan.</p>
+</div>
+
+<!-- Scene 5: Without VLamax -->
+<div class="scene" id="s5">
+  <h2>Sin conocer tu<br><span class="accent">VLamax</span>,</h2>
+  <div style="height:50px"></div>
+  <h1>tu nutrición<br>es un <span class="red">guess</span>.</h1>
+  <div style="height:50px"></div>
+  <svg width="200" height="200" viewBox="0 0 200 200" style="margin-top:20px">
+    <circle cx="100" cy="100" r="90" fill="none" stroke="#d26a36" stroke-width="6"/>
+    <text x="100" y="115" fill="#d26a36" font-size="48" text-anchor="middle" font-weight="700">PA</text>
+  </svg>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="s6">
+  <h1 style="font-size:72px">Nutrición<br><span class="accent">basada en datos</span>.</h1>
+  <div class="cta-btn">Enlace en bio</div>
+  <p style="margin-top:40px;font-size:36px;color:#ffffff60">@peakaerobic</p>
+</div>
+
+<script>
+const DURATION=30000;
+const scenes=[
+  {id:'s1',start:0,end:5000},
+  {id:'s2',start:5000,end:12000},
+  {id:'s3',start:12000,end:18000},
+  {id:'s4',start:18000,end:24000},
+  {id:'s5',start:24000,end:28000},
+  {id:'s6',start:28000,end:30000}
+];
+let startTime=null;
+function tick(now){
+  if(!startTime)startTime=now;
+  const elapsed=now-startTime;
+  const progress=Math.min(elapsed/DURATION,1);
+  document.getElementById('progress').style.width=(progress*100)+'%';
+  scenes.forEach(s=>{
+    const el=document.getElementById(s.id);
+    if(elapsed>=s.start&&elapsed<s.end){el.classList.add('active')}
+    else{el.classList.remove('active')}
+  });
+  if(elapsed<DURATION)requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

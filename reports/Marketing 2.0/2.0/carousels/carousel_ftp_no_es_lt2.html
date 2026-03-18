@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FTP no es LT2 — PeakAerobic</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide {
+    width: 1080px; height: 1080px; background: #0e1e24; color: #f7f6f4;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .slide-number {
+    position: absolute; top: 40px; right: 50px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; font-weight: 500; color: rgba(247,246,244,0.35); z-index: 10;
+  }
+  .progress-dots {
+    position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 10;
+  }
+  .progress-dots .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute; bottom: 44px; right: 50px; text-align: right; z-index: 10;
+  }
+  .watermark .brand {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+    font-size: 16px; color: rgba(210,106,54,0.35);
+  }
+  .watermark .sub {
+    font-family: 'Source Sans 3', sans-serif; font-weight: 300;
+    font-size: 11px; color: rgba(210,106,54,0.25); margin-top: 1px;
+  }
+  .tag {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    background: rgba(210,106,54,0.15); color: #d26a36;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 20px;
+  }
+  .divider {
+    width: 60px; height: 4px; background: #d26a36; border-radius: 2px;
+  }
+  .card {
+    background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2);
+    border-radius: 20px; padding: 40px 30px;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    padding: 40px 50px; border-radius: 20px; text-align: center;
+  }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; }
+  .accent { color: #d26a36; }
+  .accent-green { color: #22c55e; }
+  .accent-orange { color: #f97316; }
+  .red { color: #ef4444; }
+  .content { padding: 80px 70px 80px 70px; height: 100%; display: flex; flex-direction: column; }
+
+  @media print {
+    .slide { page-break-after: always; }
+    body { padding: 0; gap: 0; background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; text-align: center; gap: 36px;">
+    <div class="tag">CICLISMO + FISIOLOGIA</div>
+    <h1 style="font-size: 72px; max-width: 820px;">
+      <span class="accent">FTP</span> <span class="red" style="font-size: 80px;">&#8800;</span> <span class="accent-green">LT2</span>
+    </h1>
+    <div class="divider" style="margin: 0 auto;"></div>
+    <p style="font-size: 28px; font-weight: 300; max-width: 700px; color: rgba(247,246,244,0.7); line-height: 1.5;">
+      Y probablemente entrenas mal por eso.
+    </p>
+    <svg width="500" height="80" viewBox="0 0 500 80">
+      <rect x="20" y="10" width="200" height="55" rx="12" fill="rgba(210,106,54,0.15)" stroke="#d26a36" stroke-width="1.5"/>
+      <text x="120" y="44" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="22">FTP = 280W</text>
+      <text x="250" y="44" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="28">&#8800;</text>
+      <rect x="280" y="10" width="200" height="55" rx="12" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="380" y="44" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="22">LT2 = 255W</text>
+      <text x="250" y="72" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Source Sans 3" font-size="13">Diferencia de 25W = zonas completamente diferentes</text>
+    </svg>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: Que es FTP -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">QUE ES FTP</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">FTP = la maxima potencia que puedes sostener <span class="accent">~1 hora</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 280" width="940" height="300" style="align-self: center;">
+        <!-- Time axis -->
+        <line x1="90" y1="230" x2="840" y2="230" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="230" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="265" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Tiempo</text>
+        <text x="35" y="130" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 130)">Potencia (W)</text>
+
+        <!-- Power-duration curve -->
+        <path d="M130,50 Q200,55 280,70 Q380,90 460,110 Q560,138 640,160 Q730,182 810,200"
+          fill="none" stroke="#d26a36" stroke-width="3" stroke-linecap="round"/>
+
+        <!-- FTP marker at ~1h -->
+        <line x1="520" y1="30" x2="520" y2="230" stroke="#d26a36" stroke-width="2" stroke-dasharray="8 5"/>
+        <circle cx="520" cy="125" r="8" fill="#d26a36" stroke="#0e1e24" stroke-width="2"/>
+        <text x="520" y="248" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="600" font-size="14">~60 min</text>
+
+        <!-- FTP horizontal -->
+        <line x1="90" y1="125" x2="516" y2="125" stroke="rgba(210,106,54,0.3)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="75" y="128" text-anchor="end" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="14">FTP</text>
+
+        <!-- Time markers -->
+        <text x="180" y="248" text-anchor="middle" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12">5 min</text>
+        <text x="320" y="248" text-anchor="middle" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12">20 min</text>
+        <text x="700" y="248" text-anchor="middle" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12">3+ horas</text>
+
+        <!-- Annotation -->
+        <rect x="560" y="55" width="280" height="80" rx="12" fill="rgba(210,106,54,0.1)" stroke="rgba(210,106,54,0.25)" stroke-width="1"/>
+        <text x="700" y="80" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="600" font-size="16">Metrica de RENDIMIENTO</text>
+        <text x="700" y="105" text-anchor="middle" fill="rgba(247,246,244,0.6)" font-family="Source Sans 3" font-size="15">No mide fisiologia</text>
+        <text x="700" y="125" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">Solo dice "cuanto aguantas"</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px;">
+        <p style="font-size: 20px; font-weight: 300; line-height: 1.6; color: rgba(247,246,244,0.8);">
+          Coggan & Allen (2003) definieron FTP como la maxima potencia sostenible durante aproximadamente una hora. Se estima tipicamente con un test de <strong>20 minutos</strong> (× 0.95).
+        </p>
+      </div>
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 20px 24px; text-align: center;">
+          <p style="font-size: 16px; font-weight: 500; color: #d26a36;">FTP te dice</p>
+          <p style="font-size: 18px; font-weight: 300; color: rgba(247,246,244,0.7); margin-top: 8px;">Cuantos watts puedes mantener 1h</p>
+        </div>
+        <div class="card" style="flex: 1; padding: 20px 24px; text-align: center;">
+          <p style="font-size: 16px; font-weight: 500; color: #ef4444;">FTP NO te dice</p>
+          <p style="font-size: 18px; font-weight: 300; color: rgba(247,246,244,0.7); margin-top: 8px;">Donde estan tus umbrales metabolicos</p>
+        </div>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Coggan, A. & Allen, H. (2003). <em>Training and Racing with a Power Meter</em>. VeloPress.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: Que es LT2 -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">QUE ES LT2</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">LT2 = el punto donde la produccion de lactato <span class="red">supera</span> la eliminacion</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 340" width="940" height="360" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="90" y1="290" x2="840" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="90" y1="30" x2="90" y2="290" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="465" y="330" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Potencia (W)</text>
+        <text x="35" y="160" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 35 160)">Lactato (mmol/L)</text>
+
+        <!-- Lactate curve -->
+        <polyline points="130,278 230,274 330,268 410,256 480,235 540,200 590,160 640,115 690,70 740,40"
+          fill="none" stroke="#d26a36" stroke-width="3.5" stroke-linecap="round"/>
+
+        <!-- Production line (rising) -->
+        <path d="M130,280 Q400,260 540,200 Q650,130 740,40" fill="none" stroke="rgba(239,68,68,0.4)" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="760" y="35" fill="rgba(239,68,68,0.5)" font-family="Source Sans 3" font-size="13">Produccion</text>
+
+        <!-- Clearance line (rising then plateaus) -->
+        <path d="M130,282 Q350,265 480,238 Q560,215 610,200 Q680,185 740,175" fill="none" stroke="rgba(34,197,94,0.4)" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="760" y="178" fill="rgba(34,197,94,0.5)" font-family="Source Sans 3" font-size="13">Eliminacion</text>
+
+        <!-- LT2 where curves diverge -->
+        <line x1="540" y1="40" x2="540" y2="290" stroke="#22c55e" stroke-width="2.5" stroke-dasharray="8 5"/>
+        <rect x="480" y="45" width="120" height="36" rx="10" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="540" y="69" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="20">LT2</text>
+
+        <!-- Before LT2: equilibrium -->
+        <rect x="200" y="80" width="230" height="50" rx="10" fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.2)" stroke-width="1"/>
+        <text x="315" y="100" text-anchor="middle" fill="rgba(34,197,94,0.7)" font-family="Space Grotesk" font-weight="600" font-size="15">EQUILIBRIO</text>
+        <text x="315" y="120" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">Produccion = Eliminacion</text>
+
+        <!-- After LT2: accumulation -->
+        <rect x="590" y="80" width="230" height="50" rx="10" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.2)" stroke-width="1"/>
+        <text x="705" y="100" text-anchor="middle" fill="rgba(239,68,68,0.7)" font-family="Space Grotesk" font-weight="600" font-size="15">ACUMULACION</text>
+        <text x="705" y="120" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">Produccion > Eliminacion</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          LT2 es una <span class="accent-green" style="font-weight: 700;">medida fisiologica</span>: marca el punto exacto donde tu cuerpo ya no puede eliminar el lactato tan rapido como lo produce. Se detecta con un test de sangre.
+        </p>
+      </div>
+      <p style="font-size: 18px; font-weight: 300; text-align: center; color: rgba(247,246,244,0.6);">
+        Por encima de LT2, la fatiga es inevitable y el tiempo sostenible cae exponencialmente.
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Kindermann et al. (1979). <em>Int J Sports Med</em>, 1, 23-30. Faude et al. (2009). <em>Sports Med</em>, 39(6), 469-490.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: No coinciden: 5-15% diferencia -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">LA EVIDENCIA</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">FTP y LT2 difieren entre <span class="red">5% y 15%</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <svg viewBox="0 0 900 320" width="940" height="340" style="align-self: center;">
+        <!-- Axes -->
+        <line x1="120" y1="280" x2="820" y2="280" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <line x1="120" y1="30" x2="120" y2="280" stroke="rgba(247,246,244,0.2)" stroke-width="1.5"/>
+        <text x="470" y="310" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">FTP (W)</text>
+        <text x="60" y="155" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13" transform="rotate(-90 60 155)">LT2 (W)</text>
+
+        <!-- Perfect agreement line -->
+        <line x1="140" y1="260" x2="800" y2="50" stroke="rgba(247,246,244,0.15)" stroke-width="1.5" stroke-dasharray="8 5"/>
+        <text x="810" y="45" fill="rgba(247,246,244,0.3)" font-family="Source Sans 3" font-size="12">FTP = LT2</text>
+
+        <!-- Scatter: most below the line (FTP > LT2 typically) -->
+        <circle cx="220" cy="230" r="6" fill="#d26a36" opacity="0.6"/>
+        <circle cx="260" cy="215" r="6" fill="#d26a36" opacity="0.6"/>
+        <circle cx="300" cy="200" r="6" fill="#ef4444" opacity="0.7"/>
+        <circle cx="330" cy="210" r="6" fill="#d26a36" opacity="0.6"/>
+        <circle cx="370" cy="180" r="6" fill="#d26a36" opacity="0.6"/>
+        <circle cx="400" cy="195" r="6" fill="#ef4444" opacity="0.7"/>
+        <circle cx="430" cy="165" r="6" fill="#d26a36" opacity="0.6"/>
+        <circle cx="470" cy="170" r="6" fill="#ef4444" opacity="0.7"/>
+        <circle cx="500" cy="145" r="6" fill="#d26a36" opacity="0.6"/>
+        <circle cx="540" cy="155" r="6" fill="#d26a36" opacity="0.6"/>
+        <circle cx="570" cy="125" r="6" fill="#22c55e" opacity="0.7"/>
+        <circle cx="610" cy="140" r="6" fill="#ef4444" opacity="0.7"/>
+        <circle cx="640" cy="108" r="6" fill="#d26a36" opacity="0.6"/>
+        <circle cx="680" cy="120" r="6" fill="#d26a36" opacity="0.6"/>
+        <circle cx="710" cy="95" r="6" fill="#22c55e" opacity="0.7"/>
+        <circle cx="750" cy="85" r="6" fill="#ef4444" opacity="0.7"/>
+
+        <!-- Annotation: most points below line -->
+        <rect x="160" y="45" width="330" height="70" rx="12" fill="rgba(239,68,68,0.1)" stroke="rgba(239,68,68,0.25)" stroke-width="1"/>
+        <text x="325" y="70" text-anchor="middle" fill="#ef4444" font-family="Space Grotesk" font-weight="600" font-size="16">Mayoria: FTP > LT2</text>
+        <text x="325" y="95" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="14">Puntos bajo la diagonal = FTP sobreestima</text>
+
+        <!-- Difference band -->
+        <rect x="560" y="200" width="240" height="60" rx="12" fill="rgba(210,106,54,0.12)" stroke="#d26a36" stroke-width="1.5"/>
+        <text x="680" y="225" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="22">5-15% diferencia</text>
+        <text x="680" y="248" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="13">Borszcz et al. (2019)</text>
+      </svg>
+      <div class="card" style="padding: 28px 36px;">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          Borszcz et al. (2019) demostraron que FTP <span class="red" style="font-weight: 700;">sobreestima</span> LT2 en la mayoria de ciclistas. La diferencia media fue del <strong>8%</strong>, pero en algunos individuos supero el 15%.
+        </p>
+      </div>
+      <p style="font-size: 18px; font-weight: 300; text-align: center; color: rgba(247,246,244,0.6);">
+        15% de 280W = <strong>42W de diferencia</strong>. Suficiente para arruinar toda tu planificacion.
+      </p>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Borszcz, F. et al. (2019). <em>Int J Sports Physiol Perform</em>, 14(2), 157-164.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: Consecuencias -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">CONSECUENCIAS</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">Que pasa cuando usas <span class="red">FTP como LT2</span></h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 32px; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06);">
+          <h3 style="font-size: 22px; color: #ef4444; margin-bottom: 20px; text-align: center;">FTP > LT2</h3>
+          <p style="font-size: 16px; font-weight: 600; color: rgba(247,246,244,0.5); margin-bottom: 16px; text-align: center;">El caso mas comun</p>
+          <ul style="font-size: 18px; font-weight: 300; line-height: 2; color: rgba(247,246,244,0.7); list-style: none; padding: 0;">
+            <li style="padding-left: 28px; position: relative;"><span style="position: absolute; left: 0; color: #ef4444; font-weight: 700;">1.</span> Tu "tempo" es en realidad threshold</li>
+            <li style="padding-left: 28px; position: relative;"><span style="position: absolute; left: 0; color: #ef4444; font-weight: 700;">2.</span> Tu "Z2" esta sobre LT1</li>
+            <li style="padding-left: 28px; position: relative;"><span style="position: absolute; left: 0; color: #ef4444; font-weight: 700;">3.</span> Acumulas fatiga sin saberlo</li>
+            <li style="padding-left: 28px; position: relative;"><span style="position: absolute; left: 0; color: #ef4444; font-weight: 700;">4.</span> Sobreentrenamiento cronico</li>
+          </ul>
+          <div style="margin-top: 20px; padding: 16px; background: rgba(239,68,68,0.1); border-radius: 10px; text-align: center;">
+            <p style="font-size: 20px; font-weight: 700; color: #ef4444;">Resultado: estancamiento + fatiga</p>
+          </div>
+        </div>
+        <div class="card" style="flex: 1; padding: 32px; border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.06);">
+          <h3 style="font-size: 22px; color: #f97316; margin-bottom: 20px; text-align: center;">FTP < LT2</h3>
+          <p style="font-size: 16px; font-weight: 600; color: rgba(247,246,244,0.5); margin-bottom: 16px; text-align: center;">Menos comun pero existe</p>
+          <ul style="font-size: 18px; font-weight: 300; line-height: 2; color: rgba(247,246,244,0.7); list-style: none; padding: 0;">
+            <li style="padding-left: 28px; position: relative;"><span style="position: absolute; left: 0; color: #f97316; font-weight: 700;">1.</span> Tu "threshold" es subumbral</li>
+            <li style="padding-left: 28px; position: relative;"><span style="position: absolute; left: 0; color: #f97316; font-weight: 700;">2.</span> Infraestimulas el LT2</li>
+            <li style="padding-left: 28px; position: relative;"><span style="position: absolute; left: 0; color: #f97316; font-weight: 700;">3.</span> No generas adaptacion</li>
+            <li style="padding-left: 28px; position: relative;"><span style="position: absolute; left: 0; color: #f97316; font-weight: 700;">4.</span> Pierdes tiempo de entrenamiento</li>
+          </ul>
+          <div style="margin-top: 20px; padding: 16px; background: rgba(249,115,22,0.1); border-radius: 10px; text-align: center;">
+            <p style="font-size: 20px; font-weight: 700; color: #f97316;">Resultado: infraentrenamiento</p>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="padding: 24px 36px; text-align: center;">
+        <p style="font-size: 22px; font-weight: 500; line-height: 1.5;">
+          En ambos casos, tus zonas de entrenamiento basadas en FTP <span class="red" style="font-weight: 700;">no reflejan</span> tu fisiologia real. Entrenas a ciegas.
+        </p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Borszcz, F. et al. (2019). <em>Int J Sports Physiol Perform</em>, 14(2), 157-164.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: La solucion -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <div class="content" style="gap: 28px;">
+    <div class="tag">LA SOLUCION</div>
+    <h2 style="font-size: 40px; line-height: 1.15;">Test de lactato = tu <span class="accent-green">LT2 real</span>. Combinalo con FTP.</h2>
+    <div class="divider"></div>
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px;">
+      <div style="display: flex; gap: 20px;">
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(34,197,94,0.1); border: 2px solid #22c55e; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+            <span style="font-size: 36px; font-weight: 700; color: #22c55e;">1</span>
+          </div>
+          <h3 style="font-size: 20px; color: #22c55e; margin-bottom: 12px;">Test de lactato</h3>
+          <p style="font-size: 17px; font-weight: 300; color: rgba(247,246,244,0.7); line-height: 1.5;">
+            Determina tu LT1 y LT2 reales. Estos son tus <strong>limites fisiologicos</strong>.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(210,106,54,0.1); border: 2px solid #d26a36; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+            <span style="font-size: 36px; font-weight: 700; color: #d26a36;">2</span>
+          </div>
+          <h3 style="font-size: 20px; color: #d26a36; margin-bottom: 12px;">Compara con FTP</h3>
+          <p style="font-size: 17px; font-weight: 300; color: rgba(247,246,244,0.7); line-height: 1.5;">
+            Entiende la <strong>diferencia</strong> entre tu FTP y LT2. Ajusta las zonas de potencia segun LT2.
+          </p>
+        </div>
+        <div class="card" style="flex: 1; padding: 28px; text-align: center;">
+          <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(249,115,22,0.1); border: 2px solid #f97316; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+            <span style="font-size: 36px; font-weight: 700; color: #f97316;">3</span>
+          </div>
+          <h3 style="font-size: 20px; color: #f97316; margin-bottom: 12px;">Entrena con precision</h3>
+          <p style="font-size: 17px; font-weight: 300; color: rgba(247,246,244,0.7); line-height: 1.5;">
+            Zonas basadas en <strong>umbrales reales</strong>. Cada sesion tiene la intensidad correcta.
+          </p>
+        </div>
+      </div>
+      <div class="card" style="padding: 28px 36px; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);">
+        <p style="font-size: 22px; font-weight: 400; line-height: 1.6; text-align: center;">
+          FTP sigue siendo util como metrica de rendimiento. Pero tus <span class="accent-green" style="font-weight: 700;">zonas de entrenamiento</span> deben estar basadas en tus <strong>umbrales de lactato</strong>, no en FTP.
+        </p>
+      </div>
+      <div class="card" style="padding: 20px 28px; text-align: center;">
+        <p style="font-size: 18px; font-weight: 300; line-height: 1.5; font-style: italic; color: rgba(247,246,244,0.7);">
+          "FTP is a performance surrogate, not a physiological boundary. Using it as a training anchor without lactate validation is guessing."
+        </p>
+        <p style="font-size: 15px; font-weight: 600; color: #d26a36; margin-top: 8px;">— Coggan, A. (2018)</p>
+      </div>
+    </div>
+    <p style="font-size: 14px; color: rgba(247,246,244,0.35); font-weight: 300;">
+      Coggan, A. & Allen, H. (2003). <em>Training and Racing with a Power Meter</em>. Borszcz et al. (2019). <em>IJSPP</em>.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div class="content" style="justify-content: center; align-items: center; gap: 40px;">
+    <div class="cta-box" style="max-width: 800px; width: 100%;">
+      <h2 style="font-size: 44px; color: #f7f6f4; margin-bottom: 20px; line-height: 1.2;">
+        Descubre si tu FTP coincide<br>con tu umbral real
+      </h2>
+      <div style="width: 60px; height: 4px; background: rgba(247,246,244,0.4); border-radius: 2px; margin: 0 auto 24px;"></div>
+      <p style="font-size: 22px; font-weight: 300; color: rgba(247,246,244,0.9); line-height: 1.5; margin-bottom: 28px;">
+        PeakAerobic detecta tu <strong>LT2 real</strong> con 3 metodos cientificos validados. Compara con tu FTP y ajusta tus zonas.
+      </p>
+      <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <div style="background: rgba(247,246,244,0.15); padding: 12px 28px; border-radius: 10px;">
+          <p style="font-size: 18px; font-weight: 600; color: #f7f6f4;">Tu LT2 real desde un test de lactato</p>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 32px; align-items: center;">
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #d26a36;">FTP</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Rendimiento</p>
+      </div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #ef4444;">vs</p>
+      </div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #22c55e;">LT2</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Fisiologia</p>
+      </div>
+      <div style="width: 1px; height: 50px; background: rgba(247,246,244,0.15);"></div>
+      <div style="text-align: center;">
+        <p style="font-size: 36px; font-weight: 700; color: #d26a36;">Zonas</p>
+        <p style="font-size: 16px; font-weight: 300; color: rgba(247,246,244,0.5);">Reales</p>
+      </div>
+    </div>
+    <p style="font-size: 20px; font-weight: 500; color: #d26a36;">peakaerobic.com</p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

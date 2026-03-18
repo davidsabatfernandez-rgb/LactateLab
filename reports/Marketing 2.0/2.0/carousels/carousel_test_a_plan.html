@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>De test a plan — PeakAerobic Carousel</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a1a;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    font-family: 'Source Sans 3', sans-serif;
+  }
+  .slide {
+    width: 1080px;
+    height: 1080px;
+    background: #0e1e24;
+    color: #f7f6f4;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide-number {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    color: rgba(247,246,244,0.35);
+  }
+  .progress-dots {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+  }
+  .progress-dots .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    text-align: right;
+  }
+  .watermark .brand {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    color: rgba(210,106,54,0.35);
+    font-weight: 600;
+  }
+  .watermark .sub {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 11px;
+    color: rgba(210,106,54,0.25);
+  }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 52px; line-height: 1.15; text-align: center; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 42px; line-height: 1.2; text-align: center; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 32px; line-height: 1.3; }
+  p, li { font-family: 'Source Sans 3', sans-serif; font-size: 26px; line-height: 1.6; color: rgba(247,246,244,0.85); }
+  .tag { display: inline-block; padding: 8px 20px; border-radius: 6px; background: rgba(210,106,54,0.15); color: #d26a36; font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 20px; }
+  .divider { width: 60px; height: 4px; background: #d26a36; border-radius: 2px; margin: 20px 0; }
+  .cta-box { background: linear-gradient(135deg, #d26a36, #e07b44); padding: 40px 50px; border-radius: 20px; text-align: center; width: 100%; }
+  .card { background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2); border-radius: 20px; padding: 30px 35px; width: 100%; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <span class="slide-number">01 / 07</span>
+  <div class="tag" style="margin-bottom: 30px;">El problema</div>
+  <h1 style="font-size: 50px; margin-bottom: 20px;">Pagaste <span class="accent">€300</span> por un test de lactato.</h1>
+  <div class="divider" style="margin: 25px 0;"></div>
+  <h2 style="font-size: 40px; color: rgba(247,246,244,0.7);">Tienes números.</h2>
+  <h2 style="font-size: 40px; color: #ef4444; margin-top: 10px;">No sabes qué entrenar.</h2>
+  <div class="progress-dots"><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 2: El problema -->
+<div class="slide">
+  <span class="slide-number">02 / 07</span>
+  <h2 style="margin-bottom: 25px;">El <span class="red">80%</span> de los tests de lactato terminan en un PDF</h2>
+  <div class="divider"></div>
+  <div class="card" style="margin: 25px 0;">
+    <p style="font-size: 28px; font-style: italic; color: rgba(247,246,244,0.7); margin-bottom: 12px;">"I got tested at a sports lab... got a nice report with zones and thresholds. Now what do I actually do with this?"</p>
+    <p style="font-size: 20px; color: rgba(247,246,244,0.4);">— Discusión en LetsRun Forum, 2022</p>
+  </div>
+  <div class="card">
+    <h3 style="text-align: center; margin-bottom: 15px;">Lo que recibes:</h3>
+    <p style="text-align: center; font-size: 28px;">Gráfico de curva + zonas + "entrena en Z2"</p>
+    <div style="width: 40px; height: 3px; background: rgba(247,246,244,0.15); margin: 20px auto;"></div>
+    <h3 style="text-align: center; margin-bottom: 15px; color: #ef4444;">Lo que NO recibes:</h3>
+    <p style="text-align: center; font-size: 28px;">Qué bloque entrenar. Cuánto. En qué orden.</p>
+  </div>
+  <p style="font-size: 20px; margin-top: 20px; color: rgba(247,246,244,0.45); text-align: center;">Faude et al., 2009 — "Exercise testing: pitfalls and interpretation"</p>
+  <div class="progress-dots"><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 3: Lo que recibes vs lo que necesitas -->
+<div class="slide">
+  <span class="slide-number">03 / 07</span>
+  <h2 style="margin-bottom: 25px;">Datos <span style="color: rgba(247,246,244,0.5);">vs.</span> <span class="accent">Decisiones</span></h2>
+  <div class="divider"></div>
+  <div style="display: flex; gap: 25px; width: 100%; margin-top: 25px;">
+    <div class="card" style="flex: 1;">
+      <h3 style="text-align: center; margin-bottom: 20px; color: rgba(247,246,244,0.5);">Lo que recibes</h3>
+      <ul style="list-style: none; padding: 0;">
+        <li style="margin-bottom: 12px; font-size: 24px;">LT1: 2.1 mmol/L</li>
+        <li style="margin-bottom: 12px; font-size: 24px;">LT2: 3.8 mmol/L</li>
+        <li style="margin-bottom: 12px; font-size: 24px;">VO2max: ~58 ml/kg/min</li>
+        <li style="font-size: 24px;">Zonas de FC</li>
+      </ul>
+    </div>
+    <div class="card" style="flex: 1; border-color: rgba(34,197,94,0.3);">
+      <h3 style="text-align: center; margin-bottom: 20px; color: #22c55e;">Lo que necesitas</h3>
+      <ul style="list-style: none; padding: 0;">
+        <li style="margin-bottom: 12px; font-size: 24px; color: #22c55e;">Qué entrenar primero</li>
+        <li style="margin-bottom: 12px; font-size: 24px; color: #22c55e;">Cuántas semanas</li>
+        <li style="margin-bottom: 12px; font-size: 24px; color: #22c55e;">Qué sesiones concretas</li>
+        <li style="font-size: 24px; color: #22c55e;">Cuándo re-testear</li>
+      </ul>
+    </div>
+  </div>
+  <p style="font-size: 20px; margin-top: 20px; color: rgba(247,246,244,0.45); text-align: center;">Kindermann et al., 1979; Seiler & Kjerland, 2006</p>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 4: El puente que falta (flowchart) -->
+<div class="slide">
+  <span class="slide-number">04 / 07</span>
+  <h2 style="margin-bottom: 25px;">El puente que falta</h2>
+  <div class="divider"></div>
+  <svg viewBox="0 0 800 520" width="800" xmlns="http://www.w3.org/2000/svg" style="margin-top: 20px;">
+    <!-- Step 1 -->
+    <rect x="250" y="0" width="300" height="70" rx="15" fill="rgba(210,106,54,0.15)" stroke="#d26a36" stroke-width="2"/>
+    <text x="400" y="42" font-family="Space Grotesk" font-size="22" font-weight="600" fill="#d26a36" text-anchor="middle">Test de lactato</text>
+    <!-- Arrow 1 -->
+    <line x1="400" y1="70" x2="400" y2="120" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+    <polygon points="393,115 407,115 400,125" fill="rgba(247,246,244,0.3)"/>
+    <!-- Step 2 -->
+    <rect x="250" y="125" width="300" height="70" rx="15" fill="rgba(210,106,54,0.15)" stroke="#d26a36" stroke-width="2"/>
+    <text x="400" y="167" font-family="Space Grotesk" font-size="22" font-weight="600" fill="#d26a36" text-anchor="middle">Perfil fisiologico</text>
+    <!-- Arrow 2 -->
+    <line x1="400" y1="195" x2="400" y2="245" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+    <polygon points="393,240 407,240 400,250" fill="rgba(247,246,244,0.3)"/>
+    <!-- Step 3 -->
+    <rect x="220" y="250" width="360" height="70" rx="15" fill="rgba(34,197,94,0.1)" stroke="#22c55e" stroke-width="2"/>
+    <text x="400" y="292" font-family="Space Grotesk" font-size="22" font-weight="600" fill="#22c55e" text-anchor="middle">Diagnostico de gaps</text>
+    <!-- Arrow 3 -->
+    <line x1="400" y1="320" x2="400" y2="370" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+    <polygon points="393,365 407,365 400,375" fill="rgba(247,246,244,0.3)"/>
+    <!-- Step 4 -->
+    <rect x="220" y="375" width="360" height="70" rx="15" fill="rgba(34,197,94,0.1)" stroke="#22c55e" stroke-width="2"/>
+    <text x="400" y="417" font-family="Space Grotesk" font-size="22" font-weight="600" fill="#22c55e" text-anchor="middle">Seleccion de bloque</text>
+    <!-- Arrow 4 -->
+    <line x1="400" y1="445" x2="400" y2="470" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+    <polygon points="393,465 407,465 400,475" fill="rgba(247,246,244,0.3)"/>
+    <!-- Step 5 -->
+    <rect x="200" y="475" width="400" height="70" rx="15" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="2.5"/>
+    <text x="400" y="517" font-family="Space Grotesk" font-size="24" font-weight="700" fill="#22c55e" text-anchor="middle">Prescripcion del mesociclo</text>
+    <!-- Labels -->
+    <text x="130" y="42" font-family="Source Sans 3" font-size="16" fill="rgba(247,246,244,0.35)" text-anchor="end">Laboratorio</text>
+    <text x="130" y="167" font-family="Source Sans 3" font-size="16" fill="rgba(247,246,244,0.35)" text-anchor="end">Software</text>
+    <text x="100" y="350" font-family="Source Sans 3" font-size="18" fill="#22c55e" text-anchor="end">PeakAerobic</text>
+    <!-- Bracket -->
+    <line x1="115" y1="270" x2="115" y2="500" stroke="#22c55e" stroke-width="2"/>
+    <line x1="115" y1="270" x2="125" y2="270" stroke="#22c55e" stroke-width="2"/>
+    <line x1="115" y1="500" x2="125" y2="500" stroke="#22c55e" stroke-width="2"/>
+  </svg>
+  <p style="font-size: 20px; margin-top: 15px; color: rgba(247,246,244,0.45); text-align: center;">Olbrecht, <em>The Science of Winning</em>, 2000; Mader, 2003</p>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 5: Olbrecht -->
+<div class="slide">
+  <span class="slide-number">05 / 07</span>
+  <h2 style="margin-bottom: 15px;">No es random.<br><span class="accent">Es fisiologia.</span></h2>
+  <div class="divider"></div>
+  <p style="text-align: center; margin: 15px 0 25px; font-size: 26px;">Olbrecht (<em>Science of Winning</em>, 2000): 6 tipos de bloque segun tu perfil metabolico.</p>
+  <div style="display: flex; flex-wrap: wrap; gap: 15px; width: 100%; justify-content: center;">
+    <div class="card" style="width: 46%; padding: 20px 25px;">
+      <h3 style="font-size: 22px; color: #22c55e;">Capacidad aerobica</h3>
+      <p style="font-size: 19px;">Base + VLamax alta</p>
+    </div>
+    <div class="card" style="width: 46%; padding: 20px 25px;">
+      <h3 style="font-size: 22px; color: #22c55e;">Desarrollo umbral</h3>
+      <p style="font-size: 19px;">Gap LT2 + base construida</p>
+    </div>
+    <div class="card" style="width: 46%; padding: 20px 25px;">
+      <h3 style="font-size: 22px; color: #d26a36;">Potencia aerobica</h3>
+      <p style="font-size: 19px;">Gaps minimos + fitness alto</p>
+    </div>
+    <div class="card" style="width: 46%; padding: 20px 25px;">
+      <h3 style="font-size: 22px; color: #d26a36;">Capacidad anaerobica</h3>
+      <p style="font-size: 19px;">VLamax baja + evento corto</p>
+    </div>
+    <div class="card" style="width: 46%; padding: 20px 25px;">
+      <h3 style="font-size: 22px; color: #f97316;">Potencia anaerobica</h3>
+      <p style="font-size: 19px;">Pre-competicion sprint/5k</p>
+    </div>
+    <div class="card" style="width: 46%; padding: 20px 25px;">
+      <h3 style="font-size: 22px; color: #f97316;">Especifico competicion</h3>
+      <p style="font-size: 19px;">Larga distancia + LT2 ok</p>
+    </div>
+  </div>
+  <p style="font-size: 20px; margin-top: 20px; color: rgba(247,246,244,0.45); text-align: center;">Olbrecht, 2000; Mader & Heck, 1986</p>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 6: PeakAerobic flow -->
+<div class="slide">
+  <span class="slide-number">06 / 07</span>
+  <h2 style="margin-bottom: 20px;">De datos a prescripcion<br>en <span class="accent">60 segundos</span></h2>
+  <div class="divider"></div>
+  <svg viewBox="0 0 820 420" width="820" xmlns="http://www.w3.org/2000/svg" style="margin-top: 20px;">
+    <!-- Step 1: Input -->
+    <rect x="10" y="40" width="240" height="140" rx="16" fill="rgba(210,106,54,0.08)" stroke="rgba(210,106,54,0.25)" stroke-width="1.5"/>
+    <text x="130" y="80" font-family="Space Grotesk" font-size="20" font-weight="600" fill="#d26a36" text-anchor="middle">1. Pega tus datos</text>
+    <text x="130" y="110" font-family="Source Sans 3" font-size="17" fill="rgba(247,246,244,0.6)" text-anchor="middle">Ritmo/potencia + lactato</text>
+    <text x="130" y="135" font-family="Source Sans 3" font-size="17" fill="rgba(247,246,244,0.6)" text-anchor="middle">+ FC de tu test</text>
+    <text x="130" y="165" font-family="Source Sans 3" font-size="14" fill="rgba(247,246,244,0.3)" text-anchor="middle">5 segundos</text>
+    <!-- Arrow -->
+    <line x1="250" y1="110" x2="290" y2="110" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+    <polygon points="285,104 285,116 295,110" fill="rgba(247,246,244,0.3)"/>
+    <!-- Step 2: Analysis -->
+    <rect x="295" y="40" width="240" height="140" rx="16" fill="rgba(210,106,54,0.08)" stroke="rgba(210,106,54,0.25)" stroke-width="1.5"/>
+    <text x="415" y="80" font-family="Space Grotesk" font-size="20" font-weight="600" fill="#d26a36" text-anchor="middle">2. Analisis auto</text>
+    <text x="415" y="110" font-family="Source Sans 3" font-size="17" fill="rgba(247,246,244,0.6)" text-anchor="middle">LT1, LT2, VO2max</text>
+    <text x="415" y="135" font-family="Source Sans 3" font-size="17" fill="rgba(247,246,244,0.6)" text-anchor="middle">VLamax, perfil</text>
+    <text x="415" y="165" font-family="Source Sans 3" font-size="14" fill="rgba(247,246,244,0.3)" text-anchor="middle">15 segundos</text>
+    <!-- Arrow -->
+    <line x1="535" y1="110" x2="575" y2="110" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+    <polygon points="570,104 570,116 580,110" fill="rgba(247,246,244,0.3)"/>
+    <!-- Step 3: Plan -->
+    <rect x="580" y="40" width="240" height="140" rx="16" fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.25)" stroke-width="1.5"/>
+    <text x="700" y="80" font-family="Space Grotesk" font-size="20" font-weight="600" fill="#22c55e" text-anchor="middle">3. Tu plan</text>
+    <text x="700" y="110" font-family="Source Sans 3" font-size="17" fill="rgba(247,246,244,0.6)" text-anchor="middle">Bloque recomendado</text>
+    <text x="700" y="135" font-family="Source Sans 3" font-size="17" fill="rgba(247,246,244,0.6)" text-anchor="middle">+ mesociclo completo</text>
+    <text x="700" y="165" font-family="Source Sans 3" font-size="14" fill="rgba(247,246,244,0.3)" text-anchor="middle">40 segundos</text>
+    <!-- Output mockup -->
+    <rect x="130" y="240" width="560" height="170" rx="16" fill="rgba(210,106,54,0.06)" stroke="rgba(210,106,54,0.15)" stroke-width="1"/>
+    <text x="410" y="275" font-family="Space Grotesk" font-size="19" font-weight="600" fill="#d26a36" text-anchor="middle">Resultado ejemplo</text>
+    <text x="160" y="310" font-family="Source Sans 3" font-size="17" fill="rgba(247,246,244,0.6)">Bloque recomendado: Capacidad Aerobica (AEC)</text>
+    <text x="160" y="340" font-family="Source Sans 3" font-size="17" fill="rgba(247,246,244,0.6)">Duracion: 4 semanas (3+1 recovery)</text>
+    <text x="160" y="370" font-family="Source Sans 3" font-size="17" fill="rgba(247,246,244,0.6)">Sesiones clave: LT1 extensivo + ANC spice</text>
+    <text x="160" y="395" font-family="Source Sans 3" font-size="17" fill="rgba(247,246,244,0.6)">Proximo test: semana 5</text>
+  </svg>
+  <p style="font-size: 20px; margin-top: 15px; color: rgba(247,246,244,0.45); text-align: center;">Bishop et al., 1998; Faude et al., 2009; Olbrecht, 2000</p>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <span class="slide-number">07 / 07</span>
+  <div class="cta-box">
+    <h1 style="color: #fff; font-size: 52px; margin-bottom: 20px;">De test a plan.</h1>
+    <h1 style="color: #fff; font-size: 52px; margin-bottom: 15px;">60 segundos.</h1>
+    <h2 style="color: rgba(255,255,255,0.9); font-size: 42px; margin-bottom: 25px;">Gratis.</h2>
+    <div style="width: 60px; height: 4px; background: rgba(255,255,255,0.4); border-radius: 2px; margin: 20px auto;"></div>
+    <p style="font-size: 28px; color: rgba(255,255,255,0.85);">Pega tus datos de lactato. Recibe tu bloque de entrenamiento.</p>
+  </div>
+  <p style="font-size: 20px; margin-top: 30px; color: rgba(247,246,244,0.4); text-align: center;">peakaerobic.com</p>
+  <div class="progress-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div></div>
+  <div class="watermark"><div class="brand">PeakAerobic</div><div class="sub">Endurance physiology</div></div>
+</div>
+
+</body>
+</html>

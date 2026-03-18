@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 07 - VLamax diesel o deportivo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; }
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .engine-container {
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    margin: 30px auto;
+    position: relative;
+  }
+
+  .engine-diesel { background: radial-gradient(circle, #22c55e20 0%, #22c55e05 70%); border: 4px solid #22c55e40; }
+  .engine-sport { background: radial-gradient(circle, #ef444420 0%, #ef444405 70%); border: 4px solid #ef444440; }
+
+  .engine-icon { font-size: 120px; margin-bottom: 10px; }
+  .engine-label { font-family: 'Space Grotesk', sans-serif; font-size: 42px; font-weight: 700; }
+
+  @keyframes dieselPulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.05); opacity: 1; }
+  }
+  @keyframes sportPulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    25% { transform: scale(1.12); opacity: 1; }
+    50% { transform: scale(0.95); opacity: 0.7; }
+    75% { transform: scale(1.08); opacity: 1; }
+  }
+
+  .diesel-anim { animation: dieselPulse 3s ease infinite; }
+  .sport-anim { animation: sportPulse 0.8s ease infinite; }
+
+  .feature-list { list-style: none; margin-top: 30px; }
+  .feature-list li {
+    font-size: 38px; padding: 12px 0;
+    opacity: 0; transform: translateX(-20px);
+    transition: all 0.4s ease;
+  }
+  .feature-list li.show { opacity: 1; transform: translateX(0); }
+
+  .vs-container { display: flex; gap: 30px; width: 920px; margin-top: 30px; }
+  .vs-card { flex: 1; padding: 35px 25px; border-radius: 20px; text-align: center; }
+  .vs-card.diesel-card { background: #22c55e10; border: 2px solid #22c55e40; }
+  .vs-card.sport-card { background: #ef444410; border: 2px solid #ef444440; }
+  .vs-title { font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700; margin-bottom: 15px; }
+  .vs-events { font-size: 30px; color: #f7f6f480; line-height: 1.6; }
+  .vs-value { font-family: 'Space Grotesk', sans-serif; font-size: 48px; font-weight: 700; margin: 15px 0; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; }
+  .reveal { opacity: 0; transition: opacity 0.5s; }
+  .reveal.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <h1><span class="accent">VLamax</span> alta = sprinter<br>VLamax baja = maquina<br>de resistencia</h1>
+  <h2 id="s1q" style="margin-top: 50px; opacity:0; transition: opacity 0.5s;"><span class="accent">Cual eres?</span></h2>
+</div>
+
+<!-- Scene 2: Diesel -->
+<div class="scene" id="scene2">
+  <h2><span class="green">VLamax BAJA</span></h2>
+  <div class="engine-container engine-diesel diesel-anim">
+    <div class="engine-icon">&#9881;</div>
+    <div class="engine-label green">DIESEL</div>
+  </div>
+  <svg width="800" height="250" viewBox="0 0 800 250" style="margin: 10px 0;">
+    <line x1="40" y1="220" x2="760" y2="220" stroke="#f7f6f415" stroke-width="1"/>
+    <!-- Flat curve = diesel -->
+    <path fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round"
+      d="M 60,195 C 160,193 260,190 370,185 C 470,178 550,160 640,120 C 700,90 740,55 760,35"/>
+    <circle cx="60" cy="195" r="6" fill="#22c55e"/>
+    <circle cx="200" cy="192" r="6" fill="#22c55e"/>
+    <circle cx="370" cy="185" r="6" fill="#22c55e"/>
+    <circle cx="500" cy="172" r="6" fill="#22c55e"/>
+    <circle cx="640" cy="120" r="6" fill="#22c55e"/>
+    <circle cx="760" cy="35" r="6" fill="#22c55e"/>
+  </svg>
+  <ul class="feature-list" id="dieselList">
+    <li id="dl1"><span style="color:#22c55e">+</span> Produce poco lactato</li>
+    <li id="dl2"><span style="color:#22c55e">+</span> Quema grasa eficientemente</li>
+    <li id="dl3"><span style="color:#22c55e">+</span> Puede mantener horas</li>
+    <li id="dl4"><span style="color:#22c55e">+</span> Ideal: Ironman, maraton, ultras</li>
+  </ul>
+</div>
+
+<!-- Scene 3: Sports car -->
+<div class="scene" id="scene3">
+  <h2><span class="red">VLamax ALTA</span></h2>
+  <div class="engine-container engine-sport sport-anim">
+    <div class="engine-icon">&#9889;</div>
+    <div class="engine-label red">DEPORTIVO</div>
+  </div>
+  <svg width="800" height="250" viewBox="0 0 800 250" style="margin: 10px 0;">
+    <line x1="40" y1="220" x2="760" y2="220" stroke="#f7f6f415" stroke-width="1"/>
+    <!-- Steep curve = sports car -->
+    <path fill="none" stroke="#ef4444" stroke-width="4" stroke-linecap="round"
+      d="M 60,200 C 130,195 200,180 290,150 C 380,115 440,70 520,35 C 580,15 660,8 760,5"/>
+    <circle cx="60" cy="200" r="6" fill="#ef4444"/>
+    <circle cx="200" cy="180" r="6" fill="#ef4444"/>
+    <circle cx="340" cy="130" r="6" fill="#ef4444"/>
+    <circle cx="460" cy="60" r="6" fill="#ef4444"/>
+    <circle cx="580" cy="20" r="6" fill="#ef4444"/>
+    <circle cx="760" cy="5" r="6" fill="#ef4444"/>
+  </svg>
+  <ul class="feature-list" id="sportList">
+    <li id="sl1"><span style="color:#ef4444">+</span> Gran explosion de potencia</li>
+    <li id="sl2"><span style="color:#ef4444">+</span> Lactato sube rapido</li>
+    <li id="sl3"><span style="color:#ef4444">+</span> Quema glucogeno</li>
+    <li id="sl4"><span style="color:#ef4444">+</span> Ideal: sprints, 5K, pista</li>
+  </ul>
+</div>
+
+<!-- Scene 4: Comparison -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom: 20px;">Que motor necesitas?</h2>
+  <div class="vs-container">
+    <div class="vs-card diesel-card">
+      <div class="vs-title green">DIESEL</div>
+      <div class="vs-value green">< 0.3</div>
+      <div style="font-size: 26px; color: #f7f6f460;">mmol/L/s</div>
+      <div class="vs-events" style="margin-top: 20px;">
+        Ironman<br>Maraton<br>Ultra trail<br>Gran fondo
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; font-size: 60px; color: #d26a36; font-weight: 700;">vs</div>
+    <div class="vs-card sport-card">
+      <div class="vs-title red">DEPORTIVO</div>
+      <div class="vs-value red">> 0.5</div>
+      <div style="font-size: 26px; color: #f7f6f460;">mmol/L/s</div>
+      <div class="vs-events" style="margin-top: 20px;">
+        5K / 10K<br>Sprint tri<br>Pista<br>Criterium
+      </div>
+    </div>
+  </div>
+  <div class="reveal" id="s4tip" style="margin-top: 40px; font-size: 40px; text-align: center; color: #d26a36; font-weight: 700;">
+    La VLamax se puede ENTRENAR
+  </div>
+</div>
+
+<!-- Scene 5: PeakAerobic -->
+<div class="scene" id="scene5">
+  <h2>Tu curva revela tu motor</h2>
+  <svg width="800" height="350" viewBox="0 0 800 350" style="margin: 30px 0;">
+    <line x1="40" y1="30" x2="40" y2="300" stroke="#f7f6f415" stroke-width="1"/>
+    <line x1="40" y1="300" x2="760" y2="300" stroke="#f7f6f415" stroke-width="1"/>
+    <!-- Both curves overlaid -->
+    <path fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" opacity="0.7"
+      d="M 60,280 C 160,278 260,275 370,268 C 470,258 550,235 640,185 C 700,150 740,105 760,80"/>
+    <path fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" opacity="0.7"
+      d="M 60,280 C 130,275 200,258 290,225 C 380,185 440,130 520,80 C 580,50 660,35 760,30"/>
+    <text x="650" y="200" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="28">Diesel</text>
+    <text x="500" y="60" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="28">Deportivo</text>
+    <!-- Arrow pointing to shape difference -->
+    <text x="300" y="160" fill="#d26a36" font-family="Space Grotesk" font-weight="700" font-size="24">La forma lo dice todo</text>
+  </svg>
+  <div style="font-size: 40px; text-align: center; color: #f7f6f4; line-height: 1.5;">
+    PeakAerobic estima tu VLamax<br>desde la <span class="accent">forma de tu curva</span>
+  </div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-top: 30px;">Descubre tu motor.<br><span class="accent">Entrena para tu evento.</span></h2>
+  <div style="font-size: 36px; color: #d26a36; margin-top: 40px;">@peakaerobic</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 40000;
+const startTime = Date.now();
+const scenes = [
+  { id: 'scene1', start: 0, end: 6000 },
+  { id: 'scene2', start: 6000, end: 15000 },
+  { id: 'scene3', start: 15000, end: 24000 },
+  { id: 'scene4', start: 24000, end: 32000 },
+  { id: 'scene5', start: 32000, end: 37000 },
+  { id: 'scene6', start: 37000, end: 40000 },
+];
+const events = [
+  { time: 3000, action: () => document.getElementById('s1q').style.opacity = '1' },
+  { time: 7000, action: () => document.getElementById('dl1').classList.add('show') },
+  { time: 8000, action: () => document.getElementById('dl2').classList.add('show') },
+  { time: 9000, action: () => document.getElementById('dl3').classList.add('show') },
+  { time: 10000, action: () => document.getElementById('dl4').classList.add('show') },
+  { time: 16000, action: () => document.getElementById('sl1').classList.add('show') },
+  { time: 17000, action: () => document.getElementById('sl2').classList.add('show') },
+  { time: 18000, action: () => document.getElementById('sl3').classList.add('show') },
+  { time: 19000, action: () => document.getElementById('sl4').classList.add('show') },
+  { time: 28000, action: () => document.getElementById('s4tip').classList.add('show') },
+];
+let eventIndex = 0;
+function update() {
+  const elapsed = Date.now() - startTime;
+  document.getElementById('progressBar').style.width = Math.min(elapsed / DURATION * 100, 100) + '%';
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

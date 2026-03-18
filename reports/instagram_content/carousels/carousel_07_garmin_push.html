@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Del analisis a tu muneca en minutos</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0e1e24; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; }
+  .slide { width: 1080px; height: 1080px; padding: 72px; position: relative; display: flex; flex-direction: column; justify-content: center; background: #0e1e24; margin-bottom: 4px; overflow: hidden; }
+  .slide::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #d26a36, #f97316); }
+  h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+  .slide-number { position: absolute; top: 36px; right: 48px; font-family: 'Space Grotesk', sans-serif; font-size: 18px; color: rgba(247,246,244,0.3); font-weight: 600; }
+  .progress-dots { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.2); }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark { position: absolute; bottom: 40px; right: 48px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; color: rgba(247,246,244,0.2); letter-spacing: 1px; }
+  .tag { display: inline-block; background: rgba(210,106,54,0.15); color: #d26a36; font-size: 16px; font-weight: 600; padding: 8px 20px; border-radius: 24px; margin-bottom: 28px; letter-spacing: 1px; text-transform: uppercase; }
+  .cover-title { font-size: 68px; font-weight: 700; line-height: 1.1; margin-bottom: 24px; }
+  .cover-title span { color: #d26a36; }
+  .cover-sub { font-size: 26px; font-weight: 300; color: rgba(247,246,244,0.7); line-height: 1.5; }
+  .section-title { font-size: 42px; font-weight: 700; margin-bottom: 32px; line-height: 1.2; }
+  .section-title span { color: #d26a36; }
+  .body-text { font-size: 24px; line-height: 1.7; color: rgba(247,246,244,0.85); }
+  .card { background: rgba(247,246,244,0.05); border: 1px solid rgba(247,246,244,0.08); border-radius: 16px; padding: 32px; margin-bottom: 20px; }
+  .card-label { font-family: 'Space Grotesk', sans-serif; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #d26a36; margin-bottom: 8px; }
+  .card-value { font-family: 'Space Grotesk', sans-serif; font-size: 48px; font-weight: 700; }
+  .card-desc { font-size: 20px; color: rgba(247,246,244,0.6); margin-top: 8px; }
+  .flow-step { display: flex; align-items: center; gap: 24px; margin-bottom: 20px; }
+  .flow-num { font-family: 'Space Grotesk', sans-serif; font-size: 48px; font-weight: 700; color: #d26a36; min-width: 64px; text-align: center; }
+  .flow-content { flex: 1; background: rgba(247,246,244,0.05); border: 1px solid rgba(247,246,244,0.08); border-radius: 16px; padding: 24px 28px; }
+  .flow-content h3 { font-size: 24px; font-weight: 600; margin-bottom: 6px; }
+  .flow-content p { font-size: 19px; color: rgba(247,246,244,0.65); line-height: 1.5; }
+  .flow-arrow { text-align: center; color: rgba(247,246,244,0.2); font-size: 24px; margin: -8px 0 -8px 20px; }
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+  .compare-card { border-radius: 16px; padding: 32px; }
+  .compare-card.old { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); }
+  .compare-card.new { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); }
+  .compare-card h3 { font-size: 26px; margin-bottom: 16px; }
+  .compare-card.old h3 { color: #ef4444; }
+  .compare-card.new h3 { color: #22c55e; }
+  .compare-card ul { list-style: none; font-size: 20px; line-height: 2; }
+  .compare-card ul li::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 12px; }
+  .compare-card.old ul li::before { background: #ef4444; }
+  .compare-card.new ul li::before { background: #22c55e; }
+  .cta-box { background: linear-gradient(135deg, #d26a36, #f97316); border-radius: 20px; padding: 48px; text-align: center; }
+  .cta-box h2 { font-size: 44px; margin-bottom: 20px; color: #fff; }
+  .cta-box p { font-size: 24px; color: rgba(255,255,255,0.9); margin-bottom: 32px; }
+  .cta-box .cta-link { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: #fff; background: rgba(0,0,0,0.25); padding: 16px 40px; border-radius: 12px; display: inline-block; }
+  .citation { font-size: 16px; color: rgba(247,246,244,0.25); position: absolute; bottom: 70px; left: 72px; right: 120px; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide">
+  <div class="slide-number">1 / 7</div>
+  <div class="tag">Funcionalidad</div>
+  <h1 class="cover-title">Del analisis a tu<br><span>muneca</span> en minutos</h1>
+  <p class="cover-sub">Sesiones de entrenamiento individualizadas<br>enviadas directamente a tu Garmin.</p>
+  <div class="progress-dots"><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 2: The gap -->
+<div class="slide">
+  <div class="slide-number">2 / 7</div>
+  <h2 class="section-title">El problema: del <span>dato al entrenamiento</span></h2>
+  <p class="body-text" style="margin-bottom: 24px;">Conocer tus umbrales de lactato es solo la mitad del trabajo. El verdadero reto es traducir esos datos fisiologicos en sesiones de entrenamiento ejecutables con intensidades precisas.</p>
+  <div class="card">
+    <div class="card-label">El reto del entrenador</div>
+    <p style="font-size: 23px; color: rgba(247,246,244,0.85); margin-top: 8px;">Faude et al. (2009) enfatizaron que las intensidades de entrenamiento deben basarse en umbrales medidos individualmente. Pero convertir un valor de umbral en una sesion estructurada con zonas de FC, ritmo y potencia requiere calculo manual y tiempo.</p>
+  </div>
+  <div class="card">
+    <div class="card-label">La brecha habitual</div>
+    <p style="font-size: 23px; color: rgba(247,246,244,0.85); margin-top: 8px;">El atleta recibe un informe con sus umbrales, pero la traduccion a sesiones concretas queda en manos de la interpretacion manual. Cada paso introduce posibilidad de error.</p>
+  </div>
+  <div class="citation">Faude O et al. Lactate threshold concepts: how valid are they? Sports Med, 2009.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 3: The workflow -->
+<div class="slide">
+  <div class="slide-number">3 / 7</div>
+  <h2 class="section-title">El flujo de trabajo <span>automatizado</span></h2>
+  <p class="body-text" style="margin-bottom: 20px;">PeakAerobic conecta el analisis fisiologico directamente con la ejecucion del entrenamiento:</p>
+  <div class="flow-step">
+    <div class="flow-num">1</div>
+    <div class="flow-content">
+      <h3>Analisis de lactato</h3>
+      <p>Multiples metodos de deteccion de umbrales aplicados a tus datos (Jamnick et al., 2020).</p>
+    </div>
+  </div>
+  <div class="flow-arrow">|</div>
+  <div class="flow-step">
+    <div class="flow-num">2</div>
+    <div class="flow-content">
+      <h3>Prescripcion de sesiones</h3>
+      <p>Intensidades calculadas a partir de tus umbrales individuales en FC, ritmo y potencia.</p>
+    </div>
+  </div>
+  <div class="flow-arrow">|</div>
+  <div class="flow-step">
+    <div class="flow-num">3</div>
+    <div class="flow-content">
+      <h3>Envio a Garmin Connect</h3>
+      <p>La sesion estructurada aparece en tu reloj con zonas de intensidad personalizadas, lista para ejecutar.</p>
+    </div>
+  </div>
+  <div class="flow-arrow">|</div>
+  <div class="flow-step">
+    <div class="flow-num">4</div>
+    <div class="flow-content">
+      <h3>Ejecucion guiada</h3>
+      <p>Tu reloj te guia en tiempo real con alertas de zona, duracion y estructura de cada intervalo.</p>
+    </div>
+  </div>
+  <div class="citation">Coggan A. Training and racing with a power meter. VeloPress, 2003.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 4: Manual vs Automated -->
+<div class="slide">
+  <div class="slide-number">4 / 7</div>
+  <h2 class="section-title">Manual vs <span>automatizado</span></h2>
+  <p class="body-text" style="margin-bottom: 16px;">La diferencia entre el proceso tradicional y el automatizado:</p>
+  <div class="compare-grid">
+    <div class="compare-card old">
+      <h3>Proceso manual</h3>
+      <ul>
+        <li>Interpretar informe de laboratorio</li>
+        <li>Calcular zonas de FC/ritmo/potencia</li>
+        <li>Disenar sesion en hoja de calculo</li>
+        <li>Crear workout manualmente en Garmin</li>
+        <li>Introducir cada intervalo a mano</li>
+        <li>Verificar zonas contra los umbrales</li>
+        <li>Riesgo de errores de transcripcion</li>
+      </ul>
+    </div>
+    <div class="compare-card new">
+      <h3>Proceso PeakAerobic</h3>
+      <ul>
+        <li>Umbrales detectados automaticamente</li>
+        <li>Zonas derivadas de tus datos reales</li>
+        <li>Sesion generada con intensidades exactas</li>
+        <li>Un click para enviar a Garmin</li>
+        <li>Estructura e intervalos precargados</li>
+        <li>Consistencia garantizada</li>
+        <li>Actualizable con cada nuevo test</li>
+      </ul>
+    </div>
+  </div>
+  <div class="citation">Faude O et al. Sports Med, 2009 / Coggan A. Training and racing with a power meter, 2003.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 5: What gets sent -->
+<div class="slide">
+  <div class="slide-number">5 / 7</div>
+  <h2 class="section-title">¿Que recibe <span>tu reloj</span>?</h2>
+  <p class="body-text" style="margin-bottom: 24px;">Cada sesion enviada a Garmin Connect incluye la estructura completa del entrenamiento:</p>
+  <div class="card" style="border-left: 4px solid #22c55e;">
+    <div class="card-label" style="color: #22c55e;">Calentamiento</div>
+    <p style="font-size: 21px; color: rgba(247,246,244,0.8); margin-top: 8px;">Duracion y zona de intensidad progresiva para preparar los sistemas metabolicos antes del trabajo principal.</p>
+  </div>
+  <div class="card" style="border-left: 4px solid #d26a36;">
+    <div class="card-label" style="color: #d26a36;">Cuerpo principal</div>
+    <p style="font-size: 21px; color: rgba(247,246,244,0.8); margin-top: 8px;">Intervalos con duracion, zona de FC objetivo, ritmo o potencia objetivo, y periodos de recuperacion. Todo calculado a partir de tus umbrales individuales.</p>
+  </div>
+  <div class="card" style="border-left: 4px solid #f97316;">
+    <div class="card-label" style="color: #f97316;">Vuelta a la calma</div>
+    <p style="font-size: 21px; color: rgba(247,246,244,0.8); margin-top: 8px;">Fase de enfriamiento a baja intensidad para facilitar la recuperacion post-ejercicio.</p>
+  </div>
+  <svg width="936" height="120" viewBox="0 0 936 120">
+    <rect x="0" y="0" width="936" height="120" rx="12" fill="rgba(210,106,54,0.06)"/>
+    <text x="468" y="45" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="22" font-weight="600">Intensidades basadas en umbrales medidos</text>
+    <text x="468" y="80" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="19">"Las intensidades de entrenamiento deben individualizarse"</text>
+    <text x="468" y="105" text-anchor="middle" fill="rgba(247,246,244,0.35)" font-family="Source Sans 3" font-size="16">Faude et al., Sports Med, 2009</text>
+  </svg>
+  <div class="citation">Faude O et al. Sports Med, 2009.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 6: Updating with new tests -->
+<div class="slide">
+  <div class="slide-number">6 / 7</div>
+  <h2 class="section-title">Actualizacion <span>con cada test</span></h2>
+  <p class="body-text" style="margin-bottom: 24px;">Los umbrales de lactato no son estaticos. Cambian con el entrenamiento, la fatiga, y el estado de forma. Cada nuevo test actualiza automaticamente las intensidades de tus sesiones futuras.</p>
+  <svg width="936" height="380" viewBox="0 0 936 380">
+    <rect x="0" y="0" width="936" height="380" rx="12" fill="rgba(247,246,244,0.03)"/>
+    <text x="468" y="35" text-anchor="middle" fill="rgba(247,246,244,0.4)" font-family="Space Grotesk" font-size="18" font-weight="600">CICLO DE ACTUALIZACION</text>
+    <!-- Circle flow -->
+    <circle cx="200" cy="140" r="70" fill="rgba(34,197,94,0.1)" stroke="rgba(34,197,94,0.3)" stroke-width="2"/>
+    <text x="200" y="130" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="18" font-weight="600">Test de</text>
+    <text x="200" y="155" text-anchor="middle" fill="#22c55e" font-family="Space Grotesk" font-size="18" font-weight="600">lactato</text>
+    <!-- Arrow -->
+    <path d="M275,140 L365,140" stroke="rgba(247,246,244,0.3)" stroke-width="2" marker-end="url(#arr)"/>
+    <circle cx="468" cy="140" r="70" fill="rgba(210,106,54,0.1)" stroke="rgba(210,106,54,0.3)" stroke-width="2"/>
+    <text x="468" y="130" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="18" font-weight="600">Analisis</text>
+    <text x="468" y="155" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="18" font-weight="600">automatico</text>
+    <!-- Arrow -->
+    <path d="M543,140 L633,140" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+    <circle cx="736" cy="140" r="70" fill="rgba(249,115,22,0.1)" stroke="rgba(249,115,22,0.3)" stroke-width="2"/>
+    <text x="736" y="125" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="18" font-weight="600">Nuevas</text>
+    <text x="736" y="150" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="18" font-weight="600">sesiones</text>
+    <text x="736" y="175" text-anchor="middle" fill="#f97316" font-family="Space Grotesk" font-size="16">a Garmin</text>
+    <!-- Bottom note -->
+    <rect x="120" y="260" width="696" height="90" rx="16" fill="rgba(210,106,54,0.06)"/>
+    <text x="468" y="295" text-anchor="middle" fill="rgba(247,246,244,0.7)" font-family="Source Sans 3" font-size="20">Tus umbrales mejoran → tus sesiones se actualizan</text>
+    <text x="468" y="330" text-anchor="middle" fill="rgba(247,246,244,0.5)" font-family="Source Sans 3" font-size="18">Las intensidades siempre reflejan tu estado fisiologico actual</text>
+  </svg>
+  <div class="citation">Faude O et al. Sports Med, 2009 / Coggan A. Training and racing with a power meter, 2003.</div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span><span class="dot"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide">
+  <div class="slide-number">7 / 7</div>
+  <div style="flex: 1; display: flex; align-items: center;">
+    <div class="cta-box" style="width: 100%;">
+      <h2>Del laboratorio a tu muneca.<br>Sin pasos intermedios.</h2>
+      <p>PeakAerobic analiza, prescribe y envia a Garmin.<br>Sesiones individualizadas basadas en tus umbrales reales.</p>
+      <div class="cta-link">peakaerobic.com</div>
+    </div>
+  </div>
+  <div class="progress-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot active"></span></div>
+  <div class="watermark">PeakAerobic / Endurance physiology</div>
+</div>
+
+</body>
+</html>

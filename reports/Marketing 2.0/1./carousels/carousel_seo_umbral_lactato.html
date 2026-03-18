@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carousel SEO — Umbral de Lactato</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide {
+    width: 1080px; height: 1080px; position: relative; overflow: hidden;
+    background: #0e1e24; color: #f7f6f4; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; padding: 80px;
+  }
+  .slide-number {
+    position: absolute; top: 40px; right: 50px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 20px;
+    color: rgba(247,246,244,0.35); font-weight: 500; letter-spacing: 2px;
+  }
+  .progress-dots {
+    position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px;
+  }
+  .progress-dots .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(247,246,244,0.2);
+  }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark {
+    position: absolute; bottom: 44px; right: 50px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 16px;
+    color: rgba(210,106,54,0.35); font-weight: 600; letter-spacing: 1px;
+  }
+  .watermark span { font-weight: 400; font-size: 11px; display: block; letter-spacing: 0.5px; color: rgba(210,106,54,0.25); }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; line-height: 1.15; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; line-height: 1.2; }
+  p, li { font-family: 'Source Sans 3', sans-serif; line-height: 1.5; }
+  .accent { color: #d26a36; }
+  .accent-green { color: #22c55e; }
+  .accent-orange { color: #f97316; }
+  .tag {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 500;
+    background: rgba(210,106,54,0.15); color: #d26a36; margin-bottom: 20px;
+    letter-spacing: 1px;
+  }
+  .divider {
+    width: 60px; height: 4px; background: #d26a36; border-radius: 2px; margin: 24px 0;
+  }
+  .cta-box {
+    background: linear-gradient(135deg, #d26a36, #e07b44);
+    padding: 40px 50px; border-radius: 20px; text-align: center; max-width: 820px;
+  }
+  .cta-box h2 { color: #fff; }
+  .cta-box p { color: rgba(255,255,255,0.85); }
+  svg text { font-family: 'Source Sans 3', sans-serif; }
+
+  @media print {
+    body { padding: 0; gap: 0; background: white; }
+    .slide { page-break-after: always; margin: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide" style="background: linear-gradient(160deg, #0e1e24 0%, #132a33 50%, #0e1e24 100%);">
+  <div class="slide-number">01 / 07</div>
+  <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.07;">
+    <svg viewBox="0 0 1080 1080" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 0 800 Q 200 780 350 750 Q 500 700 600 580 Q 700 400 800 200 Q 900 50 1080 0" stroke="#d26a36" stroke-width="6" fill="none"/>
+      <path d="M 0 850 Q 200 840 400 820 Q 550 780 650 680 Q 750 520 850 320 Q 950 150 1080 80" stroke="#f97316" stroke-width="3" fill="none" stroke-dasharray="12 8"/>
+    </svg>
+  </div>
+  <div style="text-align: center; position: relative; z-index: 1;">
+    <div class="tag">UMBRAL DE LACTATO</div>
+    <h1 style="font-size: 68px; margin-bottom: 30px;">Que es el<br>umbral de lactato<br>y por que <span class="accent">importa</span></h1>
+    <div class="divider" style="margin: 24px auto;"></div>
+    <p style="font-size: 28px; color: rgba(247,246,244,0.6); max-width: 650px;">
+      La guia definitiva para entender<br>el marcador mas importante de tu rendimiento
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 2: What is lactate threshold -->
+<div class="slide">
+  <div class="slide-number">02 / 07</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 44px; margin-bottom: 40px;">Tu cuerpo produce lactato<br><span class="accent">siempre</span>. La clave es cuando<br>se acumula.</h2>
+    <svg viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg" style="width: 780px;">
+      <!-- Axes -->
+      <line x1="80" y1="370" x2="750" y2="370" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+      <line x1="80" y1="370" x2="80" y2="30" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+      <!-- Y axis labels -->
+      <text x="65" y="370" fill="rgba(247,246,244,0.4)" font-size="16" text-anchor="end">0</text>
+      <text x="65" y="280" fill="rgba(247,246,244,0.4)" font-size="16" text-anchor="end">2</text>
+      <text x="65" y="190" fill="rgba(247,246,244,0.4)" font-size="16" text-anchor="end">4</text>
+      <text x="65" y="100" fill="rgba(247,246,244,0.4)" font-size="16" text-anchor="end">6</text>
+      <!-- Production zone (green) -->
+      <rect x="100" y="260" width="250" height="110" rx="8" fill="rgba(34,197,94,0.08)"/>
+      <text x="225" y="330" fill="#22c55e" font-size="18" text-anchor="middle" font-weight="600">Produccion = Eliminacion</text>
+      <text x="225" y="355" fill="rgba(247,246,244,0.4)" font-size="15" text-anchor="middle">Equilibrio</text>
+      <!-- Accumulation zone (orange) -->
+      <rect x="430" y="40" width="280" height="330" rx="8" fill="rgba(249,115,22,0.06)"/>
+      <text x="570" y="80" fill="#f97316" font-size="18" text-anchor="middle" font-weight="600">Produccion > Eliminacion</text>
+      <text x="570" y="105" fill="rgba(247,246,244,0.4)" font-size="15" text-anchor="middle">Acumulacion</text>
+      <!-- Lactate curve -->
+      <path d="M 100 340 Q 180 335 260 330 Q 340 320 400 280 Q 460 220 530 140 Q 600 70 700 35" stroke="#f7f6f4" stroke-width="4" fill="none"/>
+      <!-- LT1 marker -->
+      <circle cx="300" cy="318" r="8" fill="#22c55e"/>
+      <line x1="300" y1="318" x2="300" y2="370" stroke="#22c55e" stroke-width="2" stroke-dasharray="5 4"/>
+      <text x="300" y="400" fill="#22c55e" font-size="18" text-anchor="middle" font-weight="600">LT1</text>
+      <!-- LT2 marker -->
+      <circle cx="450" cy="230" r="8" fill="#f97316"/>
+      <line x1="450" y1="230" x2="450" y2="370" stroke="#f97316" stroke-width="2" stroke-dasharray="5 4"/>
+      <text x="450" y="400" fill="#f97316" font-size="18" text-anchor="middle" font-weight="600">LT2</text>
+      <!-- Labels -->
+      <text x="400" y="415" fill="rgba(247,246,244,0.4)" font-size="16" text-anchor="middle">Intensidad</text>
+      <text x="25" y="200" fill="rgba(247,246,244,0.4)" font-size="16" text-anchor="middle" transform="rotate(-90 25 200)">Lactato (mmol/L)</text>
+    </svg>
+    <p style="font-size: 26px; margin-top: 30px; color: rgba(247,246,244,0.6); max-width: 700px; margin-left: auto; margin-right: auto;">
+      Hay <strong style="color: #22c55e;">dos</strong> umbrales, no uno: <strong style="color: #22c55e;">LT1</strong> (aerobico) y <strong style="color: #f97316;">LT2</strong> (anaerobico).
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 3: The 4 mmol myth -->
+<div class="slide">
+  <div class="slide-number">03 / 07</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 48px; margin-bottom: 40px;">El mito de los <span class="accent-orange">4 mmol/L</span></h2>
+    <svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg" style="width: 780px;">
+      <!-- Axes -->
+      <line x1="80" y1="340" x2="750" y2="340" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+      <line x1="80" y1="340" x2="80" y2="30" stroke="rgba(247,246,244,0.3)" stroke-width="2"/>
+      <!-- 4mmol horizontal line -->
+      <line x1="80" y1="160" x2="750" y2="160" stroke="#f97316" stroke-width="3" stroke-dasharray="12 6"/>
+      <text x="760" y="165" fill="#f97316" font-size="20" font-weight="600">4 mmol/L</text>
+      <!-- Athlete A: LT2 at 2.8 -->
+      <path d="M 110 310 Q 200 300 300 270 Q 380 220 440 120 Q 500 50 600 25" stroke="#22c55e" stroke-width="3.5" fill="none"/>
+      <circle cx="350" cy="240" r="7" fill="#22c55e"/>
+      <text x="350" y="270" fill="#22c55e" font-size="16" text-anchor="middle" font-weight="600">LT2 real = 2.8</text>
+      <!-- Athlete B: LT2 at 5.2 -->
+      <path d="M 110 320 Q 300 315 450 300 Q 550 260 620 160 Q 680 80 720 30" stroke="#d26a36" stroke-width="3.5" fill="none"/>
+      <circle cx="590" cy="190" r="7" fill="#d26a36"/>
+      <text x="590" y="220" fill="#d26a36" font-size="16" text-anchor="middle" font-weight="600">LT2 real = 5.2</text>
+      <!-- X marks at 4mmol crossings -->
+      <text x="420" y="150" fill="#f97316" font-size="28" text-anchor="middle" font-weight="700">X</text>
+      <text x="608" y="150" fill="#f97316" font-size="28" text-anchor="middle" font-weight="700">X</text>
+    </svg>
+    <div style="margin-top: 30px; display: flex; gap: 30px; justify-content: center;">
+      <div style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); border-radius: 14px; padding: 25px; width: 320px; text-align: center;">
+        <p style="font-size: 20px; color: #22c55e; font-weight: 600;">Atleta A (Ironman)</p>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.5); margin-top: 8px;">LT2 real: 2.8 mmol/L<br>Con 4 mmol entrena <strong style="color:#f7f6f4;">demasiado fuerte</strong></p>
+      </div>
+      <div style="background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.25); border-radius: 14px; padding: 25px; width: 320px; text-align: center;">
+        <p style="font-size: 20px; color: #d26a36; font-weight: 600;">Atleta B (Sprinter)</p>
+        <p style="font-size: 18px; color: rgba(247,246,244,0.5); margin-top: 8px;">LT2 real: 5.2 mmol/L<br>Con 4 mmol entrena <strong style="color:#f7f6f4;">demasiado suave</strong></p>
+      </div>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 4: How PA detects it -->
+<div class="slide">
+  <div class="slide-number">04 / 07</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 44px; margin-bottom: 50px;">Como detecta PeakAerobic<br>tu <span class="accent">umbral real</span></h2>
+    <div style="display: flex; gap: 30px; justify-content: center;">
+      <div style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 20px; padding: 35px 25px; width: 270px; text-align: center;">
+        <svg viewBox="0 0 80 80" style="width: 65px; margin-bottom: 18px;">
+          <line x1="10" y1="60" x2="35" y2="56" stroke="#22c55e" stroke-width="3"/>
+          <line x1="35" y1="56" x2="50" y2="42" stroke="#f97316" stroke-width="3"/>
+          <line x1="50" y1="42" x2="70" y2="15" stroke="#f97316" stroke-width="3"/>
+          <circle cx="35" cy="56" r="5" fill="#22c55e"/>
+          <line x1="35" y1="56" x2="35" y2="70" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="3 2"/>
+        </svg>
+        <h3 style="font-size: 22px; margin-bottom: 8px;">Baseline<br>Rise</h3>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.5);">Detecta la primera subida sobre la linea base (+0.5 mmol, Faude 2009)</p>
+      </div>
+      <div style="background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2); border-radius: 20px; padding: 35px 25px; width: 270px; text-align: center;">
+        <svg viewBox="0 0 80 80" style="width: 65px; margin-bottom: 18px;">
+          <line x1="10" y1="60" x2="28" y2="55" stroke="#22c55e" stroke-width="3"/>
+          <line x1="28" y1="55" x2="45" y2="42" stroke="#d26a36" stroke-width="4"/>
+          <line x1="45" y1="42" x2="60" y2="28" stroke="#d26a36" stroke-width="4"/>
+          <line x1="60" y1="28" x2="70" y2="15" stroke="#f97316" stroke-width="3"/>
+        </svg>
+        <h3 style="font-size: 22px; margin-bottom: 8px;">Sustained<br>Increase</h3>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.5);">Identifica subida mantenida en pasos consecutivos</p>
+      </div>
+      <div style="background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.2); border-radius: 20px; padding: 35px 25px; width: 270px; text-align: center;">
+        <svg viewBox="0 0 80 80" style="width: 65px; margin-bottom: 18px;">
+          <path d="M 10 65 Q 35 60 50 38 Q 62 18 70 10" stroke="#f7f6f4" stroke-width="2.5" fill="none"/>
+          <line x1="10" y1="65" x2="70" y2="10" stroke="rgba(247,246,244,0.3)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <line x1="45" y1="42" x2="45" y2="56" stroke="#d26a36" stroke-width="2.5"/>
+          <circle cx="45" cy="42" r="5" fill="#d26a36"/>
+        </svg>
+        <h3 style="font-size: 22px; margin-bottom: 8px;">ModDmax<br>(Bishop 98)</h3>
+        <p style="font-size: 16px; color: rgba(247,246,244,0.5);">Maxima distancia curva-recta de referencia</p>
+      </div>
+    </div>
+    <div style="margin-top: 40px; background: rgba(210,106,54,0.06); border: 1px solid rgba(210,106,54,0.15); border-radius: 14px; padding: 25px 40px; display: inline-block;">
+      <p style="font-size: 24px; color: rgba(247,246,244,0.7);">
+        <span class="accent" style="font-weight: 700;">3 metodos independientes</span> cruzados.<br>
+        Los sesgos de uno los corrige otro.
+      </p>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 5: Confidence score -->
+<div class="slide">
+  <div class="slide-number">05 / 07</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 44px; margin-bottom: 20px;">No solo un numero.<br>Un numero con <span class="accent">confianza</span>.</h2>
+    <div class="divider" style="margin: 20px auto;"></div>
+    <svg viewBox="0 0 800 340" xmlns="http://www.w3.org/2000/svg" style="width: 750px; margin-top: 20px;">
+      <!-- Method bars converging -->
+      <rect x="40" y="30" width="240" height="55" rx="10" fill="rgba(34,197,94,0.12)" stroke="#22c55e" stroke-width="2"/>
+      <text x="160" y="64" fill="#22c55e" font-size="20" text-anchor="middle" font-weight="600">Baseline Rise</text>
+      <text x="320" y="64" fill="rgba(247,246,244,0.4)" font-size="17">LT2 = 3.4 mmol</text>
+
+      <rect x="40" y="110" width="240" height="55" rx="10" fill="rgba(210,106,54,0.12)" stroke="#d26a36" stroke-width="2"/>
+      <text x="160" y="144" fill="#d26a36" font-size="20" text-anchor="middle" font-weight="600">Sustained Increase</text>
+      <text x="320" y="144" fill="rgba(247,246,244,0.4)" font-size="17">LT2 = 3.6 mmol</text>
+
+      <rect x="40" y="190" width="240" height="55" rx="10" fill="rgba(249,115,22,0.12)" stroke="#f97316" stroke-width="2"/>
+      <text x="160" y="224" fill="#f97316" font-size="20" text-anchor="middle" font-weight="600">ModDmax</text>
+      <text x="320" y="224" fill="rgba(247,246,244,0.4)" font-size="17">LT2 = 3.5 mmol</text>
+
+      <!-- Arrows converging -->
+      <path d="M 430 57 L 500 270" stroke="rgba(247,246,244,0.15)" stroke-width="2"/>
+      <path d="M 430 137 L 500 270" stroke="rgba(247,246,244,0.15)" stroke-width="2"/>
+      <path d="M 430 217 L 500 270" stroke="rgba(247,246,244,0.15)" stroke-width="2"/>
+
+      <!-- Result -->
+      <rect x="470" y="255" width="290" height="75" rx="14" fill="rgba(210,106,54,0.12)" stroke="#d26a36" stroke-width="2"/>
+      <text x="615" y="285" fill="#f7f6f4" font-size="22" text-anchor="middle" font-weight="600">LT2 = 3.5 mmol/L</text>
+      <text x="615" y="316" fill="#d26a36" font-size="28" text-anchor="middle" font-weight="700">Confianza: 0.88</text>
+    </svg>
+    <div style="margin-top: 35px; max-width: 700px; margin-left: auto; margin-right: auto;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+        <span style="font-size: 18px; color: rgba(247,246,244,0.4);">Baja confianza</span>
+        <span style="font-size: 18px; color: rgba(247,246,244,0.4);">Alta confianza</span>
+      </div>
+      <div style="height: 24px; border-radius: 12px; background: linear-gradient(90deg, #ef4444, #f97316, #eab308, #22c55e);"></div>
+      <div style="display: flex; justify-content: space-between; margin-top: 6px;">
+        <span style="font-size: 18px; color: rgba(247,246,244,0.3);">0.25</span>
+        <span style="font-size: 18px; color: rgba(247,246,244,0.3);">0.50</span>
+        <span style="font-size: 18px; color: rgba(247,246,244,0.3);">0.75</span>
+        <span style="font-size: 18px; color: rgba(247,246,244,0.3);">0.95</span>
+      </div>
+    </div>
+    <p style="font-size: 24px; margin-top: 25px; color: rgba(247,246,244,0.5);">
+      Cuando los 3 metodos <strong style="color:#f7f6f4;">coinciden</strong>, la confianza sube.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 6: Why it matters -->
+<div class="slide">
+  <div class="slide-number">06 / 07</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 44px; margin-bottom: 50px;">Por que importa tu<br>umbral <span class="accent">individualizado</span></h2>
+    <div style="display: flex; gap: 25px; justify-content: center; flex-wrap: wrap;">
+      <div style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 16px; padding: 30px; width: 280px; text-align: left;">
+        <svg viewBox="0 0 40 40" style="width: 36px; margin-bottom: 12px;">
+          <circle cx="20" cy="20" r="18" fill="none" stroke="#22c55e" stroke-width="2.5"/>
+          <text x="20" y="26" fill="#22c55e" font-size="20" text-anchor="middle" font-weight="700">Z</text>
+        </svg>
+        <h3 style="font-size: 22px; color: #22c55e; margin-bottom: 8px;">Zonas reales</h3>
+        <p style="font-size: 17px; color: rgba(247,246,244,0.5);">Tus zonas de entrenamiento se calculan desde TU fisiologia, no desde formulas genericas.</p>
+      </div>
+      <div style="background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2); border-radius: 16px; padding: 30px; width: 280px; text-align: left;">
+        <svg viewBox="0 0 40 40" style="width: 36px; margin-bottom: 12px;">
+          <path d="M 5 30 L 15 20 L 25 25 L 35 8" stroke="#d26a36" stroke-width="2.5" fill="none"/>
+          <circle cx="35" cy="8" r="4" fill="#d26a36"/>
+        </svg>
+        <h3 style="font-size: 22px; color: #d26a36; margin-bottom: 8px;">Progresion visible</h3>
+        <p style="font-size: 17px; color: rgba(247,246,244,0.5);">Ves como se mueve tu umbral semana a semana. Sabes si estas mejorando.</p>
+      </div>
+      <div style="background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.2); border-radius: 16px; padding: 30px; width: 280px; text-align: left;">
+        <svg viewBox="0 0 40 40" style="width: 36px; margin-bottom: 12px;">
+          <rect x="5" y="5" width="30" height="30" rx="6" fill="none" stroke="#f97316" stroke-width="2.5"/>
+          <line x1="13" y1="20" x2="18" y2="27" stroke="#f97316" stroke-width="3" stroke-linecap="round"/>
+          <line x1="18" y1="27" x2="28" y2="13" stroke="#f97316" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <h3 style="font-size: 22px; color: #f97316; margin-bottom: 8px;">Sin entrenar de mas</h3>
+        <p style="font-size: 17px; color: rgba(247,246,244,0.5);">Ni demasiado fuerte, ni demasiado suave. El estimulo correcto para ti.</p>
+      </div>
+    </div>
+    <p style="font-size: 28px; margin-top: 50px; color: rgba(247,246,244,0.6); max-width: 700px; margin-left: auto; margin-right: auto;">
+      6.000-10.000 personas buscan <strong style="color: #f7f6f4;">"umbral de lactato"</strong><br>cada mes en Google.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 7: CTA -->
+<div class="slide" style="background: linear-gradient(160deg, #0e1e24 0%, #1a2e36 50%, #0e1e24 100%);">
+  <div class="slide-number">07 / 07</div>
+  <div style="text-align: center; width: 100%;">
+    <div class="cta-box">
+      <h2 style="font-size: 50px; margin-bottom: 20px;">Descubre tu umbral<br>real en segundos</h2>
+      <div style="width: 60px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin: 20px auto;"></div>
+      <p style="font-size: 28px; margin-top: 20px;">
+        3 metodos cruzados. Score de confianza.<br>Umbrales individualizados.
+      </p>
+      <div style="margin-top: 40px; padding: 20px 40px; background: rgba(255,255,255,0.15); border-radius: 12px; display: inline-block;">
+        <p style="font-size: 36px; font-family: 'Space Grotesk'; font-weight: 700; color: #fff;">peakaerobic.com</p>
+      </div>
+      <p style="font-size: 24px; margin-top: 20px; color: rgba(255,255,255,0.6);">Gratis. Sin registro para probar.</p>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+</body>
+</html>

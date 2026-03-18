@@ -1,0 +1,231 @@
+<!-- VOICEOVER SCRIPT (for AI voice generation):
+Scene 1 (0-4s): "Garmin dice que tu umbral de lactato es ciento setenta y cinco latidos por minuto."
+Scene 2 (4-8s): "Está mal. Y el de casi todos los que usan Garmin."
+Scene 3 (8-16s): "Mira esto. A la izquierda, las zonas que Garmin te calcula con la fórmula doscientos veinte menos edad. Robergs y Landwehr demostraron en dos mil dos que esa fórmula tiene un error de más menos doce latidos. A la derecha, las zonas reales medidas con un test de lactato. La diferencia puede ser de veinte latidos."
+Scene 4 (16-22s): "No soy solo yo quien lo dice. En los foros de Garmin hay más de veinticinco hilos quejándose. Citas textuales: ridículamente incorrecto, roto, no tiene sentido."
+Scene 5 (22-27s): "La única forma de saber tus zonas reales es un test de lactato. PeakAerobic convierte ese test en zonas precisas y las envía directamente a tu Garmin."
+Scene 6 (27-30s): "PeakAerobic. Tus zonas reales en tu Garmin. Enlace en bio."
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Tus zonas de Garmin están MAL</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden;
+  font-family: 'Source Sans 3', sans-serif; color: #fff; position: relative;
+}
+.scene {
+  position: absolute; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.5s ease; padding: 60px;
+}
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.15; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.2; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f97316; }
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; z-index: 100; width: 0%;
+}
+.watermark {
+  position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif;
+  font-size: 32px; color: #d26a3660; z-index: 50;
+}
+.overlay-text {
+  font-size: 52px; font-weight: 600; opacity: 0; transform: translateY(30px);
+  transition: opacity 0.5s ease, transform 0.5s ease; text-align: center; margin-top: 20px;
+}
+.overlay-text.show { opacity: 1; transform: translateY(0); }
+.badge {
+  display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px;
+}
+.zone-wrong { padding: 20px 30px; border-radius: 16px; background: #ef444430; border: 2px solid #ef4444; }
+.zone-right { padding: 20px 30px; border-radius: 16px; background: #22c55e30; border: 2px solid #22c55e; }
+.bpm-number {
+  font-family: 'Space Grotesk', sans-serif; font-size: 200px; font-weight: 700; color: #d26a36;
+  animation: pulse 1.5s ease infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.red-flash {
+  position: absolute; width: 100%; height: 100%; background: #ef4444;
+  opacity: 0; transition: opacity 0.15s ease; pointer-events: none;
+}
+.red-flash.show { opacity: 0.3; }
+.quote-box {
+  background: #ffffff08; border-left: 4px solid #ef4444; padding: 30px 40px;
+  border-radius: 0 12px 12px 0; margin: 16px 0; width: 85%;
+  font-size: 38px; font-style: italic; color: #ffffffcc;
+  opacity: 0; transform: translateX(-30px); transition: all 0.5s ease;
+}
+.quote-box.show { opacity: 1; transform: translateX(0); }
+.quote-source { font-size: 26px; color: #ffffff50; font-style: normal; margin-top: 8px; }
+svg text { font-family: 'Space Grotesk', sans-serif; }
+.cta-logo {
+  font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36;
+  margin-bottom: 20px;
+}
+.cta-handle { font-size: 48px; color: #ffffff90; }
+.zones-compare { display: flex; gap: 40px; width: 92%; margin-top: 30px; }
+.zone-col { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+.zone-col h3 {
+  font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700; text-align: center;
+  margin-bottom: 8px;
+}
+.zone-bar {
+  padding: 14px 18px; border-radius: 10px; font-size: 30px; font-weight: 600; text-align: center;
+}
+.ref { font-size: 28px; color: #ffffff60; margin-top: 20px; text-align: center; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progress"></div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <h2 style="margin-bottom: 30px; color: #ffffff80;">Garmin dice que tu umbral es</h2>
+  <div class="bpm-number">175</div>
+  <h2 style="color: #ffffff60;">bpm</h2>
+</div>
+
+<!-- Scene 2: Está mal -->
+<div class="scene" id="scene2">
+  <div class="red-flash" id="s2-flash"></div>
+  <h1 style="font-size: 120px;"><span class="red">Está mal.</span></h1>
+  <div class="overlay-text" id="s2-sub" style="font-size: 48px; color: #ffffff80;">
+    Y el de casi todos.
+  </div>
+</div>
+
+<!-- Scene 3: Side by side zones -->
+<div class="scene" id="scene3">
+  <h2 style="font-size: 50px; margin-bottom: 20px;">Zonas Garmin vs Zonas Reales</h2>
+  <div class="zones-compare">
+    <div class="zone-col">
+      <h3 class="red">Garmin (220-edad)</h3>
+      <div class="zone-bar zone-wrong">Z1: &lt;124 bpm</div>
+      <div class="zone-bar zone-wrong">Z2: 124–143 bpm</div>
+      <div class="zone-bar zone-wrong">Z3: 143–162 bpm</div>
+      <div class="zone-bar zone-wrong">Z4: 162–172 bpm</div>
+      <div class="zone-bar zone-wrong">Z5: &gt;172 bpm</div>
+    </div>
+    <div class="zone-col">
+      <h3 class="green">Test de lactato</h3>
+      <div class="zone-bar zone-right">Z1: &lt;138 bpm</div>
+      <div class="zone-bar zone-right">Z2: 138–156 bpm</div>
+      <div class="zone-bar zone-right">Z3: 156–164 bpm</div>
+      <div class="zone-bar zone-right">Z4: 164–174 bpm</div>
+      <div class="zone-bar zone-right">Z5: &gt;174 bpm</div>
+    </div>
+  </div>
+  <div class="overlay-text" id="s3-diff" style="font-size: 44px; margin-top: 30px;">
+    <span class="orange">Diferencia de hasta 20 bpm en Z2</span>
+  </div>
+  <p class="ref">Robergs & Landwehr (2002): "220-age has SEE = ±12 bpm"<br>J Exercise Physiology, 5(2), 1-10</p>
+</div>
+
+<!-- Scene 4: Forum quotes -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom: 40px; font-size: 52px;">+25 hilos en foros de Garmin</h2>
+  <div class="quote-box" id="s4-q1">
+    "The lactate threshold reading is <span class="red">ridiculously incorrect</span>"
+    <div class="quote-source">— Garmin Forums, 2024</div>
+  </div>
+  <div class="quote-box" id="s4-q2">
+    "Heart rate zones are completely <span class="red">broken</span>"
+    <div class="quote-source">— Garmin Forums, 2023</div>
+  </div>
+  <div class="quote-box" id="s4-q3">
+    "The LT estimation <span class="red">makes no sense</span> compared to my lab test"
+    <div class="quote-source">— Garmin Forums, 2024</div>
+  </div>
+  <div class="quote-box" id="s4-q4">
+    "Off by 15 bpm from my actual tested threshold"
+    <div class="quote-source">— Garmin Forums, 2023</div>
+  </div>
+</div>
+
+<!-- Scene 5: Solution -->
+<div class="scene" id="scene5">
+  <h2 style="margin-bottom: 40px;">La <span class="accent">UNICA</span> forma</h2>
+  <h2 style="font-size: 52px; color: #ffffffcc; margin-bottom: 50px;">Un test de lactato real</h2>
+  <svg width="800" height="300" viewBox="0 0 800 300">
+    <rect x="20" y="100" width="200" height="100" rx="16" fill="#ffffff10" stroke="#d26a36" stroke-width="2"/>
+    <text x="120" y="158" fill="#fff" font-size="32" text-anchor="middle" font-weight="600">Test lactato</text>
+    <polygon points="240,150 280,130 280,170" fill="#d26a36"/>
+    <rect x="300" y="100" width="200" height="100" rx="16" fill="#ffffff10" stroke="#d26a36" stroke-width="2"/>
+    <text x="400" y="145" fill="#d26a36" font-size="30" text-anchor="middle" font-weight="700">PeakAerobic</text>
+    <text x="400" y="175" fill="#fff" font-size="26" text-anchor="middle">Zonas reales</text>
+    <polygon points="520,150 560,130 560,170" fill="#d26a36"/>
+    <rect x="580" y="100" width="200" height="100" rx="16" fill="#ffffff10" stroke="#22c55e" stroke-width="2"/>
+    <text x="680" y="148" fill="#22c55e" font-size="30" text-anchor="middle" font-weight="700">Tu Garmin</text>
+    <text x="680" y="178" fill="#fff" font-size="26" text-anchor="middle">Zonas correctas</text>
+  </svg>
+  <div class="overlay-text" id="s5-sub" style="margin-top: 40px;">
+    Directo a tu reloj. Sin fórmulas.
+  </div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="cta-logo">PeakAerobic</div>
+  <h2 style="margin-bottom: 30px;">Tus zonas reales.<br>En tu Garmin.</h2>
+  <div class="badge" style="background: #d26a36; color: #fff; margin-top: 30px;">peakaerobic.com</div>
+  <p class="cta-handle" style="margin-top: 30px;">@peakaerobic</p>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 4000 },
+  { id: 'scene2', start: 4000, end: 8000 },
+  { id: 'scene3', start: 8000, end: 16000 },
+  { id: 'scene4', start: 16000, end: 22000 },
+  { id: 'scene5', start: 22000, end: 27000 },
+  { id: 'scene6', start: 27000, end: 30000 }
+];
+const events = [
+  { time: 4200, action: () => document.getElementById('s2-flash').classList.add('show') },
+  { time: 4500, action: () => document.getElementById('s2-flash').classList.remove('show') },
+  { time: 5500, action: () => document.getElementById('s2-sub').classList.add('show') },
+  { time: 11000, action: () => document.getElementById('s3-diff').classList.add('show') },
+  { time: 16500, action: () => document.getElementById('s4-q1').classList.add('show') },
+  { time: 17500, action: () => document.getElementById('s4-q2').classList.add('show') },
+  { time: 18500, action: () => document.getElementById('s4-q3').classList.add('show') },
+  { time: 19500, action: () => document.getElementById('s4-q4').classList.add('show') },
+  { time: 23500, action: () => document.getElementById('s5-sub').classList.add('show') },
+];
+const eventsFired = new Set();
+const startTime = performance.now();
+
+function tick(now) {
+  const elapsed = now - startTime;
+  const progress = Math.min(elapsed / DURATION, 1);
+  document.getElementById('progress').style.width = (progress * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  events.forEach((e, i) => {
+    if (elapsed >= e.time && !eventsFired.has(i)) { eventsFired.add(i); e.action(); }
+  });
+
+  if (elapsed < DURATION) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

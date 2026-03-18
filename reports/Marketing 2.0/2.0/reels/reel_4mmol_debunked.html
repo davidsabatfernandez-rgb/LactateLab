@@ -1,0 +1,244 @@
+<!-- VOICEOVER SCRIPT (for AI voice generation):
+Scene 1 (0-5s): "Tu coach puso tu umbral en cuatro milimoles. ¿Tiene razón? No. Y te voy a explicar por qué."
+Scene 2 (5-12s): "Heck propuso cuatro milimoles en mil novecientos ochenta y cinco como una conveniencia estadística, no como una verdad fisiológica. Stegmann ya había demostrado en mil novecientos ochenta y uno que el umbral real varía entre uno coma cinco y siete milimoles según el atleta."
+Scene 3 (12-18s): "En dos mil nueve, Faude publicó un meta-análisis en Sports Medicine con una conclusión clara: los umbrales fijos de lactato NO se recomiendan."
+Scene 4 (18-24s): "Lo que deberías usar son métodos individualizados: baseline rise, Dmax modificado y aumento sostenido. Tres métodos que convergen en TU umbral real."
+Scene 5 (24-28s): "Mira la diferencia. A la izquierda, zonas basadas en cuatro milimoles. A la derecha, zonas basadas en tu umbral individual. No es lo mismo."
+Scene 6 (28-30s): "PeakAerobic. Tu fisiología, no una aproximación. Enlace en bio."
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>4 mmol fue desmentido</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden;
+  font-family: 'Source Sans 3', sans-serif; color: #fff; position: relative;
+}
+.scene {
+  position: absolute; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.5s ease; padding: 60px;
+}
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.15; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.2; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f97316; }
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; z-index: 100; width: 0%;
+}
+.watermark {
+  position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif;
+  font-size: 32px; color: #d26a3660; z-index: 50;
+}
+.overlay-text {
+  font-size: 52px; font-weight: 600; opacity: 0; transform: translateY(30px);
+  transition: opacity 0.5s ease, transform 0.5s ease; text-align: center; margin-top: 20px;
+}
+.overlay-text.show { opacity: 1; transform: translateY(0); }
+.badge {
+  display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px;
+}
+.zone-wrong { padding: 20px 30px; border-radius: 16px; background: #ef444430; border: 2px solid #ef4444; }
+.zone-right { padding: 20px 30px; border-radius: 16px; background: #22c55e30; border: 2px solid #22c55e; }
+.method-box {
+  background: #ffffff10; border: 2px solid #d26a36; border-radius: 16px;
+  padding: 24px 36px; margin: 12px 0; width: 80%; text-align: center;
+  font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 600;
+  opacity: 0; transform: translateY(30px); transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.method-box.show { opacity: 1; transform: translateY(0); }
+.ref {
+  font-size: 30px; color: #ffffff80; margin-top: 30px; text-align: center; font-style: italic;
+}
+.big-x {
+  font-size: 200px; color: #ef4444; font-weight: 700; opacity: 0; transform: scale(3);
+  transition: opacity 0.4s ease, transform 0.4s ease; position: absolute;
+}
+.big-x.show { opacity: 0.85; transform: scale(1) rotate(-12deg); }
+.four-mmol {
+  font-family: 'Space Grotesk', sans-serif; font-size: 140px; font-weight: 700; color: #ffffff40;
+}
+svg text { font-family: 'Space Grotesk', sans-serif; }
+.cta-logo {
+  font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36;
+  margin-bottom: 20px;
+}
+.cta-handle {
+  font-size: 48px; color: #ffffff90;
+}
+.zones-container { display: flex; gap: 40px; margin-top: 40px; width: 90%; }
+.zone-col { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.zone-col h3 {
+  font-family: 'Space Grotesk', sans-serif; font-size: 38px; font-weight: 700; text-align: center;
+  margin-bottom: 10px;
+}
+.zone-bar {
+  padding: 16px 20px; border-radius: 12px; font-size: 32px; font-weight: 600; text-align: center;
+}
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progress"></div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <h2 style="margin-bottom: 40px; color: #ffffff80;">Tu coach puso tu umbral en</h2>
+  <h1><span class="accent" style="font-size: 160px;">4 mmol</span></h1>
+  <div class="overlay-text" id="s1-sub" style="margin-top: 50px;">
+    <span class="red">¿Tiene razón?</span>
+  </div>
+  <div class="overlay-text" id="s1-no" style="font-size: 120px; margin-top: 30px;">
+    <span class="red">No.</span>
+  </div>
+</div>
+
+<!-- Scene 2: Evidence chart -->
+<div class="scene" id="scene2">
+  <h2 style="margin-bottom: 40px;">Cada atleta tiene un umbral <span class="accent">diferente</span></h2>
+  <svg width="900" height="600" viewBox="0 0 900 600">
+    <!-- Axes -->
+    <line x1="100" y1="500" x2="850" y2="500" stroke="#ffffff40" stroke-width="2"/>
+    <line x1="100" y1="500" x2="100" y2="50" stroke="#ffffff40" stroke-width="2"/>
+    <text x="450" y="580" fill="#ffffff80" font-size="28" text-anchor="middle">Intensidad</text>
+    <text x="40" y="280" fill="#ffffff80" font-size="28" text-anchor="middle" transform="rotate(-90 40 280)">Lactato (mmol/L)</text>
+    <!-- 4mmol line -->
+    <line x1="100" y1="200" x2="850" y2="200" stroke="#ef4444" stroke-width="3" stroke-dasharray="12,8" opacity="0.7"/>
+    <text x="860" y="205" fill="#ef4444" font-size="26" font-weight="700">4.0</text>
+    <!-- Athlete 1 - LT2 at 2.8 -->
+    <polyline points="150,460 250,440 350,410 450,350 550,260 650,140" fill="none" stroke="#22c55e" stroke-width="4"/>
+    <circle cx="450" cy="350" r="12" fill="#22c55e"/>
+    <text x="460" y="340" fill="#22c55e" font-size="26" font-weight="700">LT2: 2.8</text>
+    <text x="150" y="500" fill="#22c55e" font-size="24" dy="-15">Atleta A</text>
+    <!-- Athlete 2 - LT2 at 3.5 -->
+    <polyline points="150,470 280,455 400,430 520,370 640,250 760,110" fill="none" stroke="#f97316" stroke-width="4"/>
+    <circle cx="560" cy="340" r="12" fill="#f97316"/>
+    <text x="570" y="330" fill="#f97316" font-size="26" font-weight="700">LT2: 3.5</text>
+    <text x="280" y="490" fill="#f97316" font-size="24" dy="-15">Atleta B</text>
+    <!-- Athlete 3 - LT2 at 5.2 -->
+    <polyline points="200,475 340,465 480,450 600,420 700,330 800,170" fill="none" stroke="#d26a36" stroke-width="4"/>
+    <circle cx="720" cy="300" r="12" fill="#d26a36"/>
+    <text x="730" y="290" fill="#d26a36" font-size="26" font-weight="700">LT2: 5.2</text>
+    <text x="340" y="500" fill="#d26a36" font-size="24" dy="-15">Atleta C</text>
+  </svg>
+  <div class="overlay-text" id="s2-ref" style="font-size: 34px; color: #ffffff80; margin-top: 30px;">
+    Heck et al. 1985: conveniencia estadística<br>Stegmann et al. 1981: rango real 1.5 – 7.0 mmol/L
+  </div>
+</div>
+
+<!-- Scene 3: Faude meta-review -->
+<div class="scene" id="scene3">
+  <div style="background: #ffffff08; border-left: 6px solid #d26a36; padding: 50px; border-radius: 16px; width: 85%; position: relative;">
+    <h2 style="font-size: 52px; line-height: 1.3; text-align: left;">
+      "Fixed blood lactate concentrations <span class="red">should not be recommended</span> for threshold determination."
+    </h2>
+    <p class="ref" style="text-align: left; margin-top: 30px;">
+      Faude, Kindermann & Meyer (2009)<br>Sports Medicine, 39(6), 469-490
+    </p>
+  </div>
+  <div class="four-mmol" style="margin-top: 60px; position: relative; display: inline-block;">
+    4 mmol
+    <div class="big-x" id="s3-x">✕</div>
+  </div>
+</div>
+
+<!-- Scene 4: Methods -->
+<div class="scene" id="scene4">
+  <h2 style="margin-bottom: 50px;">Lo que deberías usar:<br><span class="accent">métodos individualizados</span></h2>
+  <div class="method-box" id="s4-m1">Baseline Rise (Faude 2009)</div>
+  <div class="method-box" id="s4-m2">Modified Dmax (Bishop 1998)</div>
+  <div class="method-box" id="s4-m3">Sustained Increase (Billat 2003)</div>
+  <svg width="200" height="100" style="margin-top: 20px; opacity: 0; transition: opacity 0.5s;" id="s4-arrow">
+    <polygon points="100,10 150,50 100,90 100,65 50,65 50,35 100,35" fill="#d26a36"/>
+  </svg>
+  <div class="method-box" id="s4-result" style="border-color: #22c55e; background: #22c55e20;">
+    <span class="green">TU umbral real</span>
+  </div>
+</div>
+
+<!-- Scene 5: Zones comparison -->
+<div class="scene" id="scene5">
+  <h2 style="margin-bottom: 30px;">La diferencia importa</h2>
+  <div class="zones-container">
+    <div class="zone-col">
+      <h3 class="red">4 mmol fijo</h3>
+      <div class="zone-bar zone-wrong">Z1: < 2.0 mmol</div>
+      <div class="zone-bar zone-wrong">Z2: 2.0 – 4.0</div>
+      <div class="zone-bar zone-wrong">Z3: > 4.0</div>
+      <div style="text-align: center; margin-top: 16px; font-size: 32px; color: #ef4444;">
+        Zonas genéricas<br>que no son tuyas
+      </div>
+    </div>
+    <div class="zone-col">
+      <h3 class="green">Individual</h3>
+      <div class="zone-bar zone-right">Z1: < LT1 (1.8)</div>
+      <div class="zone-bar zone-right">Z2: LT1 – LT2 (2.8)</div>
+      <div class="zone-bar zone-right">Z3: > LT2</div>
+      <div style="text-align: center; margin-top: 16px; font-size: 32px; color: #22c55e;">
+        Tus zonas reales<br>basadas en datos
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="cta-logo">PeakAerobic</div>
+  <h2 style="margin-bottom: 30px;">Tu fisiología.<br>No una aproximación.</h2>
+  <div class="badge" style="background: #d26a36; color: #fff; margin-top: 30px;">peakaerobic.com</div>
+  <p class="cta-handle" style="margin-top: 30px;">@peakaerobic</p>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 5000 },
+  { id: 'scene2', start: 5000, end: 12000 },
+  { id: 'scene3', start: 12000, end: 18000 },
+  { id: 'scene4', start: 18000, end: 24000 },
+  { id: 'scene5', start: 24000, end: 28000 },
+  { id: 'scene6', start: 28000, end: 30000 }
+];
+const events = [
+  { time: 1500, action: () => document.getElementById('s1-sub').classList.add('show') },
+  { time: 3000, action: () => document.getElementById('s1-no').classList.add('show') },
+  { time: 7000, action: () => document.getElementById('s2-ref').classList.add('show') },
+  { time: 14000, action: () => document.getElementById('s3-x').classList.add('show') },
+  { time: 19000, action: () => document.getElementById('s4-m1').classList.add('show') },
+  { time: 19800, action: () => document.getElementById('s4-m2').classList.add('show') },
+  { time: 20600, action: () => document.getElementById('s4-m3').classList.add('show') },
+  { time: 21500, action: () => { document.getElementById('s4-arrow').style.opacity = '1'; } },
+  { time: 22200, action: () => document.getElementById('s4-result').classList.add('show') },
+];
+const eventsFired = new Set();
+const startTime = performance.now();
+
+function tick(now) {
+  const elapsed = now - startTime;
+  const progress = Math.min(elapsed / DURATION, 1);
+  document.getElementById('progress').style.width = (progress * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  events.forEach((e, i) => {
+    if (elapsed >= e.time && !eventsFired.has(i)) { eventsFired.add(i); e.action(); }
+  });
+
+  if (elapsed < DURATION) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

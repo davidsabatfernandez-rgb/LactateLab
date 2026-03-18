@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 13 - Mi atleta mejoro 15 seg/km en 8 semanas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 76px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 58px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+
+  .overlay-text { font-size: 48px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+  .badge-orange { background: #f9731640; color: #f97316; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  .grid-line { stroke: #f7f6f415; stroke-width: 1; }
+  .axis-label { font-family: 'Source Sans 3', sans-serif; font-size: 28px; fill: #f7f6f480; }
+
+  /* Pace counter */
+  .pace-counter {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 160px;
+    font-weight: 700;
+    transition: all 0.5s ease;
+  }
+
+  .pace-label {
+    font-size: 44px;
+    color: #f7f6f470;
+    margin-top: 10px;
+  }
+
+  /* Diagnosis card */
+  .diag-card {
+    width: 800px;
+    padding: 40px;
+    border-radius: 20px;
+    margin-top: 20px;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.5s ease;
+  }
+
+  .diag-card.show { opacity: 1; transform: translateY(0); }
+
+  .diag-problem { background: #f9731610; border: 2px solid #f9731640; }
+  .diag-solution { background: #22c55e10; border: 2px solid #22c55e40; }
+
+  /* Plan blocks */
+  .plan-row {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    justify-content: center;
+  }
+
+  .plan-block {
+    width: 380px;
+    padding: 30px;
+    border-radius: 20px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.5s ease;
+  }
+
+  .plan-block.show { opacity: 1; transform: translateY(0); }
+
+  .plan-aec { background: #22c55e10; border: 2px solid #22c55e40; }
+  .plan-thr { background: #f9731610; border: 2px solid #f9731640; }
+
+  .plan-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .plan-desc {
+    font-size: 30px;
+    color: #f7f6f480;
+    line-height: 1.4;
+  }
+
+  .plan-weeks {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    margin-top: 12px;
+  }
+
+  /* Curve overlay chart */
+  .chart-container {
+    width: 800px;
+    height: 500px;
+    margin-top: 20px;
+  }
+
+  .curve-before {
+    fill: none;
+    stroke: #ef4444;
+    stroke-width: 4;
+    stroke-dasharray: 10 5;
+  }
+
+  .curve-after {
+    fill: none;
+    stroke: #22c55e;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 800;
+    stroke-dashoffset: 800;
+    transition: stroke-dashoffset 2s ease;
+  }
+
+  .feature-item {
+    display: flex; align-items: center; gap: 20px; font-size: 42px; font-weight: 600; margin: 15px 0;
+    opacity: 0; transform: translateX(-30px); transition: all 0.5s ease;
+  }
+  .feature-item.show { opacity: 1; transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook - Pace change -->
+<div class="scene scene-hook" id="scene1">
+  <div style="text-align:center;">
+    <div style="font-size:40px; color:#f7f6f460;">Umbral LT2</div>
+    <div style="display:flex; align-items:center; justify-content:center; gap:30px; margin-top:20px;">
+      <div class="pace-counter" id="paceOld" style="color:#ef4444; opacity:0;">5:15</div>
+      <div style="font-size:80px; color:#d26a36; opacity:0; transition: opacity 0.5s;" id="arrow">&#8594;</div>
+      <div class="pace-counter" id="paceNew" style="color:#22c55e; opacity:0;">5:00</div>
+    </div>
+    <div class="pace-label" id="paceLabel" style="opacity:0; transition: opacity 0.5s;">/km en 8 semanas</div>
+  </div>
+</div>
+
+<!-- Scene 2: Initial test -->
+<div class="scene" id="scene2">
+  <h2>Semana 0: Test de lactato</h2>
+  <div class="diag-card diag-problem" id="diagInit">
+    <div style="font-size:44px; font-weight:700; color:#f97316; margin-bottom:15px;">Diagnostico</div>
+    <div style="font-size:38px; line-height:1.5;">
+      LT2 a <span style="color:#ef4444; font-weight:700;">5:15/km</span><br>
+      VLamax <span style="color:#f97316; font-weight:700;">alta</span> (perfil glucolitico)<br>
+      <span style="color:#f7f6f470; font-size:32px; margin-top:10px; display:block;">Necesita mas base, no mas intervalos</span>
+    </div>
+  </div>
+  <div class="badge badge-orange" id="errBadge" style="opacity:0; transition:opacity 0.5s;">
+    Error clasico: "mas intervalos de umbral"
+  </div>
+</div>
+
+<!-- Scene 3: Plan -->
+<div class="scene" id="scene3">
+  <h2 style="margin-bottom:20px;">El plan: 2 mesociclos</h2>
+  <div class="plan-row">
+    <div class="plan-block plan-aec" id="planAEC">
+      <div class="plan-title" style="color:#22c55e;">AEC</div>
+      <div class="plan-desc">Volumen + LT1<br>80% bajo LT1</div>
+      <div class="plan-weeks" style="color:#22c55e;">Semanas 1-4</div>
+    </div>
+    <div class="plan-block plan-thr" id="planTHR">
+      <div class="plan-title" style="color:#f97316;">THR</div>
+      <div class="plan-desc">Cruise intervals<br>Progresion LT2</div>
+      <div class="plan-weeks" style="color:#f97316;">Semanas 5-8</div>
+    </div>
+  </div>
+  <div class="overlay-text" id="planNote" style="font-size:40px;">Sesiones clave respetando descanso</div>
+</div>
+
+<!-- Scene 4: Result - Curve overlay -->
+<div class="scene" id="scene4">
+  <h2>Semana 8: Nuevo test</h2>
+  <div class="chart-container">
+    <svg width="800" height="500" viewBox="0 0 800 500">
+      <rect x="0" y="0" width="800" height="500" rx="20" fill="#f7f6f408" stroke="#f7f6f420" stroke-width="2"/>
+
+      <line class="grid-line" x1="60" y1="60" x2="60" y2="420"/>
+      <line class="grid-line" x1="60" y1="420" x2="750" y2="420"/>
+      <line class="grid-line" x1="60" y1="240" x2="750" y2="240"/>
+
+      <text class="axis-label" x="15" y="425">0</text>
+      <text class="axis-label" x="15" y="330">2</text>
+      <text class="axis-label" x="15" y="245">4</text>
+      <text class="axis-label" x="15" y="160">6</text>
+      <text class="axis-label" x="15" y="75">8</text>
+      <text class="axis-label" x="400" y="470" text-anchor="middle" font-size="24">Ritmo (min/km)</text>
+
+      <!-- Before curve (dashed red) -->
+      <path class="curve-before" id="curveBefore"
+        d="M 100,400 C 180,395 250,385 350,365 C 420,348 480,310 540,255 C 580,220 630,165 700,90" opacity="0" style="transition: opacity 0.5s;"/>
+      <text id="labelBefore" x="710" y="85" fill="#ef4444" font-family="Space Grotesk" font-weight="700" font-size="24" opacity="0" style="transition: opacity 0.5s;">Antes</text>
+
+      <!-- After curve (solid green) -->
+      <path class="curve-after" id="curveAfter"
+        d="M 100,395 C 180,390 250,378 350,355 C 420,335 500,290 560,240 C 600,205 650,155 720,90"/>
+      <text id="labelAfter" x="730" y="85" fill="#22c55e" font-family="Space Grotesk" font-weight="700" font-size="24" opacity="0" style="transition: opacity 0.5s;">Despues</text>
+
+      <!-- LT2 markers -->
+      <line id="lt2Before" x1="520" y1="60" x2="520" y2="420" stroke="#ef4444" stroke-width="2" stroke-dasharray="8 6" opacity="0" style="transition: opacity 0.5s;"/>
+      <text id="lt2BLabel" x="520" y="50" text-anchor="middle" fill="#ef4444" font-size="22" opacity="0" style="transition: opacity 0.5s;">5:15</text>
+
+      <line id="lt2After" x1="580" y1="60" x2="580" y2="420" stroke="#22c55e" stroke-width="2" stroke-dasharray="8 6" opacity="0" style="transition: opacity 0.5s;"/>
+      <text id="lt2ALabel" x="580" y="50" text-anchor="middle" fill="#22c55e" font-size="22" opacity="0" style="transition: opacity 0.5s;">5:00</text>
+    </svg>
+  </div>
+  <div style="display:flex; gap:30px; margin-top:15px;">
+    <div class="badge badge-green" id="resBadge1" style="opacity:0; transition:opacity 0.5s;">LT2: 5:00/km</div>
+    <div class="badge badge-green" id="resBadge2" style="opacity:0; transition:opacity 0.5s;">VLamax descendio</div>
+  </div>
+</div>
+
+<!-- Scene 5: Conclusion -->
+<div class="scene" id="scene5">
+  <h2 style="margin-bottom:30px;">Misma ciencia.<br><span class="green">Mejor atleta.</span></h2>
+  <div class="feature-item" id="r1"><span style="color:#22c55e; font-size:48px;">&#10003;</span> La base aerobica hizo el trabajo</div>
+  <div class="feature-item" id="r2"><span style="color:#22c55e; font-size:48px;">&#10003;</span> PeakAerobic diagnostico el perfil</div>
+  <div class="feature-item" id="r3"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Selecciono los bloques correctos</div>
+  <div class="feature-item" id="r4"><span style="color:#22c55e; font-size:48px;">&#10003;</span> Monitorizo la progresion</div>
+</div>
+
+<!-- Scene 6: CTA -->
+<div class="scene" id="scene6">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Tu progresion empieza<br>con datos</h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Empieza con tu primer test<br>Link en bio
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 50000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 3000 },
+  { id: 'scene2', start: 3000, end: 10000 },
+  { id: 'scene3', start: 10000, end: 24000 },
+  { id: 'scene4', start: 24000, end: 40000 },
+  { id: 'scene5', start: 40000, end: 45000 },
+  { id: 'scene6', start: 45000, end: 50000 },
+];
+
+const events = [
+  { time: 300, action: () => { document.getElementById('paceOld').style.opacity = '1'; }},
+  { time: 1000, action: () => { document.getElementById('arrow').style.opacity = '1'; }},
+  { time: 1500, action: () => { document.getElementById('paceNew').style.opacity = '1'; }},
+  { time: 2000, action: () => { document.getElementById('paceLabel').style.opacity = '1'; }},
+
+  { time: 3500, action: () => { document.getElementById('diagInit').classList.add('show'); }},
+  { time: 7000, action: () => { document.getElementById('errBadge').style.opacity = '1'; }},
+
+  { time: 10500, action: () => { document.getElementById('planAEC').classList.add('show'); }},
+  { time: 13000, action: () => { document.getElementById('planTHR').classList.add('show'); }},
+  { time: 16000, action: () => { document.getElementById('planNote').classList.add('show'); }},
+
+  { time: 24500, action: () => {
+    document.getElementById('curveBefore').style.opacity = '1';
+    document.getElementById('labelBefore').style.opacity = '1';
+  }},
+  { time: 26000, action: () => {
+    document.getElementById('curveAfter').style.strokeDashoffset = '0';
+    document.getElementById('labelAfter').style.opacity = '1';
+  }},
+  { time: 29000, action: () => {
+    document.getElementById('lt2Before').style.opacity = '1';
+    document.getElementById('lt2BLabel').style.opacity = '1';
+  }},
+  { time: 30500, action: () => {
+    document.getElementById('lt2After').style.opacity = '1';
+    document.getElementById('lt2ALabel').style.opacity = '1';
+  }},
+  { time: 33000, action: () => {
+    document.getElementById('resBadge1').style.opacity = '1';
+    document.getElementById('resBadge2').style.opacity = '1';
+  }},
+
+  { time: 40500, action: () => { document.getElementById('r1').classList.add('show'); }},
+  { time: 41500, action: () => { document.getElementById('r2').classList.add('show'); }},
+  { time: 42500, action: () => { document.getElementById('r3').classList.add('show'); }},
+  { time: 43500, action: () => { document.getElementById('r4').classList.add('show'); }},
+
+  { time: 45500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 46500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

@@ -1,0 +1,262 @@
+<!--
+VOICEOVER SCRIPT (ESPAÑOL) — 30 segundos
+
+[0-4s] Tu curva de lactato te dice TODO sobre tu fisiología. En 30 segundos te enseño a leerla.
+[4-10s] Paso uno: la baseline. Los primeros puntos. Si es mayor que uno coma cinco… fatiga residual.
+[10-16s] Paso dos: la primera inflexión. Es tu LT1. Tu techo real de zona dos.
+[16-22s] Paso tres: la segunda inflexión. Es tu LT2. Tu umbral anaeróbico REAL.
+[22-27s] Paso cuatro: la forma. Si es plana y luego empinada, eres diésel. Si sube pronto, eres explosivo.
+[27-30s] O deja que PeakAerobic lo haga por ti. Enlace en bio.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Aprende a leer tu curva de lactato en 30 segundos</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden;
+  font-family: 'Source Sans 3', 'Space Grotesk', sans-serif; color: #fff;
+}
+.scene {
+  position: absolute; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.5s ease; padding: 60px;
+}
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; text-align: center; line-height: 1.1; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; text-align: center; line-height: 1.15; }
+p { font-family: 'Source Sans 3', sans-serif; font-size: 42px; text-align: center; line-height: 1.4; margin-top: 30px; color: #ffffffcc; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f97316; }
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 8px;
+  background: #d26a36; z-index: 100; width: 0%;
+}
+.watermark {
+  position: absolute; top: 60px; right: 60px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 32px; color: #d26a3660;
+  z-index: 50;
+}
+.ref { font-size: 30px; color: #ffffff40; margin-top: 20px; font-style: italic; }
+.step-label {
+  font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700;
+  color: #d26a36; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 20px;
+}
+svg text { font-family: 'Space Grotesk', sans-serif; }
+.cta-box {
+  border: 3px solid #d26a36; border-radius: 24px; padding: 32px 56px;
+  margin-top: 40px; text-align: center;
+}
+.cta-box h2 { font-size: 56px; color: #d26a36; }
+.cta-box p { font-size: 38px; color: #ffffffaa; margin-top: 12px; }
+.mini-curve-container {
+  display: flex; gap: 60px; margin-top: 40px; align-items: flex-end;
+}
+.mini-curve-label {
+  font-size: 36px; font-weight: 600; text-align: center; margin-top: 16px;
+}
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene 1: Hook (0-4s) -->
+<div class="scene" id="scene1">
+  <h1>Tu curva de lactato te dice <span class="accent">TODO</span></h1>
+  <p style="font-size:52px; margin-top:50px;">En 30 segundos te enseño a leerla.</p>
+</div>
+
+<!-- Scene 2: Baseline (4-10s) -->
+<div class="scene" id="scene2">
+  <div class="step-label">Paso 1</div>
+  <h2>La <span class="accent">baseline</span></h2>
+  <svg width="900" height="500" viewBox="0 0 900 500" style="margin-top:30px;">
+    <!-- Axes -->
+    <line x1="80" y1="420" x2="860" y2="420" stroke="#ffffff30" stroke-width="2"/>
+    <line x1="80" y1="40" x2="80" y2="420" stroke="#ffffff30" stroke-width="2"/>
+    <text x="470" y="470" fill="#ffffff60" font-size="26" text-anchor="middle">Intensidad</text>
+    <text x="30" y="230" fill="#ffffff60" font-size="26" text-anchor="middle" transform="rotate(-90,30,230)">Lactato (mmol/L)</text>
+    <!-- Full curve -->
+    <path d="M120,380 L220,375 L320,370 L420,340 L520,280 L620,180 L740,60" fill="none" stroke="#ffffff30" stroke-width="4" id="fullCurve2" stroke-dasharray="1000" stroke-dashoffset="1000"/>
+    <!-- Baseline highlight -->
+    <rect x="95" y="350" width="275" height="55" rx="12" fill="#22c55e15" stroke="#22c55e" stroke-width="2" id="baselineBox" opacity="0"/>
+    <circle cx="120" cy="380" r="10" fill="#22c55e"/>
+    <circle cx="220" cy="375" r="10" fill="#22c55e"/>
+    <circle cx="320" cy="370" r="10" fill="#22c55e"/>
+    <circle cx="420" cy="340" r="8" fill="#ffffff50"/>
+    <circle cx="520" cy="280" r="8" fill="#ffffff50"/>
+    <circle cx="620" cy="180" r="8" fill="#ffffff50"/>
+    <circle cx="740" cy="60" r="8" fill="#ffffff50"/>
+    <!-- Y axis labels -->
+    <text x="65" y="385" fill="#ffffff60" font-size="24" text-anchor="end">1.0</text>
+    <text x="65" y="305" fill="#ffffff60" font-size="24" text-anchor="end">2.0</text>
+    <text x="65" y="225" fill="#ffffff60" font-size="24" text-anchor="end">4.0</text>
+    <text x="65" y="65" fill="#ffffff60" font-size="24" text-anchor="end">8.0</text>
+  </svg>
+  <p>Los primeros puntos. Si <span class="red">>1.5 mmol</span> = fatiga residual.</p>
+</div>
+
+<!-- Scene 3: LT1 (10-16s) -->
+<div class="scene" id="scene3">
+  <div class="step-label">Paso 2</div>
+  <h2>Primera inflexión = <span class="green">LT1</span></h2>
+  <svg width="900" height="500" viewBox="0 0 900 500" style="margin-top:30px;">
+    <line x1="80" y1="420" x2="860" y2="420" stroke="#ffffff30" stroke-width="2"/>
+    <line x1="80" y1="40" x2="80" y2="420" stroke="#ffffff30" stroke-width="2"/>
+    <path d="M120,380 L220,375 L320,370 L420,340 L520,280 L620,180 L740,60" fill="none" stroke="#ffffff60" stroke-width="4"/>
+    <circle cx="120" cy="380" r="8" fill="#ffffff60"/>
+    <circle cx="220" cy="375" r="8" fill="#ffffff60"/>
+    <circle cx="320" cy="370" r="8" fill="#ffffff60"/>
+    <circle cx="420" cy="340" r="14" fill="#22c55e" id="lt1Marker" opacity="0"/>
+    <circle cx="520" cy="280" r="8" fill="#ffffff60"/>
+    <circle cx="620" cy="180" r="8" fill="#ffffff60"/>
+    <circle cx="740" cy="60" r="8" fill="#ffffff60"/>
+    <!-- LT1 vertical line -->
+    <line x1="420" y1="340" x2="420" y2="420" stroke="#22c55e" stroke-width="3" stroke-dasharray="8,6" id="lt1Line" opacity="0"/>
+    <text x="420" y="450" fill="#22c55e" font-size="30" font-weight="700" text-anchor="middle" id="lt1Text" opacity="0">LT1</text>
+    <!-- Arrow -->
+    <path d="M480,360 Q460,350 425,342" fill="none" stroke="#22c55e" stroke-width="3" id="lt1Arrow" opacity="0" marker-end="url(#arrowGreen)"/>
+    <defs><marker id="arrowGreen" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22c55e"/></marker></defs>
+  </svg>
+  <p>Tu techo <span class="green">real</span> de zona 2.</p>
+</div>
+
+<!-- Scene 4: LT2 (16-22s) -->
+<div class="scene" id="scene4">
+  <div class="step-label">Paso 3</div>
+  <h2>Segunda inflexión = <span class="orange">LT2</span></h2>
+  <svg width="900" height="500" viewBox="0 0 900 500" style="margin-top:30px;">
+    <line x1="80" y1="420" x2="860" y2="420" stroke="#ffffff30" stroke-width="2"/>
+    <line x1="80" y1="40" x2="80" y2="420" stroke="#ffffff30" stroke-width="2"/>
+    <path d="M120,380 L220,375 L320,370 L420,340 L520,280 L620,180 L740,60" fill="none" stroke="#ffffff60" stroke-width="4"/>
+    <circle cx="120" cy="380" r="8" fill="#ffffff60"/>
+    <circle cx="220" cy="375" r="8" fill="#ffffff60"/>
+    <circle cx="320" cy="370" r="8" fill="#ffffff60"/>
+    <circle cx="420" cy="340" r="12" fill="#22c55e"/>
+    <circle cx="520" cy="280" r="14" fill="#f97316" id="lt2Marker" opacity="0"/>
+    <circle cx="620" cy="180" r="8" fill="#ffffff60"/>
+    <circle cx="740" cy="60" r="8" fill="#ffffff60"/>
+    <!-- LT1 line stays -->
+    <line x1="420" y1="340" x2="420" y2="420" stroke="#22c55e" stroke-width="2" stroke-dasharray="8,6" opacity="0.5"/>
+    <text x="420" y="450" fill="#22c55e" font-size="26" font-weight="600" text-anchor="middle" opacity="0.5">LT1</text>
+    <!-- LT2 vertical line -->
+    <line x1="520" y1="280" x2="520" y2="420" stroke="#f97316" stroke-width="3" stroke-dasharray="8,6" id="lt2Line" opacity="0"/>
+    <text x="520" y="450" fill="#f97316" font-size="30" font-weight="700" text-anchor="middle" id="lt2Text" opacity="0">LT2</text>
+  </svg>
+  <p>Tu umbral anaeróbico <span class="orange">REAL</span>.</p>
+</div>
+
+<!-- Scene 5: Shape (22-27s) -->
+<div class="scene" id="scene5">
+  <div class="step-label">Paso 4</div>
+  <h2>La <span class="accent">forma</span> importa</h2>
+  <div class="mini-curve-container">
+    <div>
+      <svg width="380" height="340" viewBox="0 0 380 340">
+        <rect x="0" y="0" width="380" height="340" rx="20" fill="#ffffff08" stroke="#ffffff15" stroke-width="2"/>
+        <line x1="50" y1="290" x2="350" y2="290" stroke="#ffffff30" stroke-width="2"/>
+        <line x1="50" y1="40" x2="50" y2="290" stroke="#ffffff30" stroke-width="2"/>
+        <!-- Diesel: flat then steep -->
+        <path d="M70,270 L130,268 L190,265 L230,255 L270,200 L320,60" fill="none" stroke="#22c55e" stroke-width="5"/>
+        <circle cx="70" cy="270" r="6" fill="#22c55e"/>
+        <circle cx="130" cy="268" r="6" fill="#22c55e"/>
+        <circle cx="190" cy="265" r="6" fill="#22c55e"/>
+        <circle cx="230" cy="255" r="6" fill="#22c55e"/>
+        <circle cx="270" cy="200" r="6" fill="#22c55e"/>
+        <circle cx="320" cy="60" r="6" fill="#22c55e"/>
+      </svg>
+      <div class="mini-curve-label" style="color: #22c55e;">Diésel</div>
+      <p style="font-size:32px; color:#ffffff80; margin-top:8px;">Plana → empinada</p>
+    </div>
+    <div>
+      <svg width="380" height="340" viewBox="0 0 380 340">
+        <rect x="0" y="0" width="380" height="340" rx="20" fill="#ffffff08" stroke="#ffffff15" stroke-width="2"/>
+        <line x1="50" y1="290" x2="350" y2="290" stroke="#ffffff30" stroke-width="2"/>
+        <line x1="50" y1="40" x2="50" y2="290" stroke="#ffffff30" stroke-width="2"/>
+        <!-- Explosive: steep early -->
+        <path d="M70,260 L130,230 L190,180 L230,130 L270,90 L320,60" fill="none" stroke="#f97316" stroke-width="5"/>
+        <circle cx="70" cy="260" r="6" fill="#f97316"/>
+        <circle cx="130" cy="230" r="6" fill="#f97316"/>
+        <circle cx="190" cy="180" r="6" fill="#f97316"/>
+        <circle cx="230" cy="130" r="6" fill="#f97316"/>
+        <circle cx="270" cy="90" r="6" fill="#f97316"/>
+        <circle cx="320" cy="60" r="6" fill="#f97316"/>
+      </svg>
+      <div class="mini-curve-label" style="color: #f97316;">Explosivo</div>
+      <p style="font-size:32px; color:#ffffff80; margin-top:8px;">Empinada temprana</p>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 6: CTA (27-30s) -->
+<div class="scene" id="scene6">
+  <h2>O deja que</h2>
+  <h1 class="accent" style="margin-top:20px;">PeakAerobic</h1>
+  <h2 style="margin-top:20px;">lo haga por ti</h2>
+  <div class="cta-box">
+    <h2>Enlace en bio</h2>
+    <p>peakaerobic.com</p>
+  </div>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 4000 },
+  { id: 'scene2', start: 4000, end: 10000 },
+  { id: 'scene3', start: 10000, end: 16000 },
+  { id: 'scene4', start: 16000, end: 22000 },
+  { id: 'scene5', start: 22000, end: 27000 },
+  { id: 'scene6', start: 27000, end: 30000 }
+];
+const events = [
+  { time: 4500, action: () => {
+    const c = document.getElementById('fullCurve2');
+    if (c) { c.style.transition = 'stroke-dashoffset 2s ease'; c.style.strokeDashoffset = '0'; }
+    setTimeout(() => { const b = document.getElementById('baselineBox'); if (b) b.style.transition = 'opacity 0.5s'; if (b) b.style.opacity = '1'; }, 800);
+  }},
+  { time: 10500, action: () => {
+    ['lt1Marker','lt1Line','lt1Text','lt1Arrow'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.transition = 'opacity 0.6s ease'; el.style.opacity = '1'; }
+    });
+  }},
+  { time: 16500, action: () => {
+    ['lt2Marker','lt2Line','lt2Text'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.transition = 'opacity 0.6s ease'; el.style.opacity = '1'; }
+    });
+  }}
+];
+let eventsFired = {};
+const startTime = performance.now();
+
+function tick(now) {
+  const elapsed = now - startTime;
+  const progress = Math.min(elapsed / DURATION, 1);
+  document.getElementById('progressBar').style.width = (progress * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  events.forEach((e, i) => {
+    if (elapsed >= e.time && !eventsFired[i]) { eventsFired[i] = true; e.action(); }
+  });
+
+  if (progress < 1) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

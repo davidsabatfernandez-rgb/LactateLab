@@ -1,0 +1,228 @@
+<!--
+VOICEOVER SCRIPT (30s):
+[0-4s] "Mira esta curva de lactato. Y ahora mira la misma persona, ocho semanas despues."
+[4-12s] "Curva ANTES. El lactato sube rapido. LT2 a cuatro cincuenta por kilometro. Ratio LT1/LT2 de cero setenta y uno. Eso es una VLamax alta, mucha glucolisis."
+[12-18s] "El diagnostico es claro: gap aerobico. La prescripcion: bloque de Capacidad Aerobica, AEC, durante ocho semanas. Volumen en zona 2, extensivas de LT1."
+[18-24s] "Curva DESPUES. La curva se desplaza a la derecha. LT2 baja a cuatro veinticinco por kilometro. Ratio sube a cero ochenta y tres. Menos veinticinco segundos por kilometro en umbral."
+[24-28s] "No fue aleatorio. No fue un plan generico. Fue el bloque correcto para SU fisiologia."
+[28-30s] "PeakAerobic. De datos a decisiones."
+
+REFERENCIAS:
+- Olbrecht J. The Science of Winning. Ch. 4-6: AEC blocks and lactate curve shifts.
+- Faude O et al. (2009). Lactate threshold concepts. Sports Med.
+- Seiler S (2010). What is best practice for training intensity and duration distribution in endurance athletes? Int J Sports Physiol Perform.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Antes vs Despus</title>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #e8e8e8; position: relative; }
+.scene { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+.scene.active { opacity: 1; }
+h1 { font-family: 'Space Grotesk', sans-serif; font-size: 82px; font-weight: 700; line-height: 1.1; text-align: center; margin-bottom: 40px; }
+h2 { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 700; line-height: 1.15; text-align: center; margin-bottom: 30px; }
+p { font-size: 42px; line-height: 1.4; text-align: center; color: #b0b0b0; }
+.accent { color: #d26a36; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; z-index: 100; }
+.watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; color: #d26a3660; z-index: 100; }
+.cta-box { background: linear-gradient(135deg, #d26a36, #e8884a); border-radius: 24px; padding: 40px 60px; text-align: center; }
+.cta-box h2 { color: #fff; margin-bottom: 10px; }
+.cta-box p { color: #ffffffcc; }
+.badge-big { display: inline-block; border-radius: 16px; padding: 14px 36px; font-family: 'Space Grotesk', sans-serif; font-size: 44px; font-weight: 700; margin: 16px 0; }
+.badge-red { background: #ef444420; border: 2px solid #ef4444; color: #ef4444; }
+.badge-green { background: #22c55e20; border: 2px solid #22c55e; color: #22c55e; }
+.badge-accent { background: #d26a3620; border: 2px solid #d26a36; color: #d26a36; }
+.stat-row { display: flex; gap: 30px; margin: 20px 0; justify-content: center; }
+.stat-card { background: #1a3040; border-radius: 16px; padding: 20px 30px; text-align: center; min-width: 200px; }
+.stat-val { font-family: 'Space Grotesk', sans-serif; font-size: 52px; font-weight: 700; }
+.stat-label { font-size: 28px; color: #b0b0b0; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Scene 1: 0-4s -->
+<div class="scene" id="scene1">
+  <h1>Mira esta curva de lactato.</h1>
+  <h2>Y mira la misma <span class="accent">8 semanas despus</span>.</h2>
+</div>
+
+<!-- Scene 2: 4-12s ANTES -->
+<div class="scene" id="scene2">
+  <div class="badge-big badge-red">ANTES</div>
+  <svg width="860" height="500" viewBox="0 0 860 500" style="margin:20px 0;">
+    <!-- Grid -->
+    <line x1="80" y1="420" x2="820" y2="420" stroke="#ffffff15" stroke-width="1"/>
+    <line x1="80" y1="320" x2="820" y2="320" stroke="#ffffff10" stroke-width="1"/>
+    <line x1="80" y1="220" x2="820" y2="220" stroke="#ffffff10" stroke-width="1"/>
+    <line x1="80" y1="120" x2="820" y2="120" stroke="#ffffff10" stroke-width="1"/>
+    <!-- Y axis labels -->
+    <text x="60" y="425" text-anchor="end" fill="#ffffff40" font-size="22">1</text>
+    <text x="60" y="325" text-anchor="end" fill="#ffffff40" font-size="22">3</text>
+    <text x="60" y="225" text-anchor="end" fill="#ffffff40" font-size="22">5</text>
+    <text x="60" y="125" text-anchor="end" fill="#ffffff40" font-size="22">7</text>
+    <!-- X axis labels (pace) -->
+    <text x="140" y="460" text-anchor="middle" fill="#ffffff40" font-size="20">6:00</text>
+    <text x="300" y="460" text-anchor="middle" fill="#ffffff40" font-size="20">5:30</text>
+    <text x="460" y="460" text-anchor="middle" fill="#ffffff40" font-size="20">5:00</text>
+    <text x="620" y="460" text-anchor="middle" fill="#ffffff40" font-size="20">4:30</text>
+    <text x="780" y="460" text-anchor="middle" fill="#ffffff40" font-size="20">4:00</text>
+    <!-- Steep red curve -->
+    <path d="M140 410 C200 405 280 395 360 380 C420 360 460 320 520 250 C560 190 600 130 680 80" fill="none" stroke="#ef4444" stroke-width="5" stroke-linecap="round"/>
+    <!-- Dots -->
+    <circle cx="140" cy="410" r="8" fill="#ef4444"/>
+    <circle cx="240" cy="400" r="8" fill="#ef4444"/>
+    <circle cx="360" cy="380" r="8" fill="#ef4444"/>
+    <circle cx="460" cy="320" r="8" fill="#ef4444"/>
+    <circle cx="520" cy="250" r="8" fill="#ef4444"/>
+    <circle cx="600" cy="160" r="8" fill="#ef4444"/>
+    <circle cx="680" cy="80" r="8" fill="#ef4444"/>
+    <!-- LT2 marker -->
+    <line x1="460" y1="40" x2="460" y2="420" stroke="#ef4444" stroke-width="2" stroke-dasharray="8,6"/>
+    <text x="470" y="60" fill="#ef4444" font-family="Space Grotesk" font-size="26" font-weight="700">LT2</text>
+  </svg>
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-val" style="color:#ef4444;">4:50<span style="font-size:28px;">/km</span></div>
+      <div class="stat-label">LT2</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:#ef4444;">0.71</div>
+      <div class="stat-label">Ratio LT1/LT2</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:#ef4444;">Alta</div>
+      <div class="stat-label">VLamax</div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 3: 12-18s DIAGNOSTICO -->
+<div class="scene" id="scene3">
+  <h2 style="font-size:56px;">Diagnstico</h2>
+  <div class="badge-big badge-red" style="font-size:52px; margin:30px 0;">Gap Aerbico</div>
+  <svg width="120" height="80" viewBox="0 0 120 80" style="margin:20px 0;">
+    <polygon points="60,10 110,70 10,70" fill="none" stroke="#d26a36" stroke-width="3"/>
+    <text x="60" y="58" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="30" font-weight="700">!</text>
+  </svg>
+  <h2 style="font-size:52px;">Prescripcin</h2>
+  <div class="badge-big badge-accent" style="font-size:52px; margin:30px 0;">Bloque AEC  8 semanas</div>
+  <div style="margin-top:20px; text-align:left;">
+    <p style="font-size:38px; text-align:left; margin:10px 0; color:#e8e8e8;"><span class="accent"></span> Volumen Zona 2</p>
+    <p style="font-size:38px; text-align:left; margin:10px 0; color:#e8e8e8;"><span class="accent"></span> Extensivas LT1</p>
+    <p style="font-size:38px; text-align:left; margin:10px 0; color:#e8e8e8;"><span class="accent"></span> Reducir HIIT</p>
+  </div>
+</div>
+
+<!-- Scene 4: 18-24s DESPUES -->
+<div class="scene" id="scene4">
+  <div class="badge-big badge-green">DESPUS</div>
+  <svg width="860" height="500" viewBox="0 0 860 500" style="margin:20px 0;">
+    <!-- Grid -->
+    <line x1="80" y1="420" x2="820" y2="420" stroke="#ffffff15" stroke-width="1"/>
+    <line x1="80" y1="320" x2="820" y2="320" stroke="#ffffff10" stroke-width="1"/>
+    <line x1="80" y1="220" x2="820" y2="220" stroke="#ffffff10" stroke-width="1"/>
+    <line x1="80" y1="120" x2="820" y2="120" stroke="#ffffff10" stroke-width="1"/>
+    <!-- Y axis labels -->
+    <text x="60" y="425" text-anchor="end" fill="#ffffff40" font-size="22">1</text>
+    <text x="60" y="325" text-anchor="end" fill="#ffffff40" font-size="22">3</text>
+    <text x="60" y="225" text-anchor="end" fill="#ffffff40" font-size="22">5</text>
+    <text x="60" y="125" text-anchor="end" fill="#ffffff40" font-size="22">7</text>
+    <!-- X axis labels (pace) -->
+    <text x="140" y="460" text-anchor="middle" fill="#ffffff40" font-size="20">6:00</text>
+    <text x="300" y="460" text-anchor="middle" fill="#ffffff40" font-size="20">5:30</text>
+    <text x="460" y="460" text-anchor="middle" fill="#ffffff40" font-size="20">5:00</text>
+    <text x="620" y="460" text-anchor="middle" fill="#ffffff40" font-size="20">4:30</text>
+    <text x="780" y="460" text-anchor="middle" fill="#ffffff40" font-size="20">4:00</text>
+    <!-- Ghost red curve (before) -->
+    <path d="M140 410 C200 405 280 395 360 380 C420 360 460 320 520 250 C560 190 600 130 680 80" fill="none" stroke="#ef444430" stroke-width="3" stroke-dasharray="6,6"/>
+    <!-- Shifted green curve (after) -->
+    <path d="M140 415 C220 410 320 405 420 395 C500 380 560 350 620 290 C660 240 700 180 780 100" fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round"/>
+    <!-- Green dots -->
+    <circle cx="140" cy="415" r="8" fill="#22c55e"/>
+    <circle cx="260" cy="408" r="8" fill="#22c55e"/>
+    <circle cx="380" cy="400" r="8" fill="#22c55e"/>
+    <circle cx="500" cy="385" r="8" fill="#22c55e"/>
+    <circle cx="580" cy="340" r="8" fill="#22c55e"/>
+    <circle cx="660" cy="260" r="8" fill="#22c55e"/>
+    <circle cx="760" cy="120" r="8" fill="#22c55e"/>
+    <!-- LT2 marker -->
+    <line x1="620" y1="40" x2="620" y2="420" stroke="#22c55e" stroke-width="2" stroke-dasharray="8,6"/>
+    <text x="630" y="60" fill="#22c55e" font-family="Space Grotesk" font-size="26" font-weight="700">LT2</text>
+    <!-- Arrow showing shift -->
+    <line x1="470" y1="35" x2="610" y2="35" stroke="#d26a36" stroke-width="3"/>
+    <polygon points="610,25 630,35 610,45" fill="#d26a36"/>
+    <text x="540" y="25" text-anchor="middle" fill="#d26a36" font-family="Space Grotesk" font-size="22" font-weight="700">SHIFT</text>
+  </svg>
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-val" style="color:#22c55e;">4:25<span style="font-size:28px;">/km</span></div>
+      <div class="stat-label">LT2</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:#22c55e;">0.83</div>
+      <div class="stat-label">Ratio LT1/LT2</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:#22c55e;">-25s/km</div>
+      <div class="stat-label">Mejora</div>
+    </div>
+  </div>
+</div>
+
+<!-- Scene 5: 24-28s -->
+<div class="scene" id="scene5">
+  <h2 style="font-size:56px;">No fue <span class="red">random</span>.</h2>
+  <h1 style="font-size:68px; margin-top:20px;">Fue el bloque correcto<br>para <span class="green">SU</span> fisiologa.</h1>
+</div>
+
+<!-- Scene 6: 28-30s -->
+<div class="scene" id="scene6">
+  <div class="cta-box">
+    <h2 style="font-size:72px;">PeakAerobic</h2>
+    <p style="font-size:44px;">De datos a decisiones.</p>
+  </div>
+  <p style="margin-top:40px; font-size:36px; color:#d26a36;">@peakaerobic</p>
+</div>
+
+<script>
+const DURATION = 30000;
+const scenes = [
+  { id: 'scene1', start: 0, end: 4000 },
+  { id: 'scene2', start: 4000, end: 12000 },
+  { id: 'scene3', start: 12000, end: 18000 },
+  { id: 'scene4', start: 18000, end: 24000 },
+  { id: 'scene5', start: 24000, end: 28000 },
+  { id: 'scene6', start: 28000, end: 30000 }
+];
+
+const startTime = performance.now();
+
+function tick() {
+  const elapsed = (performance.now() - startTime) % DURATION;
+  document.getElementById('progressBar').style.width = ((elapsed / DURATION) * 100) + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+
+  requestAnimationFrame(tick);
+}
+
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

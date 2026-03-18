@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carousel SEO — Periodizacion Entrenamiento</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px; font-family: 'Source Sans 3', sans-serif; }
+  .slide { width: 1080px; height: 1080px; position: relative; overflow: hidden; background: #0e1e24; color: #f7f6f4; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 80px; }
+  .slide-number { position: absolute; top: 40px; right: 50px; font-family: 'Space Grotesk', sans-serif; font-size: 20px; color: rgba(247,246,244,0.35); font-weight: 500; letter-spacing: 2px; }
+  .progress-dots { position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .progress-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(247,246,244,0.2); }
+  .progress-dots .dot.active { background: #d26a36; }
+  .watermark { position: absolute; bottom: 44px; right: 50px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; color: rgba(210,106,54,0.35); font-weight: 600; letter-spacing: 1px; }
+  .watermark span { font-weight: 400; font-size: 11px; display: block; letter-spacing: 0.5px; color: rgba(210,106,54,0.25); }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 600; line-height: 1.15; }
+  h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 500; line-height: 1.2; }
+  p, li { font-family: 'Source Sans 3', sans-serif; line-height: 1.5; }
+  .accent { color: #d26a36; }
+  .accent-green { color: #22c55e; }
+  .accent-orange { color: #f97316; }
+  .tag { display: inline-block; padding: 8px 20px; border-radius: 6px; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 500; background: rgba(210,106,54,0.15); color: #d26a36; margin-bottom: 20px; letter-spacing: 1px; }
+  .divider { width: 60px; height: 4px; background: #d26a36; border-radius: 2px; margin: 24px 0; }
+  .cta-box { background: linear-gradient(135deg, #d26a36, #e07b44); padding: 40px 50px; border-radius: 20px; text-align: center; max-width: 820px; }
+  .cta-box h2 { color: #fff; }
+  .cta-box p { color: rgba(255,255,255,0.85); }
+  svg text { font-family: 'Source Sans 3', sans-serif; }
+  @media print { body { padding: 0; gap: 0; background: white; } .slide { page-break-after: always; margin: 0; } }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide" style="background: linear-gradient(160deg, #0e1e24 0%, #132a33 50%, #0e1e24 100%);">
+  <div class="slide-number">01 / 08</div>
+  <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.05;">
+    <svg viewBox="0 0 1080 1080" xmlns="http://www.w3.org/2000/svg">
+      <rect x="80" y="600" width="160" height="300" rx="6" fill="#22c55e"/>
+      <rect x="280" y="450" width="160" height="450" rx="6" fill="#eab308"/>
+      <rect x="480" y="350" width="160" height="550" rx="6" fill="#f97316"/>
+      <rect x="680" y="250" width="160" height="650" rx="6" fill="#d26a36"/>
+      <rect x="880" y="500" width="160" height="400" rx="6" fill="#22c55e"/>
+    </svg>
+  </div>
+  <div style="text-align: center; position: relative; z-index: 1;">
+    <div class="tag">PERIODIZACION</div>
+    <h1 style="font-size: 60px; margin-bottom: 30px;">Periodizacion<br>basada en<br><span class="accent">fisiologia</span></h1>
+    <div class="divider" style="margin: 24px auto;"></div>
+    <p style="font-size: 28px; color: rgba(247,246,244,0.6); max-width: 650px;">
+      Los 6 bloques de Olbrecht<br>y cuando usar cada uno
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 2: Why periodization matters -->
+<div class="slide">
+  <div class="slide-number">02 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 44px; margin-bottom: 40px;">Sin periodizacion entrenas<br>al <span class="accent-orange">azar</span></h2>
+    <div style="display: flex; gap: 40px; justify-content: center;">
+      <div style="width: 380px;">
+        <svg viewBox="0 0 380 280" xmlns="http://www.w3.org/2000/svg" style="width: 100%;">
+          <rect x="10" y="10" width="360" height="260" rx="14" fill="rgba(239,68,68,0.06)" stroke="rgba(239,68,68,0.2)" stroke-width="1.5"/>
+          <text x="190" y="45" fill="#ef4444" font-size="20" text-anchor="middle" font-weight="700">SIN PERIODIZAR</text>
+          <!-- Random bars -->
+          <rect x="40" y="70" width="40" height="120" rx="4" fill="rgba(249,115,22,0.3)"/>
+          <rect x="90" y="130" width="40" height="60" rx="4" fill="rgba(34,197,94,0.3)"/>
+          <rect x="140" y="80" width="40" height="110" rx="4" fill="rgba(249,115,22,0.3)"/>
+          <rect x="190" y="100" width="40" height="90" rx="4" fill="rgba(239,68,68,0.3)"/>
+          <rect x="240" y="60" width="40" height="130" rx="4" fill="rgba(249,115,22,0.3)"/>
+          <rect x="290" y="140" width="40" height="50" rx="4" fill="rgba(34,197,94,0.3)"/>
+          <!-- Flat fitness line -->
+          <path d="M 40 220 Q 120 215 200 220 Q 280 225 340 218" stroke="#ef4444" stroke-width="2.5" fill="none" stroke-dasharray="6 4"/>
+          <text x="190" y="255" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Fitness estancado</text>
+        </svg>
+      </div>
+      <div style="width: 380px;">
+        <svg viewBox="0 0 380 280" xmlns="http://www.w3.org/2000/svg" style="width: 100%;">
+          <rect x="10" y="10" width="360" height="260" rx="14" fill="rgba(34,197,94,0.06)" stroke="rgba(34,197,94,0.2)" stroke-width="1.5"/>
+          <text x="190" y="45" fill="#22c55e" font-size="20" text-anchor="middle" font-weight="700">PERIODIZADO</text>
+          <!-- Structured blocks -->
+          <rect x="30" y="120" width="70" height="70" rx="4" fill="rgba(34,197,94,0.25)"/>
+          <text x="65" y="160" fill="#22c55e" font-size="11" text-anchor="middle">AEC</text>
+          <rect x="110" y="90" width="70" height="100" rx="4" fill="rgba(234,179,8,0.25)"/>
+          <text x="145" y="145" fill="#eab308" font-size="11" text-anchor="middle">THR</text>
+          <rect x="190" y="65" width="70" height="125" rx="4" fill="rgba(249,115,22,0.25)"/>
+          <text x="225" y="132" fill="#f97316" font-size="11" text-anchor="middle">AEP</text>
+          <rect x="270" y="130" width="70" height="60" rx="4" fill="rgba(139,92,246,0.25)"/>
+          <text x="305" y="165" fill="#8b5cf6" font-size="11" text-anchor="middle">REC</text>
+          <!-- Rising fitness line -->
+          <path d="M 40 230 Q 120 220 200 200 Q 280 175 340 155" stroke="#22c55e" stroke-width="2.5" fill="none"/>
+          <text x="190" y="255" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Fitness progresivo</text>
+        </svg>
+      </div>
+    </div>
+    <p style="font-size: 26px; margin-top: 35px; color: rgba(247,246,244,0.6); max-width: 700px; margin-left: auto; margin-right: auto;">
+      Periodizar = <strong style="color:#f7f6f4;">aplicar el estimulo correcto en el momento correcto</strong>.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 3: The 6 Olbrecht blocks -->
+<div class="slide">
+  <div class="slide-number">03 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 42px; margin-bottom: 40px;">Los <span class="accent">6 bloques</span> de Olbrecht</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; max-width: 820px; margin: 0 auto;">
+      <div style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 14px; padding: 24px 18px; text-align: center;">
+        <h3 style="font-size: 20px; color: #22c55e; margin-bottom: 8px;">AEC</h3>
+        <p style="font-size: 15px; color: rgba(247,246,244,0.6); font-weight: 500;">Capacidad Aerobica</p>
+        <div style="width: 40px; height: 2px; background: rgba(34,197,94,0.3); margin: 10px auto;"></div>
+        <p style="font-size: 14px; color: rgba(247,246,244,0.4);">Volumen Z1-Z2. Construye la base. Reduce VLamax.</p>
+      </div>
+      <div style="background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.2); border-radius: 14px; padding: 24px 18px; text-align: center;">
+        <h3 style="font-size: 20px; color: #eab308; margin-bottom: 8px;">THR</h3>
+        <p style="font-size: 15px; color: rgba(247,246,244,0.6); font-weight: 500;">Desarrollo Umbral</p>
+        <div style="width: 40px; height: 2px; background: rgba(234,179,8,0.3); margin: 10px auto;"></div>
+        <p style="font-size: 14px; color: rgba(247,246,244,0.4);">Cruise intervals y tempo. Cierra gap LT1-LT2.</p>
+      </div>
+      <div style="background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.2); border-radius: 14px; padding: 24px 18px; text-align: center;">
+        <h3 style="font-size: 20px; color: #f97316; margin-bottom: 8px;">AEP</h3>
+        <p style="font-size: 15px; color: rgba(247,246,244,0.6); font-weight: 500;">Potencia Aerobica</p>
+        <div style="width: 40px; height: 2px; background: rgba(249,115,22,0.3); margin: 10px auto;"></div>
+        <p style="font-size: 14px; color: rgba(247,246,244,0.4);">VO2max intervals. Sube el techo aerobico.</p>
+      </div>
+      <div style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 14px; padding: 24px 18px; text-align: center;">
+        <h3 style="font-size: 20px; color: #ef4444; margin-bottom: 8px;">ANC</h3>
+        <p style="font-size: 15px; color: rgba(247,246,244,0.6); font-weight: 500;">Capacidad Anaerobica</p>
+        <div style="width: 40px; height: 2px; background: rgba(239,68,68,0.3); margin: 10px auto;"></div>
+        <p style="font-size: 14px; color: rgba(247,246,244,0.4);">Sprints + base aerobica. Sube VLamax con soporte.</p>
+      </div>
+      <div style="background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.2); border-radius: 14px; padding: 24px 18px; text-align: center;">
+        <h3 style="font-size: 20px; color: #8b5cf6; margin-bottom: 8px;">ANP</h3>
+        <p style="font-size: 15px; color: rgba(247,246,244,0.6); font-weight: 500;">Potencia Anaerobica</p>
+        <div style="width: 40px; height: 2px; background: rgba(139,92,246,0.3); margin: 10px auto;"></div>
+        <p style="font-size: 14px; color: rgba(247,246,244,0.4);">Maxima potencia en corta duracion. Pre-competicion.</p>
+      </div>
+      <div style="background: rgba(210,106,54,0.08); border: 1px solid rgba(210,106,54,0.2); border-radius: 14px; padding: 24px 18px; text-align: center;">
+        <h3 style="font-size: 20px; color: #d26a36; margin-bottom: 8px;">COMP</h3>
+        <p style="font-size: 15px; color: rgba(247,246,244,0.6); font-weight: 500;">Especifico Competicion</p>
+        <div style="width: 40px; height: 2px; background: rgba(210,106,54,0.3); margin: 10px auto;"></div>
+        <p style="font-size: 14px; color: rgba(247,246,244,0.4);">Ritmo de carrera + afinacion. Ultimas semanas.</p>
+      </div>
+    </div>
+    <p style="font-size: 22px; margin-top: 30px; color: rgba(247,246,244,0.5);">
+      Basado en <strong style="color:#f7f6f4;">Jan Olbrecht — The Science of Winning</strong>
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 4: Season phases -->
+<div class="slide">
+  <div class="slide-number">04 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 44px; margin-bottom: 45px;">Las fases de la temporada</h2>
+    <svg viewBox="0 0 850 350" xmlns="http://www.w3.org/2000/svg" style="width: 820px;">
+      <!-- Timeline -->
+      <line x1="50" y1="180" x2="800" y2="180" stroke="rgba(247,246,244,0.2)" stroke-width="3"/>
+      <!-- Phase blocks -->
+      <rect x="50" y="130" width="180" height="100" rx="10" fill="rgba(34,197,94,0.1)" stroke="#22c55e" stroke-width="2"/>
+      <text x="140" y="165" fill="#22c55e" font-size="18" text-anchor="middle" font-weight="700">BASE</text>
+      <text x="140" y="190" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">&gt; 20 semanas</text>
+      <text x="140" y="210" fill="rgba(247,246,244,0.3)" font-size="13" text-anchor="middle">AEC / ANC</text>
+
+      <rect x="245" y="130" width="170" height="100" rx="10" fill="rgba(234,179,8,0.1)" stroke="#eab308" stroke-width="2"/>
+      <text x="330" y="165" fill="#eab308" font-size="18" text-anchor="middle" font-weight="700">ESPECIFICO</text>
+      <text x="330" y="190" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">12-20 semanas</text>
+      <text x="330" y="210" fill="rgba(247,246,244,0.3)" font-size="13" text-anchor="middle">THR / AEP</text>
+
+      <rect x="430" y="130" width="170" height="100" rx="10" fill="rgba(249,115,22,0.1)" stroke="#f97316" stroke-width="2"/>
+      <text x="515" y="165" fill="#f97316" font-size="18" text-anchor="middle" font-weight="700">PRE-COMP</text>
+      <text x="515" y="190" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">3-12 semanas</text>
+      <text x="515" y="210" fill="rgba(247,246,244,0.3)" font-size="13" text-anchor="middle">AEP / ANP / COMP</text>
+
+      <rect x="615" y="130" width="120" height="100" rx="10" fill="rgba(210,106,54,0.1)" stroke="#d26a36" stroke-width="2"/>
+      <text x="675" y="165" fill="#d26a36" font-size="18" text-anchor="middle" font-weight="700">TAPER</text>
+      <text x="675" y="190" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">&lt; 3 sem</text>
+      <text x="675" y="210" fill="rgba(247,246,244,0.3)" font-size="13" text-anchor="middle">Descarga</text>
+
+      <!-- Race flag -->
+      <rect x="755" y="120" width="60" height="50" rx="6" fill="rgba(239,68,68,0.2)" stroke="#ef4444" stroke-width="2"/>
+      <text x="785" y="152" fill="#ef4444" font-size="20" text-anchor="middle" font-weight="700">A</text>
+
+      <!-- Fitness curve above -->
+      <path d="M 70 100 Q 200 90 330 70 Q 460 55 550 45 Q 650 50 700 55 Q 750 48 785 40" stroke="#d26a36" stroke-width="3" fill="none"/>
+      <text x="420" y="35" fill="rgba(247,246,244,0.3)" font-size="14" text-anchor="middle">Fitness</text>
+
+      <!-- Week markers below -->
+      <text x="140" y="270" fill="rgba(247,246,244,0.3)" font-size="14" text-anchor="middle">sem 1-20+</text>
+      <text x="330" y="270" fill="rgba(247,246,244,0.3)" font-size="14" text-anchor="middle">sem 12-20</text>
+      <text x="515" y="270" fill="rgba(247,246,244,0.3)" font-size="14" text-anchor="middle">sem 3-12</text>
+      <text x="675" y="270" fill="rgba(247,246,244,0.3)" font-size="14" text-anchor="middle">sem 1-3</text>
+    </svg>
+    <p style="font-size: 24px; margin-top: 30px; color: rgba(247,246,244,0.5); max-width: 700px; margin-left: auto; margin-right: auto;">
+      La fase determina <strong style="color:#f7f6f4;">que bloques son candidatos</strong>.<br>Tu perfil fisiologico elige el ganador.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 5: Wave principle -->
+<div class="slide">
+  <div class="slide-number">05 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 44px; margin-bottom: 40px;">Principio de ola:<br><span class="accent">carga y recuperacion</span></h2>
+    <svg viewBox="0 0 800 340" xmlns="http://www.w3.org/2000/svg" style="width: 780px;">
+      <!-- Week bars -->
+      <rect x="60" y="160" width="140" height="140" rx="8" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="2"/>
+      <text x="130" y="240" fill="#22c55e" font-size="18" text-anchor="middle" font-weight="600">CARGA</text>
+      <text x="130" y="265" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Semana 1</text>
+
+      <rect x="220" y="110" width="140" height="190" rx="8" fill="rgba(234,179,8,0.15)" stroke="#eab308" stroke-width="2"/>
+      <text x="290" y="215" fill="#eab308" font-size="18" text-anchor="middle" font-weight="600">BUILD</text>
+      <text x="290" y="240" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Semana 2</text>
+
+      <rect x="380" y="70" width="140" height="230" rx="8" fill="rgba(249,115,22,0.15)" stroke="#f97316" stroke-width="2"/>
+      <text x="450" y="195" fill="#f97316" font-size="18" text-anchor="middle" font-weight="600">BUILD</text>
+      <text x="450" y="215" fill="#f97316" font-size="14" text-anchor="middle">PEAK</text>
+      <text x="450" y="240" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Semana 3</text>
+
+      <rect x="540" y="210" width="140" height="90" rx="8" fill="rgba(139,92,246,0.15)" stroke="#8b5cf6" stroke-width="2"/>
+      <text x="610" y="255" fill="#8b5cf6" font-size="18" text-anchor="middle" font-weight="600">RECOVERY</text>
+      <text x="610" y="280" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Semana 4</text>
+
+      <!-- Load wave line on top -->
+      <path d="M 130 150 Q 210 120 290 100 Q 370 70 450 60 Q 530 100 610 200" stroke="#d26a36" stroke-width="3" fill="none"/>
+      <text x="710" y="160" fill="#d26a36" font-size="16" font-weight="500">Carga</text>
+
+      <!-- Supercompensation arrow -->
+      <path d="M 680 200 Q 720 150 760 130" stroke="#22c55e" stroke-width="2.5" fill="none" stroke-dasharray="6 4"/>
+      <polygon points="755,125 765,128 758,137" fill="#22c55e"/>
+      <text x="750" y="120" fill="#22c55e" font-size="14" text-anchor="middle">Adaptacion</text>
+    </svg>
+    <p style="font-size: 24px; margin-top: 30px; color: rgba(247,246,244,0.5); max-width: 700px; margin-left: auto; margin-right: auto;">
+      El cuerpo mejora <strong style="color:#f7f6f4;">durante la recuperacion</strong>, no durante la carga.<br>Sin recovery, no hay supercompensacion.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 6: Decision tree -->
+<div class="slide">
+  <div class="slide-number">06 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 42px; margin-bottom: 40px;">Como decide PeakAerobic<br>tu <span class="accent">bloque ideal</span></h2>
+    <svg viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg" style="width: 780px;">
+      <!-- Root node -->
+      <rect x="300" y="10" width="200" height="50" rx="10" fill="rgba(210,106,54,0.15)" stroke="#d26a36" stroke-width="2"/>
+      <text x="400" y="42" fill="#d26a36" font-size="17" text-anchor="middle" font-weight="600">Tu perfil fisiologico</text>
+      <!-- Branches -->
+      <line x1="300" y1="60" x2="150" y2="100" stroke="rgba(247,246,244,0.15)" stroke-width="2"/>
+      <line x1="400" y1="60" x2="400" y2="100" stroke="rgba(247,246,244,0.15)" stroke-width="2"/>
+      <line x1="500" y1="60" x2="650" y2="100" stroke="rgba(247,246,244,0.15)" stroke-width="2"/>
+      <!-- Level 2 nodes -->
+      <rect x="60" y="100" width="180" height="45" rx="8" fill="rgba(34,197,94,0.1)"/>
+      <text x="150" y="128" fill="#22c55e" font-size="15" text-anchor="middle" font-weight="500">Gap LT1 grande?</text>
+      <rect x="310" y="100" width="180" height="45" rx="8" fill="rgba(234,179,8,0.1)"/>
+      <text x="400" y="128" fill="#eab308" font-size="15" text-anchor="middle" font-weight="500">Gap LT2 grande?</text>
+      <rect x="560" y="100" width="180" height="45" rx="8" fill="rgba(249,115,22,0.1)"/>
+      <text x="650" y="128" fill="#f97316" font-size="15" text-anchor="middle" font-weight="500">VLamax baja?</text>
+      <!-- Results -->
+      <line x1="150" y1="145" x2="150" y2="180" stroke="rgba(247,246,244,0.15)" stroke-width="2"/>
+      <rect x="70" y="180" width="160" height="40" rx="8" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="150" y="206" fill="#22c55e" font-size="16" text-anchor="middle" font-weight="600">AEC</text>
+
+      <line x1="400" y1="145" x2="400" y2="180" stroke="rgba(247,246,244,0.15)" stroke-width="2"/>
+      <rect x="320" y="180" width="160" height="40" rx="8" fill="rgba(234,179,8,0.15)" stroke="#eab308" stroke-width="1.5"/>
+      <text x="400" y="206" fill="#eab308" font-size="16" text-anchor="middle" font-weight="600">THR</text>
+
+      <line x1="650" y1="145" x2="650" y2="180" stroke="rgba(247,246,244,0.15)" stroke-width="2"/>
+      <rect x="570" y="180" width="160" height="40" rx="8" fill="rgba(249,115,22,0.15)" stroke="#f97316" stroke-width="1.5"/>
+      <text x="650" y="206" fill="#f97316" font-size="16" text-anchor="middle" font-weight="600">ANC</text>
+
+      <!-- More context -->
+      <rect x="100" y="260" width="600" height="80" rx="14" fill="rgba(210,106,54,0.06)" stroke="rgba(210,106,54,0.15)" stroke-width="1"/>
+      <text x="400" y="290" fill="rgba(247,246,244,0.6)" font-size="18" text-anchor="middle">Ademas evalua: fase de temporada, semanas al objetivo,</text>
+      <text x="400" y="315" fill="rgba(247,246,244,0.6)" font-size="18" text-anchor="middle">tolerancia familiar, senal del ultimo bloque, confianza</text>
+
+      <!-- Scoring -->
+      <rect x="150" y="370" width="500" height="90" rx="14" fill="rgba(210,106,54,0.1)" stroke="#d26a36" stroke-width="2"/>
+      <text x="400" y="400" fill="#d26a36" font-size="20" text-anchor="middle" font-weight="700">6 candidatos puntuados</text>
+      <text x="400" y="425" fill="rgba(247,246,244,0.5)" font-size="16" text-anchor="middle">El mejor score gana. Todo auditable.</text>
+      <text x="400" y="448" fill="rgba(247,246,244,0.4)" font-size="14" text-anchor="middle">Cada decision tiene su explicacion cientifica</text>
+    </svg>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 7: Dose ladders -->
+<div class="slide">
+  <div class="slide-number">07 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <h2 style="font-size: 42px; margin-bottom: 40px;">Dose ladders:<br><span class="accent">progresion inteligente</span></h2>
+    <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" style="width: 780px;">
+      <!-- Ladder steps -->
+      <rect x="80" y="320" width="90" height="50" rx="6" fill="rgba(34,197,94,0.2)" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="125" y="350" fill="#22c55e" font-size="14" text-anchor="middle" font-weight="500">Paso 1</text>
+      <text x="125" y="365" fill="rgba(247,246,244,0.4)" font-size="11" text-anchor="middle">3x8' LT1</text>
+
+      <rect x="190" y="270" width="90" height="50" rx="6" fill="rgba(34,197,94,0.25)" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="235" y="300" fill="#22c55e" font-size="14" text-anchor="middle" font-weight="500">Paso 2</text>
+      <text x="235" y="315" fill="rgba(247,246,244,0.4)" font-size="11" text-anchor="middle">4x8' LT1</text>
+
+      <rect x="300" y="220" width="90" height="50" rx="6" fill="rgba(234,179,8,0.2)" stroke="#eab308" stroke-width="1.5"/>
+      <text x="345" y="250" fill="#eab308" font-size="14" text-anchor="middle" font-weight="500">Paso 3</text>
+      <text x="345" y="265" fill="rgba(247,246,244,0.4)" font-size="11" text-anchor="middle">4x10' LT1</text>
+
+      <rect x="410" y="170" width="90" height="50" rx="6" fill="rgba(234,179,8,0.25)" stroke="#eab308" stroke-width="1.5"/>
+      <text x="455" y="200" fill="#eab308" font-size="14" text-anchor="middle" font-weight="500">Paso 4</text>
+      <text x="455" y="215" fill="rgba(247,246,244,0.4)" font-size="11" text-anchor="middle">3x15' LT1</text>
+
+      <rect x="520" y="120" width="90" height="50" rx="6" fill="rgba(249,115,22,0.2)" stroke="#f97316" stroke-width="1.5"/>
+      <text x="565" y="150" fill="#f97316" font-size="14" text-anchor="middle" font-weight="500">Paso 5</text>
+      <text x="565" y="165" fill="rgba(247,246,244,0.4)" font-size="11" text-anchor="middle">2x20' LT1</text>
+
+      <rect x="630" y="70" width="90" height="50" rx="6" fill="rgba(249,115,22,0.25)" stroke="#f97316" stroke-width="1.5"/>
+      <text x="675" y="100" fill="#f97316" font-size="14" text-anchor="middle" font-weight="500">Paso 6</text>
+      <text x="675" y="115" fill="rgba(247,246,244,0.4)" font-size="11" text-anchor="middle">1x40' LT1</text>
+
+      <!-- Progression arrow -->
+      <path d="M 100 310 Q 300 200 500 110 Q 600 70 700 50" stroke="#d26a36" stroke-width="2.5" fill="none" stroke-dasharray="8 5"/>
+      <text x="720" y="45" fill="#d26a36" font-size="16" font-weight="600">Progresion</text>
+
+      <!-- Example label -->
+      <text x="400" y="395" fill="rgba(247,246,244,0.4)" font-size="16" text-anchor="middle">Ejemplo: familia LT1 extensivo running</text>
+    </svg>
+    <p style="font-size: 22px; margin-top: 15px; color: rgba(247,246,244,0.5); max-width: 700px; margin-left: auto; margin-right: auto;">
+      Cada familia de sesion tiene <strong style="color:#f7f6f4;">5-8 peldanos de dosis</strong>.<br>PA selecciona el peldano segun tu robustez y fase.
+    </p>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+<!-- SLIDE 8: CTA -->
+<div class="slide" style="background: linear-gradient(160deg, #0e1e24 0%, #1a2e36 50%, #0e1e24 100%);">
+  <div class="slide-number">08 / 08</div>
+  <div style="text-align: center; width: 100%;">
+    <div class="cta-box">
+      <h2 style="font-size: 48px; margin-bottom: 20px;">Tu bloque ideal,<br>decidido por ciencia</h2>
+      <div style="width: 60px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin: 20px auto;"></div>
+      <p style="font-size: 26px; margin-top: 20px;">
+        6 bloques Olbrecht. Dose ladders.<br>Principio de ola. Todo automatizado.
+      </p>
+      <div style="margin-top: 40px; padding: 20px 40px; background: rgba(255,255,255,0.15); border-radius: 12px; display: inline-block;">
+        <p style="font-size: 36px; font-family: 'Space Grotesk'; font-weight: 700; color: #fff;">peakaerobic.com</p>
+      </div>
+      <p style="font-size: 24px; margin-top: 20px; color: rgba(255,255,255,0.6);">Gratis. La periodizacion de coaches olimpicos.</p>
+    </div>
+  </div>
+  <div class="progress-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot active"></div>
+  </div>
+  <div class="watermark">PeakAerobic<span>Endurance physiology</span></div>
+</div>
+
+</body>
+</html>

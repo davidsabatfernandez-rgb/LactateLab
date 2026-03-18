@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 15 - 5 senales de que necesitas un test de lactato</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 76px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 60px; font-weight: 700; text-align: center; line-height: 1.2; }
+
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .orange { color: #f97316; }
+
+  .overlay-text { font-size: 48px; font-weight: 600; text-align: center; margin-top: 40px; opacity: 0; transform: translateY(30px); }
+  .overlay-text.show { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; transition: width 0.1s linear; }
+
+  .scene-hook h1 { opacity: 0; transform: scale(0.8); }
+  .scene-hook h1.show { opacity: 1; transform: scale(1); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+
+  .badge { display: inline-block; padding: 12px 30px; border-radius: 50px; font-weight: 700; font-size: 36px; margin-top: 20px; }
+  .badge-red { background: #ef444440; color: #ef4444; }
+  .badge-green { background: #22c55e40; color: #22c55e; }
+  .badge-orange { background: #f9731640; color: #f97316; }
+
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; margin-bottom: 30px; }
+  .cta-text { font-size: 48px; font-weight: 600; text-align: center; opacity: 0; }
+  .cta-text.show { opacity: 1; transition: opacity 0.6s ease; }
+
+  /* Signal card */
+  .signal-card {
+    width: 850px;
+    padding: 35px 40px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    margin: 12px 0;
+    background: #f7f6f408;
+    border: 2px solid #f7f6f420;
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: all 0.5s ease;
+  }
+
+  .signal-card.show { opacity: 1; transform: translateX(0); }
+
+  .signal-card.checked {
+    border-color: #d26a3660;
+    background: #d26a3610;
+  }
+
+  .signal-num {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    flex-shrink: 0;
+    background: #d26a3620;
+    color: #d26a36;
+    transition: all 0.3s ease;
+  }
+
+  .signal-card.checked .signal-num {
+    background: #d26a36;
+    color: #f7f6f4;
+  }
+
+  .signal-text {
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  /* Counter */
+  .counter-container {
+    position: fixed;
+    top: 160px;
+    left: 60px;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+
+  .counter-container.show { opacity: 1; }
+
+  .counter-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 64px;
+    font-weight: 700;
+    color: #d26a36;
+  }
+
+  .counter-label {
+    font-size: 24px;
+    color: #f7f6f460;
+  }
+
+  /* Checkmark animation */
+  @keyframes checkPop {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  .check-anim {
+    display: inline-block;
+    animation: checkPop 0.4s ease;
+  }
+
+  /* Result card */
+  .result-card {
+    width: 800px;
+    padding: 50px;
+    border-radius: 24px;
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.5s ease;
+  }
+
+  .result-card.show { opacity: 1; transform: scale(1); }
+
+  .result-yes { background: #ef444415; border: 3px solid #ef444450; }
+  .result-action { background: #d26a3615; border: 3px solid #d26a3650; }
+</style>
+</head>
+<body>
+
+<div class="watermark">@peakaerobic</div>
+
+<div class="counter-container" id="counter">
+  <div class="counter-num" id="counterNum">0/5</div>
+  <div class="counter-label">Te identificas?</div>
+</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene scene-hook" id="scene1">
+  <h1 id="hook1">Si te identificas<br>con <span class="accent">3 de estas</span><br>necesitas un test<br>de lactato</h1>
+</div>
+
+<!-- Scene 2: Signal 1 -->
+<div class="scene" id="scene2">
+  <div class="signal-card" id="sig1">
+    <div class="signal-num">1</div>
+    <div class="signal-text">Siempre estas <span class="red">cansado</span><br>pero no mejoras</div>
+  </div>
+  <div style="margin-top:20px; font-size:36px; color:#f7f6f460; opacity:0; transition:opacity 0.5s; text-align:center;" id="sig1note">
+    Posiblemente entrenas en la zona gris (entre LT1 y LT2)
+  </div>
+</div>
+
+<!-- Scene 3: Signal 2 -->
+<div class="scene" id="scene3">
+  <div class="signal-card" id="sig2">
+    <div class="signal-num">2</div>
+    <div class="signal-text">No sabes a que ritmo deberia<br>ser tu <span class="orange">"dia facil"</span></div>
+  </div>
+  <div style="margin-top:20px; font-size:36px; color:#f7f6f460; opacity:0; transition:opacity 0.5s; text-align:center;" id="sig2note">
+    Sin LT1, todo es una estimacion
+  </div>
+</div>
+
+<!-- Scene 4: Signal 3 -->
+<div class="scene" id="scene4">
+  <div class="signal-card" id="sig3">
+    <div class="signal-num">3</div>
+    <div class="signal-text">Llevas mas de <span class="red">1 ano</span><br>entrenando sin testar</div>
+  </div>
+  <div style="margin-top:20px; font-size:36px; color:#f7f6f460; opacity:0; transition:opacity 0.5s; text-align:center;" id="sig3note">
+    Tus umbrales han cambiado. Tus zonas ya no son validas.
+  </div>
+</div>
+
+<!-- Scene 5: Signal 4 -->
+<div class="scene" id="scene5">
+  <div class="signal-card" id="sig4">
+    <div class="signal-num">4</div>
+    <div class="signal-text">Tu rendimiento lleva meses<br><span class="orange">estancado</span></div>
+  </div>
+  <div style="margin-top:20px; font-size:36px; color:#f7f6f460; opacity:0; transition:opacity 0.5s; text-align:center;" id="sig4note">
+    Sin datos, no sabes si falta base, umbral o VO2
+  </div>
+</div>
+
+<!-- Scene 6: Signal 5 -->
+<div class="scene" id="scene6">
+  <div class="signal-card" id="sig5">
+    <div class="signal-num">5</div>
+    <div class="signal-text">Tus zonas las sacaste<br>de <span class="red">internet</span></div>
+  </div>
+  <div style="margin-top:20px; font-size:36px; color:#f7f6f460; opacity:0; transition:opacity 0.5s; text-align:center;" id="sig5note">
+    Esas formulas no te conocen
+  </div>
+</div>
+
+<!-- Scene 7: Verdict -->
+<div class="scene" id="scene7">
+  <div class="result-card result-yes" id="verdictCard">
+    <div style="font-size:72px; font-weight:700; color:#ef4444; font-family:'Space Grotesk';">3 de 5?</div>
+    <div style="font-size:48px; margin-top:20px; font-weight:600;">Deja de adivinar.</div>
+  </div>
+  <div class="overlay-text" id="verdictNote">Un test de 20 minutos te da mas informacion que 1 ano de datos de reloj.</div>
+</div>
+
+<!-- Scene 8: CTA -->
+<div class="scene" id="scene8">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-bottom: 40px;">Tu primer paso:<br>un test de lactato</h2>
+  <div class="cta-text" id="cta1" style="font-size: 42px; color: #f7f6f490;">
+    Analiza tus resultados gratis<br>Link en bio
+  </div>
+  <div class="cta-text" id="cta2" style="margin-top: 40px; font-size: 36px; color: #d26a36;">
+    @peakaerobic
+  </div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 45000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 2000 },
+  { id: 'scene2', start: 2000, end: 8000 },
+  { id: 'scene3', start: 8000, end: 14000 },
+  { id: 'scene4', start: 14000, end: 20000 },
+  { id: 'scene5', start: 20000, end: 26000 },
+  { id: 'scene6', start: 26000, end: 32000 },
+  { id: 'scene7', start: 32000, end: 38000 },
+  { id: 'scene8', start: 38000, end: 45000 },
+];
+
+let checkCount = 0;
+
+function updateCounter() {
+  checkCount++;
+  document.getElementById('counterNum').textContent = checkCount + '/5';
+}
+
+const events = [
+  { time: 300, action: () => { document.getElementById('hook1').classList.add('show'); }},
+
+  { time: 2200, action: () => { document.getElementById('counter').classList.add('show'); }},
+  { time: 2500, action: () => { document.getElementById('sig1').classList.add('show'); }},
+  { time: 4000, action: () => {
+    document.getElementById('sig1').classList.add('checked');
+    updateCounter();
+  }},
+  { time: 5000, action: () => { document.getElementById('sig1note').style.opacity = '1'; }},
+
+  { time: 8500, action: () => { document.getElementById('sig2').classList.add('show'); }},
+  { time: 10000, action: () => {
+    document.getElementById('sig2').classList.add('checked');
+    updateCounter();
+  }},
+  { time: 11000, action: () => { document.getElementById('sig2note').style.opacity = '1'; }},
+
+  { time: 14500, action: () => { document.getElementById('sig3').classList.add('show'); }},
+  { time: 16000, action: () => {
+    document.getElementById('sig3').classList.add('checked');
+    updateCounter();
+  }},
+  { time: 17000, action: () => { document.getElementById('sig3note').style.opacity = '1'; }},
+
+  { time: 20500, action: () => { document.getElementById('sig4').classList.add('show'); }},
+  { time: 22000, action: () => {
+    document.getElementById('sig4').classList.add('checked');
+    updateCounter();
+  }},
+  { time: 23000, action: () => { document.getElementById('sig4note').style.opacity = '1'; }},
+
+  { time: 26500, action: () => { document.getElementById('sig5').classList.add('show'); }},
+  { time: 28000, action: () => {
+    document.getElementById('sig5').classList.add('checked');
+    updateCounter();
+  }},
+  { time: 29000, action: () => { document.getElementById('sig5note').style.opacity = '1'; }},
+
+  { time: 32500, action: () => { document.getElementById('verdictCard').classList.add('show'); }},
+  { time: 34500, action: () => { document.getElementById('verdictNote').classList.add('show'); }},
+
+  { time: 38500, action: () => { document.getElementById('cta1').classList.add('show'); }},
+  { time: 39500, action: () => { document.getElementById('cta2').classList.add('show'); }},
+];
+
+let eventIndex = 0;
+
+function update() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / DURATION * 100, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

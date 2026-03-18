@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>Reel 05 - Error entrenamiento umbral</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; background: #0e1e24; overflow: hidden; font-family: 'Source Sans 3', sans-serif; color: #f7f6f4; position: relative; }
+  .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; padding: 60px; }
+  .scene.active { opacity: 1; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 76px; font-weight: 700; text-align: center; line-height: 1.15; }
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 52px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .accent { color: #d26a36; }
+  .green { color: #22c55e; }
+  .red { color: #ef4444; }
+  .progress-bar { position: absolute; bottom: 0; left: 0; height: 8px; background: #d26a36; width: 0%; z-index: 100; }
+  .watermark { position: absolute; top: 60px; right: 60px; font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 600; color: #d26a3660; }
+  .split-container { display: flex; gap: 30px; width: 960px; margin-top: 30px; }
+  .split-panel { flex: 1; background: #162a33; border-radius: 20px; padding: 30px; text-align: center; }
+  .split-panel.bad { border: 3px solid #ef444460; }
+  .split-panel.good { border: 3px solid #22c55e60; }
+  .panel-title { font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700; margin-bottom: 15px; }
+  .panel-value { font-family: 'Space Grotesk', sans-serif; font-size: 48px; font-weight: 700; margin-bottom: 10px; }
+  .result-text { font-size: 42px; font-weight: 700; text-align: center; margin-top: 40px; opacity: 0; transition: opacity 0.5s; }
+  .result-text.show { opacity: 1; }
+  .logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; color: #d26a36; }
+  .badge-big { display: inline-block; padding: 15px 40px; border-radius: 50px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; font-size: 52px; margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="watermark">@peakaerobic</div>
+
+<!-- Scene 1: Hook -->
+<div class="scene" id="scene1">
+  <h1>El <span class="accent">90%</span> de coaches<br>comete este error<br>con el umbral</h1>
+  <div style="font-size: 52px; margin-top: 40px; color: #f7f6f480; opacity:0; transition: opacity 0.5s;" id="s1sub">Mira la diferencia.</div>
+</div>
+
+<!-- Scene 2: Split comparison -->
+<div class="scene" id="scene2">
+  <h2>Lactato durante 30 minutos de umbral</h2>
+  <div class="split-container">
+    <!-- Bad: AT threshold -->
+    <div class="split-panel bad">
+      <div class="panel-title red">EN el umbral</div>
+      <div class="panel-value red">3.8 mmol/L</div>
+      <svg width="420" height="350" viewBox="0 0 420 350">
+        <line x1="40" y1="30" x2="40" y2="300" stroke="#f7f6f415" stroke-width="1"/>
+        <line x1="40" y1="300" x2="400" y2="300" stroke="#f7f6f415" stroke-width="1"/>
+        <!-- Y labels -->
+        <text x="10" y="300" fill="#f7f6f450" font-size="20">2</text>
+        <text x="10" y="200" fill="#f7f6f450" font-size="20">4</text>
+        <text x="10" y="100" fill="#f7f6f450" font-size="20">6</text>
+        <!-- X labels -->
+        <text x="40" y="330" fill="#f7f6f450" font-size="18">0'</text>
+        <text x="130" y="330" fill="#f7f6f450" font-size="18">10'</text>
+        <text x="220" y="330" fill="#f7f6f450" font-size="18">20'</text>
+        <text x="330" y="330" fill="#f7f6f450" font-size="18">30'</text>
+        <!-- Rising curve -->
+        <path id="badCurve" fill="none" stroke="#ef4444" stroke-width="4" stroke-linecap="round"
+          d="M 50,210 C 100,208 150,195 200,175 C 250,150 300,115 370,65"
+          stroke-dasharray="600" stroke-dashoffset="600" style="transition: stroke-dashoffset 3s ease;"/>
+        <!-- Threshold reference -->
+        <line x1="40" y1="200" x2="400" y2="200" stroke="#f7f6f420" stroke-width="1" stroke-dasharray="5 5"/>
+        <text x="405" y="205" fill="#f7f6f430" font-size="16">LT2</text>
+      </svg>
+      <div style="font-size: 28px; color: #ef4444; margin-top: 10px;" id="badResult" class="result-text">
+        Acumulacion constante<br>Fatiga masiva
+      </div>
+    </div>
+    <!-- Good: BELOW threshold -->
+    <div class="split-panel good">
+      <div class="panel-title green">BAJO el umbral</div>
+      <div class="panel-value green">3.2 mmol/L</div>
+      <svg width="420" height="350" viewBox="0 0 420 350">
+        <line x1="40" y1="30" x2="40" y2="300" stroke="#f7f6f415" stroke-width="1"/>
+        <line x1="40" y1="300" x2="400" y2="300" stroke="#f7f6f415" stroke-width="1"/>
+        <text x="10" y="300" fill="#f7f6f450" font-size="20">2</text>
+        <text x="10" y="200" fill="#f7f6f450" font-size="20">4</text>
+        <text x="10" y="100" fill="#f7f6f450" font-size="20">6</text>
+        <text x="40" y="330" fill="#f7f6f450" font-size="18">0'</text>
+        <text x="130" y="330" fill="#f7f6f450" font-size="18">10'</text>
+        <text x="220" y="330" fill="#f7f6f450" font-size="18">20'</text>
+        <text x="330" y="330" fill="#f7f6f450" font-size="18">30'</text>
+        <!-- Steady state curve -->
+        <path id="goodCurve" fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round"
+          d="M 50,230 C 100,225 150,222 200,220 C 250,219 300,218 370,218"
+          stroke-dasharray="600" stroke-dashoffset="600" style="transition: stroke-dashoffset 3s ease;"/>
+        <line x1="40" y1="200" x2="400" y2="200" stroke="#f7f6f420" stroke-width="1" stroke-dasharray="5 5"/>
+        <text x="405" y="205" fill="#f7f6f430" font-size="16">LT2</text>
+      </svg>
+      <div style="font-size: 28px; color: #22c55e; margin-top: 10px;" id="goodResult" class="result-text">
+        Estado estable<br>Adaptacion maxima
+      </div>
+    </div>
+  </div>
+  <div class="result-text" id="mainResult" style="font-size: 48px; color: #d26a36;">
+    La diferencia: 0.6 mmol/L
+  </div>
+</div>
+
+<!-- Scene 3: Zoom bad -->
+<div class="scene" id="scene3">
+  <div class="badge-big" style="background: #ef444430; color: #ef4444;">EN EL UMBRAL</div>
+  <h1 style="margin-top: 40px; font-size: 64px;"><span class="red">Acumulacion.</span><br><span class="red">Fatiga.</span><br><span class="red">Sin adaptacion.</span></h1>
+  <div style="margin-top: 50px; font-size: 38px; color: #f7f6f480; text-align: center; line-height: 1.6;">
+    Minuto 15: el lactato sube a 4.5<br>
+    Minuto 20: ya no puedes mantener el ritmo<br>
+    Minuto 25: el intervalo se convierte en VO2max
+  </div>
+</div>
+
+<!-- Scene 4: Zoom good -->
+<div class="scene" id="scene4">
+  <div class="badge-big" style="background: #22c55e30; color: #22c55e;">BAJO EL UMBRAL</div>
+  <h1 style="margin-top: 40px; font-size: 64px;"><span class="green">Estable.</span><br><span class="green">Adaptacion.</span><br><span class="green">Progreso.</span></h1>
+  <div style="margin-top: 50px; font-size: 38px; color: #f7f6f480; text-align: center; line-height: 1.6;">
+    30 minutos a estado estable<br>
+    Maximo estimulo mitocondrial<br>
+    Recuperable en 24-48h
+  </div>
+</div>
+
+<!-- Scene 5: CTA -->
+<div class="scene" id="scene5">
+  <div class="logo-text">PeakAerobic</div>
+  <h2 style="margin-top: 30px;">Calcula tu LT2 practico.<br><span class="accent">Entrena exacto.</span></h2>
+  <div style="font-size: 36px; color: #d26a36; margin-top: 40px;">@peakaerobic</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<script>
+const DURATION = 30000;
+const startTime = Date.now();
+
+const scenes = [
+  { id: 'scene1', start: 0, end: 5000 },
+  { id: 'scene2', start: 5000, end: 15000 },
+  { id: 'scene3', start: 15000, end: 21000 },
+  { id: 'scene4', start: 21000, end: 27000 },
+  { id: 'scene5', start: 27000, end: 30000 },
+];
+
+const events = [
+  { time: 3000, action: () => document.getElementById('s1sub').style.opacity = '1' },
+  { time: 6000, action: () => { document.getElementById('badCurve').style.strokeDashoffset = '0'; document.getElementById('goodCurve').style.strokeDashoffset = '0'; }},
+  { time: 10000, action: () => { document.getElementById('badResult').classList.add('show'); document.getElementById('goodResult').classList.add('show'); }},
+  { time: 12000, action: () => document.getElementById('mainResult').classList.add('show') },
+];
+
+let eventIndex = 0;
+function update() {
+  const elapsed = Date.now() - startTime;
+  document.getElementById('progressBar').style.width = Math.min(elapsed / DURATION * 100, 100) + '%';
+  scenes.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (elapsed >= s.start && elapsed < s.end) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+  while (eventIndex < events.length && elapsed >= events[eventIndex].time) {
+    events[eventIndex].action();
+    eventIndex++;
+  }
+  if (elapsed < DURATION) requestAnimationFrame(update);
+}
+requestAnimationFrame(update);
+</script>
+</body>
+</html>
