@@ -1,0 +1,312 @@
+/* ── NativeLogin — dark, minimal athlete login for Capacitor app ── */
+
+.nl-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 24px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  background: #0C0C14;
+  color: #f0f0f5;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.nl-container {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ── Brand ── */
+.nl-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.nl-logo-ring {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  place-items: center;
+  color: #c47a2a;
+}
+
+.nl-app-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Form ── */
+.nl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nl-form-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.nl-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  margin: 0;
+  text-align: center;
+}
+
+.nl-title-sm {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  margin: 0;
+}
+
+.nl-hint {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.nl-step {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #c47a2a;
+  text-transform: uppercase;
+}
+
+/* ── Inputs ── */
+.nl-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nl-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.nl-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.nl-input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f0f0f5;
+  font-size: 16px; /* prevents iOS zoom */
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  box-sizing: border-box;
+}
+
+.nl-input::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.nl-input:focus {
+  border-color: rgba(196, 122, 42, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nl-select {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f0f0f5;
+  font-size: 16px;
+  font-family: inherit;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+}
+
+.nl-select:focus {
+  border-color: rgba(196, 122, 42, 0.5);
+}
+
+/* ── Primary button ── */
+.nl-btn-primary {
+  width: 100%;
+  padding: 15px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #c47a2a 0%, #d4912e 100%);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: opacity 0.15s, transform 0.1s;
+  min-height: 50px;
+}
+
+.nl-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.nl-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── Back button ── */
+.nl-back {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.nl-back:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Links ── */
+.nl-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.nl-link {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px 8px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+
+.nl-link:active {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ── Discipline grid (step 2) ── */
+.nl-discipline-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.nl-disc-btn {
+  padding: 16px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 50px;
+}
+
+.nl-disc-btn.active {
+  border-color: #c47a2a;
+  background: rgba(196, 122, 42, 0.12);
+  color: #e8a84c;
+}
+
+.nl-disc-btn:active {
+  transform: scale(0.97);
+}
+
+/* ── Level row (step 2) ── */
+.nl-level-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.nl-level-btn {
+  padding: 12px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 44px;
+}
+
+.nl-level-btn.active {
+  border-color: #c47a2a;
+  background: rgba(196, 122, 42, 0.12);
+  color: #e8a84c;
+}
+
+/* ── Error / Success ── */
+.nl-error {
+  font-size: 0.8rem;
+  color: #ef4444;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.nl-success {
+  font-size: 0.88rem;
+  color: #4ade80;
+  margin: 0;
+  text-align: center;
+  padding: 16px;
+}

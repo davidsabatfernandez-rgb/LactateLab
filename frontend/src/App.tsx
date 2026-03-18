@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { isNative, getStoredToken, setStoredToken, removeStoredToken, setStoredTheme } from "./lib/native";
+import { NativeLogin } from "./components/NativeLogin";
 
 import { AthleteLayout } from "./components/AthleteLayout";
 import { Layout } from "./components/Layout";
@@ -270,9 +271,9 @@ export default function App() {
   }
 
   if (!token) {
-    // On native app: skip landing page, go straight to login (athlete mode)
+    // On native app: show minimal dark login (athlete only)
     if (isNative) {
-      return <LoginForm onLogin={handleLogin} defaultMode="athlete" />;
+      return <NativeLogin onLogin={handleLogin} />;
     }
     if (location.pathname === "/virtual-ride") {
       return <VirtualRidePage />;
