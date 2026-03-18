@@ -9,19 +9,20 @@ const config: CapacitorConfig = {
     // url: 'http://192.168.1.X:5173',
     // cleartext: true,
     androidScheme: 'https',
+    iosScheme: 'https',
   },
   plugins: {
     SplashScreen: {
       launchAutoHide: true,
-      backgroundColor: '#0C0C14',
+      backgroundColor: '#FFFFFF',
       showSpinner: false,
       androidSplashResourceName: 'splash',
       splashFullScreen: false,
       splashImmersive: false,
     },
     StatusBar: {
-      style: 'DARK',
-      backgroundColor: '#0C0C14',
+      style: 'LIGHT',
+      backgroundColor: '#FFFFFF',
     },
   },
   ios: {

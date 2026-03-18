@@ -1,5 +1,5 @@
 /**
- * NativeLogin — minimal, dark login for the native app (Capacitor).
+ * NativeLogin — minimal, light login for the native app (Capacitor).
  * Athlete-first: shows login by default, with a link to register.
  */
 import { FormEvent, useState } from "react";

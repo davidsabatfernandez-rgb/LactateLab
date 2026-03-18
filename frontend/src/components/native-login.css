@@ -1,4 +1,4 @@
-/* ── NativeLogin — dark, minimal athlete login for Capacitor app ── */
+/* ── NativeLogin — light, minimal athlete login (matches app design) ── */
 
 .nl-screen {
   min-height: 100vh;
@@ -6,21 +6,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 20px;
-  padding-top: calc(env(safe-area-inset-top, 0px) + 24px);
+  padding: 24px 24px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 40px);
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
-  background: #0C0C14;
-  color: #f0f0f5;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  background: #FFFFFF;
+  color: #1A1A2E;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 .nl-container {
   width: 100%;
-  max-width: 380px;
+  max-width: 360px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 36px;
 }
 
 /* ── Brand ── */
@@ -28,33 +29,33 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .nl-logo-ring {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #F8F9FA;
+  border: 1px solid #E5E7EB;
   display: grid;
   place-items: center;
-  color: #c47a2a;
+  color: #1A1A2E;
 }
 
 .nl-app-name {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.4);
+  color: #9CA3AF;
 }
 
 /* ── Form ── */
 .nl-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .nl-form-head {
@@ -65,10 +66,10 @@
 }
 
 .nl-title {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: -0.03em;
-  color: #ffffff;
+  color: #1A1A2E;
   margin: 0;
   text-align: center;
 }
@@ -77,13 +78,13 @@
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: #1A1A2E;
   margin: 0;
 }
 
 .nl-hint {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.84rem;
+  color: #9CA3AF;
   margin: 0;
   text-align: center;
   line-height: 1.4;
@@ -93,7 +94,7 @@
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.1em;
-  color: #c47a2a;
+  color: #2563EB;
   text-transform: uppercase;
 }
 
@@ -113,7 +114,7 @@
 .nl-label {
   font-size: 0.72rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.45);
+  color: #6B7280;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -122,32 +123,33 @@
   width: 100%;
   padding: 14px 16px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: #f0f0f5;
-  font-size: 16px; /* prevents iOS zoom */
+  border: 1px solid #E5E7EB;
+  background: #F8F9FA;
+  color: #1A1A2E;
+  font-size: 16px;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
   box-sizing: border-box;
 }
 
 .nl-input::placeholder {
-  color: rgba(255, 255, 255, 0.2);
+  color: #9CA3AF;
 }
 
 .nl-input:focus {
-  border-color: rgba(196, 122, 42, 0.5);
-  background: rgba(255, 255, 255, 0.06);
+  border-color: #2563EB;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
 .nl-select {
   width: 100%;
   padding: 14px 16px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: #f0f0f5;
+  border: 1px solid #E5E7EB;
+  background: #F8F9FA;
+  color: #1A1A2E;
   font-size: 16px;
   font-family: inherit;
   outline: none;
@@ -157,7 +159,8 @@
 }
 
 .nl-select:focus {
-  border-color: rgba(196, 122, 42, 0.5);
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
 /* ── Primary button ── */
@@ -166,24 +169,25 @@
   padding: 15px;
   border-radius: 12px;
   border: none;
-  background: linear-gradient(135deg, #c47a2a 0%, #d4912e 100%);
-  color: #fff;
+  background: #1A1A2E;
+  color: #FFFFFF;
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  margin-top: 4px;
+  margin-top: 6px;
   transition: opacity 0.15s, transform 0.1s;
   min-height: 50px;
+  letter-spacing: -0.01em;
 }
 
 .nl-btn-primary:active:not(:disabled) {
   transform: scale(0.98);
-  opacity: 0.9;
+  opacity: 0.85;
 }
 
 .nl-btn-primary:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: default;
 }
 
@@ -192,9 +196,9 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid #E5E7EB;
+  background: #F8F9FA;
+  color: #6B7280;
   font-size: 1.1rem;
   cursor: pointer;
   display: grid;
@@ -204,7 +208,7 @@
 }
 
 .nl-back:active {
-  background: rgba(255, 255, 255, 0.08);
+  background: #E5E7EB;
 }
 
 /* ── Links ── */
@@ -212,15 +216,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
   margin-top: 8px;
 }
 
 .nl-link {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.35);
-  font-size: 0.82rem;
+  color: #6B7280;
+  font-size: 0.84rem;
   font-family: inherit;
   cursor: pointer;
   padding: 4px 8px;
@@ -231,7 +235,7 @@
 }
 
 .nl-link:active {
-  color: rgba(255, 255, 255, 0.6);
+  color: #2563EB;
 }
 
 /* ── Discipline grid (step 2) ── */
@@ -244,9 +248,9 @@
 .nl-disc-btn {
   padding: 16px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid #E5E7EB;
+  background: #F8F9FA;
+  color: #6B7280;
   font-size: 0.88rem;
   font-weight: 600;
   font-family: inherit;
@@ -256,9 +260,9 @@
 }
 
 .nl-disc-btn.active {
-  border-color: #c47a2a;
-  background: rgba(196, 122, 42, 0.12);
-  color: #e8a84c;
+  border-color: #2563EB;
+  background: rgba(37, 99, 235, 0.06);
+  color: #2563EB;
 }
 
 .nl-disc-btn:active {
@@ -275,9 +279,9 @@
 .nl-level-btn {
   padding: 12px 8px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid #E5E7EB;
+  background: #F8F9FA;
+  color: #6B7280;
   font-size: 0.76rem;
   font-weight: 600;
   font-family: inherit;
@@ -287,26 +291,29 @@
 }
 
 .nl-level-btn.active {
-  border-color: #c47a2a;
-  background: rgba(196, 122, 42, 0.12);
-  color: #e8a84c;
+  border-color: #2563EB;
+  background: rgba(37, 99, 235, 0.06);
+  color: #2563EB;
 }
 
 /* ── Error / Success ── */
 .nl-error {
-  font-size: 0.8rem;
-  color: #ef4444;
+  font-size: 0.82rem;
+  color: #DC2626;
   margin: 0;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.15);
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  line-height: 1.4;
 }
 
 .nl-success {
   font-size: 0.88rem;
-  color: #4ade80;
+  color: #059669;
   margin: 0;
   text-align: center;
   padding: 16px;
+  background: #ECFDF5;
+  border-radius: 10px;
 }

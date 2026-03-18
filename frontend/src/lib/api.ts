@@ -1,16 +1,11 @@
-const PRODUCTION_API = "https://lactate-lab-api.onrender.com/api";
+import { CapacitorHttp, HttpResponse } from "@capacitor/core";
+import { isNative } from "./native";
 
-function isNativePlatform() {
-  try {
-    return typeof (window as any)?.Capacitor?.isNativePlatform === "function"
-      ? (window as any).Capacitor.isNativePlatform()
-      : false;
-  } catch { return false; }
-}
+const PRODUCTION_API = "https://lactate-lab-api.onrender.com/api";
 
 function defaultApiUrls() {
   // Native app (Capacitor): always use production API
-  if (isNativePlatform()) {
+  if (isNative) {
     return [PRODUCTION_API];
   }
 
@@ -30,6 +25,37 @@ function defaultApiUrls() {
   ];
 
   return [...new Set(candidates)];
+}
+
+/** Native HTTP via Capacitor — bypasses CORS entirely */
+async function nativeRequest<T>(path: string, options: FetchOptions = {}): Promise<T> {
+  const url = `${PRODUCTION_API}${path}`;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (options.token) headers["Authorization"] = `Bearer ${options.token}`;
+
+  const method = (options.method ?? "GET").toUpperCase();
+  let data: unknown = undefined;
+  if (options.body && typeof options.body === "string") {
+    try { data = JSON.parse(options.body); } catch { data = options.body; }
+  }
+
+  const response: HttpResponse = await CapacitorHttp.request({
+    url,
+    method,
+    headers,
+    data: data as any,
+  });
+
+  if (response.status === 401) {
+    window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+  }
+  if (response.status >= 400) {
+    const detail = response.data?.detail ?? response.data?.message ?? response.data;
+    const detailText = typeof detail === "string" ? detail : JSON.stringify(detail);
+    throw new Error(`API ${method} ${path} fallo (${response.status}). ${detailText}`);
+  }
+  if (response.status === 204) return undefined as T;
+  return response.data as T;
 }
 
 function normalizeApiUrl(url: string) {
@@ -143,6 +169,9 @@ export function getApiDebugInfo(): ApiDebugInfo {
 }
 
 async function request<T>(path: string, options: FetchOptions = {}): Promise<T> {
+  // On native, use Capacitor's native HTTP (bypasses CORS)
+  if (isNative) return nativeRequest<T>(path, options);
+
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
   if (options.token) {
@@ -185,6 +214,13 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
 }
 
 async function requestForm<T>(path: string, body: FormData, token: string): Promise<T> {
+  if (isNative) {
+    // Convert FormData to plain object for CapacitorHttp
+    const data: Record<string, string> = {};
+    body.forEach((v, k) => { data[k] = String(v); });
+    return nativeRequest<T>(path, { method: "POST", token, body: JSON.stringify(data) });
+  }
+
   const headers = new Headers();
   headers.set("Authorization", `Bearer ${token}`);
   let lastError: unknown = null;
@@ -220,6 +256,7 @@ async function requestForm<T>(path: string, body: FormData, token: string): Prom
 }
 
 async function requestBlob(path: string, options: FetchOptions = {}): Promise<Blob> {
+  // Blob requests on native fall back to fetch (CapacitorHttp doesn't return Blob)
   const headers = new Headers(options.headers);
   if (options.token) {
     headers.set("Authorization", `Bearer ${options.token}`);
