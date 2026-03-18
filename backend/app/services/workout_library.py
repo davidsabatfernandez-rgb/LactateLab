@@ -266,7 +266,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="run_lt1_extensive",
         discipline="running",
-        compatible_block_types=("aerobic_capacity_block", "threshold_development_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "recovery_consolidation_block", "technical_rebuild_block", "threshold_development_block"),
         session_role="key",
         session_family="lt1_extensive",
         public_label="LT1 extensivo de carrera",
@@ -304,7 +304,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="run_long_aerobic",
         discipline="running",
-        compatible_block_types=("aerobic_capacity_block", "competition_specific_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "competition_specific_block", "recovery_consolidation_block", "technical_rebuild_block", "threshold_development_block"),
         session_role="key",
         session_family="long_aerobic_durability",
         public_label="Tirada aeróbica con durabilidad",
@@ -410,7 +410,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="run_economy_strides",
         discipline="running",
-        compatible_block_types=("aerobic_capacity_block", "technical_rebuild_block", "recovery_consolidation_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "competition_specific_block", "recovery_consolidation_block", "technical_rebuild_block", "testing_decision_block"),
         session_role="support",
         session_family="economy_strides",
         public_label="Economía, técnica y strides",
@@ -458,7 +458,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="run_lt0_recovery",
         discipline="running",
-        compatible_block_types=("recovery_consolidation_block", "aerobic_capacity_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "competition_specific_block", "recovery_consolidation_block", "technical_rebuild_block", "testing_decision_block", "threshold_development_block"),
         session_role="recovery",
         session_family="lt0_recovery",
         public_label="Rodaje LT0 / regenerativo",
@@ -478,7 +478,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="run_progressive_aerobic",
         discipline="running",
-        compatible_block_types=("aerobic_capacity_block", "competition_specific_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "competition_specific_block", "recovery_consolidation_block", "technical_rebuild_block", "threshold_development_block"),
         session_role="key",
         session_family="progressive_aerobic",
         public_label="Rodaje progresivo aeróbico",
@@ -541,7 +541,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="run_hill_sprints",
         discipline="running",
-        compatible_block_types=("technical_rebuild_block", "aerobic_power_block", "competition_specific_block"),
+        compatible_block_types=("aerobic_power_block", "anaerobic_power_block", "competition_specific_block", "technical_rebuild_block"),
         session_role="support",
         session_family="hill_sprints",
         public_label="Cuestas cortas y reactividad",
@@ -782,7 +782,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="run_lt1_long_reps",
         discipline="running",
-        compatible_block_types=("aerobic_capacity_block", "threshold_development_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "threshold_development_block"),
         session_role="key",
         session_family="lt1_long_reps",
         public_label="LT1 repeticiones largas",
@@ -951,7 +951,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="bike_lt1_blocks",
         discipline="ciclismo",
-        compatible_block_types=("aerobic_capacity_block", "threshold_development_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "recovery_consolidation_block", "technical_rebuild_block", "testing_decision_block", "threshold_development_block"),
         session_role="key",
         session_family="lt1_blocks",
         public_label="Bloques LT1 en bici",
@@ -980,7 +980,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="bike_long_endurance",
         discipline="ciclismo",
-        compatible_block_types=("aerobic_capacity_block", "competition_specific_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "competition_specific_block", "recovery_consolidation_block", "technical_rebuild_block", "threshold_development_block"),
         session_role="key",
         session_family="long_endurance",
         public_label="Salida larga aeróbica",
@@ -1069,7 +1069,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="bike_torque_support",
         discipline="ciclismo",
-        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "competition_specific_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "competition_specific_block", "recovery_consolidation_block", "technical_rebuild_block"),
         session_role="support",
         session_family="torque_strength",
         public_label="Torque y fuerza específica",
@@ -1087,7 +1087,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="bike_transition_specific",
         discipline="ciclismo",
-        compatible_block_types=("competition_specific_block",),
+        compatible_block_types=("anaerobic_power_block", "competition_specific_block"),
         session_role="key",
         session_family="transition_specific",
         public_label="Especificidad de transición",
@@ -1115,7 +1115,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="bike_lt0_recovery",
         discipline="ciclismo",
-        compatible_block_types=("recovery_consolidation_block", "aerobic_capacity_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "competition_specific_block", "recovery_consolidation_block", "technical_rebuild_block", "testing_decision_block", "threshold_development_block"),
         session_role="recovery",
         session_family="lt0_recovery",
         public_label="Bici LT0 / regenerativa",
@@ -1135,7 +1135,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="bike_fatmax_endurance",
         discipline="ciclismo",
-        compatible_block_types=("aerobic_capacity_block",),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "recovery_consolidation_block", "technical_rebuild_block", "threshold_development_block"),
         session_role="key",
         session_family="fatmax_endurance",
         public_label="Fatmax / fondo controlado",
@@ -1197,7 +1197,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="bike_cadence_efficiency",
         discipline="ciclismo",
-        compatible_block_types=("aerobic_capacity_block", "technical_rebuild_block", "competition_specific_block"),
+        compatible_block_types=("aerobic_capacity_block", "competition_specific_block", "recovery_consolidation_block", "technical_rebuild_block", "threshold_development_block"),
         session_role="support",
         session_family="cadence_efficiency",
         public_label="Cadencia y eficiencia",
@@ -1244,7 +1244,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="bike_sprint_neuromuscular",
         discipline="ciclismo",
-        compatible_block_types=("aerobic_power_block", "competition_specific_block"),
+        compatible_block_types=("aerobic_power_block", "anaerobic_power_block", "competition_specific_block"),
         session_role="support",
         session_family="sprint_neuromuscular",
         public_label="Sprints y activación neuromuscular",
@@ -1262,7 +1262,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="bike_aero_stability",
         discipline="ciclismo",
-        compatible_block_types=("competition_specific_block", "threshold_development_block"),
+        compatible_block_types=("anaerobic_power_block", "competition_specific_block", "threshold_development_block"),
         session_role="support",
         session_family="aero_stability",
         public_label="Estabilidad en posición aero",
@@ -1337,6 +1337,8 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("ronnestad_2016_block", "cejuela_2022_tri"),
         csv_examples=("20' LT2 + 4 x 3' VO2", "2 x 12' LT2 + 8 x 30''/30''", "15' LT2 + 5 x 2' VO2"),
         fatigue_cost=5,
+        min_spacing_days_after=2,
+        requires_fresh=True,
     ),
     WorkoutTemplate(
         template_id="bike_vo2_30_30",
@@ -1356,6 +1358,8 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         evidence_ids=("ronnestad_2016_block", "tonnessen_2020_frequency"),
         csv_examples=("2 x 8 x 30''/30'' VO2", "12 x 30''/30'' VO2", "10 x 40''/20'' VO2"),
         fatigue_cost=5,
+        min_spacing_days_after=2,
+        requires_fresh=True,
     ),
     WorkoutTemplate(
         template_id="bike_cadmax_neuro",
@@ -1503,7 +1507,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="swim_technical_alignment",
         discipline="natación",
-        compatible_block_types=("technical_rebuild_block", "aerobic_capacity_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "competition_specific_block", "recovery_consolidation_block", "technical_rebuild_block", "testing_decision_block", "threshold_development_block"),
         session_role="key",
         session_family="technical_alignment",
         public_label="Técnica y alineación acuática",
@@ -1531,7 +1535,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="swim_aerobic_continuity",
         discipline="natación",
-        compatible_block_types=("aerobic_capacity_block", "threshold_development_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "recovery_consolidation_block", "technical_rebuild_block", "threshold_development_block"),
         session_role="key",
         session_family="aerobic_continuity",
         public_label="Continuidad aeróbica en agua",
@@ -1623,7 +1627,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="swim_lt1_broken_sets",
         discipline="natación",
-        compatible_block_types=("aerobic_capacity_block", "threshold_development_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "recovery_consolidation_block", "technical_rebuild_block", "threshold_development_block"),
         session_role="key",
         session_family="lt1_broken_sets",
         public_label="Series rotas LT1",
@@ -1653,7 +1657,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="swim_pull_snorkel_alignment",
         discipline="natación",
-        compatible_block_types=("technical_rebuild_block", "aerobic_capacity_block", "threshold_development_block", "anaerobic_capacity_block", "anaerobic_power_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "competition_specific_block", "recovery_consolidation_block", "technical_rebuild_block", "threshold_development_block"),
         session_role="support",
         session_family="pull_snorkel_alignment",
         public_label="Snorkel, pull y alineación",
@@ -1752,7 +1756,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="swim_recovery_drills",
         discipline="natación",
-        compatible_block_types=("recovery_consolidation_block", "technical_rebuild_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "competition_specific_block", "recovery_consolidation_block", "technical_rebuild_block", "testing_decision_block", "threshold_development_block"),
         session_role="recovery",
         session_family="recovery_drills",
         public_label="Recuperación técnica en agua",
@@ -1786,6 +1790,8 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.86,
         evidence_ids=("gonzalez_rave_2023_altitude", "pla_2019_swim"),
         csv_examples=("30 x 50m LT0 c/15''", "40 x 50m LT0", "24 x 50m técnica fácil"),
+        fatigue_cost=1,
+        min_spacing_days_after=0,
     ),
     WorkoutTemplate(
         template_id="swim_varied_aerobic",
@@ -1895,6 +1901,8 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.83,
         evidence_ids=("gonzalez_rave_2023_altitude",),
         csv_examples=("1000m reinicio técnico", "6 x 100m suaves + técnica", "1200m aeróbico fácil"),
+        fatigue_cost=1,
+        min_spacing_days_after=0,
     ),
     WorkoutTemplate(
         template_id="swim_strength_velocity",
@@ -1919,7 +1927,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="strength_general_support",
         discipline="all",
-        compatible_block_types=("aerobic_capacity_block", "technical_rebuild_block", "competition_specific_block"),
+        compatible_block_types=("aerobic_capacity_block", "competition_specific_block", "technical_rebuild_block", "threshold_development_block"),
         session_role="support",
         session_family="general_strength",
         public_label="Fuerza general de soporte",
@@ -2005,11 +2013,13 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.8,
         evidence_ids=("gonzalez_rave_2023_altitude", "vikmoen_2021_tri_strength"),
         csv_examples=("Movilidad hombro + escápula", "Reset cadera + tobillo", "20' movilidad global"),
+        fatigue_cost=1,
+        min_spacing_days_after=0,
     ),
     WorkoutTemplate(
         template_id="test_profile_anchor",
         discipline="all",
-        compatible_block_types=("testing_decision_block", "recovery_consolidation_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "competition_specific_block", "recovery_consolidation_block", "technical_rebuild_block", "testing_decision_block", "threshold_development_block"),
         session_role="test",
         session_family="profile_test",
         public_label="Sesión ancla de test",
@@ -2027,7 +2037,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="recovery_regeneration",
         discipline="all",
-        compatible_block_types=("recovery_consolidation_block", "competition_specific_block", "aerobic_power_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "competition_specific_block", "recovery_consolidation_block"),
         session_role="recovery",
         session_family="recovery_regeneration",
         public_label="Regeneración y descarga",
@@ -2081,6 +2091,8 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
         confidence=0.86,
         evidence_ids=("solli_2017_xc",),
         csv_examples=("45' caminata", "60' hike suave", "75' paseo activo"),
+        fatigue_cost=1,
+        min_spacing_days_after=0,
     ),
 
     # ════════════════════════════════════════════════════════════════════════
@@ -2214,7 +2226,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="run_escalated_lt1",
         discipline="running",
-        compatible_block_types=("aerobic_capacity_block", "threshold_development_block"),
+        compatible_block_types=("aerobic_capacity_block", "anaerobic_capacity_block", "threshold_development_block"),
         session_role="key",
         session_family="escalated_lt1",
         public_label="LT1 escalado (formato regresivo-progresivo)",
@@ -2707,7 +2719,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="run_aec_spiced",
         discipline="running",
-        compatible_block_types=("aerobic_capacity_block",),
+        compatible_block_types=("aerobic_capacity_block", "anaerobic_capacity_block"),
         session_role="key",
         session_family="aec_spiced",
         public_label="AEC con spice al inicio (patrón Olbrecht)",
@@ -2751,7 +2763,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="bike_aec_spiced",
         discipline="ciclismo",
-        compatible_block_types=("aerobic_capacity_block",),
+        compatible_block_types=("aerobic_capacity_block", "anaerobic_capacity_block"),
         session_role="key",
         session_family="aec_spiced_bike",
         public_label="AEC con spice en bici — arrancadas + base",
@@ -2794,7 +2806,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="swim_aec_spiced",
         discipline="natación",
-        compatible_block_types=("aerobic_capacity_block",),
+        compatible_block_types=("aerobic_capacity_block", "anaerobic_capacity_block"),
         session_role="key",
         session_family="aec_spiced_swim",
         public_label="AEC con spice en agua — series cortas + cola extensiva",
@@ -2845,7 +2857,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="run_aep_race_pace",
         discipline="running",
-        compatible_block_types=("aerobic_power_block", "competition_specific_block"),
+        compatible_block_types=("aerobic_power_block", "anaerobic_power_block", "competition_specific_block"),
         session_role="key",
         session_family="aep_race_pace",
         public_label="AEP running — ritmo competición con descanso mínimo",
@@ -2892,7 +2904,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="swim_aep_pace_sets",
         discipline="natación",
-        compatible_block_types=("aerobic_power_block", "competition_specific_block"),
+        compatible_block_types=("aerobic_power_block", "anaerobic_power_block", "competition_specific_block", "threshold_development_block"),
         session_role="key",
         session_family="aep_pace_sets",
         public_label="AEP natación — velocidad de prueba con mínimo descanso",
@@ -2943,7 +2955,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="run_regenerative_long",
         discipline="running",
-        compatible_block_types=("aerobic_capacity_block", "recovery_consolidation_block"),
+        compatible_block_types=("aerobic_capacity_block", "aerobic_power_block", "anaerobic_capacity_block", "anaerobic_power_block", "recovery_consolidation_block", "technical_rebuild_block", "threshold_development_block"),
         session_role="support",
         session_family="regenerative_long",
         public_label="Tirada larga regenerativa AEC",
@@ -2976,7 +2988,7 @@ WORKOUT_TEMPLATES: tuple[WorkoutTemplate, ...] = (
     WorkoutTemplate(
         template_id="swim_aec_long_session",
         discipline="natación",
-        compatible_block_types=("aerobic_capacity_block",),
+        compatible_block_types=("aerobic_capacity_block", "anaerobic_capacity_block"),
         session_role="support",
         session_family="aec_long_session",
         public_label="AEC largo en agua — volumen sub-LT1",
