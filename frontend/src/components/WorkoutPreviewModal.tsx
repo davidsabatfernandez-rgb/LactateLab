@@ -129,16 +129,18 @@ function inferDurationMinutes(value: string): number | null {
     if (nested.length > 0) return nested.reduce((acc, minutes) => acc + minutes, 0) * reps;
   }
 
-  const repeatedMinutes = normalized.match(/(\d+)\s*[x×]\s*(\d+)\s*'/i);
-  if (repeatedMinutes) return Number(repeatedMinutes[1]) * Number(repeatedMinutes[2]);
-
+  // IMPORTANT: seconds ('') must be checked BEFORE minutes (') to avoid
+  // "8×40''" matching as 8×40 minutes instead of 8×40 seconds.
   const repeatedSeconds = normalized.match(/(\d+)\s*[x×]\s*(\d+)\s*''/i);
   if (repeatedSeconds) return Math.max(1, Math.round((Number(repeatedSeconds[1]) * Number(repeatedSeconds[2])) / 60));
+
+  const repeatedMinutes = normalized.match(/(\d+)\s*[x×]\s*(\d+)\s*'(?!')/i);
+  if (repeatedMinutes) return Number(repeatedMinutes[1]) * Number(repeatedMinutes[2]);
 
   const hoursAndMinutes = normalized.match(/(\d+)\s*h(?:\s*(\d+))?/i);
   if (hoursAndMinutes) return Number(hoursAndMinutes[1]) * 60 + Number(hoursAndMinutes[2] ?? 0);
 
-  const directMinutes = normalized.match(/(\d+)\s*'/i);
+  const directMinutes = normalized.match(/(\d+)\s*'(?!')/i);
   if (directMinutes) return Number(directMinutes[1]);
 
   // Short unnamed reps: "4 progresivos", "6 strides", "8 rectas" (~2 min each including recovery)
@@ -571,11 +573,6 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
             <p className="wpm-subtitle">{preview.template.public_label} · {preview.disciplineText}</p>
           </div>
           <div className="wpm-header-actions">
-            {rawInformation ? (
-              <button type="button" className={`wpm-action-btn ${rawInformation.active ? "active" : ""}`} onClick={rawInformation.onToggle}>
-                {rawInformation.label ?? "Raw"}
-              </button>
-            ) : null}
             {canEdit && (
               <button type="button" className={`wpm-action-btn ${!editMode ? "active" : ""}`} onClick={() => setEditMode(false)}>
                 Info
@@ -726,7 +723,7 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
           </aside>
         </div>
         ) : (
-        /* ── Cardio layout (redesigned) ── */
+        /* ── Coach info layout ── */
         <>
         {/* ── Metrics strip ── */}
         <div className="wpm-metrics-strip">
@@ -739,124 +736,68 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
           ) : null}
         </div>
 
-        {/* ── Threshold reference (prominent for coaches) ── */}
+        {/* ── Threshold reference ── */}
         {thresholdReference && (thresholdReference.lt1Label || thresholdReference.lt2Label) ? (
           <div className="wpm-threshold-bar">
             {thresholdReference.lt1Label ? (
               <span className="wpm-threshold-item lt1">
                 <strong>LT1</strong> {thresholdReference.lt1Label}
-                {thresholdReference.lt1Source ? <em> · {thresholdReference.lt1Source}</em> : null}
               </span>
             ) : null}
             {thresholdReference.lt2Label ? (
               <span className="wpm-threshold-item lt2">
                 <strong>LT2</strong> {thresholdReference.lt2Label}
-                {thresholdReference.lt2Source ? <em> · {thresholdReference.lt2Source}</em> : null}
               </span>
             ) : null}
             {preview.selection.prescriptionHint ? (
               <span className="wpm-threshold-hint">{preview.selection.prescriptionHint}</span>
             ) : null}
           </div>
-        ) : preview.selection.prescriptionHint ? (
-          <div className="wpm-threshold-bar">
-            <span className="wpm-threshold-hint">{preview.selection.prescriptionHint}</span>
-            {preview.selection.thresholdBasis ? <span className="wpm-threshold-basis">{preview.selection.thresholdBasis}</span> : null}
-          </div>
         ) : null}
 
-        {/* ── Timeline visualization (hero) ── */}
-        <div className="wpm-timeline">
-          <div className="wpm-timeline-phases">
-            {/* Warmup */}
-            <div className="wpm-phase wpm-phase-warmup">
-              <div className="wpm-phase-label"><span>Calentamiento</span><strong>{formatMinutesLabel(preview.phaseTotals.warmup)}</strong></div>
-              <div className="wpm-phase-visual warmup">
-                <div className="library-workout-phase-warmup-base" style={{ width: `${Math.max(42, ((preview.phaseDetails.warmup.find((s) => s.tone === "warmup")?.durationMin ?? 0) / Math.max(preview.phaseTotals.warmup, 1)) * 100)}%` }} />
-                <div className="library-workout-phase-warmup-markers">
-                  {preview.phaseDetails.warmup.filter((s) => s.tone !== "warmup").map((s) => (
-                    <span key={s.id} className={`library-workout-phase-warmup-marker ${s.tone}`} title={`${s.label} · ${formatMinutesLabel(s.durationMin)}`} />
-                  ))}
-                </div>
-              </div>
-              <p className="wpm-phase-desc">{preview.phaseMeta.warmupSummary}</p>
-            </div>
-
-            {/* Main block */}
-            <div className="wpm-phase wpm-phase-main">
-              <div className="wpm-phase-label"><span>Bloque principal</span><strong>{formatMinutesLabel(preview.phaseTotals.main)}</strong></div>
-              <div className="wpm-phase-visual main">
-                <div className="library-workout-phase-main-sequence">
-                  {preview.phaseDetails.main.map((segment, index) => (
-                    <div
-                      key={segment.id}
-                      className={`library-workout-phase-main-item ${segment.tone} ${segment.tone === "recovery" ? "recovery" : "work"}`}
-                      style={{ flexGrow: Math.max(segment.durationMin, segment.tone === "recovery" ? 0.5 : 1) }}
-                      title={`${segment.label} · ${formatMinutesLabel(segment.durationMin)}`}
-                    >
-                      {segment.tone !== "recovery" && <span className="library-workout-phase-main-bar" style={{ height: `${previewSegmentHeight(segment.tone) * 100}%` }} />}
-                      {segment.tone === "recovery" && <span className="library-workout-phase-main-link" />}
-                      {index < preview.phaseDetails.main.length - 1 && segment.tone !== "recovery" && <small>{formatMinutesLabel(segment.durationMin)}</small>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <p className="wpm-phase-desc">
-                <strong>{preview.selection.label}</strong>
-                <span> · {preview.phaseMeta.mainWorkCount} bloques{preview.phaseMeta.mainRecoveryCount > 0 ? ` · ${preview.phaseMeta.mainRecoveryCount} rec` : ""}{preview.selection.restMin ? ` · rec ${preview.selection.restMin}'` : ""}</span>
-              </p>
-            </div>
-
-            {/* Cooldown */}
-            <div className="wpm-phase wpm-phase-cooldown">
-              <div className="wpm-phase-label"><span>Vuelta calma</span><strong>{formatMinutesLabel(preview.phaseTotals.cooldown)}</strong></div>
-              <div className="wpm-phase-visual cooldown">
-                <div className="library-workout-phase-cooldown-line" style={{ width: `${Math.max(38, ((preview.phaseTotals.cooldown || 0) / Math.max(preview.totalDuration || 1, 1)) * 220)}%` }} />
-              </div>
-              <p className="wpm-phase-desc">{preview.phaseMeta.cooldownSummary}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Body: structure + sidebar ── */}
+        {/* ── Coach info body ── */}
         <div className="wpm-body">
           <div className="wpm-main">
-            {/* Objective + guidance */}
-            <div className="wpm-objective-block">
+            {/* Intent & objective — WHY this session */}
+            <div className="wpm-info-section">
+              <span className="eyebrow">Objetivo de la sesión</span>
               <p className="wpm-objective">{preview.template.objective}</p>
-              {(preview.selection.notes ?? preview.template.dose_guidance) ? (
-                <p className="wpm-guidance">{preview.selection.notes ?? preview.template.dose_guidance}</p>
-              ) : null}
             </div>
 
-            {/* Structure */}
-            <div className="wpm-structure">
-              {preview.template.calentamiento_template && (
-                <div className="wpm-structure-phase warmup">
-                  <div className="wpm-structure-phase-head"><span>Calentamiento</span><strong>{preview.template.calentamiento_min}'</strong></div>
-                  <p>{preview.template.calentamiento_template}</p>
-                </div>
-              )}
-              <div className="wpm-structure-phase main">
-                <div className="wpm-structure-phase-head"><span>Bloque principal</span><strong>{preview.selection.label}</strong></div>
-                {preview.blocks.map((block) => (
-                  <div key={block.id} className={`wpm-interval ${block.tone}`}>
-                    <div className="wpm-interval-content"><strong>{block.label}</strong><p>{block.hint}</p></div>
-                    <span className="wpm-interval-duration">{formatMinutesLabel(block.durationMin)}</span>
-                  </div>
-                ))}
+            {/* Dose guidance — WHAT to expect */}
+            {(preview.selection.notes ?? preview.template.dose_guidance) ? (
+              <div className="wpm-info-section">
+                <span className="eyebrow">Prescripción</span>
+                <p className="wpm-guidance">{preview.selection.notes ?? preview.template.dose_guidance}</p>
               </div>
-              {preview.template.enfriamiento_template && (
-                <div className="wpm-structure-phase cooldown">
-                  <div className="wpm-structure-phase-head"><span>Vuelta calma</span><strong>{preview.template.enfriamiento_min}'</strong></div>
-                  <p>{preview.template.enfriamiento_template}</p>
+            ) : null}
+
+            {/* Summary */}
+            {preview.template.summary ? (
+              <div className="wpm-info-section">
+                <span className="eyebrow">Resumen</span>
+                <p className="wpm-guidance">{preview.template.summary}</p>
+              </div>
+            ) : null}
+
+            {/* Warmup / Cooldown quick reference */}
+            {(preview.template.calentamiento_template || preview.template.enfriamiento_template) ? (
+              <div className="wpm-info-section">
+                <span className="eyebrow">Protocolo calentamiento / vuelta calma</span>
+                <div style={{ display: "grid", gap: 6, fontSize: "0.84rem", color: "var(--text-secondary, #555)" }}>
+                  {preview.template.calentamiento_template && (
+                    <p style={{ margin: 0 }}><strong>{preview.template.calentamiento_min}'</strong> — {preview.template.calentamiento_template}</p>
+                  )}
+                  {preview.template.enfriamiento_template && (
+                    <p style={{ margin: 0 }}><strong>{preview.template.enfriamiento_min}'</strong> — {preview.template.enfriamiento_template}</p>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            ) : null}
 
             {/* Coach note */}
             {onSaveCoachNote && (
-              <div className="wpm-coach-note">
+              <div className="wpm-info-section">
                 <div className="wpm-coach-note-head">
                   <span className="eyebrow">Nota del entrenador</span>
                   {!strengthNoteEditing && (
@@ -890,6 +831,30 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
           </div>
 
           <aside className="wpm-sidebar">
+            {/* Control points */}
+            {preview.template.control_points.length > 0 && (
+              <div className="wpm-sidebar-section">
+                <span className="eyebrow">Puntos a vigilar</span>
+                <ul className="wpm-sidebar-list">{preview.template.control_points.map((p) => <li key={p}>{p}</li>)}</ul>
+              </div>
+            )}
+
+            {/* Coach tips */}
+            {preview.template.coach_tips.length > 0 && (
+              <div className="wpm-sidebar-section">
+                <span className="eyebrow">Consejos</span>
+                <ul className="wpm-sidebar-list">{preview.template.coach_tips.map((t) => <li key={t}>{t}</li>)}</ul>
+              </div>
+            )}
+
+            {/* Cautions */}
+            {preview.template.cautions.length > 0 && (
+              <div className="wpm-sidebar-section wpm-caution">
+                <span className="eyebrow">Cautelas</span>
+                <ul className="wpm-sidebar-list">{preview.template.cautions.map((c) => <li key={c}>{c}</li>)}</ul>
+              </div>
+            )}
+
             {/* Dose ladder */}
             {preview.template.dose_ladder.length > 0 && (
               <div className="wpm-sidebar-section">
@@ -918,33 +883,15 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
               </div>
             )}
 
-            {/* Control points */}
-            {preview.template.control_points.length > 0 && (
+            {/* CSV examples */}
+            {preview.template.csv_examples.length > 0 && (
               <div className="wpm-sidebar-section">
-                <span className="eyebrow">Puntos a vigilar</span>
-                <ul className="wpm-sidebar-list">{preview.template.control_points.map((p) => <li key={p}>{p}</li>)}</ul>
-              </div>
-            )}
-
-            {/* Coach tips */}
-            {preview.template.coach_tips.length > 0 && (
-              <div className="wpm-sidebar-section">
-                <span className="eyebrow">Consejos</span>
-                <ul className="wpm-sidebar-list">{preview.template.coach_tips.map((t) => <li key={t}>{t}</li>)}</ul>
-              </div>
-            )}
-
-            {/* Cautions */}
-            {preview.template.cautions.length > 0 && (
-              <div className="wpm-sidebar-section wpm-caution">
-                <span className="eyebrow">Cautelas</span>
-                <ul className="wpm-sidebar-list">{preview.template.cautions.map((c) => <li key={c}>{c}</li>)}</ul>
+                <span className="eyebrow">Ejemplos reales</span>
+                <ul className="wpm-sidebar-list">{preview.template.csv_examples.map((ex) => <li key={ex}>{ex}</li>)}</ul>
               </div>
             )}
           </aside>
         </div>
-
-        {rawInformation?.active && rawInformation.panel ? rawInformation.panel : null}
         </>
         )}
         </>
