@@ -1,6 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
-import { PlanningWorkoutTemplate, WorkoutDefinition } from "../types";
+import { PlanningWorkoutTemplate, TrainingZoneItem, WorkoutDefinition } from "../types";
 import { WorkoutStepEditor } from "./WorkoutStepEditor";
 
 export type WorkoutPreviewSelection = {
@@ -61,6 +61,8 @@ type WorkoutPreviewModalProps = {
   targetMode?: string | null;
   /** Toggle target mode for session */
   onChangeTargetMode?: (mode: "pace" | "hr" | "power") => Promise<void>;
+  /** Active training zones for auto-filling HR/pace/power on zone selection */
+  trainingZones?: TrainingZoneItem[];
   onClose: () => void;
 };
 
@@ -376,8 +378,8 @@ function previewSegmentHeight(tone: string) {
   return 0.6;
 }
 
-export function WorkoutPreviewModal({ template, selection, rawInformation, workoutDefinition, onSaveWorkout, onPushToGarmin, onSelectDoseStep, onRenameSession, onSaveCoachNote, coachNote, garminConnected, publishStatus, thresholdReference, targetMode, onChangeTargetMode, onClose }: WorkoutPreviewModalProps) {
-  const [editMode, setEditMode] = useState(false);
+export function WorkoutPreviewModal({ template, selection, rawInformation, workoutDefinition, onSaveWorkout, onPushToGarmin, onSelectDoseStep, onRenameSession, onSaveCoachNote, coachNote, garminConnected, publishStatus, thresholdReference, targetMode, onChangeTargetMode, trainingZones, onClose }: WorkoutPreviewModalProps) {
+  const [editMode, setEditMode] = useState(!!workoutDefinition && !!onSaveWorkout);
   const [saving, setSaving] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [pushResult, setPushResult] = useState<"ok" | "error" | null>(null);
@@ -607,6 +609,7 @@ export function WorkoutPreviewModal({ template, selection, rawInformation, worko
               onCancel={() => setEditMode(false)}
               saving={saving}
               discipline={template?.discipline}
+              trainingZones={trainingZones}
             />
           </div>
         ) : (

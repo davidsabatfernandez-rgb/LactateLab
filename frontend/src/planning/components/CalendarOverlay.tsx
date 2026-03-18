@@ -483,6 +483,19 @@ export function CalendarOverlay({
   const [planEditorOpen, setPlanEditorOpen] = useState(false);
   const [planEditorTarget, setPlanEditorTarget] = useState<import("../../types").CoachPlan | null>(null);
 
+  // ── Active training zones for the current discipline (used in workout editor) ──
+  const [activeTrainingZones, setActiveTrainingZones] = useState<import("../../types").TrainingZoneItem[]>([]);
+  useEffect(() => {
+    if (!athleteId || !selectedDiscipline) { setActiveTrainingZones([]); return; }
+    api.trainingZoneSets(token, Number(athleteId), selectedDiscipline)
+      .then((data) => {
+        const sets = data as import("../../types").TrainingZoneSet[];
+        const active = sets.find((s) => s.is_active);
+        setActiveTrainingZones(active?.zones ?? []);
+      })
+      .catch(() => setActiveTrainingZones([]));
+  }, [token, athleteId, selectedDiscipline]);
+
   // ── Drag-and-drop: move session to a different day ──
   const handleMoveSession = useCallback(async (session: CalendarEntry, newDate: string) => {
     console.log("[DnD] handleMoveSession called:", { sessionId: session.id, rawId: session.rawId, newDate });
@@ -962,6 +975,7 @@ export function CalendarOverlay({
             lt2Label: planningLt2 ? `${formatThresholdPrimaryMetric(planningLt2, selectedDiscipline)}${planningLt2.heartRate ? ` · ${Math.round(planningLt2.heartRate)} bpm` : ""}` : null,
             lt2Source: planningLt2?.sourceLabel ?? null,
           }}
+          trainingZones={activeTrainingZones}
           onClose={() => {
             dispatch({ type: "SET_SHOW_PLANNED_SESSION_RAW_INFORMATION", payload: false });
             dispatch({ type: "SET_OPEN_WORKOUT_PREVIEW", payload: null });

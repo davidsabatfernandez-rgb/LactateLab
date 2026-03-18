@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import type { WorkoutDefinition, WorkoutStep, WorkoutTarget } from "../types";
+import type { TrainingZoneItem, WorkoutDefinition, WorkoutStep, WorkoutTarget } from "../types";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -12,14 +12,15 @@ const STEP_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "repeat", label: "Repetición" },
 ];
 
-const ZONE_OPTIONS: Array<{ value: string; label: string; tone: string }> = [
-  { value: "easy", label: "Suave / Easy", tone: "recovery" },
-  { value: "LT1", label: "LT1 / Aeróbico", tone: "aerobic" },
-  { value: "SUB-T", label: "SUB-T / Zona media", tone: "steady" },
-  { value: "LT2", label: "LT2 / Umbral", tone: "threshold" },
-  { value: "VO2", label: "VO2 / Potencia", tone: "hard" },
-  { value: "MAX", label: "MAX / Sprint", tone: "neuromuscular" },
-  { value: "free", label: "Libre", tone: "neutral" },
+const ZONE_OPTIONS: Array<{ value: string; label: string; tone: string; zoneNumber: number }> = [
+  { value: "REC", label: "REC", tone: "recovery", zoneNumber: 1 },
+  { value: "BASE", label: "BASE", tone: "aerobic", zoneNumber: 2 },
+  { value: "LT1", label: "LT1", tone: "aerobic", zoneNumber: 3 },
+  { value: "SUB", label: "SUB", tone: "steady", zoneNumber: 4 },
+  { value: "LT2", label: "LT2", tone: "threshold", zoneNumber: 5 },
+  { value: "VO2MAX", label: "VO2MAX", tone: "hard", zoneNumber: 6 },
+  { value: "ANC", label: "ANC", tone: "neuromuscular", zoneNumber: 7 },
+  { value: "free", label: "Libre", tone: "neutral", zoneNumber: 0 },
 ];
 
 function zoneTone(zone: string): string {
@@ -28,22 +29,27 @@ function zoneTone(zone: string): string {
 }
 
 function zoneFromTarget(target?: WorkoutTarget | null, intensityLabel?: string | null): string {
-  if (target?.target_type === "easy") return "easy";
+  if (target?.target_type === "easy") return "REC";
   if (target?.label) {
     const lower = target.label.toLowerCase();
-    if (lower.includes("vo2")) return "VO2";
+    if (lower.includes("vo2")) return "VO2MAX";
+    if (lower.includes("anc") || lower.includes("anaeróbic") || lower.includes("sprint") || lower.includes("max")) return "ANC";
     if (lower.includes("lt2") || lower.includes("umbral")) return "LT2";
-    if (lower.includes("sub-t") || lower.includes("zona media")) return "SUB-T";
+    if (lower.includes("sub-t") || lower.includes("sub ") || lower.includes("zona media") || lower.includes("tempo")) return "SUB";
     if (lower.includes("lt1")) return "LT1";
-    if (lower.includes("suave") || lower.includes("easy")) return "easy";
-    if (lower.includes("max") || lower.includes("sprint")) return "MAX";
+    if (lower.includes("base") || lower.includes("fondo") || lower.includes("e2")) return "BASE";
+    if (lower.includes("suave") || lower.includes("easy") || lower.includes("rec")) return "REC";
   }
   if (intensityLabel) {
     const lower = intensityLabel.toLowerCase();
-    if (lower === "warmup" || lower === "cooldown" || lower === "recovery") return "easy";
-    if (lower.includes("vo2")) return "VO2";
+    if (lower === "warmup" || lower === "cooldown" || lower === "recovery") return "REC";
+    if (lower.includes("vo2")) return "VO2MAX";
+    if (lower.includes("anc")) return "ANC";
     if (lower.includes("lt2")) return "LT2";
+    if (lower.includes("sub")) return "SUB";
     if (lower.includes("lt1")) return "LT1";
+    if (lower.includes("base") || lower.includes("e2")) return "BASE";
+    if (lower.includes("rec") || lower.includes("easy")) return "REC";
   }
   return "free";
 }
@@ -132,6 +138,7 @@ type WorkoutStepEditorProps = {
   onCancel: () => void;
   saving?: boolean;
   discipline?: string;
+  trainingZones?: TrainingZoneItem[];
 };
 
 type EditingStepState = {
@@ -141,7 +148,7 @@ type EditingStepState = {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function WorkoutStepEditor({ workout, onSave, onCancel, saving, discipline }: WorkoutStepEditorProps) {
+export function WorkoutStepEditor({ workout, onSave, onCancel, saving, discipline, trainingZones }: WorkoutStepEditorProps) {
   const [steps, setSteps] = useState<WorkoutStep[]>(() => structuredClone(workout.steps));
   const [title, setTitle] = useState(workout.title);
   const [editingStep, setEditingStep] = useState<EditingStepState | null>(null);
@@ -326,6 +333,7 @@ export function WorkoutStepEditor({ workout, onSave, onCancel, saving, disciplin
             onRemoveChild={(childIndex) => removeStep(childIndex, index)}
             onAddChild={(afterIndex, type) => addStep(afterIndex, type, index)}
             discipline={discipline}
+            trainingZones={trainingZones}
           />
         ))}
 
@@ -373,11 +381,12 @@ type StepRowProps = {
   onRemoveChild: (childIndex: number) => void;
   onAddChild: (afterIndex: number, type: string) => void;
   discipline?: string;
+  trainingZones?: TrainingZoneItem[];
 };
 
 function StepRow({
   step, index, isEditing, onSelect, onUpdate, onRemove, onAdd, onMove,
-  onSelectChild, editingChildIndex, onUpdateChild, onRemoveChild, onAddChild, discipline,
+  onSelectChild, editingChildIndex, onUpdateChild, onRemoveChild, onAddChild, discipline, trainingZones,
 }: StepRowProps) {
   const zone = zoneFromTarget(step.target, step.intensity_label);
   const tone = step.step_type === "warmup" ? "warmup" : step.step_type === "cooldown" ? "warmup" : step.step_type === "recovery" ? "recovery" : zoneTone(zone);
@@ -424,6 +433,7 @@ function StepRow({
           onAdd={onAdd}
           onMove={onMove}
           discipline={discipline}
+          trainingZones={trainingZones}
         />
       )}
 
@@ -467,6 +477,7 @@ function StepRow({
                     onAdd={(type) => onAddChild(childIndex, type)}
                     compact
                     discipline={discipline}
+                    trainingZones={trainingZones}
                   />
                 )}
               </div>
@@ -495,9 +506,10 @@ type StepEditPanelProps = {
   onMove?: (direction: -1 | 1) => void;
   compact?: boolean;
   discipline?: string;
+  trainingZones?: TrainingZoneItem[];
 };
 
-function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact, discipline }: StepEditPanelProps) {
+function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact, discipline, trainingZones }: StepEditPanelProps) {
   const [durationInput, setDurationInput] = useState(formatStepDuration(step.length_type, step.length_value));
   const currentZone = zoneFromTarget(step.target, step.intensity_label);
 
@@ -534,23 +546,42 @@ function StepEditPanel({ step, onUpdate, onRemove, onAdd, onMove, compact, disci
   const handleZoneChange = useCallback((newZone: string) => {
     const zoneOption = ZONE_OPTIONS.find((z) => z.value === newZone);
     const label = zoneOption?.label ?? newZone;
+
+    // Look up matching training zone to auto-fill targets
+    const tz = trainingZones?.find((z) => z.zone_number === (zoneOption?.zoneNumber ?? 0));
+
+    const hasHr = tz && (tz.hr_lower || tz.hr_upper);
+    const hasPace = tz && (tz.pace_lower_seconds || tz.pace_upper_seconds);
+    const hasPower = tz && (tz.power_lower || tz.power_upper);
+
+    // Decide primary target type
+    let targetType: string = newZone === "REC" ? "easy" : newZone === "free" ? "free" : "other";
+    let valueFrom: number | null = null;
+    let valueTo: number | null = null;
+    let unit: string | null = null;
+    let targetLabel = label;
+
+    if (hasHr) {
+      targetType = "heart_rate";
+      valueFrom = tz.hr_lower ?? null;
+      valueTo = tz.hr_upper ?? null;
+      unit = "bpm";
+      const hrDesc = valueFrom && valueTo ? `${valueFrom}-${valueTo} bpm` : valueFrom ? `>${valueFrom} bpm` : valueTo ? `<${valueTo} bpm` : "";
+      targetLabel = hrDesc ? `${label} · ${hrDesc}` : label;
+    }
+
     onUpdate({
-      target: {
-        target_type: newZone === "easy" ? "easy" : newZone === "free" ? "free" : "other",
-        label,
-        value_from: null,
-        value_to: null,
-        unit: null,
-      },
+      target: { target_type: targetType, label: targetLabel, value_from: valueFrom, value_to: valueTo, unit },
       intensity_label: newZone,
     });
-    setHrMinInput("");
-    setHrMaxInput("");
-    setPaceMinInput("");
-    setPaceMaxInput("");
-    setPowerMinInput("");
-    setPowerMaxInput("");
-  }, [onUpdate]);
+
+    setHrMinInput(hasHr && tz.hr_lower ? String(tz.hr_lower) : "");
+    setHrMaxInput(hasHr && tz.hr_upper ? String(tz.hr_upper) : "");
+    setPaceMinInput(hasPace && tz.pace_lower_seconds ? formatPace(tz.pace_lower_seconds) : "");
+    setPaceMaxInput(hasPace && tz.pace_upper_seconds ? formatPace(tz.pace_upper_seconds) : "");
+    setPowerMinInput(hasPower && tz.power_lower ? String(tz.power_lower) : "");
+    setPowerMaxInput(hasPower && tz.power_upper ? String(tz.power_upper) : "");
+  }, [onUpdate, trainingZones]);
 
   const handleHrBlur = useCallback(() => {
     const min = hrMinInput.trim() ? Number(hrMinInput) : null;
