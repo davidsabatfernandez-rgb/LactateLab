@@ -92,16 +92,16 @@ export function suggestZonesFromProfile(profile: ThresholdProfileForZones, disci
   // Fisiológicos (2.0/4.0 mmol) — para E1/E2 y VO2max/ANC
   const lt1Pace = profile.lt1?.pace_seconds_per_km ?? null;
   const lt2Pace = profile.lt2?.pace_seconds_per_km ?? null;
-  const lt1Hr = profile.lt1?.heart_rate ?? null;
-  const lt2Hr = profile.lt2?.heart_rate ?? null;
-  const lt2Power = profile.lt2?.power_watts ?? null;
+  const lt1Hr = profile.lt1?.heart_rate != null ? Math.round(profile.lt1.heart_rate) : null;
+  const lt2Hr = profile.lt2?.heart_rate != null ? Math.round(profile.lt2.heart_rate) : null;
+  const lt2Power = profile.lt2?.power_watts != null ? Math.round(profile.lt2.power_watts) : null;
 
   // Prácticos (~1.6/~3.1 mmol) — para zonas LT1 y LT2 de entrenamiento
   const pLt1Pace = profile.practical_lt1?.pace_seconds_per_km ?? lt1Pace;
-  const pLt1Hr = profile.practical_lt1?.heart_rate ?? lt1Hr;
+  const pLt1Hr = profile.practical_lt1?.heart_rate != null ? Math.round(profile.practical_lt1.heart_rate) : lt1Hr;
   const pLt2Pace = profile.practical_lt2?.pace_seconds_per_km ?? lt2Pace;
-  const pLt2Hr = profile.practical_lt2?.heart_rate ?? lt2Hr;
-  const pLt2Power = profile.practical_lt2?.power_watts ?? lt2Power;
+  const pLt2Hr = profile.practical_lt2?.heart_rate != null ? Math.round(profile.practical_lt2.heart_rate) : lt2Hr;
+  const pLt2Power = profile.practical_lt2?.power_watts != null ? Math.round(profile.practical_lt2.power_watts) : lt2Power;
 
   const ts = Date.now();
   const mk = (i: number, preset: typeof ZONE_PRESETS["running"][0], overrides: Partial<ZoneDraft>): ZoneDraft => ({
