@@ -962,6 +962,13 @@ export type PlanningWorkoutTemplate = {
   dose_ladder: DoseStepItem[];
 };
 
+export type AlternativeSession = {
+  template_id: string;
+  public_label: string;
+  summary: string;
+  fatigue_cost: number;
+};
+
 export type PlanningMesocycleDraftSession = {
   session_id: string;
   scheduled_date?: string | null;
@@ -981,6 +988,7 @@ export type PlanningMesocycleDraftSession = {
   evidence_source_ids: string[];
   csv_examples: string[];
   selection_reason?: string[];
+  available_alternatives?: AlternativeSession[];
   estimated_tss?: number | null;
   coach_override_expected?: boolean;
   payload?: Record<string, unknown>;

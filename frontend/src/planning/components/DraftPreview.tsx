@@ -92,6 +92,16 @@ export function DraftPreview({
                         <small className="planning-threshold-note">
                           {buildPlanningPrescriptionHint(session.objective, session.public_label, selectedDiscipline, planningLt1, planningLt2)}
                         </small>
+                        {session.available_alternatives && session.available_alternatives.length > 0 && (
+                          <div className="session-alternatives-hint">
+                            <small className="alternatives-label">Alternativas:</small>
+                            {session.available_alternatives.map((alt) => (
+                              <small key={alt.template_id} className="alternative-chip" title={alt.summary}>
+                                {alt.public_label} (fc={alt.fatigue_cost})
+                              </small>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </li>
                   );

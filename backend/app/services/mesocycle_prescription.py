@@ -515,6 +515,32 @@ def _resolve_template_block_hint(template_id: Optional[str]) -> Optional[str]:
     return None
 
 
+def _build_alternatives_list(
+    original_slot: DraftSlot,
+    chosen_id: str,
+    library: dict[str, WorkoutTemplate],
+) -> list[dict[str, str]]:
+    """Build list of available alternative templates for a prescribed session.
+
+    Returns a list of dicts with template_id, public_label, and summary
+    for each alternate that wasn't chosen, so the coach can swap if needed.
+    """
+    pool = [original_slot.template_id, *original_slot.alternates]
+    alternatives = []
+    for tid in pool:
+        if tid == chosen_id:
+            continue
+        tmpl = library.get(tid)
+        if tmpl:
+            alternatives.append({
+                "template_id": tid,
+                "public_label": tmpl.public_label,
+                "summary": tmpl.summary,
+                "fatigue_cost": tmpl.fatigue_cost,
+            })
+    return alternatives
+
+
 def _selection_reason(template, phase: str, state: AthletePlanningState, index: int) -> list[str]:
     reasons = [
         f"Dirección del bloque: {state.curve_direction}",
@@ -917,6 +943,9 @@ def build_prewritten_mesocycle_draft(
                         [f"Rotación: {original_slot.template_id} → {template.template_id} (variabilidad semanal)."]
                         if was_rotated and original_slot else []
                     ),
+                    "available_alternatives": _build_alternatives_list(
+                        original_slot, template.template_id, library,
+                    ) if original_slot and original_slot.alternates else [],
                     "payload": {
                         "state_summary": state.summary,
                         "curve_direction": state.curve_direction,

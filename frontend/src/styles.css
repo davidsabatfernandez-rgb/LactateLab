@@ -8818,6 +8818,38 @@ textarea {
   opacity: 0.45;
 }
 
+/* ── Session alternatives hint ──────────────────────────────────── */
+
+.session-alternatives-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  align-items: center;
+}
+
+.alternatives-label {
+  font-size: 0.63rem;
+  opacity: 0.5;
+  margin-right: 2px;
+}
+
+.alternative-chip {
+  font-size: 0.6rem;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--color-bg-tertiary, #2a2a3a);
+  border: 1px solid var(--color-border, #3a3a4a);
+  color: var(--color-text-secondary, #aaa);
+  cursor: help;
+  white-space: nowrap;
+}
+
+.alternative-chip:hover {
+  background: var(--color-bg-hover, #3a3a4a);
+  color: var(--color-text-primary, #ddd);
+}
+
 /* ── Block candidates scoring ────────────────────────────────────── */
 
 .candidate-header {

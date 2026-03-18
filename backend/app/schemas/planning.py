@@ -136,6 +136,13 @@ class PlanningWorkoutTemplateRead(BaseModel):
     dose_ladder: list[DoseStepRead] = []
 
 
+class AlternativeSessionRead(BaseModel):
+    template_id: str
+    public_label: str
+    summary: str
+    fatigue_cost: int = 3
+
+
 class PlanningMesocycleDraftSessionRead(BaseModel):
     session_id: str
     scheduled_date: Optional[date] = None
@@ -155,6 +162,7 @@ class PlanningMesocycleDraftSessionRead(BaseModel):
     evidence_source_ids: list[str]
     csv_examples: list[str]
     selection_reason: list[str] = []
+    available_alternatives: list[AlternativeSessionRead] = []
     estimated_tss: Optional[float] = None
     coach_override_expected: bool = False
     payload: dict = {}
