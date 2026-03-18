@@ -7,6 +7,8 @@ type AuthView = "select" | "login" | "register" | "forgot" | "athlete-step1" | "
 
 type LoginFormProps = {
   onLogin: (email: string, password: string, mode: LoginMode) => Promise<void>;
+  /** When set, skip mode selection and go straight to this mode's login screen */
+  defaultMode?: LoginMode;
 };
 
 const MODE_COPY: Record<LoginMode, { title: string; hint: string; defaultEmail: string; defaultPassword: string }> = {
@@ -55,9 +57,9 @@ const stepIndicatorStyle: React.CSSProperties = {
   marginBottom: "0.15rem",
 };
 
-export function LoginForm({ onLogin }: LoginFormProps) {
-  const [mode, setMode] = useState<LoginMode | null>(null);
-  const [authView, setAuthView] = useState<AuthView>("select");
+export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
+  const [mode, setMode] = useState<LoginMode | null>(defaultMode ?? null);
+  const [authView, setAuthView] = useState<AuthView>(defaultMode ? "login" : "select");
   const copy = useMemo(() => (mode ? MODE_COPY[mode] : null), [mode]);
 
   // Login

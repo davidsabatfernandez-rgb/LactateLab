@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
+import { isNative, getStoredToken, setStoredToken, removeStoredToken, setStoredTheme } from "./lib/native";
 
 import { AthleteLayout } from "./components/AthleteLayout";
 import { Layout } from "./components/Layout";
@@ -136,7 +137,17 @@ export default function App() {
   const [dataLoadError, setDataLoadError] = useState<string | null>(null);
   const [sessionInitError, setSessionInitError] = useState<string | null>(null);
   const [authCheckInFlight, setAuthCheckInFlight] = useState(false);
+  const [nativeReady, setNativeReady] = useState(!isNative); // web is ready immediately
   const apiDebug = getApiDebugInfo();
+
+  // On native, load token from Capacitor Preferences (async)
+  useEffect(() => {
+    if (!isNative) return;
+    getStoredToken().then((stored) => {
+      if (stored) setToken(stored);
+      setNativeReady(true);
+    });
+  }, []);
 
   async function refreshData(activeToken: string) {
     setAuthCheckInFlight(true);
@@ -199,7 +210,7 @@ export default function App() {
 
   useEffect(() => {
     const handler = () => {
-      localStorage.removeItem("lactate-token");
+      removeStoredToken();
       setToken(null);
     };
     window.addEventListener("auth:unauthorized", handler);
@@ -212,7 +223,7 @@ export default function App() {
     const interval = setInterval(async () => {
       try {
         const result = await api.refreshToken(token);
-        localStorage.setItem("lactate-token", result.access_token);
+        await setStoredToken(result.access_token);
         setToken(result.access_token);
       } catch {
         // If refresh fails, don't force logout — let normal 401 handling kick in
@@ -227,7 +238,7 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = effectiveTheme;
     document.documentElement.style.colorScheme = effectiveTheme === "dark" ? "dark" : "light";
-    if (token) localStorage.setItem("lactate-theme", effectiveTheme);
+    if (token) setStoredTheme(effectiveTheme);
   }, [effectiveTheme, token]);
 
   async function handleLogin(email: string, password: string, mode: "coach" | "athlete") {
@@ -239,21 +250,30 @@ export default function App() {
     if (mode === "coach" && me.role === "athlete") {
       throw new Error("Este acceso es para entrenador. Usa el acceso atleta.");
     }
-    localStorage.setItem("lactate-token", result.access_token);
+    await setStoredToken(result.access_token);
     setAuthUser(me);
     setToken(result.access_token);
     navigate(me.role === "athlete" ? "/athlete" : "/");
   }
 
-  function handleLogout() {
+  const handleLogout = useCallback(() => {
     setToken(null);
     setAuthUser(null);
     setDataLoadError(null);
     setSessionInitError(null);
-    localStorage.removeItem("lactate-token");
+    removeStoredToken();
+  }, []);
+
+  // Wait for native token to load before rendering
+  if (!nativeReady) {
+    return <div className="loading">Cargando...</div>;
   }
 
   if (!token) {
+    // On native app: skip landing page, go straight to login (athlete mode)
+    if (isNative) {
+      return <LoginForm onLogin={handleLogin} defaultMode="athlete" />;
+    }
     if (location.pathname === "/virtual-ride") {
       return <VirtualRidePage />;
     }
