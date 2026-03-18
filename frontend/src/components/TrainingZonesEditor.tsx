@@ -267,15 +267,16 @@ type TrainingZonesEditorProps = {
   discipline: string;
   token: string;
   existingSet?: TrainingZoneSet | null;
+  prebuiltProfile?: ThresholdProfileForZones | null;
   onSave: (saved: TrainingZoneSet) => void;
   onCancel: () => void;
 };
 
 export function TrainingZonesEditor({
-  athleteId, discipline, token, existingSet, onSave, onCancel,
+  athleteId, discipline, token, existingSet, prebuiltProfile, onSave, onCancel,
 }: TrainingZonesEditorProps) {
-  const [profile, setProfile] = useState<ThresholdProfileForZones | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [profile, setProfile] = useState<ThresholdProfileForZones | null>(prebuiltProfile ?? null);
+  const [loadingProfile, setLoadingProfile] = useState(!prebuiltProfile);
   const [setName, setSetName] = useState(existingSet?.name ?? "");
   const [zones, setZones] = useState<ZoneDraft[]>(
     existingSet ? zoneSetToZoneDrafts(existingSet) : defaultZonesDraft(discipline),
@@ -288,12 +289,17 @@ export function TrainingZonesEditor({
   const showPace = discipline !== "ciclismo";
 
   useEffect(() => {
+    if (prebuiltProfile) {
+      setProfile(prebuiltProfile);
+      setLoadingProfile(false);
+      return;
+    }
     setLoadingProfile(true);
     api.thresholdProfileForZones(token, athleteId, discipline)
       .then((data) => setProfile(data as ThresholdProfileForZones))
       .catch(() => setProfile(null))
       .finally(() => setLoadingProfile(false));
-  }, [token, athleteId, discipline]);
+  }, [token, athleteId, discipline, prebuiltProfile]);
 
   const handleSuggestFromThresholds = useCallback(() => {
     if (!profile) return;

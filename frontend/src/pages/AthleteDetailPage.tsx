@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useCallback, useEffect, useState } from "react";
+import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
   ComposedChart,
@@ -27,7 +27,7 @@ import { BetaImplementations } from "../components/BetaImplementations";
 import "../components/beta-implementations.css";
 import { api } from "../lib/api";
 import { buildTargetObjective, targetCategoryLabel, targetCategoryOptions } from "../lib/targetCatalog";
-import { ResolvedTrainingThreshold, resolveTrainingThreshold } from "../lib/trainingThresholds";
+import { ResolvedTrainingThreshold, resolveTrainingThreshold, buildProfileFromAnalysis } from "../lib/trainingThresholds";
 import {
   Athlete,
   AthleteAnalysis,
@@ -2351,7 +2351,7 @@ function StalenessReviewBanner({ staleness, onReview, onAutoRecalculate, autoRec
   );
 }
 
-function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: number; discipline: string; token: string }) {
+function TrainingZonesSection({ athleteId, discipline, token, analysis }: { athleteId: number; discipline: string; token: string; analysis?: AthleteAnalysis | null }) {
   const [zoneSets, setZoneSets] = useState<TrainingZoneSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -2370,11 +2370,23 @@ function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: num
       .finally(() => setLoading(false));
   }, [token, athleteId, discipline]);
 
+  const getProfile = useCallback(async (): Promise<import("../types").ThresholdProfileForZones | null> => {
+    // 1. Try local analysis data first (always available if thresholds shown in header)
+    const localProfile = buildProfileFromAnalysis(analysis, discipline);
+    if (localProfile) return localProfile;
+    // 2. Fallback to backend endpoint
+    try {
+      const remote = await api.thresholdProfileForZones(token, athleteId, discipline) as import("../types").ThresholdProfileForZones;
+      if (remote && remote.source !== "none") return remote;
+    } catch { /* ignore */ }
+    return null;
+  }, [analysis, discipline, token, athleteId]);
+
   const handleAutoRecalculate = useCallback(async () => {
     setAutoRecalculating(true);
     try {
-      const profile = await api.thresholdProfileForZones(token, athleteId, discipline) as import("../types").ThresholdProfileForZones;
-      if (!profile || profile.source === "none") {
+      const profile = await getProfile();
+      if (!profile) {
         setSessionsUpdatedMsg("Sin datos de umbral para recalcular.");
         setTimeout(() => setSessionsUpdatedMsg(null), 4000);
         return;
@@ -2417,7 +2429,7 @@ function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: num
     } finally {
       setAutoRecalculating(false);
     }
-  }, [token, athleteId, discipline, loadZones]);
+  }, [getProfile, discipline, token, athleteId, loadZones]);
 
   useEffect(() => { loadZones(); }, [loadZones]);
 
@@ -2431,6 +2443,7 @@ function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: num
   }, [zoneSets, token, athleteId, discipline]);
 
   const activeSet = zoneSets.find((zs) => zs.is_active) ?? null;
+  const localProfile = useMemo(() => buildProfileFromAnalysis(analysis, discipline), [analysis, discipline]);
 
   if (editing) {
     return (
@@ -2439,6 +2452,7 @@ function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: num
         discipline={discipline}
         token={token}
         existingSet={editingSet}
+        prebuiltProfile={localProfile}
         onSave={(saved) => {
           setEditing(false); setEditingSet(null); loadZones();
           const count = (saved as TrainingZoneSet & { sessions_updated?: number }).sessions_updated;
@@ -2460,13 +2474,35 @@ function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: num
         <p style={{ color: "var(--muted)", fontSize: "0.84rem", margin: 0 }}>
           No hay zonas definidas para {discipline === "ciclismo" ? "ciclismo" : discipline === "natación" ? "natación" : "carrera a pie"}.
         </p>
-        <button
-          type="button"
-          className="tz-suggest-btn"
-          onClick={() => { setEditingSet(null); setEditing(true); }}
-        >
-          Crear zonas de entrenamiento
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {localProfile && (
+            <button
+              type="button"
+              className="tz-suggest-btn"
+              onClick={handleAutoRecalculate}
+              disabled={autoRecalculating}
+              style={{ fontWeight: 600 }}
+            >
+              {autoRecalculating ? "Calculando..." : "Calcular zonas"}
+            </button>
+          )}
+          <button
+            type="button"
+            className={localProfile ? "tz-edit-btn" : "tz-suggest-btn"}
+            onClick={() => { setEditingSet(null); setEditing(true); }}
+          >
+            {localProfile ? "Crear manualmente" : "Crear zonas de entrenamiento"}
+          </button>
+        </div>
+        {sessionsUpdatedMsg && (
+          <div style={{
+            background: "rgba(58, 154, 91, 0.12)", border: "1px solid rgba(58, 154, 91, 0.35)",
+            borderRadius: 8, padding: "8px 14px", fontSize: "0.82rem", color: "#3a9a5b",
+            display: "flex", alignItems: "center", gap: 8,
+          }}>
+            <span>&#10003;</span> {sessionsUpdatedMsg}
+          </div>
+        )}
         {zoneSets.length > 0 ? (
           <details style={{ fontSize: "0.78rem", color: "var(--muted)" }}>
             <summary>{zoneSets.length} conjunto{zoneSets.length > 1 ? "s" : ""} archivado{zoneSets.length > 1 ? "s" : ""}</summary>
@@ -2512,7 +2548,12 @@ function TrainingZonesSection({ athleteId, discipline, token }: { athleteId: num
         onEdit={() => { setEditingSet(activeSet); setEditing(true); }}
       />
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button type="button" className="tz-suggest-btn" onClick={() => { setEditingSet(null); setEditing(true); }}>
+        {localProfile && (
+          <button type="button" className="tz-suggest-btn" onClick={handleAutoRecalculate} disabled={autoRecalculating} style={{ fontWeight: 600 }}>
+            {autoRecalculating ? "Recalculando..." : "Recalcular zonas"}
+          </button>
+        )}
+        <button type="button" className="tz-edit-btn" onClick={() => { setEditingSet(null); setEditing(true); }}>
           Crear nuevo conjunto
         </button>
         {zoneSets.length > 1 ? (
@@ -2773,7 +2814,8 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
     if (!analysis) return;
     setGlobalAutoRecalculating(true);
     try {
-      const profile = await api.thresholdProfileForZones(token, analysis.athlete.id, activeDiscipline) as import("../types").ThresholdProfileForZones;
+      const profile = buildProfileFromAnalysis(analysis, activeDiscipline)
+        ?? await api.thresholdProfileForZones(token, analysis.athlete.id, activeDiscipline) as import("../types").ThresholdProfileForZones;
       if (!profile || profile.source === "none") return;
       const suggested = suggestZonesFromProfile(profile, activeDiscipline);
       const zoneName = `Zonas ${activeDiscipline} — ${new Date().toLocaleDateString("es-ES", { month: "short", year: "numeric" })} (auto)`;
@@ -6156,7 +6198,7 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
           <span className="eyebrow">Zonas personalizadas</span>
           <h2 className="section-title ad-section-title">Zonas de entrenamiento</h2>
         </div>
-        <TrainingZonesSection athleteId={analysis.athlete.id} discipline={activeDiscipline} token={token} />
+        <TrainingZonesSection athleteId={analysis.athlete.id} discipline={activeDiscipline} token={token} analysis={analysis} />
       </section>
 
       <section id="estimates" className="card section-card athlete-detail-anchor ad-section">
