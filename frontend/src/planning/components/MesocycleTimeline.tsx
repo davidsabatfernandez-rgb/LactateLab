@@ -8,6 +8,7 @@ export type TimelineWeek = {
   label: string;
   theme: string;
   loadType: string;
+  loadFactor?: number | null;
   isCurrent?: boolean;
 };
 
@@ -61,7 +62,7 @@ export function MesocycleTimeline({ weeks, compact = false }: MesocycleTimelineP
     <div className={`mesocycle-timeline ${compact ? "compact" : ""}`}>
       <div className="mesocycle-timeline-bars" style={{ gap: `${barGap}px` }}>
         {weeks.map((week) => {
-          const pct = resolveHeight(week.loadType);
+          const pct = week.loadFactor != null ? Math.round(week.loadFactor * 100) : resolveHeight(week.loadType);
           const height = Math.round((pct / 100) * maxHeight);
           const color = resolveColor(week.loadType);
 

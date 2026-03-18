@@ -164,11 +164,20 @@ class PlanningMesocycleDraftWeekRead(BaseModel):
     week_index: int
     theme: str
     load_type: str
+    load_factor: Optional[float] = None
+    load_factor_pct: Optional[str] = None
+    total_planned_duration_min: Optional[int] = None
     objective: str
     rationale: str
     sessions: list[PlanningMesocycleDraftSessionRead]
     control_points: list[str]
     spacing_warnings: list[str] = []
+
+
+class LoadWaveRead(BaseModel):
+    factors: dict[str, str] = {}
+    evidence: Optional[str] = None
+    pattern: Optional[str] = None
 
 
 class PlanningMesocycleDraftRead(BaseModel):
@@ -183,6 +192,7 @@ class PlanningMesocycleDraftRead(BaseModel):
     progression_rules: list[str]
     state_summary: Optional[str] = None
     curve_direction: Optional[str] = None
+    load_wave: Optional[LoadWaveRead] = None
     weeks: list[PlanningMesocycleDraftWeekRead]
 
 

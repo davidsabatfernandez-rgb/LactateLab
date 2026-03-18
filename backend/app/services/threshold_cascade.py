@@ -182,3 +182,92 @@ def build_threshold_warnings(staleness: dict[str, int | None]) -> list[dict]:
                 "message": f"Umbrales de {label} tienen {days} dias. Considera re-testar.",
             })
     return warnings
+
+
+def check_zone_staleness_for_disciplines(
+    db: Session,
+    athlete_id: int,
+    disciplines: set[str],
+) -> list[dict]:
+    """Check zone staleness for multiple disciplines after recalculation.
+
+    Returns a list of alerts for disciplines where zones are stale.
+    Each alert has: discipline, is_stale, reason, deltas.
+    """
+    from app.models.metrics import PhysiologicalSnapshot
+    from app.models.training_zone import TrainingZoneSet
+
+    alerts = []
+    for discipline in disciplines:
+        active = db.scalars(
+            select(TrainingZoneSet)
+            .where(
+                TrainingZoneSet.athlete_id == athlete_id,
+                TrainingZoneSet.discipline == discipline,
+                TrainingZoneSet.is_active == True,  # noqa: E712
+            )
+        ).first()
+        if active is None:
+            continue  # No zones to compare against
+
+        snapshot = db.scalars(
+            select(PhysiologicalSnapshot)
+            .where(
+                PhysiologicalSnapshot.athlete_id == athlete_id,
+                PhysiologicalSnapshot.discipline == discipline,
+            )
+            .order_by(PhysiologicalSnapshot.snapshot_date.desc())
+        ).first()
+        if snapshot is None:
+            continue
+
+        # Compare practical LT2 from zones vs current snapshot
+        ctx = active.threshold_context or {}
+        old_prac_lt2 = ctx.get("practical_lt2", {})
+        payload = snapshot.payload or {}
+        dynamic = payload.get("dynamic_thresholds", {})
+        chronic = dynamic.get("chronic", {})
+        new_prac_lt2 = chronic.get("practical_lt2", {})
+
+        if not old_prac_lt2 or not new_prac_lt2:
+            continue
+
+        reasons = []
+        deltas = {}
+
+        # Pace delta
+        old_pace = old_prac_lt2.get("estimated_pace_seconds_per_km") or old_prac_lt2.get("pace_seconds_per_km")
+        new_pace = new_prac_lt2.get("estimated_pace_seconds_per_km")
+        if old_pace and new_pace:
+            delta = new_pace - old_pace
+            deltas["lt2_pace_delta"] = round(delta, 1)
+            if abs(delta / old_pace) >= 0.03:
+                reasons.append(f"LT2 pace cambió {abs(delta):.0f}s/km")
+
+        # HR delta
+        old_hr = old_prac_lt2.get("estimated_hr_at_target") or old_prac_lt2.get("heart_rate")
+        new_hr = new_prac_lt2.get("estimated_hr_at_target")
+        if old_hr and new_hr:
+            delta = int(new_hr - old_hr)
+            deltas["lt2_hr_delta"] = delta
+            if abs(delta) >= 5:
+                reasons.append(f"LT2 FC cambió {abs(delta)} bpm")
+
+        # Power delta
+        old_pow = old_prac_lt2.get("estimated_power_watts") or old_prac_lt2.get("power_watts")
+        new_pow = new_prac_lt2.get("estimated_power_watts")
+        if old_pow and new_pow:
+            delta = round(new_pow - old_pow, 1)
+            deltas["lt2_power_delta"] = delta
+            if abs(delta / old_pow) >= 0.03:
+                reasons.append(f"LT2 potencia cambió {abs(delta):.0f}W")
+
+        if reasons:
+            alerts.append({
+                "discipline": discipline,
+                "is_stale": True,
+                "reason": "; ".join(reasons),
+                "deltas": deltas,
+            })
+
+    return alerts

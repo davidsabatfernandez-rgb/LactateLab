@@ -27,6 +27,7 @@ export function DraftPreview({
       label: `S${w.week_index}`,
       theme: w.theme,
       loadType: w.load_type,
+      loadFactor: w.load_factor,
     }));
   }, [draft.weeks]);
 
@@ -52,6 +53,16 @@ export function DraftPreview({
               <header className="planning-draft-week-header">
                 <span className="planning-week-num">S{week.week_index}</span>
                 <span className="planning-week-theme">{week.theme}</span>
+                {week.load_factor_pct && (
+                  <span className="planning-load-factor-badge" title={`Carga semanal: ${week.load_factor_pct}`}>
+                    {week.load_factor_pct}
+                  </span>
+                )}
+                {week.total_planned_duration_min != null && week.total_planned_duration_min > 0 && (
+                  <span className="planning-duration-badge" title="Duración total planificada">
+                    {week.total_planned_duration_min}min
+                  </span>
+                )}
                 {(week.spacing_warnings?.length ?? 0) > 0 && (
                   <span className="planning-spacing-badge" title={week.spacing_warnings!.join(" · ")}>
                     ⚠ spacing

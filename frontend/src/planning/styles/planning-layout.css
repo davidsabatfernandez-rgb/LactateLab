@@ -552,6 +552,20 @@
   grid-template-columns: 1fr;
 }
 
+.planning-load-factor-badge {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--tone-accent, #d26a36);
+  background: rgba(210, 106, 54, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  cursor: help;
+}
+.planning-duration-badge {
+  font-size: 0.6rem;
+  color: var(--tone-sub, #8a9ca4);
+  cursor: help;
+}
 .planning-spacing-badge {
   font-size: 0.6rem;
   color: var(--color-warning, var(--tone-warning));

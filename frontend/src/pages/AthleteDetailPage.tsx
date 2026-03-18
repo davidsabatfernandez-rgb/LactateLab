@@ -2689,6 +2689,9 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
   const [planningRecommendation, setPlanningRecommendation] = useState<MesocycleRecommendation | null>(null);
   const [deletingMeasurementId, setDeletingMeasurementId] = useState<number | null>(null);
   const [expandedCyclingPanel, setExpandedCyclingPanel] = useState<"cadence" | "history" | "threshold" | null>(null);
+  const [globalZoneStaleness, setGlobalZoneStaleness] = useState<StalenessData | null>(null);
+  const [globalStaleDismissed, setGlobalStaleDismissed] = useState(false);
+  const [globalAutoRecalculating, setGlobalAutoRecalculating] = useState(false);
   const [targetSubmitting, setTargetSubmitting] = useState(false);
   const [editingTargetId, setEditingTargetId] = useState<number | null>(null);
   const [triathlonDistancePreset, setTriathlonDistancePreset] = useState("manual");
@@ -2749,6 +2752,53 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
       setGoalCategory(analysis.athlete.goal_category);
     }
   }, [analysis?.athlete.goal_category]);
+
+  // ── Global zone staleness check — runs on discipline change ──
+  useEffect(() => {
+    if (!analysis) return;
+    api.zoneStalenessCheck(token, analysis.athlete.id, activeDiscipline)
+      .then((data) => {
+        const d = data as StalenessData;
+        if (d.is_stale) {
+          setGlobalZoneStaleness(d);
+          setGlobalStaleDismissed(false);
+        } else {
+          setGlobalZoneStaleness(null);
+        }
+      })
+      .catch(() => setGlobalZoneStaleness(null));
+  }, [token, analysis?.athlete.id, activeDiscipline]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleGlobalAutoRecalculate = useCallback(async () => {
+    if (!analysis) return;
+    setGlobalAutoRecalculating(true);
+    try {
+      const profile = await api.thresholdProfileForZones(token, analysis.athlete.id, activeDiscipline) as import("../types").ThresholdProfileForZones;
+      if (!profile || profile.source === "none") return;
+      const suggested = suggestZonesFromProfile(profile, activeDiscipline);
+      const zoneName = `Zonas ${activeDiscipline} — ${new Date().toLocaleDateString("es-ES", { month: "short", year: "numeric" })} (auto)`;
+      const payload = {
+        discipline: activeDiscipline,
+        name: zoneName,
+        threshold_source: profile.source ?? "manual",
+        threshold_context: {
+          lt1_lactate: profile.lt1?.lactate, lt1_pace: profile.lt1?.pace_label, lt1_hr: profile.lt1?.heart_rate,
+          lt2_lactate: profile.lt2?.lactate, lt2_pace: profile.lt2?.pace_label, lt2_hr: profile.lt2?.heart_rate,
+          practical_lt1: profile.practical_lt1 ? { lactate: profile.practical_lt1.lactate, pace: profile.practical_lt1.pace_label, hr: profile.practical_lt1.heart_rate } : undefined,
+          practical_lt2: profile.practical_lt2 ? { lactate: profile.practical_lt2.lactate, pace: profile.practical_lt2.pace_label, hr: profile.practical_lt2.heart_rate } : undefined,
+          source: profile.source,
+        },
+        zones: suggested.map(({ key: _key, ...rest }) => rest),
+      };
+      await api.createTrainingZoneSet(token, analysis.athlete.id, payload);
+      setGlobalZoneStaleness(null);
+      setGlobalStaleDismissed(true);
+    } catch {
+      // Silently fail — the zones section has its own error handling
+    } finally {
+      setGlobalAutoRecalculating(false);
+    }
+  }, [token, analysis, activeDiscipline]);
 
   useEffect(() => {
     if (!analysis) return;
@@ -4929,6 +4979,15 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
                 </article>
               ))}
             </div>
+            {globalZoneStaleness?.is_stale && !globalStaleDismissed && (
+              <StalenessReviewBanner
+                staleness={globalZoneStaleness}
+                onReview={() => scrollToSection("training-zones")}
+                onAutoRecalculate={handleGlobalAutoRecalculate}
+                autoRecalculating={globalAutoRecalculating}
+                onDismiss={() => setGlobalStaleDismissed(true)}
+              />
+            )}
             <div className="athlete-detail-section-nav ad-section-nav" aria-label="Secciones del análisis">
               {sectionLinks.map((link) => (
                 <button key={link.id} type="button" className="athlete-detail-section-pill ad-section-link" onClick={() => scrollToSection(link.id)} title={link.label}>

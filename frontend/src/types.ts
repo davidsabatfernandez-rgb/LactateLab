@@ -990,11 +990,20 @@ export type PlanningMesocycleDraftWeek = {
   week_index: number;
   theme: string;
   load_type: string;
+  load_factor?: number | null;
+  load_factor_pct?: string | null;
+  total_planned_duration_min?: number | null;
   objective: string;
   rationale: string;
   sessions: PlanningMesocycleDraftSession[];
   control_points: string[];
   spacing_warnings?: string[];
+};
+
+export type LoadWave = {
+  factors: Record<string, string>;
+  evidence?: string | null;
+  pattern?: string | null;
 };
 
 export type PlanningMesocycleDraft = {
@@ -1009,6 +1018,7 @@ export type PlanningMesocycleDraft = {
   progression_rules: string[];
   state_summary?: string | null;
   curve_direction?: string | null;
+  load_wave?: LoadWave | null;
   weeks: PlanningMesocycleDraftWeek[];
 };
 

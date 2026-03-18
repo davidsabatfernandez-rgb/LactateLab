@@ -2748,8 +2748,22 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
         )
         cascade_summary = {}
 
+    # ── Zone staleness check: notify if zones need review ──
+    zone_staleness_alerts: list[dict] = []
+    try:
+        from app.services.threshold_cascade import check_zone_staleness_for_disciplines
+        zone_staleness_alerts = check_zone_staleness_for_disciplines(
+            db, athlete_id, {s.discipline for s in athlete.sessions}
+        )
+    except Exception:
+        pass
+
     db.commit()
-    return {"sessions_processed": len(athlete.sessions), "threshold_cascade": cascade_summary}
+    return {
+        "sessions_processed": len(athlete.sessions),
+        "threshold_cascade": cascade_summary,
+        "zone_staleness_alerts": zone_staleness_alerts,
+    }
 
 
 def athlete_analysis_payload(db: Session, athlete_id: int) -> dict[str, Any]:

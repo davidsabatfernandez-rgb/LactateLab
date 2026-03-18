@@ -16,6 +16,7 @@ from app.services.mesocycle_library import mesocycle_template_by_id, select_meso
 from app.services.planning_taxonomy import infer_session_taxonomy
 from app.services.planned_session_publication import prepare_planned_session_for_publish
 from app.services.workout_library import DraftSlot, WorkoutTemplate, WORKOUT_BLUEPRINTS, WORKOUT_TEMPLATES, evidence_for_ids, validate_microcycle_spacing
+from app.services.zone_generator import auto_generate_zones, get_active_zone_set
 
 
 @dataclass(frozen=True)
@@ -61,6 +62,31 @@ class AthletePlanningState:
     """Señal de validación del bloque activo: 'improving' | 'stable' | 'degrading' | 'none'."""
     technical_constraint: Optional[str] = None
     """Limitante técnica detectada: 'swim_technique' | 'run_economy' | None."""
+
+
+# ── P4: Weekly load factors — evidence-based wave principle ────────────────
+# Issurin 2010 (Block Periodization): load varies 50-100% across mesocycle
+# Bompa & Buzzichelli 2019 (Periodization 6th ed.): 60→80→100→50% pattern
+# Plisk & Stone 2003: progressive overload with planned unloading
+# Olbrecht (Science of Winning): working phase clímax followed by recovery
+#
+# Factor 1.0 = 100% of planned weekly load. Modulates session count and
+# total duration targets. Applied to dose step selection and draft output.
+WEEK_LOAD_FACTORS: dict[str, float] = {
+    "load":       0.65,   # Acumulación: ~65% — introduce stimuli conservatively
+    "build":      0.82,   # Construcción: ~82% — progressive overload
+    "build_peak": 0.95,   # Carga máxima: ~95% — clímax (not 100% to leave margin)
+    "specific":   0.88,   # Especificidad: ~88% — high but controlled
+    "recovery":   0.45,   # Descarga: ~45% — supercompensation window
+}
+
+WEEK_LOAD_EVIDENCE = (
+    "Issurin VB. New horizons for the methodology and physiology of training "
+    "periodization. Sports Med. 2010;40(3):189-206. "
+    "Bompa TO, Buzzichelli CA. Periodization: Theory and Methodology of Training. "
+    "6th ed. Human Kinetics; 2019. "
+    "Olbrecht J. The Science of Winning. F&G Partners; 2000."
+)
 
 
 def _discipline_workout_type(discipline: str) -> str:
@@ -914,11 +940,30 @@ def build_prewritten_mesocycle_draft(
         spacing_warnings = validate_microcycle_spacing(spacing_slots)
         spacing_warnings.extend(dropped_sessions)
 
+        # ── P4: Weekly load factor (evidence-based wave principle) ────────
+        load_factor = WEEK_LOAD_FACTORS.get(phase, 0.75)
+        # Calculate total planned duration from dose steps when available
+        total_planned_duration = 0
+        for sess in sessions:
+            tmpl = library.get(sess["template_id"])
+            if tmpl and tmpl.dose_ladder:
+                step_idx = sess["payload"].get("dose_step_index")
+                step_map = {s.step: s for s in tmpl.dose_ladder}
+                ds = step_map.get(step_idx)
+                if ds and ds.total_duration_min > 0:
+                    total_planned_duration += ds.total_duration_min
+                elif ds:
+                    # Estimate: useful time + warmup + cooldown
+                    total_planned_duration += ds.total_useful_time_min + tmpl.calentamiento_min + tmpl.enfriamiento_min
+
         draft_weeks.append(
             {
                 "week_index": week_index,
                 "theme": f"{primary_focus} · {_week_load_label(phase)}",
                 "load_type": _week_load_label(phase),
+                "load_factor": load_factor,
+                "load_factor_pct": f"{int(load_factor * 100)}%",
+                "total_planned_duration_min": total_planned_duration if total_planned_duration > 0 else None,
                 "objective": primary_focus,
                 "rationale": (
                     f"La semana {week_index} mueve la preparación hacia {primary_focus.lower()} "
@@ -1015,8 +1060,43 @@ def build_prewritten_mesocycle_draft(
         ],
         "state_summary": state.summary,
         "curve_direction": state.curve_direction,
+        "load_wave": {
+            "factors": {phase: f"{int(factor * 100)}%" for phase, factor in WEEK_LOAD_FACTORS.items()},
+            "evidence": WEEK_LOAD_EVIDENCE,
+            "pattern": " → ".join(
+                f"{_week_load_label(p)} {int(WEEK_LOAD_FACTORS.get(p, 0.75) * 100)}%"
+                for p in phases
+            ),
+        },
         "weeks": draft_weeks,
     }
+
+
+def _ensure_zones_exist(
+    db: Session,
+    athlete_id: int,
+    discipline: str,
+) -> tuple[bool, list[str]]:
+    """Check and auto-generate zones if missing. Returns (zones_ok, warnings)."""
+    warnings: list[str] = []
+    zone_set = get_active_zone_set(db, athlete_id, discipline)
+    if zone_set is not None and zone_set.zones:
+        return True, []
+
+    # Try auto-generating from latest analysis
+    zone_set, gen_warning = auto_generate_zones(db, athlete_id, discipline)
+    if zone_set is not None:
+        warnings.append(
+            f"Zonas de {discipline} generadas automáticamente desde el último análisis. "
+            "Revisa en la pestaña Zonas."
+        )
+        return True, warnings
+
+    warnings.append(
+        f"No hay zonas activas para {discipline}. Los objetivos de intensidad "
+        "no se resolverán hasta que se generen zonas desde un test de lactato."
+    )
+    return False, warnings
 
 
 def create_planned_sessions_for_block(
@@ -1038,6 +1118,9 @@ def create_planned_sessions_for_block(
     primary_focus = template.primary_focus if template else block.energy_system_focus
     secondary_focus = template.secondary_focus if template else None
     target_date = block.target_date or (target.target_date if target else None)
+
+    # ── P1: Validate zones exist before creating sessions ──────────────
+    zones_ok, zone_warnings = _ensure_zones_exist(db, athlete.id, discipline)
 
     draft = build_prewritten_mesocycle_draft(
         discipline=discipline,
@@ -1086,6 +1169,8 @@ def create_planned_sessions_for_block(
                     "csv_examples": session["csv_examples"],
                     "block_type": block_type,
                     "block_label": block_label,
+                    "zone_warnings": zone_warnings if zone_warnings else None,
+                    "zones_resolved": zones_ok,
                 },
             )
             db.add(planned_session)
