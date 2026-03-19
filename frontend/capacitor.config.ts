@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     // Live reload — descomentar para desarrollo con Xcode
-    url: 'http://172.20.10.3:5173',
+    url: 'http://192.168.1.42:5173',
     cleartext: true,
     androidScheme: 'https',
     iosScheme: 'https',

@@ -770,23 +770,20 @@ function LactateOverlay({ sessionId, onCreated, onClose }: { sessionId: number; 
    ══════════════════════════════════════════════════════════════ */
 
 type ConsiderationSection = {
-  icon: string;
   title: string;
   items: string[];
 };
 
 const CONSIDERATION_SECTIONS: ConsiderationSection[] = [
   {
-    icon: "🎯",
     title: "Objetivo del test",
     items: [
       "El test de lactato mide el desarrollo de tus sistemas energéticos: aeróbico (VO2max) y anaeróbico (VLamax). No es solo un número de umbral — es un perfil completo de tu condicionamiento.",
       "La curva de lactato revela tres cosas clave: la resistencia aeróbica (velocidad a 4 mmol), la capacidad anaeróbica (lactato máximo) y la pendiente de la curva (interacción entre ambos sistemas). Cuanto más plana sea la curva, mejor.",
-      "Olbrecht llama a este proceso el \"Steering Principle\": medir → evaluar → planificar → entrenar → repetir. Cada test te acerca a tu peak performance.",
+      "Es un ciclo continuo: medir, evaluar, planificar, entrenar y repetir. Cada test te acerca a tu mejor rendimiento.",
     ],
   },
   {
-    icon: "📋",
     title: "Antes del test",
     items: [
       "Hazlo después de 1-2 días de descanso o actividad ligera — nunca después de un entreno intenso. Las semanas de descarga son ideales.",
@@ -797,7 +794,6 @@ const CONSIDERATION_SECTIONS: ConsiderationSection[] = [
     ],
   },
   {
-    icon: "🏃",
     title: "Protocolo running",
     items: [
       "Usa escalones largos: mínimo 4-5 minutos por paso. El lactato tarda >5 min en estabilizarse en sangre. Los protocolos cortos (3 min) subestiman el valor real.",
@@ -809,7 +805,6 @@ const CONSIDERATION_SECTIONS: ConsiderationSection[] = [
     ],
   },
   {
-    icon: "🚴",
     title: "Protocolo ciclismo",
     items: [
       "Usa rodillo o un tramo plano sin semáforos. La potencia constante es clave — más fácil de controlar que el ritmo en running.",
@@ -819,8 +814,7 @@ const CONSIDERATION_SECTIONS: ConsiderationSection[] = [
     ],
   },
   {
-    icon: "🏊",
-    title: "Protocolo natación",
+    title: "Protocolo natacion",
     items: [
       "Standard Lactate Test Procedure (SLTP): 2×400m crol. El primero 30-35\" más lento que tu mejor marca, el segundo 15-20\" más lento. 15 min entre ambos.",
       "Cada serie: mantén parciales lo más uniformes posible. La irregularidad en el ritmo genera lactato extra por cambios de intensidad.",
@@ -832,7 +826,6 @@ const CONSIDERATION_SECTIONS: ConsiderationSection[] = [
     ],
   },
   {
-    icon: "⚠️",
     title: "Errores comunes",
     items: [
       "Pasos demasiado cortos (<4 min): el lactato no se estabiliza y los valores son artificialmente bajos. Es el error más frecuente.",
@@ -844,7 +837,6 @@ const CONSIDERATION_SECTIONS: ConsiderationSection[] = [
     ],
   },
   {
-    icon: "🔄",
     title: "Consistencia entre tests",
     items: [
       "Para que los tests sean comparables, repite exactamente las mismas condiciones: misma hora, misma comida previa, mismo calentamiento, mismo lugar.",
@@ -855,61 +847,80 @@ const CONSIDERATION_SECTIONS: ConsiderationSection[] = [
     ],
   },
   {
-    icon: "🧠",
-    title: "Interpretación",
+    title: "Interpretacion",
     items: [
       "El lactato NO es un producto de desecho. Es incoloro, inodoro e inocuo. Es un combustible que tu sistema aeróbico utiliza.",
       "Una curva más plana = mejor equilibrio entre sistemas. Significa que tu sistema aeróbico absorbe bien el lactato producido por el anaeróbico.",
       "Si el LT2 sube (más rápido al mismo lactato) pero el lactato máximo baja → tu sistema anaeróbico se está reduciendo. Bien para distancia, mal para velocidad.",
       "Si ambos suben → mejora general. El escenario ideal para cualquier atleta de resistencia.",
       "Dos atletas con el mismo umbral pueden necesitar entrenamientos completamente diferentes. Lo que importa es qué combinación de VO2max y VLamax produce ese umbral.",
-      "El \"Steering Process\" de Olbrecht: test → evaluar resultado → ajustar plan → entrenar → re-testar. Es un ciclo continuo hacia tu peak performance.",
+      "Test, evaluar resultado, ajustar plan, entrenar, re-testar. Es un ciclo continuo hacia tu mejor rendimiento.",
     ],
   },
 ];
 
-function TestConsiderations() {
+function TestConsiderations({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   return (
-    <div className="ath-tests-considerations">
-      <h3 className="ath-tests-considerations__title">Consideraciones para tests</h3>
-      <p className="ath-tests-considerations__subtitle">
-        Guía práctica basada en el curso de Lactate.com y los principios de Jan Olbrecht
-      </p>
-      <div className="ath-tests-considerations__list">
-        {CONSIDERATION_SECTIONS.map((sec, i) => {
-          const isOpen = openIdx === i;
-          return (
-            <div key={i} className={`ath-tests-consideration ${isOpen ? "ath-tests-consideration--open" : ""}`}>
-              <button
-                type="button"
-                className="ath-tests-consideration__header"
-                onClick={() => setOpenIdx(isOpen ? null : i)}
-              >
-                <span className="ath-tests-consideration__icon">{sec.icon}</span>
-                <span className="ath-tests-consideration__title-text">{sec.title}</span>
-                <svg
-                  className="ath-tests-consideration__chevron"
-                  width="16" height="16" viewBox="0 0 24 24"
-                  fill="none" stroke="currentColor" strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-              {isOpen && (
-                <ul className="ath-tests-consideration__body">
-                  {sec.items.map((item, j) => (
-                    <li key={j}>{item}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <>
+      <button
+        type="button"
+        className="ath-tests__considerations-btn"
+        onClick={onToggle}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+        Consideraciones para tests
+        <svg
+          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{ marginLeft: "auto", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {open && (
+        <div className="ath-tests-considerations">
+          <p className="ath-tests-considerations__subtitle">
+            Guia practica para obtener tests fiables y comparables
+          </p>
+          <div className="ath-tests-considerations__list">
+            {CONSIDERATION_SECTIONS.map((sec, i) => {
+              const isOpen = openIdx === i;
+              return (
+                <div key={i} className={`ath-tests-consideration ${isOpen ? "ath-tests-consideration--open" : ""}`}>
+                  <button
+                    type="button"
+                    className="ath-tests-consideration__header"
+                    onClick={() => setOpenIdx(isOpen ? null : i)}
+                  >
+                    <span className="ath-tests-consideration__title-text">{sec.title}</span>
+                    <svg
+                      className="ath-tests-consideration__chevron"
+                      width="16" height="16" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" strokeWidth="2"
+                      strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                  {isOpen && (
+                    <ul className="ath-tests-consideration__body">
+                      {sec.items.map((item, j) => (
+                        <li key={j}>{item}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -1001,6 +1012,7 @@ export function MyTestsPage() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showConsiderations, setShowConsiderations] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   // Mini analysis cache for curves
@@ -1060,9 +1072,9 @@ export function MyTestsPage() {
 
       <CurrentThresholds disciplineViews={analysis?.discipline_views ?? {}} />
 
-      <TestConsiderations />
-
       {showForm && <ManualTestForm onCreated={handleCreated} />}
+
+      <TestConsiderations open={showConsiderations} onToggle={() => setShowConsiderations(!showConsiderations)} />
 
       {loading && <p className="ath-tests-loading">Cargando tests...</p>}
 

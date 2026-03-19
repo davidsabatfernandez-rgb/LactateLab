@@ -255,6 +255,57 @@ export function WeekPage() {
     return { z1: Math.round((totals.z1 / total) * 100), z2: Math.round((totals.z2 / total) * 100), z3: Math.round((totals.z3 / total) * 100), z4: Math.round((totals.z4 / total) * 100), z5: Math.round((totals.z5 / total) * 100) };
   }, [data.calendarWeek]);
 
+  // ── Volume summary (TSS, CTL, hours by discipline) ──
+  const weekVolumeSummary = useMemo(() => {
+    // Planned sessions
+    let totalTSS = 0;
+    const hoursByDisc: Record<string, number> = {};
+
+    for (const day of data.calendarWeek) {
+      for (const s of day.sessions) {
+        totalTSS += s.estimated_tss ?? 0;
+        const disc = s.discipline === "carrera" ? "running" : s.discipline === "ciclismo" ? "cycling" : s.discipline === "natación" ? "swimming" : s.discipline;
+        const mins = typeof s.payload?.total_duration_min === "number" ? s.payload.total_duration_min as number : 0;
+        hoursByDisc[disc] = (hoursByDisc[disc] ?? 0) + mins / 60;
+      }
+    }
+
+    // Completed activities this week
+    const weekDates = new Set(data.calendarWeek.map((d) => d.iso));
+    for (const act of data.health?.recent_activities ?? []) {
+      const iso = localIso(new Date(act.started_at));
+      if (!weekDates.has(iso)) continue;
+      if (act.training_load) totalTSS += act.training_load;
+      const disc = act.sport_type === "running" ? "running" : act.sport_type === "cycling" ? "cycling" : act.sport_type === "swimming" ? "swimming" : act.sport_type;
+      hoursByDisc[disc] = (hoursByDisc[disc] ?? 0) + act.moving_time_seconds / 3600;
+    }
+
+    // CTL estimate from 28-day activity history
+    const activities = data.health?.recent_activities ?? [];
+    const dayLoads: Record<string, number> = {};
+    for (const a of activities) {
+      const iso = localIso(new Date(a.started_at));
+      const load = a.training_load && a.training_load > 0 ? a.training_load : (() => {
+        const durMin = a.moving_time_seconds / 60;
+        const hr = a.average_heartrate ?? 130;
+        return durMin * Math.max(0.5, (hr - 60) / 100);
+      })();
+      dayLoads[iso] = (dayLoads[iso] ?? 0) + load;
+    }
+    // Sort dates and compute 42-day EWMA
+    const sortedDates = Object.keys(dayLoads).sort();
+    let ctl = 0;
+    const ctlDecay = 2 / (42 + 1);
+    for (const d of sortedDates) {
+      ctl = ctl + (dayLoads[d] - ctl) * ctlDecay;
+    }
+
+    const totalHours = Object.values(hoursByDisc).reduce((s, h) => s + h, 0);
+    const maxHours = Math.max(...Object.values(hoursByDisc), 0.1);
+
+    return { totalTSS: Math.round(totalTSS), ctl: Math.round(ctl), hoursByDisc, totalHours, maxHours };
+  }, [data.calendarWeek, data.health?.recent_activities]);
+
   function getPersonalEvents(dayIso: string): CalendarEvent[] {
     if (!calendarConnected || !calendarEvents.length) return [];
     return calendarEvents.filter((e) => {
@@ -403,7 +454,7 @@ export function WeekPage() {
       )}
 
       {/* ── WEEKLY VIEW ── */}
-      {calMode === "week" && (
+      {calMode === "week" && (<>
         <div className="ath-week-grid">
           {data.calendarWeek.map((day, dayIndex) => {
             const personalEvents = getPersonalEvents(day.iso);
@@ -507,7 +558,47 @@ export function WeekPage() {
             );
           })}
         </div>
-      )}
+
+        {/* ── VOLUME SUMMARY ── */}
+        {(weekVolumeSummary.totalHours > 0 || weekVolumeSummary.totalTSS > 0) && (
+          <div className="ath-week-volume">
+            <div className="ath-week-volume__kpis">
+              <div className="ath-week-volume__kpi">
+                <span className="ath-week-volume__kpi-label">TSS semanal</span>
+                <strong className="ath-week-volume__kpi-value">{weekVolumeSummary.totalTSS}</strong>
+              </div>
+              <div className="ath-week-volume__kpi">
+                <span className="ath-week-volume__kpi-label">CTL</span>
+                <strong className="ath-week-volume__kpi-value ctl">{weekVolumeSummary.ctl}</strong>
+              </div>
+              <div className="ath-week-volume__kpi">
+                <span className="ath-week-volume__kpi-label">Horas totales</span>
+                <strong className="ath-week-volume__kpi-value">{weekVolumeSummary.totalHours.toFixed(1)}h</strong>
+              </div>
+            </div>
+
+            <div className="ath-week-volume__chart">
+              <span className="ath-week-volume__chart-title">Volumen por disciplina</span>
+              {Object.entries(weekVolumeSummary.hoursByDisc)
+                .sort(([, a], [, b]) => b - a)
+                .map(([disc, hours]) => {
+                  const pct = (hours / weekVolumeSummary.maxHours) * 100;
+                  const color = disc === "running" ? "#e85d75" : disc === "cycling" ? "#4ca4e8" : disc === "swimming" ? "#3dd5c8" : "#999";
+                  const label = disc === "running" ? "Running" : disc === "cycling" ? "Ciclismo" : disc === "swimming" ? "Natacion" : disc;
+                  return (
+                    <div key={disc} className="ath-week-volume__bar-row">
+                      <span className="ath-week-volume__bar-label">{label}</span>
+                      <div className="ath-week-volume__bar-track">
+                        <div className="ath-week-volume__bar-fill" style={{ width: `${pct}%`, backgroundColor: color }} />
+                      </div>
+                      <span className="ath-week-volume__bar-value">{hours.toFixed(1)}h</span>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+      </>)}
 
       {/* ── MONTHLY VIEW ── */}
       {calMode === "month" && monthData && (

@@ -412,6 +412,14 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
   // Timeline: selected lap highlight and brush selection stats
   const [selectedLapIdx, setSelectedLapIdx] = useState<number | null>(null);
   const [brushRange, setBrushRange] = useState<{ startT: number; endT: number } | null>(null);
+  // Responsive chart heights
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 600);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 600px)");
+    const h = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", h);
+    return () => mq.removeEventListener("change", h);
+  }, []);
 
   useEffect(() => {
     if (initialDetail) return;
@@ -497,6 +505,77 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
     if (selectedLapIdx === null || !lapTimeRanges.length) return null;
     return lapTimeRanges.find((r) => r.index === selectedLapIdx) ?? null;
   }, [selectedLapIdx, lapTimeRanges]);
+
+  // Selected lap detailed stats (computed from timeline data)
+  const selectedLapDetail = useMemo(() => {
+    if (selectedLapIdx === null || !selectedLapRange || timelineWithZones.length < 5) return null;
+    const lap = laps.find((l) => l.index === selectedLapIdx);
+    if (!lap) return null;
+    const pts = timelineWithZones.filter((p) => p.t >= selectedLapRange.start && p.t <= selectedLapRange.end);
+    if (pts.length < 2) return null;
+
+    const hrs = pts.filter((p) => p.hr && p.hr > 0).map((p) => p.hr!);
+    const paces = pts.filter((p) => p.pace && p.pace > 0 && p.pace < 900).map((p) => p.pace!);
+    const powers = pts.filter((p) => p.power && p.power > 0).map((p) => p.power!);
+    const cadences = pts.filter((p) => p.cadence && p.cadence > 0).map((p) => p.cadence!);
+    const altitudes = pts.filter((p) => p.altitude != null).map((p) => p.altitude!);
+    const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+
+    // Distance from speed integration
+    let dist = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const dt = pts[i].t - pts[i - 1].t;
+      const speed = pts[i].pace && pts[i].pace! > 0 ? 1000 / pts[i].pace! : 0;
+      dist += speed * dt;
+    }
+
+    // Elevation gain
+    let elevGain = 0;
+    for (let i = 1; i < altitudes.length; i++) {
+      const diff = altitudes[i] - altitudes[i - 1];
+      if (diff > 0) elevGain += diff;
+    }
+
+    // NP (Normalized Power) — 30s rolling average, 4th power
+    let np: number | null = null;
+    if (powers.length > 30) {
+      const windowSize = 30;
+      const rollingAvg: number[] = [];
+      for (let i = windowSize - 1; i < powers.length; i++) {
+        let sum = 0;
+        for (let j = i - windowSize + 1; j <= i; j++) sum += powers[j];
+        rollingAvg.push(sum / windowSize);
+      }
+      const fourthPow = rollingAvg.reduce((s, v) => s + Math.pow(v, 4), 0) / rollingAvg.length;
+      np = Math.pow(fourthPow, 0.25);
+    }
+
+    // IF (Intensity Factor) — NP / FTP (approximate FTP from LT2 power)
+    const ftp = lt2?.powerWatts ?? null;
+    const intensityFactor = np && ftp ? np / ftp : null;
+
+    // Zone from avg HR
+    const avgHr = avg(hrs);
+    const zone = avgHr ? hrToZone(avgHr, lt1?.heartRate ?? null, lt2?.heartRate ?? null) : null;
+
+    return {
+      name: lap.name ?? `Intervalo ${lap.index}`,
+      duration: lap.time_s,
+      distance: dist > 0 ? dist : lap.distance_m,
+      avgHr,
+      maxHr: hrs.length > 0 ? Math.max(...hrs) : null,
+      minHr: hrs.length > 0 ? Math.min(...hrs) : null,
+      avgPace: avg(paces),
+      maxPace: paces.length > 0 ? Math.min(...paces) : null, // min pace = fastest
+      avgPower: avg(powers),
+      maxPower: powers.length > 0 ? Math.max(...powers) : null,
+      avgCadence: avg(cadences),
+      elevGain: Math.round(elevGain),
+      np: np ? Math.round(np) : null,
+      intensityFactor,
+      zone,
+    };
+  }, [selectedLapIdx, selectedLapRange, timelineWithZones, laps, lt1, lt2]);
 
   // Brush selection summary stats
   const brushStats = useMemo(() => {
@@ -694,8 +773,100 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
                           </div>
                           {selectedLapIdx !== null && (
                             <button type="button" className="ath-pwd-interval-clear" onClick={() => setSelectedLapIdx(null)}>
-                              Limpiar selección
+                              Limpiar seleccion
                             </button>
+                          )}
+
+                          {/* ── Interval Detail Card ── */}
+                          {selectedLapDetail && (
+                            <div className="ath-pwd-lap-detail">
+                              <div className="ath-pwd-lap-detail__header">
+                                <span className="ath-pwd-lap-detail__name">{selectedLapDetail.name}</span>
+                                {selectedLapDetail.zone && (
+                                  <span className="ath-pwd-lap-detail__zone" style={{ background: ZONE_COLORS[selectedLapDetail.zone] + "20", color: ZONE_COLORS[selectedLapDetail.zone] }}>
+                                    {selectedLapDetail.zone} — {ZONE_LABELS[selectedLapDetail.zone]}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="ath-pwd-lap-detail__grid">
+                                <div className="ath-pwd-lap-detail__item">
+                                  <span className="ath-pwd-lap-detail__val">{fmtDur(selectedLapDetail.duration)}</span>
+                                  <span className="ath-pwd-lap-detail__lbl">Duracion</span>
+                                </div>
+                                {selectedLapDetail.distance > 0 && (
+                                  <div className="ath-pwd-lap-detail__item">
+                                    <span className="ath-pwd-lap-detail__val">{fmtDist(selectedLapDetail.distance)}</span>
+                                    <span className="ath-pwd-lap-detail__lbl">Distancia</span>
+                                  </div>
+                                )}
+                                {isRunning && selectedLapDetail.avgPace && (
+                                  <div className="ath-pwd-lap-detail__item">
+                                    <span className="ath-pwd-lap-detail__val accent">{fmtPace(selectedLapDetail.avgPace)}/km</span>
+                                    <span className="ath-pwd-lap-detail__lbl">Ritmo medio</span>
+                                  </div>
+                                )}
+                                {isRunning && selectedLapDetail.maxPace && (
+                                  <div className="ath-pwd-lap-detail__item">
+                                    <span className="ath-pwd-lap-detail__val">{fmtPace(selectedLapDetail.maxPace)}/km</span>
+                                    <span className="ath-pwd-lap-detail__lbl">Ritmo max</span>
+                                  </div>
+                                )}
+                                {isCycling && selectedLapDetail.avgPower && (
+                                  <div className="ath-pwd-lap-detail__item">
+                                    <span className="ath-pwd-lap-detail__val accent">{Math.round(selectedLapDetail.avgPower)}W</span>
+                                    <span className="ath-pwd-lap-detail__lbl">Potencia media</span>
+                                  </div>
+                                )}
+                                {isCycling && selectedLapDetail.maxPower && (
+                                  <div className="ath-pwd-lap-detail__item">
+                                    <span className="ath-pwd-lap-detail__val">{Math.round(selectedLapDetail.maxPower)}W</span>
+                                    <span className="ath-pwd-lap-detail__lbl">Potencia max</span>
+                                  </div>
+                                )}
+                                {selectedLapDetail.np && (
+                                  <div className="ath-pwd-lap-detail__item">
+                                    <span className="ath-pwd-lap-detail__val">{selectedLapDetail.np}{isCycling ? "W" : ""}</span>
+                                    <span className="ath-pwd-lap-detail__lbl">NP</span>
+                                  </div>
+                                )}
+                                {selectedLapDetail.intensityFactor && (
+                                  <div className="ath-pwd-lap-detail__item">
+                                    <span className="ath-pwd-lap-detail__val">{selectedLapDetail.intensityFactor.toFixed(2)}</span>
+                                    <span className="ath-pwd-lap-detail__lbl">IF</span>
+                                  </div>
+                                )}
+                                {selectedLapDetail.avgHr && (
+                                  <div className="ath-pwd-lap-detail__item">
+                                    <span className="ath-pwd-lap-detail__val hr">{Math.round(selectedLapDetail.avgHr)}</span>
+                                    <span className="ath-pwd-lap-detail__lbl">FC media</span>
+                                  </div>
+                                )}
+                                {selectedLapDetail.maxHr && (
+                                  <div className="ath-pwd-lap-detail__item">
+                                    <span className="ath-pwd-lap-detail__val">{Math.round(selectedLapDetail.maxHr)}</span>
+                                    <span className="ath-pwd-lap-detail__lbl">FC max</span>
+                                  </div>
+                                )}
+                                {selectedLapDetail.minHr && (
+                                  <div className="ath-pwd-lap-detail__item">
+                                    <span className="ath-pwd-lap-detail__val">{Math.round(selectedLapDetail.minHr)}</span>
+                                    <span className="ath-pwd-lap-detail__lbl">FC min</span>
+                                  </div>
+                                )}
+                                {selectedLapDetail.avgCadence && (
+                                  <div className="ath-pwd-lap-detail__item">
+                                    <span className="ath-pwd-lap-detail__val">{Math.round(selectedLapDetail.avgCadence)}</span>
+                                    <span className="ath-pwd-lap-detail__lbl">Cadencia</span>
+                                  </div>
+                                )}
+                                {selectedLapDetail.elevGain > 0 && (
+                                  <div className="ath-pwd-lap-detail__item">
+                                    <span className="ath-pwd-lap-detail__val">{selectedLapDetail.elevGain}m</span>
+                                    <span className="ath-pwd-lap-detail__lbl">Desnivel +</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           )}
                         </div>
                       )}
@@ -723,8 +894,8 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
                           <span className="ath-pwd-panel-subtitle">Arrastra el selector inferior para analizar un segmento</span>
                         </h4>
                         <div className="ath-pwd-chart-container ath-pwd-chart-lg">
-                          <ResponsiveContainer width="100%" height={300}>
-                            <ComposedChart data={timelineWithZones} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
+                          <ResponsiveContainer width="100%" height={isMobile ? 200 : 300}>
+                            <ComposedChart data={timelineWithZones} margin={{ top: 6, right: 6, bottom: 4, left: isMobile ? -15 : -10 }}>
                               <CartesianGrid stroke="var(--ath-border-subtle)" strokeDasharray="3 3" vertical={false} />
                               <XAxis dataKey="t" tickFormatter={(v: number) => `${Math.floor(v / 60)}'`} tick={{ fontSize: 11, fill: "var(--ath-text-muted)" }} axisLine={false} tickLine={false} />
                               <YAxis yAxisId="hr" orientation="right" tick={{ fontSize: 11, fill: "#f85149" }} axisLine={false} tickLine={false} domain={["dataMin - 10", "dataMax + 10"]} />
@@ -739,24 +910,71 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
                               <Area yAxisId="hr" type="monotone" dataKey="hr" stroke="rgba(248,81,73,0.5)" fill="rgba(248,81,73,0.08)" strokeWidth={1.5} dot={false} isAnimationActive={false} name="FC" />
                               {(isRunning || isSwimming) && <Line yAxisId="primary" type="monotone" dataKey="pace" stroke="var(--ath-accent)" strokeWidth={2} dot={false} isAnimationActive={false} connectNulls name="Ritmo" />}
                               {isCycling && <Line yAxisId="primary" type="monotone" dataKey="power" stroke="#d29922" strokeWidth={2} dot={false} isAnimationActive={false} connectNulls name="Potencia" />}
-                              <Brush
-                                dataKey="t"
-                                height={28}
-                                stroke="var(--ath-accent)"
-                                fill="var(--ath-bg-elevated)"
-                                tickFormatter={(v: number) => `${Math.floor(v / 60)}'`}
-                                onChange={(range: any) => {
-                                  if (range && typeof range.startIndex === "number" && typeof range.endIndex === "number") {
-                                    const s = timelineWithZones[range.startIndex]?.t;
-                                    const e = timelineWithZones[range.endIndex]?.t;
-                                    if (s != null && e != null && e > s) setBrushRange({ startT: s, endT: e });
-                                    else setBrushRange(null);
-                                  }
-                                }}
-                              />
+                              {!isMobile && (
+                                <Brush
+                                  dataKey="t"
+                                  height={28}
+                                  stroke="var(--ath-accent)"
+                                  fill="var(--ath-bg-elevated)"
+                                  tickFormatter={(v: number) => `${Math.floor(v / 60)}'`}
+                                  onChange={(range: any) => {
+                                    if (range && typeof range.startIndex === "number" && typeof range.endIndex === "number") {
+                                      const s = timelineWithZones[range.startIndex]?.t;
+                                      const e = timelineWithZones[range.endIndex]?.t;
+                                      if (s != null && e != null && e > s) setBrushRange({ startT: s, endT: e });
+                                      else setBrushRange(null);
+                                    }
+                                  }}
+                                />
+                              )}
                             </ComposedChart>
                           </ResponsiveContainer>
                         </div>
+                        {/* Mobile: touch-friendly range slider */}
+                        {isMobile && timelineWithZones.length > 10 && (() => {
+                          const maxT = timelineWithZones[timelineWithZones.length - 1]?.t ?? 0;
+                          if (maxT <= 0) return null;
+                          return (
+                            <div className="ath-pwd-mobile-range">
+                              <span className="ath-pwd-mobile-range__label">Zoom</span>
+                              <input
+                                type="range"
+                                className="ath-pwd-mobile-range__input"
+                                min={0}
+                                max={maxT}
+                                step={Math.max(1, Math.round(maxT / 200))}
+                                value={brushRange?.startT ?? 0}
+                                onChange={(e) => {
+                                  const startT = Number(e.target.value);
+                                  const endT = brushRange?.endT ?? maxT;
+                                  if (startT < endT) setBrushRange({ startT, endT });
+                                }}
+                              />
+                              <input
+                                type="range"
+                                className="ath-pwd-mobile-range__input"
+                                min={0}
+                                max={maxT}
+                                step={Math.max(1, Math.round(maxT / 200))}
+                                value={brushRange?.endT ?? maxT}
+                                onChange={(e) => {
+                                  const endT = Number(e.target.value);
+                                  const startT = brushRange?.startT ?? 0;
+                                  if (endT > startT) setBrushRange({ startT, endT });
+                                }}
+                              />
+                              <div className="ath-pwd-mobile-range__labels">
+                                <span>{Math.floor((brushRange?.startT ?? 0) / 60)}'</span>
+                                <span>{Math.floor((brushRange?.endT ?? maxT) / 60)}'</span>
+                              </div>
+                              {brushRange && (
+                                <button type="button" className="ath-pwd-mobile-range__reset" onClick={() => setBrushRange(null)}>
+                                  Ver todo
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Altitude profile — synced to brush zoom */}
@@ -764,7 +982,7 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
                         <div className="ath-pwd-panel">
                           <h4 className="ath-pwd-panel-title">Perfil de altimetría</h4>
                           <div className="ath-pwd-chart-container">
-                            <ResponsiveContainer width="100%" height={140}>
+                            <ResponsiveContainer width="100%" height={isMobile ? 100 : 140}>
                               <ComposedChart data={brushedTimeline} margin={{ top: 5, right: 10, bottom: 5, left: -10 }}>
                                 <XAxis dataKey="t" tickFormatter={(v: number) => `${Math.floor(v / 60)}'`} tick={{ fontSize: 10, fill: "var(--ath-text-muted)" }} axisLine={false} tickLine={false} />
                                 <YAxis tick={{ fontSize: 10, fill: "var(--ath-text-muted)" }} axisLine={false} tickLine={false} domain={["dataMin - 5", "dataMax + 15"]} />
@@ -789,7 +1007,7 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
                             {avgCadence && <span className="ath-pwd-panel-subtitle">media: {Math.round(avgCadence)} {isRunning ? "spm" : isCycling ? "rpm" : "str/min"}</span>}
                           </h4>
                           <div className="ath-pwd-chart-container">
-                            <ResponsiveContainer width="100%" height={140}>
+                            <ResponsiveContainer width="100%" height={isMobile ? 100 : 140}>
                               <ComposedChart data={brushedTimeline} margin={{ top: 5, right: 10, bottom: 5, left: -10 }}>
                                 <XAxis dataKey="t" tickFormatter={(v: number) => `${Math.floor(v / 60)}'`} tick={{ fontSize: 10, fill: "var(--ath-text-muted)" }} axisLine={false} tickLine={false} />
                                 <YAxis tick={{ fontSize: 10, fill: "var(--ath-text-muted)" }} axisLine={false} tickLine={false} domain={["dataMin - 5", "dataMax + 5"]} />
@@ -877,8 +1095,8 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
                         <span className="ath-pwd-panel-subtitle">Azul = 1ª mitad, Naranja = 2ª mitad. Cuanto más juntos, mejor acoplamiento.</span>
                       </h4>
                       <div className="ath-pwd-chart-container">
-                        <ResponsiveContainer width="100%" height={220}>
-                          <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+                        <ResponsiveContainer width="100%" height={isMobile ? 160 : 220}>
+                          <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: isMobile ? -10 : 0 }}>
                             <CartesianGrid stroke="var(--ath-border-subtle)" strokeDasharray="3 3" />
                             <XAxis type="number" dataKey="hr" name="FC" unit=" bpm" tick={{ fontSize: 10, fill: "var(--ath-text-muted)" }} />
                             <YAxis type="number" dataKey="metric" name={isRunning ? "Ritmo" : "Potencia"} reversed={isRunning} tick={{ fontSize: 10, fill: "var(--ath-text-muted)" }} tickFormatter={isRunning ? (v: number) => fmtPace(v) : undefined} />
@@ -922,7 +1140,7 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
 
                         {/* Bar chart comparison */}
                         <div className="ath-pwd-chart-container">
-                          <ResponsiveContainer width="100%" height={200}>
+                          <ResponsiveContainer width="100%" height={isMobile ? 150 : 200}>
                             <BarChart data={laps.map((l) => ({
                               name: l.name ?? `#${l.index}`,
                               value: isRunning ? l.pace_s_km : l.power,
@@ -1024,34 +1242,36 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
                     <h4 className="ath-pwd-panel-title">Análisis avanzado</h4>
                     <div className="ath-pwd-adv-cards">
                       {/* TRIMP */}
-                      {trimp > 0 && (
-                        <div className="ath-pwd-adv-card">
-                          <div className="ath-pwd-adv-top">
-                            <span className="ath-pwd-adv-value">{trimp}</span>
-                            <span className="ath-pwd-adv-label">TRIMP</span>
+                      {trimp > 0 && (() => {
+                        const trimpTone = trimp < 50 ? "green" : trimp < 120 ? "green" : trimp < 250 ? "amber" : "red";
+                        const trimpMsg = trimp < 50
+                          ? "Carga ligera. Sesion de recuperacion o activacion. No genera fatiga significativa."
+                          : trimp < 120
+                          ? "Carga moderada. Buen estimulo aerobico sin comprometer la recuperacion para manana."
+                          : trimp < 250
+                          ? "Carga alta. Necesitaras al menos 24-36h de recuperacion antes de otra sesion intensa."
+                          : "Carga muy alta. Planifica 48h+ de descanso o sesiones suaves. Atencion a la fatiga acumulada.";
+                        return (
+                          <div className={`ath-pwd-adv-card border-${trimpTone}`}>
+                            <div className="ath-pwd-adv-top">
+                              <span className={`ath-pwd-adv-value tone-${trimpTone}`}>{trimp}</span>
+                              <span className="ath-pwd-adv-label">Carga de la sesion</span>
+                            </div>
+                            <p className="ath-pwd-adv-desc">{trimpMsg}</p>
                           </div>
-                          <p className="ath-pwd-adv-desc">
-                            Training Impulse (Banister 1991). Pondera cada minuto de ejercicio por la intensidad de FC
-                            usando una función exponencial que modela la curva de lactato.
-                            Valores típicos: recuperación 30-50, moderado 80-120, duro 150-250, maratón 300+.
-                          </p>
-                          <span className="ath-pwd-adv-formula">TRIMP = Σ(Δt × HRR × 0.64 × e^(1.92 × HRR))</span>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* EF */}
                       {ef !== null && (
                         <div className="ath-pwd-adv-card">
                           <div className="ath-pwd-adv-top">
                             <span className="ath-pwd-adv-value">{ef.toFixed(3)}</span>
-                            <span className="ath-pwd-adv-label">Efficiency Factor</span>
+                            <span className="ath-pwd-adv-label">Eficiencia</span>
                           </div>
                           <p className="ath-pwd-adv-desc">
-                            Velocidad media ÷ FC media (Coggan / TrainingPeaks).
-                            Un EF creciente a la misma FC a lo largo de semanas indica mejora en la eficiencia aeróbica.
-                            Compara este valor con tus entrenamientos similares anteriores.
+                            Cuanto rindes por cada latido. Compara este valor con sesiones similares de semanas anteriores: si sube, estas mejorando tu base aerobica. Si baja con el mismo ritmo, puede indicar fatiga acumulada.
                           </p>
-                          <span className="ath-pwd-adv-formula">EF = {isCycling ? "NP" : "NGP"} ÷ Avg HR</span>
                         </div>
                       )}
 
@@ -1062,63 +1282,79 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
                             <span className={`ath-pwd-adv-value tone-${decoupling.tone}`}>
                               {decoupling.value > 0 ? "+" : ""}{decoupling.value.toFixed(1)}%
                             </span>
-                            <span className="ath-pwd-adv-label">Desacoplamiento ({isCycling ? "Pw:HR" : "Pa:HR"})</span>
+                            <span className="ath-pwd-adv-label">Desacoplamiento</span>
                           </div>
-                          <p className="ath-pwd-adv-desc">{decoupling.interpretation}</p>
+                          <p className="ath-pwd-adv-desc">
+                            {decoupling.value < 3.5
+                              ? "Tu corazon ha mantenido el ritmo sin problemas. Estas comodo a esta intensidad y podrias subir un poco la carga en proximas sesiones."
+                              : decoupling.value < 5
+                              ? "Tu corazon ha empezado a trabajar algo mas al final. Estas en tu zona de umbral aerobico — intensidad ideal para construir base."
+                              : decoupling.value < 7.5
+                              ? "Tu corazon ha tenido que compensar la fatiga en la segunda mitad. Si era una sesion aerobica, has ido algo fuerte. Prueba a bajar un poco el ritmo."
+                              : decoupling.value < 10
+                              ? "Desacoplamiento notable. Para sesiones continuas, baja la intensidad. Si eran intervalos, es esperado."
+                              : "Desacoplamiento severo. Si no eran intervalos, la intensidad era demasiado alta para tu estado actual. Reduce el ritmo en la proxima sesion similar."}
+                          </p>
                           <div className="ath-pwd-decoup-detail">
                             <div className="ath-pwd-decoup-half">
-                              <span className="ath-pwd-decoup-half-label">1ª mitad ({fmtMinSec(decoupling.rangeStart)}–{fmtMinSec(decoupling.rangeMid)})</span>
+                              <span className="ath-pwd-decoup-half-label">1a mitad</span>
                               <span className="ath-pwd-decoup-half-val">EF = {decoupling.ef1.toFixed(3)}</span>
                             </div>
                             <span className="ath-pwd-decoup-arrow">→</span>
                             <div className="ath-pwd-decoup-half">
-                              <span className="ath-pwd-decoup-half-label">2ª mitad ({fmtMinSec(decoupling.rangeMid)}–{fmtMinSec(decoupling.rangeEnd)})</span>
+                              <span className="ath-pwd-decoup-half-label">2a mitad</span>
                               <span className="ath-pwd-decoup-half-val">EF = {decoupling.ef2.toFixed(3)}</span>
                             </div>
                           </div>
-                          <span className="ath-pwd-adv-formula">Se excluye el 15% inicial (calentamiento) y el 10% final (vuelta a la calma). Las dos mitades son iguales en tiempo. Decoupling = (EF₁ − EF₂) / EF₁ × 100 — Friel (Training Bible), Uphill Athlete</span>
                           <div className="ath-pwd-decoup-scale">
-                            <span className="ath-pwd-ds-item green">&lt;3.5% bajo AeT</span>
-                            <span className="ath-pwd-ds-item green">3.5-5% = AeT</span>
-                            <span className="ath-pwd-ds-item amber">5-7.5% leve</span>
-                            <span className="ath-pwd-ds-item amber">7.5-10% signif.</span>
-                            <span className="ath-pwd-ds-item red">&gt;10% severo</span>
+                            <span className={`ath-pwd-ds-item ${decoupling.value < 3.5 ? "green" : ""}`}>&lt;3.5% comodo</span>
+                            <span className={`ath-pwd-ds-item ${decoupling.value >= 3.5 && decoupling.value < 5 ? "green" : ""}`}>3.5-5% umbral</span>
+                            <span className={`ath-pwd-ds-item ${decoupling.value >= 5 && decoupling.value < 7.5 ? "amber" : ""}`}>5-7.5% alto</span>
+                            <span className={`ath-pwd-ds-item ${decoupling.value >= 7.5 && decoupling.value < 10 ? "amber" : ""}`}>7.5-10% forzado</span>
+                            <span className={`ath-pwd-ds-item ${decoupling.value >= 10 ? "red" : ""}`}>&gt;10% excesivo</span>
                           </div>
                         </div>
                       )}
 
                       {/* VI */}
-                      {vi !== null && (
-                        <div className="ath-pwd-adv-card">
-                          <div className="ath-pwd-adv-top">
-                            <span className="ath-pwd-adv-value">{vi.toFixed(2)}</span>
-                            <span className="ath-pwd-adv-label">Variability Index</span>
+                      {vi !== null && (() => {
+                        const viTone = vi < 1.05 ? "green" : vi < 1.15 ? "green" : "amber";
+                        const viMsg = vi < 1.05
+                          ? "Esfuerzo muy constante. Ideal para sesiones continuas y trabajo de base."
+                          : vi < 1.15
+                          ? "Variabilidad normal. Tipico en sesiones con cambios de terreno o intervalos moderados."
+                          : "Esfuerzo muy variable. Esperado en intervalos intensos. Si era una sesion continua, intenta mantener un ritmo mas estable.";
+                        return (
+                          <div className={`ath-pwd-adv-card border-${viTone}`}>
+                            <div className="ath-pwd-adv-top">
+                              <span className={`ath-pwd-adv-value tone-${viTone}`}>{vi.toFixed(2)}</span>
+                              <span className="ath-pwd-adv-label">Regularidad del esfuerzo</span>
+                            </div>
+                            <p className="ath-pwd-adv-desc">{viMsg}</p>
                           </div>
-                          <p className="ath-pwd-adv-desc">
-                            NP ÷ potencia/ritmo medio (Coggan). Mide cuán variable fue el esfuerzo.
-                            1.00 = perfectamente constante. Típico: ruta steady 1.02-1.05, intervalos 1.10-1.25, criterium 1.15-1.30.
-                          </p>
-                          <span className="ath-pwd-adv-formula">VI = NP ÷ Avg {isCycling ? "Power" : "Speed"}</span>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Fade */}
-                      {fadePct !== null && (
-                        <div className={`ath-pwd-adv-card border-${Math.abs(fadePct) < 5 ? "green" : Math.abs(fadePct) < 10 ? "amber" : "red"}`}>
-                          <div className="ath-pwd-adv-top">
-                            <span className={`ath-pwd-adv-value tone-${Math.abs(fadePct) < 5 ? "green" : "amber"}`}>
-                              {fadePct > 0 ? "+" : ""}{fadePct.toFixed(1)}%
-                            </span>
-                            <span className="ath-pwd-adv-label">Interval Fade</span>
+                      {fadePct !== null && (() => {
+                        const fadeTone = Math.abs(fadePct) < 5 ? "green" : Math.abs(fadePct) < 10 ? "amber" : "red";
+                        const fadeMsg = Math.abs(fadePct) < 5
+                          ? "Excelente gestion de los intervalos. Has mantenido un nivel constante de principio a fin."
+                          : Math.abs(fadePct) < 10
+                          ? "Ligera caida hacia el final. Prueba a empezar el primer intervalo algo mas conservador para mantener mejor el ritmo."
+                          : "Caida significativa. Puede que hayas empezado demasiado fuerte o que la dosis sea demasiado alta para tu estado actual. Comental con tu entrenador.";
+                        return (
+                          <div className={`ath-pwd-adv-card border-${fadeTone}`}>
+                            <div className="ath-pwd-adv-top">
+                              <span className={`ath-pwd-adv-value tone-${fadeTone}`}>
+                                {fadePct > 0 ? "+" : ""}{fadePct.toFixed(1)}%
+                              </span>
+                              <span className="ath-pwd-adv-label">Consistencia en intervalos</span>
+                            </div>
+                            <p className="ath-pwd-adv-desc">{fadeMsg}</p>
                           </div>
-                          <p className="ath-pwd-adv-desc">
-                            Diferencia de rendimiento entre el primer y último intervalo.
-                            &lt;5% = excelente ejecución (intervalos bien dosificados).
-                            &gt;10% = fatiga significativa o inicio demasiado rápido.
-                          </p>
-                          <span className="ath-pwd-adv-formula">Fade = ({isRunning ? "último_ritmo − primer_ritmo" : "primera_potencia − última_potencia"}) ÷ {isRunning ? "primer_ritmo" : "primera_potencia"} × 100</span>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

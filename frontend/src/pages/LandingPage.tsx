@@ -51,7 +51,7 @@ function HeroCurve() {
       <rect x="312" y="24" width="46" height="18" rx="4" fill="#f97316" opacity=".12" className={`lp-hcurve__tag ${on ? "lp-hcurve__tag--on" : ""}`} style={{ animationDelay: "1.4s" }} />
       <text x="335" y="36" textAnchor="middle" fill="#f97316" fontSize="9" fontWeight="700" fontFamily="Space Grotesk" className={`lp-hcurve__tag ${on ? "lp-hcurve__tag--on" : ""}`} style={{ animationDelay: "1.4s" }}>LT2</text>
       <rect x="400" y="60" width="88" height="22" rx="6" fill="#0e1e24" opacity=".85" className={`lp-hcurve__tag ${on ? "lp-hcurve__tag--on" : ""}`} style={{ animationDelay: "1.7s" }} />
-      <text x="444" y="75" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="600" fontFamily="Space Grotesk" className={`lp-hcurve__tag ${on ? "lp-hcurve__tag--on" : ""}`} style={{ animationDelay: "1.7s" }}>Confidence: 0.87</text>
+      <text x="444" y="75" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="600" fontFamily="Space Grotesk" className={`lp-hcurve__tag ${on ? "lp-hcurve__tag--on" : ""}`} style={{ animationDelay: "1.7s" }}>Fiabilidad: alta</text>
     </svg>
   );
 }
@@ -324,10 +324,8 @@ function LandingInner() {
         </div>
       </nav>
 
-      {/* ══ HERO — Tesla/Apple style ══ */}
-      <section className="lp-hero">
-        <img src="/foto-inicio-v3.jpg" alt="" className="lp-hero__img" />
-        <div className="lp-hero__overlay" />
+      {/* ══ HERO — Product showcase ══ */}
+      <section className="lp-hero lp-hero--product">
         <div className="lp-hero__content">
           <h1 className="lp-hero__h1">
             {t("hero_h1_1")}<br />
@@ -337,6 +335,146 @@ function LandingInner() {
           <div className="lp-hero__acts">
             <a href="#athlete-portal" className="lp-btn-solid lp-btn--hero">{t("hero_cta_athlete")}</a>
             <a href="#demo" className="lp-btn-ghost lp-btn--hero-ghost">{t("hero_cta")}</a>
+          </div>
+        </div>
+
+        {/* App mockups */}
+        <div className="lp-hero__mockups">
+          {/* Browser — Coach dashboard */}
+          <div className="lp-hero-browser">
+            <div className="lp-hero-browser__bar">
+              <div className="lp-hero-browser__dots">
+                <span style={{ background: "#ff5f57" }} /><span style={{ background: "#febc2e" }} /><span style={{ background: "#28c840" }} />
+              </div>
+              <div className="lp-hero-browser__url">peakAerobic.com/dashboard</div>
+            </div>
+            <div className="lp-hero-browser__screen">
+              {/* Header */}
+              <div className="lp-hero-browser__header">
+                <svg width="16" height="16" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="#d26a36" strokeWidth="2.5"/><path d="M10 20 L16 10 L22 20" stroke="#d26a36" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+                <span>PeakAerobic</span>
+                <span style={{ marginLeft: "auto", fontSize: 9, color: "rgba(255,255,255,0.4)" }}>Coach Panel</span>
+              </div>
+              {/* Lactate curve mock */}
+              <div className="lp-hero-browser__card">
+                <span className="lp-hero-browser__card-title">Curva de lactato — Running</span>
+                <svg viewBox="0 0 200 80" className="lp-hero-browser__curve">
+                  <defs>
+                    <linearGradient id="heroLacGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#d26a36" stopOpacity="0.3"/>
+                      <stop offset="100%" stopColor="#d26a36" stopOpacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M10 65 Q40 63 70 58 T120 40 T160 18 T190 5" fill="none" stroke="#d26a36" strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M10 65 Q40 63 70 58 T120 40 T160 18 T190 5 V80 H10 Z" fill="url(#heroLacGrad)"/>
+                  <circle cx="40" cy="62" r="3" fill="#fff" stroke="#d26a36" strokeWidth="1.5"/>
+                  <circle cx="70" cy="58" r="3" fill="#fff" stroke="#d26a36" strokeWidth="1.5"/>
+                  <circle cx="100" cy="48" r="3" fill="#fff" stroke="#d26a36" strokeWidth="1.5"/>
+                  <circle cx="130" cy="34" r="3" fill="#fff" stroke="#d26a36" strokeWidth="1.5"/>
+                  <circle cx="160" cy="18" r="3" fill="#fff" stroke="#d26a36" strokeWidth="1.5"/>
+                  {/* LT1 line */}
+                  <line x1="70" y1="5" x2="70" y2="75" stroke="#22c55e" strokeWidth="1" strokeDasharray="3 2" opacity="0.7"/>
+                  <text x="70" y="4" textAnchor="middle" fill="#22c55e" fontSize="6" fontWeight="700">LT1</text>
+                  {/* LT2 line */}
+                  <line x1="130" y1="5" x2="130" y2="75" stroke="#f97316" strokeWidth="1" strokeDasharray="3 2" opacity="0.7"/>
+                  <text x="130" y="4" textAnchor="middle" fill="#f97316" fontSize="6" fontWeight="700">LT2</text>
+                </svg>
+              </div>
+              {/* Thresholds */}
+              <div className="lp-hero-browser__row">
+                <div className="lp-hero-browser__th" style={{ borderColor: "#22c55e" }}>
+                  <span style={{ color: "#22c55e", fontWeight: 700, fontSize: 9 }}>LT1</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>4:28/km</span>
+                  <span style={{ fontSize: 8, color: "rgba(255,255,255,0.5)" }}>148 bpm</span>
+                </div>
+                <div className="lp-hero-browser__th" style={{ borderColor: "#f97316" }}>
+                  <span style={{ color: "#f97316", fontWeight: 700, fontSize: 9 }}>LT2</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>3:52/km</span>
+                  <span style={{ fontSize: 8, color: "rgba(255,255,255,0.5)" }}>172 bpm</span>
+                </div>
+                <div className="lp-hero-browser__th" style={{ borderColor: "#8B5CF6" }}>
+                  <span style={{ color: "#8B5CF6", fontWeight: 700, fontSize: 9 }}>VO2max</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>52.4</span>
+                  <span style={{ fontSize: 8, color: "rgba(255,255,255,0.5)" }}>ml/kg/min</span>
+                </div>
+              </div>
+              {/* Block recommendation */}
+              <div className="lp-hero-browser__card" style={{ borderLeft: "3px solid #d26a36" }}>
+                <span className="lp-hero-browser__card-title">Bloque recomendado</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>Desarrollo de umbral</span>
+                <span style={{ fontSize: 8, color: "rgba(255,255,255,0.5)" }}>Margen de mejora detectado · 4 semanas</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Phone — Athlete app */}
+          <div className="lp-phone lp-hero__phone">
+            <div className="lp-phone__notch" />
+            <div className="lp-phone__screen">
+              <div className="lp-phone__header">
+                <svg width="14" height="14" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="#d26a36" strokeWidth="2.5"/><path d="M10 20 L16 10 L22 20" stroke="#d26a36" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+                Hoy
+              </div>
+              {/* Readiness ring */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0 8px" }}>
+                <svg viewBox="0 0 56 56" width="44" height="44">
+                  <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+                  <circle cx="28" cy="28" r="22" fill="none" stroke="#22c55e" strokeWidth="4" strokeDasharray="110 138" strokeLinecap="round" transform="rotate(-90 28 28)" />
+                  <text x="28" y="32" textAnchor="middle" fill="#fff" fontSize="14" fontWeight="800" fontFamily="Space Grotesk">78</text>
+                </svg>
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", display: "block" }}>Listo para entrenar</span>
+                  <span style={{ fontSize: 8, color: "rgba(255,255,255,0.5)" }}>HRV 52ms · 7.2h sueno · Estrés 24</span>
+                </div>
+              </div>
+              {/* Today workout */}
+              <div className="lp-phone__card">
+                <span className="lp-phone__card-title">Entreno de hoy</span>
+                <span className="lp-phone__badge">Calidad</span>
+                <span className="lp-phone__workout-name">Intervalos de umbral</span>
+                <div className="lp-phone__steps">
+                  {[
+                    { label: "Calentamiento", dur: "15'", color: "#22c55e" },
+                    { label: "4x6' ritmo fuerte", dur: "24'", color: "#F59E0B" },
+                    { label: "Recuperación", dur: "12'", color: "#10B981" },
+                    { label: "Vuelta calma", dur: "10'", color: "#22c55e" },
+                  ].map((s: { label: string; dur: string; color: string }) => (
+                    <div key={s.label} className="lp-phone__step">
+                      <span className="lp-phone__step-bar" style={{ background: s.color }} />
+                      <span>{s.label}</span>
+                      <span style={{ color: "rgba(255,255,255,0.4)" }}>{s.dur}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Training load */}
+              <div className="lp-phone__card">
+                <span className="lp-phone__card-title">Carga de entrenamiento</span>
+                <div style={{ display: "flex", gap: 12, alignItems: "baseline" }}>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>1.12</span>
+                  <span style={{ fontSize: 8, color: "#22c55e", fontWeight: 600 }}>Zona optima</span>
+                </div>
+              </div>
+              <div className="lp-phone__nav">
+                <div className="lp-phone__nav-item lp-phone__nav-item--active">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Hoy
+                </div>
+                <div className="lp-phone__nav-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Semana
+                </div>
+                <div className="lp-phone__nav-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  Progreso
+                </div>
+                <div className="lp-phone__nav-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                  Recup
+                </div>
+              </div>
+            </div>
+            <div className="lp-phone__bar" />
           </div>
         </div>
       </section>
@@ -496,19 +634,19 @@ function LandingInner() {
                     <text x="275" y="15" textAnchor="middle" fill="#f97316" fontSize="10" fontWeight="700" fontFamily="Space Grotesk">LT2</text>
                     {/* Confidence badge */}
                     <rect x="310" y="50" width="72" height="20" rx="6" fill="#0e1e24" opacity=".9" />
-                    <text x="346" y="63" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="600" fontFamily="Space Grotesk">Conf: 0.87</text>
+                    <text x="346" y="63" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="600" fontFamily="Space Grotesk">Fiabilidad: alta</text>
                     {/* Axis labels */}
                     <text x="36" y="155" textAnchor="end" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">1</text>
                     <text x="36" y="120" textAnchor="end" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">2</text>
                     <text x="36" y="90" textAnchor="end" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">4</text>
                     <text x="36" y="60" textAnchor="end" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">6</text>
                     <text x="36" y="30" textAnchor="end" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">8</text>
-                    <text x="210" y="176" textAnchor="middle" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">mmol/L</text>
+                    <text x="210" y="176" textAnchor="middle" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">Lactato (mmol/L)</text>
                   </svg>
                   <div className="lp-showcase__screen-footer">
                     <span className="lp-showcase__badge lp-showcase__badge--green">LT1: 5:12/km</span>
                     <span className="lp-showcase__badge lp-showcase__badge--orange">LT2: 4:24/km</span>
-                    <span className="lp-showcase__badge lp-showcase__badge--dark">Confianza: 0.87</span>
+                    <span className="lp-showcase__badge lp-showcase__badge--dark">Fiabilidad: alta</span>
                   </div>
                 </div>
               </div>
@@ -595,11 +733,11 @@ function LandingInner() {
                     <div className="lp-showcase__cal-grid">
                       {[
                         { type: "rest", label: "Descanso" },
-                        { type: "key", label: "4×6' intervalos", badge: "CALIDAD" },
-                        { type: "easy", label: "40' rodaje suave" },
+                        { type: "key", label: "Intervalos", badge: "CALIDAD" },
+                        { type: "easy", label: "40' suave" },
                         { type: "rest", label: "Descanso" },
-                        { type: "key", label: "5×4' ritmo fuerte", badge: "CALIDAD" },
-                        { type: "long", label: "1h30 tirada larga", badge: "LARGO" },
+                        { type: "key", label: "Ritmo fuerte", badge: "CALIDAD" },
+                        { type: "long", label: "Tirada larga", badge: "LARGO" },
                         { type: "rest", label: "Descanso" },
                       ].map((d, i) => (
                         <div key={i} className={`lp-showcase__cal-cell lp-showcase__cal-cell--${d.type}`}>
@@ -657,7 +795,7 @@ function LandingInner() {
                   </div>
                   <div className="lp-showcase__garmin-push">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><path d="M5 13l4 4L19 7" /></svg>
-                    <span>Push to Garmin Connect</span>
+                    <span>Enviar a Garmin Connect</span>
                   </div>
                 </div>
               </div>
@@ -684,24 +822,24 @@ function LandingInner() {
               <div className="lp-showcase__screen">
                 <div className="lp-showcase__screen-bar">
                   <span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" />
-                  <span className="lp-showcase__screen-title">Training Load — 90 days</span>
+                  <span className="lp-showcase__screen-title">Carga de entrenamiento — 90 días</span>
                 </div>
                 <div className="lp-showcase__screen-body">
                   <div className="lp-showcase__kpi-row">
                     <div className="lp-showcase__kpi">
-                      <span className="lp-showcase__kpi-label">CTL</span>
+                      <span className="lp-showcase__kpi-label">Fitness</span>
                       <span className="lp-showcase__kpi-val" style={{color:"#22c55e"}}>62</span>
                     </div>
                     <div className="lp-showcase__kpi">
-                      <span className="lp-showcase__kpi-label">ATL</span>
+                      <span className="lp-showcase__kpi-label">Fatiga</span>
                       <span className="lp-showcase__kpi-val" style={{color:"#ef4444"}}>78</span>
                     </div>
                     <div className="lp-showcase__kpi">
-                      <span className="lp-showcase__kpi-label">TSB</span>
+                      <span className="lp-showcase__kpi-label">Forma</span>
                       <span className="lp-showcase__kpi-val" style={{color:"#3b82f6"}}>-16</span>
                     </div>
                     <div className="lp-showcase__kpi">
-                      <span className="lp-showcase__kpi-label">A:C</span>
+                      <span className="lp-showcase__kpi-label">Ratio</span>
                       <span className="lp-showcase__kpi-val" style={{color:"#f59e0b"}}>1.26</span>
                     </div>
                   </div>
@@ -716,16 +854,16 @@ function LandingInner() {
                     {["Ene","Feb","Mar"].map((m,i) => (
                       <text key={m} x={90 + i * 120} y="140" textAnchor="middle" fill="#9aabb4" fontSize="8" fontFamily="Space Grotesk">{m}</text>
                     ))}
-                    <line x1="270" y1="18" x2="284" y2="18" stroke="#22c55e" strokeWidth="2" />
-                    <text x="288" y="22" fill="#5e7078" fontSize="7" fontFamily="Space Grotesk">CTL</text>
-                    <line x1="310" y1="18" x2="324" y2="18" stroke="#ef4444" strokeWidth="2" />
-                    <text x="328" y="22" fill="#5e7078" fontSize="7" fontFamily="Space Grotesk">ATL</text>
-                    <line x1="348" y1="18" x2="362" y2="18" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="3 2" />
-                    <text x="366" y="22" fill="#5e7078" fontSize="7" fontFamily="Space Grotesk">TSB</text>
+                    <line x1="255" y1="18" x2="269" y2="18" stroke="#22c55e" strokeWidth="2" />
+                    <text x="273" y="22" fill="#5e7078" fontSize="7" fontFamily="Space Grotesk">Fitness</text>
+                    <line x1="308" y1="18" x2="322" y2="18" stroke="#ef4444" strokeWidth="2" />
+                    <text x="326" y="22" fill="#5e7078" fontSize="7" fontFamily="Space Grotesk">Fatiga</text>
+                    <line x1="358" y1="18" x2="372" y2="18" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="3 2" />
+                    <text x="376" y="22" fill="#5e7078" fontSize="7" fontFamily="Space Grotesk">Forma</text>
                   </svg>
                   <div className="lp-showcase__screen-footer">
-                    <span className="lp-showcase__badge lp-showcase__badge--green">Fitness: +18 en 90d</span>
-                    <span className="lp-showcase__badge lp-showcase__badge--orange">ACWR: 1.26 — Zona alta</span>
+                    <span className="lp-showcase__badge lp-showcase__badge--green">Fitness: +18 en 3 meses</span>
+                    <span className="lp-showcase__badge lp-showcase__badge--orange">Ratio carga: 1.26 — Zona alta</span>
                   </div>
                 </div>
               </div>
@@ -752,7 +890,7 @@ function LandingInner() {
               <div className="lp-showcase__screen">
                 <div className="lp-showcase__screen-bar">
                   <span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" /><span className="lp-showcase__screen-dot" />
-                  <span className="lp-showcase__screen-title">Capacity Profile — Running</span>
+                  <span className="lp-showcase__screen-title">Perfil metabólico — Running</span>
                 </div>
                 <div className="lp-showcase__screen-body">
                   <div className="lp-showcase__kpi-row">
@@ -762,14 +900,12 @@ function LandingInner() {
                       <span className="lp-showcase__kpi-unit">ml/kg/min</span>
                     </div>
                     <div className="lp-showcase__kpi">
-                      <span className="lp-showcase__kpi-label">VLamax</span>
-                      <span className="lp-showcase__kpi-val" style={{color:"#8b5cf6"}}>0.42</span>
-                      <span className="lp-showcase__kpi-unit">mmol/L/s</span>
+                      <span className="lp-showcase__kpi-label">Potencia glicolítica</span>
+                      <span className="lp-showcase__kpi-val" style={{color:"#8b5cf6"}}>Moderada</span>
                     </div>
                     <div className="lp-showcase__kpi">
-                      <span className="lp-showcase__kpi-label">FU @ LT2</span>
+                      <span className="lp-showcase__kpi-label">Eficiencia aeróbica</span>
                       <span className="lp-showcase__kpi-val" style={{color:"#22c55e"}}>82%</span>
-                      <span className="lp-showcase__kpi-unit">VO2max</span>
                     </div>
                   </div>
                   <svg viewBox="0 0 400 120" className="lp-showcase__chart" preserveAspectRatio="xMidYMid meet">
@@ -781,12 +917,12 @@ function LandingInner() {
                     <rect x="120" y="46" width="240" height="16" rx="4" fill="#e5e7eb" opacity=".5" />
                     <rect x="120" y="46" width="120" height="16" rx="4" fill="#8b5cf6" opacity=".6" />
                     <text x="246" y="58" fill="#8b5cf6" fontSize="9" fontWeight="700" fontFamily="Space Grotesk">MODERATE</text>
-                    <text x="50" y="84" fill="#5e7078" fontSize="9" fontFamily="Space Grotesk" fontWeight="600">LT1/LT2</text>
+                    <text x="50" y="84" fill="#5e7078" fontSize="9" fontFamily="Space Grotesk" fontWeight="600">Umbrales</text>
                     <rect x="120" y="74" width="240" height="16" rx="4" fill="#e5e7eb" opacity=".5" />
                     <rect x="120" y="74" width="204" height="16" rx="4" fill="#f59e0b" opacity=".6" />
                     <text x="330" y="86" fill="#f59e0b" fontSize="9" fontWeight="700" fontFamily="Space Grotesk">0.85</text>
                     <rect x="130" y="98" width="140" height="20" rx="6" fill="#0e1e24" opacity=".9" />
-                    <text x="200" y="112" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="600" fontFamily="Space Grotesk">Diesel — Long distance</text>
+                    <text x="200" y="112" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="600" fontFamily="Space Grotesk">Perfil: resistencia</text>
                   </svg>
                 </div>
               </div>
@@ -1003,17 +1139,17 @@ function LandingInner() {
                     </div>
                     <div className="lp-app-frame__session">
                       <span className="lp-app-frame__badge">CALIDAD</span>
-                      <span className="lp-app-frame__workout-name">4x6{"'"} LT2 cruise intervals</span>
+                      <span className="lp-app-frame__workout-name">Intervalos de umbral</span>
                     </div>
                     <div className="lp-app-frame__session-meta">
-                      <span>Zona LT2</span><span>52 min</span><span>TSS 68</span>
+                      <span>Ritmo fuerte</span><span>52 min</span><span>Carga media</span>
                     </div>
                     <div className="lp-app-frame__steps">
                       {[
-                        { label: "Calentamiento", dur: "15'", zone: "Z1-Z2", color: "#22c55e" },
-                        { label: "4x6' LT2", dur: "24'", zone: "LT2", color: "#F59E0B" },
-                        { label: "Rec 3'", dur: "12'", zone: "Z1", color: "#10B981" },
-                        { label: "Vuelta calma", dur: "10'", zone: "Z1", color: "#22c55e" },
+                        { label: "Calentamiento", dur: "15'", zone: "Suave", color: "#22c55e" },
+                        { label: "4x6' ritmo fuerte", dur: "24'", zone: "Intenso", color: "#F59E0B" },
+                        { label: "Recuperación", dur: "12'", zone: "Suave", color: "#10B981" },
+                        { label: "Vuelta calma", dur: "10'", zone: "Suave", color: "#22c55e" },
                       ].map(s => (
                         <div key={s.label} className="lp-app-frame__step">
                           <span className="lp-app-frame__step-bar" style={{ background: s.color }} />
@@ -1060,13 +1196,13 @@ function LandingInner() {
                         <span></span><span></span><span>FC</span><span>Ritmo</span>
                       </div>
                       {[
-                        { name: "REC", hr: "< 130", pace: "> 6:10", color: "#10B981" },
-                        { name: "BASE", hr: "130-145", pace: "5:30-6:10", color: "#22c55e" },
-                        { name: "LT1", hr: "145-156", pace: "4:50-5:30", color: "#3B82F6" },
-                        { name: "SUB-T", hr: "156-164", pace: "4:30-4:50", color: "#8B5CF6" },
-                        { name: "LT2", hr: "164-172", pace: "4:10-4:30", color: "#F59E0B" },
-                        { name: "VO2", hr: "172-184", pace: "3:50-4:10", color: "#EF4444" },
-                        { name: "ANC", hr: "> 184", pace: "< 3:50", color: "#DC2626" },
+                        { name: "Recuperación", hr: "< 130", pace: "> 6:10", color: "#10B981" },
+                        { name: "Base", hr: "130-145", pace: "5:30-6:10", color: "#22c55e" },
+                        { name: "Aeróbico", hr: "145-156", pace: "4:50-5:30", color: "#3B82F6" },
+                        { name: "Moderado", hr: "156-164", pace: "4:30-4:50", color: "#8B5CF6" },
+                        { name: "Umbral", hr: "164-172", pace: "4:10-4:30", color: "#F59E0B" },
+                        { name: "Intenso", hr: "172-184", pace: "3:50-4:10", color: "#EF4444" },
+                        { name: "Sprint", hr: "> 184", pace: "< 3:50", color: "#DC2626" },
                       ].map(z => (
                         <div key={z.name} className="lp-app-frame__zone-row">
                           <span className="lp-app-frame__zone-pip" style={{ background: z.color }} />
@@ -1141,20 +1277,20 @@ function LandingInner() {
                   </div>
                   <div className="lp-phone__card">
                     <span className="lp-phone__card-title">{t("phone_session_title")}</span>
-                    <span className="lp-phone__badge">LT2</span>
-                    <span className="lp-phone__workout-name">4x6{"'"} LT2 cruise intervals</span>
+                    <span className="lp-phone__badge">Calidad</span>
+                    <span className="lp-phone__workout-name">Intervalos de umbral</span>
                     <div className="lp-phone__steps">
                       {[
-                        { label: t("phone_warmup"), dur: "15'", color: "#22c55e" },
-                        { label: "4x6' LT2", dur: "24'", color: "#F59E0B" },
-                        { label: "Rec 3'", dur: "12'", color: "#10B981" },
-                        { label: t("phone_cooldown"), dur: "10'", color: "#22c55e" },
-                      ].map((s: { label: string; dur: string; color: string }) => (
+                        { label: t("phone_warmup"), dur: "15'", color: "#22c55e", zone: "Suave" },
+                        { label: "4x6' ritmo fuerte", dur: "24'", color: "#F59E0B", zone: "Intenso" },
+                        { label: "Recuperación", dur: "12'", color: "#10B981", zone: "Suave" },
+                        { label: t("phone_cooldown"), dur: "10'", color: "#22c55e", zone: "Suave" },
+                      ].map((s: { label: string; dur: string; color: string; zone: string }) => (
                         <div key={s.label} className="lp-phone__step">
                           <span className="lp-phone__step-bar" style={{ background: s.color }} />
                           <span>{s.label}</span>
                           <span style={{ color: "rgba(255,255,255,0.4)" }}>{s.dur}</span>
-                          <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 8 }}>{s.color === "#F59E0B" ? "LT2" : "Z1"}</span>
+                          <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 8 }}>{s.zone}</span>
                         </div>
                       ))}
                     </div>
