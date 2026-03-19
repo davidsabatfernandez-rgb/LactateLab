@@ -8,6 +8,7 @@ import { parseMetricNumber } from "../utils/formatters";
 import { buildWellnessSeries, parseSleepStageSegments, describeHrvStatus, hrvStatusTone } from "../utils/wellness";
 import { buildDisciplineTrend, countSessionsWithinDays, dedupeRecentSessions, volumeSummary } from "../utils/training";
 import { computeReadinessScore, readinessLabel, readinessTone, computeTrainingStatus, computeHrvConsecutiveLow, computeBalancePosition, balanceLabel } from "../utils/readiness";
+import { computeAllDerivedMetrics, type DerivedMetrics } from "../utils/derived-metrics";
 import { averageNumericSeries, bodyBatteryDirectionLabel, restingHrLabel } from "../utils/wellness";
 
 function getPrimaryEstimate(view: any, type: string) {
@@ -59,6 +60,7 @@ type AthleteDataContextType = {
   balanceLbl: string;
   vo2maxValue: number | null;
   vo2maxLabel: string;
+  derivedMetrics: DerivedMetrics;
 
   // Garmin sync
   garminSyncStatus: GarminSyncStatus | null;
@@ -179,6 +181,25 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
     load();
     return () => { cancelled = true; };
   }, [token, user?.athlete_id]);
+
+  // Apple Health: silent background sync on mount (iOS only)
+  useEffect(() => {
+    if (!user?.athlete_id || loading) return;
+    let cancelled = false;
+    async function syncAppleHealth() {
+      try {
+        const { isAvailable, readHealthData } = await import("../../lib/healthkit");
+        if (!(await isAvailable())) return;
+        const samples = await readHealthData(7);
+        if (cancelled || samples.length === 0) return;
+        await api.appleHealthSync(token, user!.athlete_id!, samples);
+      } catch {
+        // Silent — Apple Health is best-effort
+      }
+    }
+    syncAppleHealth();
+    return () => { cancelled = true; };
+  }, [loading, token, user?.athlete_id]);
 
   // Load health
   useEffect(() => {
@@ -352,9 +373,31 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
   }), [weeklyTotal, currentStress, hrvConsecutiveLow, currentRestingHr, restingHrAverage]);
   const balanceLbl = balanceLabel(balancePos);
 
-  const vo2maxMetric = performanceMetrics.find((m) => m.key === "vo2max_running") ?? performanceMetrics.find((m) => m.key === "vo2max_cycling") ?? null;
+  const vo2maxMetric = performanceMetrics.find((m) => m.key === "vo2max_running")
+    ?? performanceMetrics.find((m) => m.key === "vo2max_cycling")
+    ?? performanceMetrics.find((m) => m.key === "vo2max_apple")
+    ?? null;
   const vo2maxValue = vo2maxMetric ? parseFloat(vo2maxMetric.value) : null;
-  const vo2maxLabel = vo2maxMetric?.key === "vo2max_cycling" ? "Ciclismo" : "Carrera";
+  const vo2maxLabel = vo2maxMetric?.key === "vo2max_cycling" ? "Ciclismo" : vo2maxMetric?.key === "vo2max_apple" ? "Apple" : "Carrera";
+
+  // Derived physiological metrics (biological age, autonomic age, recovery, aerobic reserve)
+  const athleteAge = useMemo(() => {
+    const dob = analysis?.athlete?.date_of_birth;
+    if (!dob) return null;
+    const birth = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--;
+    return age;
+  }, [analysis?.athlete?.date_of_birth]);
+
+  const derivedMetrics = useMemo(() => computeAllDerivedMetrics({
+    vo2max: vo2maxValue,
+    hrvSdnn: hrvAverage,
+    chronologicalAge: athleteAge,
+    sex: analysis?.athlete?.sex ?? null,
+    wellnessSeries,
+  }), [vo2maxValue, hrvAverage, athleteAge, analysis?.athlete?.sex, wellnessSeries]);
 
   // Calendar week
   const calendarWeek = useMemo(() => {
@@ -398,7 +441,7 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
     currentHrv, hrvAverage, currentHrvStatus, currentHrvTone, hrvConsecutiveLow,
     currentRestingHr, restingHrAverage, currentStress, stressAverage,
     bodyBatteryDelta, bodyBatteryAverage, recoveryScore, currentSleepHours, sleepHoursAverage,
-    balancePos, balanceLbl, vo2maxValue, vo2maxLabel,
+    balancePos, balanceLbl, vo2maxValue, vo2maxLabel, derivedMetrics,
     garminSyncStatus, garminSyncing, garminSyncError, triggerGarminSync,
     addAthleteSession, moveSession, removeSession, refreshHealth, user, token,
   };

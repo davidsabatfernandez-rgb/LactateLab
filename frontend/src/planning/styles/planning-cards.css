@@ -2194,6 +2194,16 @@
   white-space: nowrap;
 }
 
+.watch-batch-btn {
+  white-space: nowrap;
+  background: #1a1a2e !important;
+  color: #fff !important;
+  border-color: #1a1a2e !important;
+}
+.watch-batch-btn:hover {
+  background: #16213e !important;
+}
+
 /* ── Library Week Editor ────────────────────────────────────────────── */
 
 .library-week-editor-overlay {

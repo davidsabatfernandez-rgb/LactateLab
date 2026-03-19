@@ -845,14 +845,23 @@ export function CalendarView({
 
         <div className="planning-calendar-toolbar-right">
           {calendarVisualMode === "week" && athleteId && token ? (
-            <GarminBatchPush
-              sessionsByDate={sessionsByDate}
-              selectedWeekStart={selectedWeekStart}
-              selectedWeekEnd={selectedWeekEnd}
-              athleteId={athleteId}
-              token={token}
-              onComplete={onBatchGarminComplete}
-            />
+            <>
+              <GarminBatchPush
+                sessionsByDate={sessionsByDate}
+                selectedWeekStart={selectedWeekStart}
+                selectedWeekEnd={selectedWeekEnd}
+                athleteId={athleteId}
+                token={token}
+                onComplete={onBatchGarminComplete}
+              />
+              <AppleWatchBatchSync
+                sessionsByDate={sessionsByDate}
+                selectedWeekStart={selectedWeekStart}
+                selectedWeekEnd={selectedWeekEnd}
+                athleteId={athleteId}
+                token={token}
+              />
+            </>
           ) : null}
           {onCopyWeek && calendarVisualMode === "week" ? (
             <button
@@ -1625,6 +1634,79 @@ function GarminDaySyncIndicator({ sessions }: { sessions: CalendarEntry[] }) {
     <span className="garmin-day-sync-indicator pending" title={`${sent}/${total} enviadas`}>
       {sent}/{total}
     </span>
+  );
+}
+
+// ── Apple Watch Batch Sync ──
+
+function AppleWatchBatchSync({
+  sessionsByDate,
+  selectedWeekStart,
+  selectedWeekEnd,
+  athleteId,
+  token,
+}: {
+  sessionsByDate: Map<string, CalendarEntry[]>;
+  selectedWeekStart: string;
+  selectedWeekEnd: string;
+  athleteId: string;
+  token: string;
+}) {
+  const [syncing, setSyncing] = useState(false);
+  const [result, setResult] = useState<{ count: number } | null>(null);
+
+  const weekSessions = useMemo(() => {
+    const sessions: CalendarEntry[] = [];
+    const startVal = dateValue(selectedWeekStart);
+    const endVal = dateValue(selectedWeekEnd);
+    for (const [date, entries] of sessionsByDate.entries()) {
+      const dv = dateValue(date);
+      if (dv < startVal || dv > endVal) continue;
+      for (const s of entries) {
+        if (s.isOverlay) continue;
+        if (s.rawId != null) sessions.push(s);
+      }
+    }
+    return sessions;
+  }, [sessionsByDate, selectedWeekStart, selectedWeekEnd]);
+
+  const handleSync = useCallback(async () => {
+    if (weekSessions.length === 0 || syncing) return;
+    setSyncing(true);
+    setResult(null);
+    try {
+      // Publish all sessions so they are available to the athlete's app
+      for (const s of weekSessions) {
+        if (s.publishStatus !== "sent" && s.rawId) {
+          try {
+            await api.publishSessionForWatch(token, Number(athleteId), s.rawId);
+          } catch { /* continue */ }
+        }
+      }
+      setResult({ count: weekSessions.length });
+    } catch { /* ignore */ }
+    setSyncing(false);
+  }, [weekSessions, syncing, token, athleteId]);
+
+  if (weekSessions.length === 0 && !result) return null;
+
+  return (
+    <div className="garmin-batch-push">
+      {result ? (
+        <span className="garmin-batch-push-result">
+          {result.count} al Watch
+        </span>
+      ) : null}
+      <button
+        type="button"
+        className="planning-inline-action watch-batch-btn"
+        onClick={handleSync}
+        disabled={syncing || weekSessions.length === 0}
+        title={`Publicar ${weekSessions.length} sesión${weekSessions.length !== 1 ? "es" : ""} para Apple Watch del atleta`}
+      >
+        {syncing ? "Publicando..." : `Enviar semana a Apple Watch (${weekSessions.length})`}
+      </button>
+    </div>
   );
 }
 

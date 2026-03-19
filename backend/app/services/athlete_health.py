@@ -7,8 +7,11 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from sqlalchemy import select
+
 from app.core.security import decrypt_secret
 from app.models.athlete import Athlete
+from app.models.health_sample import HealthSample
 from app.services.garmin import GarminRequestError, _best_effort_connectapi, _garmin_session, _safe_connectapi, list_garmin_activities
 
 DEFAULT_WINDOW_DAYS = 28
@@ -60,6 +63,14 @@ def build_athlete_health_overview(
             "connected": athlete.garmin_connected,
             "status": "connected" if athlete.garmin_connected else "disconnected",
             "last_sync_at": athlete.garmin_last_sync_at,
+            "detail": None,
+        },
+        {
+            "provider": "apple_health",
+            "label": "Apple Health",
+            "connected": athlete.apple_health_connected,
+            "status": "connected" if athlete.apple_health_connected else "disconnected",
+            "last_sync_at": athlete.apple_health_last_sync_at,
             "detail": None,
         },
         {
@@ -117,6 +128,18 @@ def build_athlete_health_overview(
             notes.append("No hemos podido traer los parametros de salud Garmin en este momento.")
     elif athlete.garmin_connected and not refresh_live_health:
         notes.append("La portada carga en modo rapido. Pulsa actualizar salud Garmin para pedir datos en vivo.")
+
+    # ── Merge Apple Health samples (fill gaps not covered by Garmin) ──
+    if athlete.apple_health_connected:
+        apple_samples = db.scalars(
+            select(HealthSample).where(
+                HealthSample.athlete_id == athlete.id,
+                HealthSample.source == "apple_health",
+                HealthSample.sample_date >= window_start,
+                HealthSample.sample_date <= window_end,
+            ).order_by(HealthSample.sample_date.desc())
+        ).all()
+        health_days, health_metrics = _merge_apple_health(health_days, health_metrics, apple_samples)
 
     return {
         "athlete_id": athlete.id,
@@ -890,6 +913,85 @@ def _format_compact_number(value: Any) -> str:
     if float(rounded).is_integer():
         return str(int(rounded))
     return f"{rounded:.1f}"
+
+
+def _merge_apple_health(
+    health_days: list[dict[str, Any]],
+    health_metrics: list[dict[str, Any]],
+    apple_samples: list[Any],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Fill gaps in Garmin health_days with Apple Health data. Apple data only
+    fills fields that are null/missing — Garmin has priority when present."""
+    if not apple_samples:
+        return health_days, health_metrics
+
+    existing_by_date: dict[date, dict[str, Any]] = {}
+    for day in health_days:
+        d = day.get("date")
+        if isinstance(d, date):
+            existing_by_date[d] = day
+
+    FIELD_MAP = {
+        "sleep_seconds": "sleep_seconds",
+        "resting_hr": "resting_hr",
+        "hrv_sdnn": "hrv_last_night_avg",
+        "respiration_rate": "respiration_rate",
+        "steps": "steps",
+        "exercise_minutes": "intensity_minutes",
+        "spo2": "spo2",
+    }
+
+    for sample in apple_samples:
+        sd = sample.sample_date
+        if sd in existing_by_date:
+            day = existing_by_date[sd]
+            for apple_field, day_field in FIELD_MAP.items():
+                apple_val = getattr(sample, apple_field, None)
+                if apple_val is not None and day.get(day_field) is None:
+                    day[day_field] = int(apple_val) if day_field in ("steps", "intensity_minutes", "resting_hr") else apple_val
+        else:
+            new_day: dict[str, Any] = {"date": sd}
+            for apple_field, day_field in FIELD_MAP.items():
+                val = getattr(sample, apple_field, None)
+                if val is not None:
+                    new_day[day_field] = int(val) if day_field in ("steps", "intensity_minutes", "resting_hr") else val
+            health_days.append(new_day)
+            existing_by_date[sd] = new_day
+
+    health_days.sort(key=lambda d: d.get("date", date.min), reverse=True)
+
+    # Also fill health_metrics if the latest Apple sample has data not in Garmin
+    if apple_samples:
+        latest = apple_samples[0]  # already sorted desc
+        existing_keys = {m["key"] for m in health_metrics}
+        if latest.hrv_sdnn is not None and "hrv" not in existing_keys:
+            health_metrics.append({
+                "key": "hrv", "label": "HRV noche",
+                "value": str(int(latest.hrv_sdnn)),
+                "detail": "Apple Watch (SDNN)",
+            })
+        if latest.resting_hr is not None and "resting_hr" not in existing_keys:
+            health_metrics.append({
+                "key": "resting_hr", "label": "Frecuencia en reposo",
+                "value": str(latest.resting_hr),
+                "detail": "Apple Watch",
+            })
+        if latest.spo2 is not None and "spo2" not in existing_keys:
+            health_metrics.append({
+                "key": "spo2", "label": "SpO2",
+                "value": f"{latest.spo2:.0f}%",
+                "detail": "Apple Watch",
+            })
+        if latest.vo2max is not None:
+            # Always prefer Apple VO2max if available (direct measurement)
+            health_metrics = [m for m in health_metrics if m["key"] != "vo2max_apple"]
+            health_metrics.append({
+                "key": "vo2max_apple", "label": "VO2max (Apple)",
+                "value": f"{latest.vo2max:.1f}",
+                "detail": "Estimación Apple Watch",
+            })
+
+    return health_days, health_metrics
 
 
 def _humanize_metric_label(value: Any) -> str | None:

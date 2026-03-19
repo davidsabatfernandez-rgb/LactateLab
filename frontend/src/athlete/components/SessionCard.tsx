@@ -1,10 +1,21 @@
+import { useState } from "react";
 import type { PlanningPlannedSession, ActualPerformance } from "../../types";
 import { formatDurationMin, disciplineLabel } from "../utils/formatters";
+import { isWorkoutKitSupported, previewWorkout, sessionToWatchWorkout } from "../../lib/workoutkit";
+import type { WatchWorkout } from "../../lib/workoutkit";
 
 type SessionCardProps = {
   session: PlanningPlannedSession;
   expanded?: boolean;
   onToggle?: () => void;
+  thresholds?: {
+    lt1_pace_s_per_km?: number;
+    lt2_pace_s_per_km?: number;
+    lt1_hr?: number;
+    lt2_hr?: number;
+    lt1_power?: number;
+    lt2_power?: number;
+  };
 };
 
 function formatPace(sPerkm: number): string {
@@ -75,7 +86,20 @@ function CoachFeedbackCard({ feedback, rating, feedbackAt }: { feedback: string;
   );
 }
 
-export function SessionCard({ session, expanded, onToggle }: SessionCardProps) {
+export function SessionCard({ session, expanded, onToggle, thresholds }: SessionCardProps) {
+  const [watchSyncing, setWatchSyncing] = useState(false);
+  const [watchSynced, setWatchSynced] = useState(false);
+
+  const handleSendToWatch = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!thresholds) return;
+    const workout = sessionToWatchWorkout(session, thresholds);
+    if (!workout) return;
+    setWatchSyncing(true);
+    const ok = await previewWorkout(workout);
+    setWatchSyncing(false);
+    if (ok) setWatchSynced(true);
+  };
   const roleClass = session.session_role === "KEY" ? "key" : session.session_role === "SUPPORT" ? "support" : "long";
   const durationMin = typeof session.payload?.total_duration_min === "number" ? session.payload.total_duration_min as number : null;
   const execStatus = session.execution_status || "planned";
@@ -152,6 +176,17 @@ export function SessionCard({ session, expanded, onToggle }: SessionCardProps) {
               rating={session.execution_rating}
               feedbackAt={session.coach_feedback_at}
             />
+          )}
+
+          {/* Send to Apple Watch */}
+          {!isCompleted && !isPastAndMissed && thresholds && (
+            <button
+              className={`ath-watch-sync-btn ${watchSynced ? "synced" : ""}`}
+              onClick={handleSendToWatch}
+              disabled={watchSyncing || watchSynced}
+            >
+              {watchSyncing ? "Enviando..." : watchSynced ? "Enviado al Watch" : "Enviar al Apple Watch"}
+            </button>
           )}
         </div>
       )}

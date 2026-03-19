@@ -56,6 +56,9 @@ class Athlete(Base):
     gcal_refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     gcal_token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     gcal_connected_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    apple_health_connected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    """Whether the athlete has granted HealthKit permissions in the iOS app."""
+    apple_health_last_sync_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[date] = mapped_column(Date)
     coach_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
 

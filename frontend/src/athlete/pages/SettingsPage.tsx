@@ -51,8 +51,11 @@ export function SettingsPage() {
   const [garminStep, setGarminStep] = useState<"idle" | "connecting" | "mfa" | "success" | "error">("idle");
   const [garminError, setGarminError] = useState<string | null>(null);
 
-  // Apple Watch
-  const [appleStep, setAppleStep] = useState<"idle" | "info">("idle");
+  // Apple Health
+  const appleHealthConnected = data.health?.providers?.find((p: any) => p.provider === "apple_health")?.connected ?? false;
+  const appleLastSync = data.health?.providers?.find((p: any) => p.provider === "apple_health")?.last_sync_at ?? null;
+  const [appleStep, setAppleStep] = useState<"idle" | "connecting" | "connected" | "info" | "error">(appleHealthConnected ? "connected" : "idle");
+  const [appleError, setAppleError] = useState<string | null>(null);
 
   // Metric toggles
   const [metrics, setMetrics] = useState<MetricToggle[]>(DEFAULT_METRICS);
@@ -219,7 +222,7 @@ export function SettingsPage() {
           )}
         </div>
 
-        {/* ── Apple Watch ─────────────────────────── */}
+        {/* ── Apple Health ─────────────────────────── */}
         <div className="ath-device-card">
           <div className="ath-device-header">
             <div className="ath-device-logo apple">
@@ -228,50 +231,94 @@ export function SettingsPage() {
               </svg>
             </div>
             <div className="ath-device-info">
-              <strong>Apple Watch</strong>
-              <span className="ath-device-status">Próximamente</span>
+              <strong>Apple Health</strong>
+              <span className={`ath-device-status ${appleHealthConnected ? "connected" : ""}`}>
+                {appleHealthConnected ? "Conectado" : "No conectado"}
+              </span>
+              {appleHealthConnected && appleLastSync && (
+                <span className="ath-device-sync-time">{formatLastSync(appleLastSync)}</span>
+              )}
             </div>
           </div>
 
-          {appleStep === "idle" && (
+          {!appleHealthConnected && appleStep === "idle" && (
             <div className="ath-device-apple-cta">
               <button
                 type="button"
                 className="ath-settings-connect-btn apple"
-                onClick={() => setAppleStep("info")}
+                onClick={async () => {
+                  setAppleStep("connecting");
+                  setAppleError(null);
+                  try {
+                    const { isAvailable, requestAuthorization, readHealthData } = await import("../../lib/healthkit");
+                    if (!(await isAvailable())) {
+                      setAppleError("Apple Health no esta disponible en este dispositivo. Necesitas un iPhone con la app instalada.");
+                      setAppleStep("error");
+                      return;
+                    }
+                    const granted = await requestAuthorization();
+                    if (!granted) {
+                      setAppleError("No se otorgaron permisos. Ve a Ajustes > Salud > Acceso a datos para habilitarlos.");
+                      setAppleStep("error");
+                      return;
+                    }
+                    const samples = await readHealthData(7);
+                    if (samples.length > 0 && data.user?.athlete_id) {
+                      await api.appleHealthSync(data.token, data.user.athlete_id, samples);
+                    }
+                    setAppleStep("connected");
+                    data.refreshHealth();
+                  } catch (e: any) {
+                    setAppleError(e?.message ?? "Error conectando Apple Health");
+                    setAppleStep("error");
+                  }
+                }}
               >
-                Cómo conectar Apple Watch
+Conectar Apple Health
               </button>
+              <p className="ath-device-apple-hint">Se sincronizaran automaticamente: HRV, FC reposo, sueno, SpO2, pasos y mas.</p>
             </div>
           )}
 
-          {appleStep === "info" && (
+          {appleStep === "error" && (
+            <div className="ath-device-apple-cta">
+              {appleError && <p className="ath-garmin-error">{appleError}</p>}
+              <button type="button" className="ath-settings-link-btn" onClick={() => setAppleStep("idle")}>Reintentar</button>
+            </div>
+          )}
+
+          {(appleHealthConnected || appleStep === "connected") && (
             <div className="ath-device-apple-info">
-              <h4>Integración con Apple Watch</h4>
-              <p>Apple Watch sincroniza datos de salud a través de <strong>Apple HealthKit</strong>. Para que funcione:</p>
-              <ol>
-                <li><strong>Descarga nuestra app iOS</strong> (en desarrollo) — necesaria para acceder a HealthKit.</li>
-                <li>La app pedirá permisos para leer: FC reposo, HRV, sueño, SpO2, entrenamientos.</li>
-                <li>Los datos se sincronizarán automáticamente al abrir la app.</li>
-              </ol>
               <div className="ath-apple-metrics-preview">
-                <h5>Métricas disponibles desde Apple Watch</h5>
+                <h5>Metricas sincronizadas</h5>
                 <div className="ath-apple-metric-list">
                   <span className="ath-apple-metric">HRV nocturna</span>
                   <span className="ath-apple-metric">FC Reposo</span>
-                  <span className="ath-apple-metric">Sueño + fases</span>
+                  <span className="ath-apple-metric">Sueno + fases</span>
                   <span className="ath-apple-metric">SpO2</span>
-                  <span className="ath-apple-metric">Respiración</span>
-                  <span className="ath-apple-metric">Entrenamientos</span>
+                  <span className="ath-apple-metric">Respiracion</span>
+                  <span className="ath-apple-metric">VO2max</span>
                   <span className="ath-apple-metric">Pasos</span>
                   <span className="ath-apple-metric">Minutos de ejercicio</span>
                 </div>
               </div>
               <div className="ath-apple-note">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span>Algunas métricas (estrés, batería corporal, Training Effect) son exclusivas de Garmin y no están disponibles en Apple Watch.</span>
+                <span>Estres, bateria corporal y Training Effect son exclusivos de Garmin. Usamos tu HRV como proxy de estres autonomico.</span>
               </div>
-              <button type="button" className="ath-settings-link-btn" onClick={() => setAppleStep("idle")}>Entendido</button>
+              <button
+                type="button"
+                className="ath-settings-link-btn ath-settings-link-btn--danger"
+                onClick={async () => {
+                  if (data.user?.athlete_id) {
+                    await api.appleHealthDisconnect(data.token, data.user.athlete_id);
+                    setAppleStep("idle");
+                    data.refreshHealth();
+                  }
+                }}
+              >
+                Desconectar Apple Health
+              </button>
             </div>
           )}
         </div>

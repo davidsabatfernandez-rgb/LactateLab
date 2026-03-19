@@ -86,6 +86,34 @@ class AthleteHealthOverviewRead(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class AppleHealthSampleCreate(BaseModel):
+    """A single day of Apple Health data sent from the iOS app."""
+    sample_date: date
+    sleep_seconds: Optional[int] = None
+    deep_sleep_seconds: Optional[int] = None
+    rem_sleep_seconds: Optional[int] = None
+    core_sleep_seconds: Optional[int] = None
+    awake_seconds: Optional[int] = None
+    resting_hr: Optional[int] = None
+    hrv_sdnn: Optional[float] = None
+    respiration_rate: Optional[float] = None
+    spo2: Optional[float] = None
+    steps: Optional[int] = None
+    exercise_minutes: Optional[int] = None
+    active_energy_kcal: Optional[float] = None
+    vo2max: Optional[float] = None
+
+
+class AppleHealthSyncPayload(BaseModel):
+    """Batch of health samples from the iOS app."""
+    samples: list[AppleHealthSampleCreate] = Field(..., max_length=90)
+
+
+class AppleHealthSyncResult(BaseModel):
+    upserted: int
+    message: str
+
+
 class WellnessCheckInCreate(BaseModel):
     check_date: date
     fatigue: int = Field(ge=1, le=5)

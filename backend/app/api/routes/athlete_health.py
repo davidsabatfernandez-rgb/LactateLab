@@ -1,4 +1,4 @@
-from datetime import date as date_type
+from datetime import date as date_type, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -8,8 +8,16 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.athlete import Athlete
 from app.models.user import User
+from app.models.health_sample import HealthSample
+from app.models.planned_session import PlannedSession
 from app.models.wellness_checkin import WellnessCheckIn
-from app.schemas.athlete_health import AthleteHealthOverviewRead, WellnessCheckInCreate, WellnessCheckInRead
+from app.schemas.athlete_health import (
+    AppleHealthSyncPayload,
+    AppleHealthSyncResult,
+    AthleteHealthOverviewRead,
+    WellnessCheckInCreate,
+    WellnessCheckInRead,
+)
 from app.services.athlete_health import build_athlete_health_overview
 
 router = APIRouter(prefix="/athlete-health", tags=["athlete-health"])
@@ -119,6 +127,133 @@ def list_wellness_checkins(
             notes=c.notes, created_at=c.created_at, average=round(avg, 2),
         ))
     return result
+
+
+@router.post("/athletes/{athlete_id}/apple-health-sync", response_model=AppleHealthSyncResult)
+def apple_health_sync(
+    athlete_id: int,
+    payload: AppleHealthSyncPayload,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> AppleHealthSyncResult:
+    """Receive a batch of Apple Health samples from the iOS app (upsert by date)."""
+    athlete = _resolve_target_athlete(db, user, athlete_id)
+    upserted = 0
+    for sample in payload.samples:
+        existing = db.scalar(
+            select(HealthSample).where(
+                HealthSample.athlete_id == athlete.id,
+                HealthSample.sample_date == sample.sample_date,
+                HealthSample.source == "apple_health",
+            )
+        )
+        data = sample.model_dump(exclude_none=True)
+        data.pop("sample_date", None)
+        if existing:
+            for key, value in data.items():
+                setattr(existing, key, value)
+            existing.synced_at = datetime.utcnow()
+        else:
+            db.add(HealthSample(
+                athlete_id=athlete.id,
+                sample_date=sample.sample_date,
+                source="apple_health",
+                **data,
+            ))
+        upserted += 1
+    athlete.apple_health_connected = True
+    athlete.apple_health_last_sync_at = datetime.utcnow()
+    db.commit()
+    return AppleHealthSyncResult(upserted=upserted, message=f"{upserted} muestras sincronizadas")
+
+
+@router.get("/athletes/{athlete_id}/planned-workouts")
+def get_athlete_planned_workouts(
+    athlete_id: int,
+    days_ahead: int = Query(14, ge=1, le=60),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Return upcoming published workouts for the athlete (for Apple Watch sync)."""
+    from datetime import timedelta
+    athlete = _resolve_target_athlete(db, user, athlete_id)
+    today = date_type.today()
+    cutoff = today + timedelta(days=days_ahead)
+
+    sessions = db.scalars(
+        select(PlannedSession)
+        .where(
+            PlannedSession.athlete_id == athlete.id,
+            PlannedSession.scheduled_date >= today,
+            PlannedSession.scheduled_date <= cutoff,
+            PlannedSession.execution_status == "planned",
+        )
+        .order_by(PlannedSession.scheduled_date, PlannedSession.day_offset)
+    ).all()
+
+    results = []
+    for s in sessions:
+        results.append({
+            "id": s.id,
+            "scheduled_date": s.scheduled_date.isoformat(),
+            "scheduled_time": s.scheduled_time,
+            "discipline": s.discipline,
+            "session_role": s.session_role,
+            "session_family": s.session_family,
+            "public_label": s.public_label,
+            "objective": s.objective,
+            "dose_prescription": s.dose_prescription,
+            "target_mode": s.target_mode,
+            "structured_workout_payload": s.structured_workout_payload,
+            "bla_check": s.bla_check,
+            "coach_note": s.coach_note,
+            "payload": {
+                "calentamiento_min": (s.payload or {}).get("calentamiento_min"),
+                "calentamiento_template": (s.payload or {}).get("calentamiento_template"),
+                "enfriamiento_min": (s.payload or {}).get("enfriamiento_min"),
+                "enfriamiento_template": (s.payload or {}).get("enfriamiento_template"),
+                "coach_tips": (s.payload or {}).get("coach_tips"),
+            },
+        })
+    return results
+
+
+@router.post("/athletes/{athlete_id}/publish-for-watch/{session_id}")
+def publish_session_for_watch(
+    athlete_id: int,
+    session_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Mark a planned session as published for Apple Watch sync."""
+    _resolve_target_athlete(db, user, athlete_id)
+    session = db.scalar(
+        select(PlannedSession).where(
+            PlannedSession.id == session_id,
+            PlannedSession.athlete_id == athlete_id,
+        )
+    )
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Mark as published for watch
+    session.publish_status = "published"
+    session.publish_provider = "apple_watch"
+    db.commit()
+    return {"ok": True, "session_id": session_id, "publish_status": "published"}
+
+
+@router.post("/athletes/{athlete_id}/apple-health-disconnect")
+def apple_health_disconnect(
+    athlete_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    athlete = _resolve_target_athlete(db, user, athlete_id)
+    athlete.apple_health_connected = False
+    athlete.apple_health_last_sync_at = None
+    db.commit()
+    return {"ok": True}
 
 
 def _resolve_target_athlete(db: Session, user: User, athlete_id: int) -> Athlete:

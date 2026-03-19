@@ -47,6 +47,18 @@ const tabs = [
       </svg>
     ),
   },
+  {
+    id: "tests",
+    path: "/athlete/tests",
+    label: "Tests",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 20V10" />
+        <path d="M18 20V4" />
+        <path d="M6 20v-4" />
+      </svg>
+    ),
+  },
 ];
 
 // Tabs that only appear in "Más" menu on mobile, but show normally on desktop sidebar
@@ -73,18 +85,6 @@ const secondaryTabs = [
         <circle cx="12" cy="12" r="10" />
         <circle cx="12" cy="12" r="6" />
         <circle cx="12" cy="12" r="2" />
-      </svg>
-    ),
-  },
-  {
-    id: "tests",
-    path: "/athlete/tests",
-    label: "Mis Tests",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 20V10" />
-        <path d="M18 20V4" />
-        <path d="M6 20v-4" />
       </svg>
     ),
   },
@@ -189,6 +189,7 @@ export function SideNav({ fullName, onLogout, themeMode, onToggleTheme }: Props)
   const secondaryActive = secondaryTabs.some((t) => currentPath.startsWith(t.path));
 
   return (
+    <>
     <nav className="ath-side-nav">
       <div className="ath-side-nav-top">
         <span className="ath-side-nav-name">{fullName ?? "Atleta"}</span>
@@ -243,64 +244,6 @@ export function SideNav({ fullName, onLogout, themeMode, onToggleTheme }: Props)
         </button>
       </div>
 
-      {/* "Más" slide-up sheet (mobile only) */}
-      {moreOpen && (
-        <>
-          <div className="ath-more-backdrop" onClick={() => setMoreOpen(false)} />
-          <div className="ath-more-sheet">
-            <div className="ath-more-sheet-handle" />
-            {secondaryTabs.map((tab) => {
-              const active = currentPath.startsWith(tab.path);
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`ath-more-sheet-btn ${active ? "active" : ""}`}
-                  onClick={() => { setMoreOpen(false); navigate(tab.path); }}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-            {onToggleTheme && (
-              <button
-                type="button"
-                className="ath-more-sheet-btn"
-                onClick={() => { onToggleTheme(); setMoreOpen(false); }}
-              >
-                {themeMode === "dark" ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="5" />
-                    <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                    <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                  </svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                  </svg>
-                )}
-                <span>{themeMode === "dark" ? "Modo claro" : "Modo oscuro"}</span>
-              </button>
-            )}
-            <button
-              type="button"
-              className="ath-more-sheet-btn ath-more-sheet-btn--logout"
-              onClick={() => { setMoreOpen(false); onLogout(); }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              <span>Cerrar sesión</span>
-            </button>
-          </div>
-        </>
-      )}
-
       <div className="ath-side-nav-bottom">
         {onToggleTheme && (
           <button className="ath-side-nav-btn ath-theme-toggle" onClick={onToggleTheme} title={themeMode === "dark" ? "Modo claro" : "Modo oscuro"}>
@@ -330,5 +273,70 @@ export function SideNav({ fullName, onLogout, themeMode, onToggleTheme }: Props)
         </button>
       </div>
     </nav>
+
+    {/* "Más" fullscreen overlay (mobile only) — outside nav to avoid backdrop-filter containing block */}
+    {moreOpen && (
+      <div className="ath-more-overlay">
+        <div className="ath-more-overlay__header">
+          <span className="ath-more-overlay__title">Menu</span>
+          <button type="button" className="ath-more-overlay__close" onClick={() => setMoreOpen(false)}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div className="ath-more-overlay__list">
+          {secondaryTabs.map((tab) => {
+            const active = currentPath.startsWith(tab.path);
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className={`ath-more-overlay__btn ${active ? "active" : ""}`}
+                onClick={() => { setMoreOpen(false); navigate(tab.path); }}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+          {onToggleTheme && (
+            <button
+              type="button"
+              className="ath-more-overlay__btn"
+              onClick={() => { onToggleTheme(); setMoreOpen(false); }}
+            >
+              {themeMode === "dark" ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              )}
+              <span>{themeMode === "dark" ? "Modo claro" : "Modo oscuro"}</span>
+            </button>
+          )}
+        </div>
+        <div className="ath-more-overlay__footer">
+          <button
+            type="button"
+            className="ath-more-overlay__btn ath-more-overlay__btn--logout"
+            onClick={() => { setMoreOpen(false); onLogout(); }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span>Cerrar sesion</span>
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

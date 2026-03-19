@@ -320,6 +320,102 @@ export function RecoveryPage() {
         </div>
       </section>
 
+      {/* ── Derived Physiological Metrics ──────────────────── */}
+      {(data.derivedMetrics.cardiovascularAge || data.derivedMetrics.autonomicAge || data.derivedMetrics.recoveryCapacity || data.derivedMetrics.aerobicReserve) && (
+        <section className="ath-recovery-section">
+          <h2 className="ath-section-title">Tu perfil fisiologico</h2>
+          <div className="ath-derived-grid">
+            {data.derivedMetrics.cardiovascularAge && (() => {
+              const m = data.derivedMetrics.cardiovascularAge;
+              const tone = m.delta <= -5 ? "good" : m.delta <= 2 ? "mid" : "low";
+              return (
+                <div className={`ath-derived-card ath-derived-card--${tone}`}>
+                  <div className="ath-derived-card__header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span>Edad cardiovascular</span>
+                  </div>
+                  <div className="ath-derived-card__value">
+                    <span className="ath-derived-card__big">{m.fitnessAge}</span>
+                    <span className="ath-derived-card__unit">anos</span>
+                  </div>
+                  <div className="ath-derived-card__delta">
+                    {m.delta < 0 ? `${Math.abs(m.delta)} anos mas joven` : m.delta > 0 ? `${m.delta} anos mayor` : "Igual a tu edad"}
+                  </div>
+                  <p className="ath-derived-card__desc">{m.interpretation}</p>
+                  <span className="ath-derived-card__ref">VO2max: {m.vo2maxMeasured} ml/kg/min (esperado: {m.vo2maxExpected})</span>
+                  <span className="ath-derived-card__cite">{m.reference}</span>
+                </div>
+              );
+            })()}
+
+            {data.derivedMetrics.autonomicAge && (() => {
+              const m = data.derivedMetrics.autonomicAge;
+              const tone = m.delta <= -5 ? "good" : m.delta <= 2 ? "mid" : "low";
+              return (
+                <div className={`ath-derived-card ath-derived-card--${tone}`}>
+                  <div className="ath-derived-card__header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    <span>Edad autonomica</span>
+                  </div>
+                  <div className="ath-derived-card__value">
+                    <span className="ath-derived-card__big">{m.autonomicAge}</span>
+                    <span className="ath-derived-card__unit">anos</span>
+                  </div>
+                  <div className="ath-derived-card__delta">
+                    {m.delta < 0 ? `${Math.abs(m.delta)} anos mas joven` : m.delta > 0 ? `${m.delta} anos mayor` : "Igual a tu edad"}
+                  </div>
+                  <p className="ath-derived-card__desc">{m.interpretation}</p>
+                  <span className="ath-derived-card__ref">HRV: {m.sdnnMeasured} ms ({m.percentileLabel}) · Esperado: {m.sdnnExpected} ms</span>
+                  <span className="ath-derived-card__cite">{m.reference}</span>
+                </div>
+              );
+            })()}
+
+            {data.derivedMetrics.recoveryCapacity && (() => {
+              const m = data.derivedMetrics.recoveryCapacity;
+              const tone = m.score >= 70 ? "good" : m.score >= 50 ? "mid" : "low";
+              return (
+                <div className={`ath-derived-card ath-derived-card--${tone}`}>
+                  <div className="ath-derived-card__header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                    <span>Capacidad de recuperacion</span>
+                  </div>
+                  <div className="ath-derived-card__value">
+                    <span className="ath-derived-card__big">{m.score}</span>
+                    <span className="ath-derived-card__unit">/100</span>
+                  </div>
+                  <div className="ath-derived-card__delta">{m.label}</div>
+                  <p className="ath-derived-card__desc">{m.interpretation}</p>
+                  <span className="ath-derived-card__ref">CV HRV: {m.hrvCV7d}% · Rebote: {m.reboundRate}% · Media 7d: {m.hrvMean7d} ms</span>
+                  <span className="ath-derived-card__cite">{m.reference}</span>
+                </div>
+              );
+            })()}
+
+            {data.derivedMetrics.aerobicReserve && (() => {
+              const m = data.derivedMetrics.aerobicReserve;
+              const tone = m.category === "superior" || m.category === "excellent" ? "good" : m.category === "good" || m.category === "fair" ? "mid" : "low";
+              return (
+                <div className={`ath-derived-card ath-derived-card--${tone}`}>
+                  <div className="ath-derived-card__header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                    <span>Reserva aerobica</span>
+                  </div>
+                  <div className="ath-derived-card__value">
+                    <span className="ath-derived-card__big">{m.reservePct >= 0 ? "+" : ""}{m.reservePct}%</span>
+                    <span className="ath-derived-card__unit">vs media</span>
+                  </div>
+                  <div className="ath-derived-card__delta">{m.categoryLabel} · Margen: {m.roomToGrow}%</div>
+                  <p className="ath-derived-card__desc">{m.interpretation}</p>
+                  <span className="ath-derived-card__ref">VO2max: {m.vo2max} ml/kg/min · Techo edad: {m.theoreticalMax}</span>
+                  <span className="ath-derived-card__cite">{m.reference}</span>
+                </div>
+              );
+            })()}
+          </div>
+        </section>
+      )}
+
       {/* Jet Lag Assistant link */}
       <section className="ath-jetlag-link-section">
         <button type="button" className="ath-jetlag-link-btn" onClick={() => setShowJetLag(true)}>

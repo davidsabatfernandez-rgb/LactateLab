@@ -4,8 +4,11 @@ import { isNative } from "./native";
 const PRODUCTION_API = "https://lactate-lab-api.onrender.com/api";
 
 function defaultApiUrls() {
-  // Native app (Capacitor): always use production API
+  // Native app (Capacitor): use local API in dev, production otherwise
   if (isNative) {
+    if (import.meta.env.DEV) {
+      return ["http://192.168.1.42:8000/api", PRODUCTION_API];
+    }
     return [PRODUCTION_API];
   }
 
@@ -420,6 +423,21 @@ export const api = {
       }).toString()}`,
       { token },
     ),
+  appleHealthSync: (token: string, athleteId: number, samples: unknown[]) =>
+    request(`/athlete-health/athletes/${athleteId}/apple-health-sync`, {
+      token,
+      method: "POST",
+      body: JSON.stringify({ samples }),
+    }),
+  appleHealthDisconnect: (token: string, athleteId: number) =>
+    request(`/athlete-health/athletes/${athleteId}/apple-health-disconnect`, {
+      token,
+      method: "POST",
+    }),
+  athletePlannedWorkouts: (token: string, athleteId: number, daysAhead = 14) =>
+    request(`/athlete-health/athletes/${athleteId}/planned-workouts?days_ahead=${daysAhead}`, {
+      token,
+    }),
   dashboard: (token: string) => request("/analytics/dashboard", { token }),
   athletes: (token: string) => request("/athletes", { token }),
   dashboardSummary: (token: string) => request("/athletes/dashboard-summary", { token }),
@@ -649,6 +667,11 @@ export const api = {
     }),
   pushWorkoutToGarmin: (token: string, athleteId: number, sessionId: number) =>
     request(`/garmin/athletes/${athleteId}/push-workout/${sessionId}`, {
+      token,
+      method: "POST",
+    }),
+  publishSessionForWatch: (token: string, athleteId: number, sessionId: number) =>
+    request(`/athlete-health/athletes/${athleteId}/publish-for-watch/${sessionId}`, {
       token,
       method: "POST",
     }),
