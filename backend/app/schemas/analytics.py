@@ -214,6 +214,7 @@ class DisciplineAnalysisRead(BaseModel):
     measured_vlamax: Optional[dict] = None
     target_curve: Optional[dict] = None
     level_suggestion: Optional[LevelSuggestionRead] = None
+    curve_insights: Optional[dict] = None
 
 
 class SessionAnalysisRead(BaseModel):
@@ -231,6 +232,7 @@ class SessionAnalysisRead(BaseModel):
     measured_vlamax: Optional[dict] = None
     real_thresholds: Optional[RealThresholdsRead] = None
     individual_thresholds: Optional[IndividualThresholdsRead] = None
+    curve_insights: Optional[dict] = None
 
 
 class AthleteAnalysisRead(BaseModel):

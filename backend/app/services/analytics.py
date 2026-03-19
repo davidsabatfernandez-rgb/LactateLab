@@ -14,6 +14,7 @@ from app.models.metrics import DerivedMetric, PerformanceEstimate, Physiological
 from app.models.session import Session as AthleteSession, SessionInterval
 from app.services.dynamic_threshold_engine import build_dynamic_threshold_payload, config_from_settings, _accumulated_fatigue_penalty
 from app.services.prediction_engine import build_performance_estimates
+from app.services.curve_insights import compute_curve_insights
 
 
 def _json_safe(obj: Any) -> Any:
@@ -2374,6 +2375,9 @@ def _discipline_view(
             "scores": suggestion.scores,
         }
 
+    # ── Curve Insights from latest snapshot ──────────────────────────────
+    payload["curve_insights"] = (latest_snapshot.payload or {}).get("curve_insights") if latest_snapshot else None
+
     return payload
 
 
@@ -2576,6 +2580,40 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
             discipline=session.discipline,
             power_source=_normalized_power_source(session),
         )
+        # ── Curve Insights (fuel profile, glycogen, trainability, alerts) ────
+        _ci_lt1_t = next((t for t in analysis["thresholds"] if t.get("name") == "LT1"), None)
+        _ci_lt2_t = next((t for t in analysis["thresholds"] if t.get("name") == "LT2"), None)
+        _ci_lt1_lac = _ci_lt1_t.get("lactate") if _ci_lt1_t else None
+        _ci_lt2_lac = _ci_lt2_t.get("lactate") if _ci_lt2_t else None
+        _ci_vlamax = "moderate"
+        if _ci_lt1_lac and _ci_lt2_lac and _ci_lt2_lac > 0:
+            _ci_ratio = _ci_lt1_lac / _ci_lt2_lac
+            if _ci_ratio > 0.87:
+                _ci_vlamax = "low"
+            elif _ci_ratio < 0.79:
+                _ci_vlamax = "high"
+
+        # Find previous snapshot for comparison
+        _ci_prev_payload = None
+        _ci_days_since = None
+        _ci_same_disc_snaps = [
+            s for s in prior_snapshots
+            if s.discipline == session.discipline
+            and s.power_source != "interpolated_from_running"
+            and s.session_id != session.id
+        ]
+        if _ci_same_disc_snaps:
+            _ci_prev = _ci_same_disc_snaps[-1]
+            _ci_prev_payload = _ci_prev.payload
+            _ci_days_since = (session.performed_at.date() - _ci_prev.snapshot_date).days
+
+        analysis["curve_insights"] = compute_curve_insights(
+            analysis=analysis,
+            previous_snapshot_payload=_ci_prev_payload,
+            days_since_previous=_ci_days_since,
+            vlamax_level=_ci_vlamax,
+        )
+
         thresholds = [_threshold_result_from_payload(item) for item in analysis["thresholds"]]
         snapshot = PhysiologicalSnapshot(
             athlete_id=athlete.id,

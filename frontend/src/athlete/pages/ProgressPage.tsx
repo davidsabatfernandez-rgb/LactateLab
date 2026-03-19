@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar, Cell } from "recharts";
 import { useAthleteData } from "../context/AthleteDataContext";
+import { useExplainer } from "../explainer/MetricExplainerContext";
 import { SimpleLactateCurve } from "../components/SimpleLactateCurve";
 import { MicroContent } from "../components/MicroContent";
 import { disciplineLabel, formatTrendValue, formatPace, formatEstimateValue, formatSecondsToClock } from "../utils/formatters";
@@ -46,6 +47,7 @@ function volumeChange(weeklyVolume: Array<Record<string, any>>, discipline: stri
 
 export function ProgressPage() {
   const data = useAthleteData();
+  const { openExplainer } = useExplainer();
   const activeBlock = data.analysis?.active_focus_block;
   const snapshots = data.disciplineSnapshots;
   const selectedSnapshot = data.selectedSnapshot;
@@ -130,41 +132,41 @@ export function ProgressPage() {
 
   return (
     <div className="ath-page ath-progress">
-      {/* Discipline selector */}
+      {/* Discipline selector — always show all main disciplines */}
       <div className="ath-discipline-pills">
-        {snapshots.map((snap) => (
+        {(["running", "ciclismo", "natación"] as const).map((disc) => (
           <button
-            key={snap.discipline}
+            key={disc}
             type="button"
-            className={`ath-pill ${data.selectedDiscipline === snap.discipline ? "active" : ""}`}
-            onClick={() => data.setSelectedDiscipline(snap.discipline)}
+            className={`ath-pill ${data.selectedDiscipline === disc ? "active" : ""}`}
+            onClick={() => data.setSelectedDiscipline(disc)}
           >
-            {disciplineLabel(snap.discipline)}
+            {disciplineLabel(disc)}
           </button>
         ))}
       </div>
 
       {/* ── Engagement Stats Row ───────────────────────── */}
       <div className="ath-engagement-row">
-        <div className="ath-engagement-stat">
+        <button type="button" className="ath-engagement-stat" onClick={() => openExplainer("training_streak", undefined, weekStreak)}>
           <span className="ath-engagement-value">{weekStreak}</span>
           <span className="ath-engagement-label">semanas seguidas</span>
           {weekStreak >= 4 && <span className="ath-engagement-badge">Racha</span>}
-        </div>
-        <div className="ath-engagement-stat">
+        </button>
+        <button type="button" className="ath-engagement-stat" onClick={() => openExplainer("training_consistency", undefined, consistency)}>
           <span className="ath-engagement-value">{consistency}%</span>
           <span className="ath-engagement-label">consistencia</span>
-        </div>
-        <div className="ath-engagement-stat">
+        </button>
+        <button type="button" className="ath-engagement-stat" onClick={() => openExplainer("volume_change", undefined, volChange.direction === "down" ? -volChange.pct : volChange.pct)}>
           <span className={`ath-engagement-value ${volChange.direction === "up" ? "up" : volChange.direction === "down" ? "down" : ""}`}>
             {volChange.direction === "up" ? "+" : volChange.direction === "down" ? "-" : ""}{volChange.pct}%
           </span>
           <span className="ath-engagement-label">vol. vs sem. anterior</span>
-        </div>
-        <div className="ath-engagement-stat">
+        </button>
+        <button type="button" className="ath-engagement-stat" onClick={() => openExplainer("sessions_month", undefined, data.monthlyTotal)}>
           <span className="ath-engagement-value">{data.monthlyTotal}</span>
           <span className="ath-engagement-label">sesiones / mes</span>
-        </div>
+        </button>
       </div>
 
       {/* ── Active Block by Discipline ─────────────────── */}

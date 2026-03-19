@@ -7,6 +7,7 @@ import { TimeRangeSelector, type TimeRange } from "../../components/athlete/Time
 import { InsightCard } from "../../components/athlete/InsightCard";
 import JetLagAssistant from "../components/JetLagAssistant";
 import MetricCompareModal from "../components/MetricCompareModal";
+import { useExplainer } from "../explainer/MetricExplainerContext";
 import { averageNumericSeries, stressLabel, restingHrLabel } from "../utils/wellness";
 import { formatDate } from "../utils/formatters";
 import { computeReadinessBreakdown, type ReadinessContributor } from "../utils/readiness";
@@ -37,6 +38,7 @@ function renderWellnessTooltip(
 
 export function RecoveryPage() {
   const data = useAthleteData();
+  const { openExplainer } = useExplainer();
   const [openDrawer, setOpenDrawer] = useState<"sleep" | "hrv" | "rhr" | "stress" | null>(null);
   const [trendRange, setTrendRange] = useState<TimeRange>("7d");
   const [showJetLag, setShowJetLag] = useState(false);
@@ -140,10 +142,14 @@ export function RecoveryPage() {
     <div className="ath-page ath-recovery">
       {/* Rings row — click main ring to toggle breakdown */}
       <div className="ath-recovery-rings">
-        <div style={{ cursor: "pointer" }} onClick={() => setShowReadinessBreakdown((p) => !p)}>
-          <ReadinessRing score={data.readiness.score} label={data.readiness.label} tone={data.readiness.tone} title="Predisposición" size="large" />
-        </div>
-        <ReadinessRing score={data.trainingStatus.score} label={data.trainingStatus.label} tone={data.trainingStatus.tone} title="Estado" size="small" />
+        <button type="button" className="ath-hero-ring-btn" onClick={() => openExplainer("readiness")}>
+          <div style={{ cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); setShowReadinessBreakdown((p) => !p); }}>
+            <ReadinessRing score={data.readiness.score} label={data.readiness.label} tone={data.readiness.tone} title="Predisposición" size="large" />
+          </div>
+        </button>
+        <button type="button" className="ath-hero-ring-btn" onClick={() => openExplainer("training_status")}>
+          <ReadinessRing score={data.trainingStatus.score} label={data.trainingStatus.label} tone={data.trainingStatus.tone} title="Estado" size="small" />
+        </button>
       </div>
 
       {/* ── Readiness Breakdown (Halson 2014, Buchheit 2014) ──── */}
@@ -171,7 +177,7 @@ export function RecoveryPage() {
       )}
 
       {/* Balance bar */}
-      <div className="ath-balance-section">
+      <div className="ath-balance-section" onClick={() => openExplainer("training_load")} style={{ cursor: "pointer" }}>
         <span className="ath-balance-label">{data.balanceLbl}</span>
         <div className="ath-balance-bar">
           <div className="ath-balance-marker" style={{ left: `${data.balancePos}%` }} />
@@ -184,7 +190,7 @@ export function RecoveryPage() {
 
       {/* Metric cards — tap opens drawer, compare icon opens comparison modal */}
       <div className="ath-recovery-metrics">
-        <button type="button" className="ath-metric-card" onClick={() => setOpenDrawer("hrv")}>
+        <button type="button" className="ath-metric-card" onClick={() => openExplainer("hrv")}>
           <small>HRV nocturna</small>
           <strong>{typeof data.currentHrv === "number" ? `${data.currentHrv.toFixed(0)} ms` : "n/d"}</strong>
           <span className={`ath-metric-status ${data.currentHrvTone}`}>{data.currentHrvStatus}</span>
@@ -192,7 +198,7 @@ export function RecoveryPage() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
           </span>
         </button>
-        <button type="button" className="ath-metric-card" onClick={() => setOpenDrawer("sleep")}>
+        <button type="button" className="ath-metric-card" onClick={() => openExplainer("sleep")}>
           <small>Sueño</small>
           <strong>{data.currentSleepHours !== null ? `${data.currentSleepHours.toFixed(1)}h` : "n/d"}</strong>
           <span className="ath-metric-status">{data.recoveryScore !== null ? `Score: ${data.recoveryScore}` : ""}</span>
@@ -200,7 +206,7 @@ export function RecoveryPage() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
           </span>
         </button>
-        <button type="button" className="ath-metric-card" onClick={() => setOpenDrawer("rhr")}>
+        <button type="button" className="ath-metric-card" onClick={() => openExplainer("resting_hr")}>
           <small>FC Reposo</small>
           <strong>{typeof data.currentRestingHr === "number" ? `${Math.round(data.currentRestingHr)} bpm` : "n/d"}</strong>
           <span className="ath-metric-status">{restingHrLabel(data.currentRestingHr, data.restingHrAverage)}</span>
@@ -208,7 +214,7 @@ export function RecoveryPage() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
           </span>
         </button>
-        <button type="button" className="ath-metric-card" onClick={() => setOpenDrawer("stress")}>
+        <button type="button" className="ath-metric-card" onClick={() => openExplainer("stress")}>
           <small>Estrés</small>
           <strong>{typeof data.currentStress === "number" ? `${Math.round(data.currentStress)}` : "n/d"}</strong>
           <span className="ath-metric-status">{stressLabel(data.currentStress)}</span>

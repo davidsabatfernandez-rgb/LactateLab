@@ -276,13 +276,12 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
     [analysis?.discipline_views],
   );
 
-  // Auto-select discipline
+  // Auto-select discipline only on first load (don't override user choice)
   useEffect(() => {
+    if (selectedDiscipline) return; // user already chose
     if (!disciplineSnapshots.length) return;
-    if (!disciplineSnapshots.some((s) => s.discipline === selectedDiscipline)) {
-      const activeBlock = analysis?.active_focus_block;
-      setSelectedDiscipline(activeBlock?.priority_discipline || analysis?.athlete?.primary_discipline || disciplineSnapshots[0]?.discipline || "running");
-    }
+    const activeBlock = analysis?.active_focus_block;
+    setSelectedDiscipline(activeBlock?.priority_discipline || analysis?.athlete?.primary_discipline || disciplineSnapshots[0]?.discipline || "running");
   }, [disciplineSnapshots, selectedDiscipline, analysis]);
 
   const selectedSnapshot = useMemo(

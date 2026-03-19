@@ -765,6 +765,154 @@ function LactateOverlay({ sessionId, onCreated, onClose }: { sessionId: number; 
   );
 }
 
+/* ══════════════════════════════════════════════════════════════
+   TEST CONSIDERATIONS — Practical guidelines from Lactate.com course
+   ══════════════════════════════════════════════════════════════ */
+
+type ConsiderationSection = {
+  icon: string;
+  title: string;
+  items: string[];
+};
+
+const CONSIDERATION_SECTIONS: ConsiderationSection[] = [
+  {
+    icon: "🎯",
+    title: "Objetivo del test",
+    items: [
+      "El test de lactato mide el desarrollo de tus sistemas energéticos: aeróbico (VO2max) y anaeróbico (VLamax). No es solo un número de umbral — es un perfil completo de tu condicionamiento.",
+      "La curva de lactato revela tres cosas clave: la resistencia aeróbica (velocidad a 4 mmol), la capacidad anaeróbica (lactato máximo) y la pendiente de la curva (interacción entre ambos sistemas). Cuanto más plana sea la curva, mejor.",
+      "Olbrecht llama a este proceso el \"Steering Principle\": medir → evaluar → planificar → entrenar → repetir. Cada test te acerca a tu peak performance.",
+    ],
+  },
+  {
+    icon: "📋",
+    title: "Antes del test",
+    items: [
+      "Hazlo después de 1-2 días de descanso o actividad ligera — nunca después de un entreno intenso. Las semanas de descarga son ideales.",
+      "No hagas entrenos de alta intensidad ni pesas el día anterior ni el mismo día del test.",
+      "Asegúrate de haber comido carbohidratos suficientes ese día. No hagas el test en ayunas ni tras una dieta baja en carbs.",
+      "Evita el café y bebidas con cafeína el día del test — la cafeína altera la respuesta de lactato.",
+      "Apunta las condiciones: temperatura, hora del día, estado de fatiga, último entreno duro. Para comparar tests futuros, intenta replicar las mismas condiciones.",
+    ],
+  },
+  {
+    icon: "🏃",
+    title: "Protocolo running",
+    items: [
+      "Usa escalones largos: mínimo 4-5 minutos por paso. El lactato tarda >5 min en estabilizarse en sangre. Los protocolos cortos (3 min) subestiman el valor real.",
+      "Empieza suave (ritmo de calentamiento) y sube progresivamente. El primer paso debe generar lactato <2 mmol.",
+      "Para la parte aeróbica: 2-4 pasos incrementales. Detente cuando superes 4 mmol. No hace falta llegar al agotamiento.",
+      "Toma la muestra de lactato 30-60 segundos después de cada paso. La muestra a 1 minuto post-esfuerzo es estándar.",
+      "Si el primer paso ya da >2 mmol, repítelo más lento. Necesitas al menos 1-2 puntos por debajo de LT1 para una curva fiable.",
+      "Mantén los splits lo más regulares posible dentro de cada paso. Variación en ritmo = ruido en la curva.",
+    ],
+  },
+  {
+    icon: "🚴",
+    title: "Protocolo ciclismo",
+    items: [
+      "Usa rodillo o un tramo plano sin semáforos. La potencia constante es clave — más fácil de controlar que el ritmo en running.",
+      "Escalones de 4-5 minutos subiendo 20-30W por paso. Empieza al 50-60% de tu FTP estimado.",
+      "Registra potencia media Y frecuencia cardíaca de cada paso. Ambos son necesarios para la interpretación completa.",
+      "Para ciclismo indoor: mantén la cadencia constante (85-95 rpm) en todos los pasos.",
+    ],
+  },
+  {
+    icon: "🏊",
+    title: "Protocolo natación",
+    items: [
+      "Standard Lactate Test Procedure (SLTP): 2×400m crol. El primero 30-35\" más lento que tu mejor marca, el segundo 15-20\" más lento. 15 min entre ambos.",
+      "Cada serie: mantén parciales lo más uniformes posible. La irregularidad en el ritmo genera lactato extra por cambios de intensidad.",
+      "Toma muestra a 1 min y 3 min post-serie. Si la lectura a 3 min es mayor que a 1 min, toma una tercera. Usa la más alta.",
+      "El primer nado debe dar >2.5 mmol y el segundo >4.0 mmol. Si el primero da <2.0, repítelo más rápido.",
+      "Para capacidad anaeróbica: 1×100m all-out en tu estilo principal. Toma lactato a 3 y 5 min, luego cada 2 min hasta que baje.",
+      "Usa push-off en vez de salida con salto, a menos que siempre vayas a usar salto en todos los tests futuros. La consistencia es clave.",
+      "Recuperación entre nados: 5-7 min nadando suave.",
+    ],
+  },
+  {
+    icon: "⚠️",
+    title: "Errores comunes",
+    items: [
+      "Pasos demasiado cortos (<4 min): el lactato no se estabiliza y los valores son artificialmente bajos. Es el error más frecuente.",
+      "Empezar demasiado rápido: si ya estás a 3-4 mmol en el primer paso, no tienes referencia de baseline y la curva pierde información.",
+      "Hacer el test fatigado: después de un microciclo de carga o una competición. Los umbrales aparecerán peor de lo real.",
+      "Comparar tests en condiciones diferentes: calor vs frío, mañana vs noche, rodillo vs carretera, descansado vs fatigado.",
+      "No registrar FC: sin frecuencia cardíaca, pierdes la capacidad de cruzar datos y validar el test.",
+      "Intentar llegar al agotamiento total: no es necesario para medir umbrales. Solo necesitas superar 4 mmol para la parte aeróbica.",
+    ],
+  },
+  {
+    icon: "🔄",
+    title: "Consistencia entre tests",
+    items: [
+      "Para que los tests sean comparables, repite exactamente las mismas condiciones: misma hora, misma comida previa, mismo calentamiento, mismo lugar.",
+      "Usa el mismo analizador de lactato. Distintos aparatos pueden dar lecturas ligeramente diferentes.",
+      "Testea cada 4-6 semanas durante el ciclo de entrenamiento. Más frecuente no aporta información útil; menos frecuente pierde la evolución.",
+      "No cambies el protocolo entre tests de la misma disciplina. Si usas pasos de 5 min, mantén 5 min en todos.",
+      "Los cambios reales en umbrales tardan 3-4 semanas de entrenamiento consistente en manifestarse. No esperes cambios de una semana a otra.",
+    ],
+  },
+  {
+    icon: "🧠",
+    title: "Interpretación",
+    items: [
+      "El lactato NO es un producto de desecho. Es incoloro, inodoro e inocuo. Es un combustible que tu sistema aeróbico utiliza.",
+      "Una curva más plana = mejor equilibrio entre sistemas. Significa que tu sistema aeróbico absorbe bien el lactato producido por el anaeróbico.",
+      "Si el LT2 sube (más rápido al mismo lactato) pero el lactato máximo baja → tu sistema anaeróbico se está reduciendo. Bien para distancia, mal para velocidad.",
+      "Si ambos suben → mejora general. El escenario ideal para cualquier atleta de resistencia.",
+      "Dos atletas con el mismo umbral pueden necesitar entrenamientos completamente diferentes. Lo que importa es qué combinación de VO2max y VLamax produce ese umbral.",
+      "El \"Steering Process\" de Olbrecht: test → evaluar resultado → ajustar plan → entrenar → re-testar. Es un ciclo continuo hacia tu peak performance.",
+    ],
+  },
+];
+
+function TestConsiderations() {
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+
+  return (
+    <div className="ath-tests-considerations">
+      <h3 className="ath-tests-considerations__title">Consideraciones para tests</h3>
+      <p className="ath-tests-considerations__subtitle">
+        Guía práctica basada en el curso de Lactate.com y los principios de Jan Olbrecht
+      </p>
+      <div className="ath-tests-considerations__list">
+        {CONSIDERATION_SECTIONS.map((sec, i) => {
+          const isOpen = openIdx === i;
+          return (
+            <div key={i} className={`ath-tests-consideration ${isOpen ? "ath-tests-consideration--open" : ""}`}>
+              <button
+                type="button"
+                className="ath-tests-consideration__header"
+                onClick={() => setOpenIdx(isOpen ? null : i)}
+              >
+                <span className="ath-tests-consideration__icon">{sec.icon}</span>
+                <span className="ath-tests-consideration__title-text">{sec.title}</span>
+                <svg
+                  className="ath-tests-consideration__chevron"
+                  width="16" height="16" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" strokeWidth="2"
+                  strokeLinecap="round" strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {isOpen && (
+                <ul className="ath-tests-consideration__body">
+                  {sec.items.map((item, j) => (
+                    <li key={j}>{item}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── Format dynamic reference value ── */
 function formatRef(ref: DynamicReference | null | undefined, discipline: string): string {
   if (!ref) return "--";
@@ -911,6 +1059,8 @@ export function MyTestsPage() {
       </div>
 
       <CurrentThresholds disciplineViews={analysis?.discipline_views ?? {}} />
+
+      <TestConsiderations />
 
       {showForm && <ManualTestForm onCreated={handleCreated} />}
 

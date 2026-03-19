@@ -7,7 +7,7 @@ import { formatDurationMin, disciplineLabel } from "../utils/formatters";
 import { buildWeeklyVolumeByDiscipline, allSessionsDeduped } from "../utils/training";
 import { detectLoadSpikes, type LoadSpikeWarning } from "../utils/readiness";
 import { resolveTrainingThreshold, type ResolvedTrainingThreshold } from "../../lib/trainingThresholds";
-import type { AthleteHealthActivity, GarminActivity, PlanningPlannedSession, WorkoutDefinition, WorkoutStep } from "../../types";
+import type { AthleteHealthActivity, GarminActivity, PlanningPlannedSession, TrainingZoneItem, TrainingZoneSet, WorkoutDefinition, WorkoutStep, WorkoutTarget } from "../../types";
 import { WorkoutStepEditor } from "../../components/WorkoutStepEditor";
 import { buildDemoActivity } from "../utils/demoActivity";
 import { api } from "../../lib/api";
@@ -702,13 +702,27 @@ export function WeekPage() {
 type WorkoutBlock = {
   id: number;
   type: "warmup" | "main" | "intervals" | "recovery" | "cooldown";
+  lengthMode: "time" | "distance";
   durationMin: number;
-  zone: number;
+  distanceM: number;
+  zoneIdx: number; // index into loaded zones array
   reps: number;
   restMin: number;
-  pace?: string;       // "4:30" min:sec/km or min:sec/100m
-  distanceM?: number;  // meters
-  powerW?: number;     // watts
+  pace?: string;
+  powerW?: number;
+  hrTarget?: number;
+};
+
+type LoadedZone = {
+  idx: number;
+  label: string;
+  color: string;
+  hr_lower?: number | null;
+  hr_upper?: number | null;
+  pace_lower_seconds?: number | null;
+  pace_upper_seconds?: number | null;
+  power_lower?: number | null;
+  power_upper?: number | null;
 };
 
 const BLOCK_LABELS: Record<string, string> = {
@@ -721,13 +735,29 @@ const BLOCK_COLORS: Record<string, string> = {
   recovery: "#8B5CF6", cooldown: "#3B82F6",
 };
 
-const ZONE_COLORS = ["", "#94A3B8", "#10B981", "#F59E0B", "#EF4444", "#DC2626"];
+const DEFAULT_ZONE_COLORS = ["#94A3B8", "#60A5FA", "#10B981", "#84CC16", "#F59E0B", "#EF4444", "#DC2626", "#7C3AED"];
+
+const DEFAULT_ZONES: LoadedZone[] = [
+  { idx: 0, label: "REC", color: "#94A3B8" },
+  { idx: 1, label: "BASE", color: "#60A5FA" },
+  { idx: 2, label: "LT1", color: "#10B981" },
+  { idx: 3, label: "SUB-T", color: "#84CC16" },
+  { idx: 4, label: "LT2", color: "#F59E0B" },
+  { idx: 5, label: "VO2", color: "#EF4444" },
+  { idx: 6, label: "ANC", color: "#DC2626" },
+];
 
 const DISCIPLINE_OPTIONS: { key: string; label: string; icon: string }[] = [
   { key: "carrera", label: "Carrera", icon: "🏃" },
   { key: "ciclismo", label: "Ciclismo", icon: "🚴" },
   { key: "natación", label: "Natación", icon: "🏊" },
 ];
+
+function formatPaceSec(totalSec: number): string {
+  const m = Math.floor(totalSec / 60);
+  const s = Math.round(totalSec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 type BuilderProps = {
   calendarWeek: Array<{ date: Date; iso: string; label: string; dayNum: number }>;
@@ -737,6 +767,7 @@ type BuilderProps = {
 };
 
 function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: BuilderProps) {
+  const data = useAthleteData();
   const [step, setStep] = useState<"discipline" | "blocks" | "editor" | "done">("discipline");
   const [discipline, setDiscipline] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -745,29 +776,60 @@ function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: Bui
   const [nextId, setNextId] = useState(1);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [editorWorkout, setEditorWorkout] = useState<WorkoutDefinition | null>(null);
+  const [zones, setZones] = useState<LoadedZone[]>(DEFAULT_ZONES);
+  const [zonesLoading, setZonesLoading] = useState(false);
 
   const totalMin = blocks.reduce((sum, b) => {
     if (b.type === "intervals") return sum + b.reps * (b.durationMin + b.restMin);
     return sum + b.durationMin;
   }, 0);
 
-  function selectDiscipline(d: string) {
+  async function selectDiscipline(d: string) {
     setDiscipline(d);
     setBlocks([
-      { id: 1, type: "warmup", durationMin: 10, zone: 1, reps: 1, restMin: 0 },
-      { id: 2, type: "cooldown", durationMin: 5, zone: 1, reps: 1, restMin: 0 },
+      { id: 1, type: "warmup", lengthMode: "time", durationMin: 10, distanceM: 0, zoneIdx: 0, reps: 1, restMin: 0 },
+      { id: 2, type: "cooldown", lengthMode: "time", durationMin: 5, distanceM: 0, zoneIdx: 0, reps: 1, restMin: 0 },
     ]);
     setNextId(3);
     setStep("blocks");
+
+    // Load athlete's real zones
+    const discMap: Record<string, string> = { carrera: "running", ciclismo: "ciclismo", natación: "natación" };
+    const apiDisc = discMap[d] ?? d;
+    setZonesLoading(true);
+    try {
+      const result = await api.activeTrainingZoneSet(data.token, data.user.athlete_id ?? data.user.id, apiDisc) as TrainingZoneSet;
+      if (result?.zones?.length) {
+        const loaded: LoadedZone[] = result.zones
+          .sort((a: { zone_number: number }, b: { zone_number: number }) => a.zone_number - b.zone_number)
+          .map((z: TrainingZoneItem, i: number) => ({
+            idx: i,
+            label: z.zone_label,
+            color: z.zone_color ?? DEFAULT_ZONE_COLORS[i % DEFAULT_ZONE_COLORS.length],
+            hr_lower: z.hr_lower, hr_upper: z.hr_upper,
+            pace_lower_seconds: z.pace_lower_seconds, pace_upper_seconds: z.pace_upper_seconds,
+            power_lower: z.power_lower, power_upper: z.power_upper,
+          }));
+        setZones(loaded);
+      }
+    } catch {
+      // Keep default zones if API fails
+    } finally {
+      setZonesLoading(false);
+    }
   }
 
   function addBlock(type: WorkoutBlock["type"]) {
+    const defaultZone = type === "intervals" ? Math.min(4, zones.length - 1) : type === "main" ? Math.min(2, zones.length - 1) : 0;
     const newBlock: WorkoutBlock = {
-      id: nextId, type,
+      id: nextId, type, lengthMode: "time",
       durationMin: type === "warmup" || type === "cooldown" ? 10 : type === "intervals" ? 3 : 20,
-      zone: type === "intervals" ? 4 : 2, reps: type === "intervals" ? 4 : 1,
+      distanceM: 0,
+      zoneIdx: defaultZone, reps: type === "intervals" ? 4 : 1,
       restMin: type === "intervals" ? 2 : 0,
     };
+    // Auto-fill targets from zone
+    autoFillFromZone(newBlock, zones[defaultZone], discipline);
     setBlocks((prev) => {
       const ci = prev.findIndex((b) => b.type === "cooldown");
       if (ci >= 0) { const c = [...prev]; c.splice(ci, 0, newBlock); return c; }
@@ -777,31 +839,65 @@ function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: Bui
     setShowAddMenu(false);
   }
 
-  function removeBlock(id: number) { setBlocks((p) => p.filter((b) => b.id !== id)); }
-  function updateBlock(id: number, field: keyof WorkoutBlock, value: number) {
-    setBlocks((p) => p.map((b) => b.id === id ? { ...b, [field]: value } : b));
+  function autoFillFromZone(block: WorkoutBlock, zone: LoadedZone | undefined, disc: string | null) {
+    if (!zone) return;
+    if (disc === "ciclismo" && zone.power_lower) {
+      block.powerW = Math.round((zone.power_lower + (zone.power_upper ?? zone.power_lower)) / 2);
+    }
+    if ((disc === "carrera" || disc === "natación") && zone.pace_lower_seconds) {
+      const avgPace = Math.round(((zone.pace_lower_seconds ?? 0) + (zone.pace_upper_seconds ?? zone.pace_lower_seconds ?? 0)) / 2);
+      block.pace = formatPaceSec(avgPace);
+    }
+    if (zone.hr_lower) {
+      block.hrTarget = Math.round(((zone.hr_lower ?? 0) + (zone.hr_upper ?? zone.hr_lower ?? 0)) / 2);
+    }
   }
 
-  const ZONE_TO_LABEL: Record<number, string> = { 1: "Suave / Easy", 2: "LT1 / Aeróbico", 3: "SUB-T / Zona media", 4: "LT2 / Umbral", 5: "VO2 / Potencia" };
-  const ZONE_TO_INTENSITY: Record<number, string> = { 1: "easy", 2: "LT1", 3: "SUB-T", 4: "LT2", 5: "VO2" };
+  function removeBlock(id: number) { setBlocks((p) => p.filter((b) => b.id !== id)); }
+
+  function updateBlockField(id: number, field: string, value: unknown) {
+    setBlocks((p) => p.map((b) => {
+      if (b.id !== id) return b;
+      const updated = { ...b, [field]: value };
+      // When zone changes, auto-fill targets
+      if (field === "zoneIdx") {
+        const zone = zones[value as number];
+        autoFillFromZone(updated, zone, discipline);
+      }
+      return updated;
+    }));
+  }
+
+  const zoneToLabel = (idx: number) => zones[idx]?.label ?? `Z${idx + 1}`;
+  const zoneToIntensity = (idx: number) => zones[idx]?.label?.toLowerCase().replace(/\s/g, "_") ?? "free";
 
   function blocksToWorkoutSteps(bks: WorkoutBlock[]): WorkoutStep[] {
     const steps: WorkoutStep[] = [];
     let order = 1;
     for (const b of bks) {
-      const zoneLabel = ZONE_TO_LABEL[b.zone] ?? "Libre";
-      const intensity = ZONE_TO_INTENSITY[b.zone] ?? "free";
-      const target = { target_type: b.zone === 1 ? "easy" : "other" as string, label: zoneLabel, value_from: null as number | null, value_to: null as number | null, unit: null as string | null };
+      const zLabel = zoneToLabel(b.zoneIdx);
+      const intensity = zoneToIntensity(b.zoneIdx);
+      const target: WorkoutTarget = { target_type: b.zoneIdx === 0 ? "easy" : "other", label: zLabel, value_from: null, value_to: null, unit: null };
+      // Add target values from zone
+      const zone = zones[b.zoneIdx];
+      if (zone) {
+        if (b.powerW != null) { target.target_type = "power"; target.value_from = zone.power_lower ?? b.powerW; target.value_to = zone.power_upper ?? b.powerW; target.unit = "watts"; }
+        else if (b.pace) { target.target_type = "pace"; target.value_from = zone.pace_lower_seconds ?? null; target.value_to = zone.pace_upper_seconds ?? null; target.unit = discipline === "natación" ? "s/100m" : "s/km"; }
+        else if (zone.hr_lower) { target.target_type = "heart_rate"; target.value_from = zone.hr_lower; target.value_to = zone.hr_upper ?? null; target.unit = "bpm"; }
+      }
+
+      const lenType = b.lengthMode === "distance" ? "distance" : "time";
+      const lenVal = b.lengthMode === "distance" ? b.distanceM : b.durationMin * 60;
 
       if (b.type === "intervals" && b.reps > 1) {
         const children: WorkoutStep[] = [
-          { order: 1, step_type: "interval", length_type: "time", length_value: b.durationMin * 60, target, intensity_label: intensity, instructions: null, repeat_count: null, children: [] },
-          { order: 2, step_type: "recovery", length_type: "time", length_value: b.restMin * 60, target: { target_type: "easy", label: "Suave / Easy", value_from: null, value_to: null, unit: null }, intensity_label: "easy", instructions: null, repeat_count: null, children: [] },
+          { order: 1, step_type: "interval", length_type: lenType, length_value: lenVal, target, intensity_label: intensity, instructions: null, repeat_count: null, children: [] },
+          { order: 2, step_type: "recovery", length_type: "time", length_value: b.restMin * 60, target: { target_type: "easy", label: zones[0]?.label ?? "REC", value_from: null, value_to: null, unit: null }, intensity_label: "easy", instructions: null, repeat_count: null, children: [] },
         ];
         steps.push({ order: order++, step_type: "repeat", length_type: "time", length_value: null, target: null, intensity_label: null, instructions: null, repeat_count: b.reps, children });
       } else {
         const stepType = b.type === "warmup" ? "warmup" : b.type === "cooldown" ? "cooldown" : b.type === "recovery" ? "recovery" : "steady";
-        steps.push({ order: order++, step_type: stepType, length_type: "time", length_value: b.durationMin * 60, target, intensity_label: intensity, instructions: null, repeat_count: null, children: [] });
+        steps.push({ order: order++, step_type: stepType, length_type: lenType, length_value: lenVal, target, intensity_label: intensity, instructions: null, repeat_count: null, children: [] });
       }
     }
     return steps;
@@ -827,11 +923,12 @@ function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: Bui
     if (!discipline) return;
     const discMap: Record<string, string> = { carrera: "running", ciclismo: "ciclismo", natación: "natación" };
     const blockDesc = blocks.map((b) => {
-      const base = b.type === "intervals" ? `${b.reps}×${b.durationMin}' Z${b.zone}` : `${BLOCK_LABELS[b.type]} ${b.durationMin}' Z${b.zone}`;
+      const zLabel = zoneToLabel(b.zoneIdx);
+      const base = b.type === "intervals" ? `${b.reps}×${b.durationMin}' ${zLabel}` : `${BLOCK_LABELS[b.type]} ${b.durationMin}' ${zLabel}`;
       const extras: string[] = [];
       if (b.pace) extras.push(`@${b.pace}`);
       if (b.powerW != null) extras.push(`${b.powerW}W`);
-      if (b.distanceM != null) extras.push(b.distanceM >= 1000 ? `${(b.distanceM / 1000).toFixed(1)}km` : `${b.distanceM}m`);
+      if (b.lengthMode === "distance" && b.distanceM > 0) extras.push(b.distanceM >= 1000 ? `${(b.distanceM / 1000).toFixed(1)}km` : `${b.distanceM}m`);
       return extras.length > 0 ? `${base} (${extras.join(", ")})` : base;
     }).join(" + ");
     onSave({
@@ -841,9 +938,21 @@ function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: Bui
       public_label: workout.title, objective: `Entreno creado por atleta: ${blockDesc}`,
       dose_prescription: blockDesc, confidence: 1, status: "athlete_created", bla_check: false,
       structured_workout_payload: workout,
-      payload: { total_duration_min: totalMin, blocks: blocks.map((b) => ({ type: b.type, durationMin: b.durationMin, zone: b.zone, reps: b.reps, restMin: b.restMin, ...(b.pace ? { pace: b.pace } : {}), ...(b.distanceM != null ? { distanceM: b.distanceM } : {}), ...(b.powerW != null ? { powerW: b.powerW } : {}) })), source: "athlete_builder" },
+      payload: { total_duration_min: totalMin, blocks: blocks.map((b) => ({ type: b.type, durationMin: b.durationMin, zone: b.zoneIdx, zoneName: zoneToLabel(b.zoneIdx), reps: b.reps, restMin: b.restMin, ...(b.pace ? { pace: b.pace } : {}), ...(b.distanceM ? { distanceM: b.distanceM } : {}), ...(b.powerW != null ? { powerW: b.powerW } : {}), ...(b.hrTarget != null ? { hrTarget: b.hrTarget } : {}) })), source: "athlete_builder" },
     });
     setStep("done");
+  }
+
+  function handleSaveDirect() {
+    if (!discipline || blocks.length === 0) return;
+    const workout: WorkoutDefinition = {
+      sport: ({ carrera: "running", ciclismo: "ciclismo", natación: "natación" } as Record<string, string>)[discipline] ?? discipline,
+      title: title || `${DISCIPLINE_OPTIONS.find((d) => d.key === discipline)?.label ?? discipline} — ${totalMin} min`,
+      steps: blocksToWorkoutSteps(blocks),
+      notes: [],
+      source_payload: {},
+    };
+    handleEditorSave(workout);
   }
 
   if (step === "discipline") {
@@ -888,6 +997,9 @@ function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: Bui
   }
 
   const discLabelObj = DISCIPLINE_OPTIONS.find((d) => d.key === discipline);
+  const isRunOrSwim = discipline === "carrera" || discipline === "natación";
+  const isCycling = discipline === "ciclismo";
+  const paceUnit = discipline === "natación" ? "/100m" : "/km";
 
   return (
     <div className="ath-builder">
@@ -896,6 +1008,7 @@ function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: Bui
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <span className="ath-builder-disc-badge">{discLabelObj?.icon} {discLabelObj?.label}</span>
+        {zonesLoading && <span className="ath-builder-zones-loading">Cargando zonas...</span>}
       </div>
 
       <div className="ath-builder-date-row">
@@ -917,58 +1030,90 @@ function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: Bui
       <div className="ath-builder-duration">Duración total: <strong>{totalMin} min</strong></div>
 
       <div className="ath-builder-blocks">
-        {blocks.map((block) => (
-          <div key={block.id} className="ath-builder-block" style={{ borderLeftColor: BLOCK_COLORS[block.type] ?? "var(--ath-text-muted)" }}>
-            <div className="ath-builder-block-head">
-              <span className="ath-builder-block-type-badge" style={{ background: BLOCK_COLORS[block.type] }}>{BLOCK_LABELS[block.type]}</span>
-              <span className="ath-builder-block-duration-label">{block.type === "intervals" ? `${block.reps}×${block.durationMin}' + ${block.restMin}' desc` : `${block.durationMin} min`}</span>
-              <button type="button" className="ath-builder-block-remove" onClick={() => removeBlock(block.id)} title="Eliminar">✕</button>
-            </div>
-            <div className="ath-builder-block-fields">
-              {block.type === "intervals" ? (
-                <div className="ath-builder-interval-row">
-                  <label className="ath-builder-field"><span>Reps</span><input type="number" min={1} max={30} value={block.reps} onChange={(e) => updateBlock(block.id, "reps", parseInt(e.target.value) || 1)} /></label>
-                  <span className="ath-builder-interval-x">×</span>
-                  <label className="ath-builder-field"><span>Min</span><input type="number" min={1} max={60} value={block.durationMin} onChange={(e) => updateBlock(block.id, "durationMin", parseInt(e.target.value) || 1)} /></label>
-                  <span className="ath-builder-interval-plus">+</span>
-                  <label className="ath-builder-field"><span>Desc</span><input type="number" min={0} max={30} value={block.restMin} onChange={(e) => updateBlock(block.id, "restMin", parseInt(e.target.value) || 0)} /></label>
-                </div>
-              ) : (
-                <label className="ath-builder-field"><span>Min</span><input type="number" min={1} max={240} value={block.durationMin} onChange={(e) => updateBlock(block.id, "durationMin", parseInt(e.target.value) || 1)} /></label>
-              )}
-              <div className="ath-builder-zones">
-                <span className="ath-builder-zones-label">Zona</span>
-                <div className="ath-builder-zone-chips">
-                  {[1, 2, 3, 4, 5].map((z) => (
-                    <button key={z} type="button" className={`ath-builder-zone-chip ${block.zone === z ? "active" : ""}`} style={{ borderColor: ZONE_COLORS[z], color: block.zone === z ? "#fff" : ZONE_COLORS[z], background: block.zone === z ? ZONE_COLORS[z] : "transparent" }} onClick={() => updateBlock(block.id, "zone", z)}>Z{z}</button>
-                  ))}
-                </div>
+        {blocks.map((block) => {
+          const zone = zones[block.zoneIdx];
+          const zoneColor = zone?.color ?? "#94A3B8";
+
+          return (
+            <div key={block.id} className="ath-builder-block" style={{ borderLeftColor: BLOCK_COLORS[block.type] ?? "var(--ath-text-muted)" }}>
+              <div className="ath-builder-block-head">
+                <span className="ath-builder-block-type-badge" style={{ background: BLOCK_COLORS[block.type] }}>{BLOCK_LABELS[block.type]}</span>
+                <span className="ath-builder-block-duration-label">
+                  {block.type === "intervals"
+                    ? `${block.reps}×${block.lengthMode === "distance" ? `${block.distanceM >= 1000 ? `${(block.distanceM / 1000).toFixed(1)}km` : `${block.distanceM}m`}` : `${block.durationMin}'`} + ${block.restMin}' desc`
+                    : block.lengthMode === "distance" ? `${block.distanceM >= 1000 ? `${(block.distanceM / 1000).toFixed(1)}km` : `${block.distanceM}m`}` : `${block.durationMin} min`}
+                </span>
+                <button type="button" className="ath-builder-block-remove" onClick={() => removeBlock(block.id)} title="Eliminar">✕</button>
               </div>
 
-              {/* Discipline-specific fields */}
-              {(discipline === "carrera" || discipline === "natación") && (
-                <div className="ath-builder-extra-row">
-                  <label className="ath-builder-field">
-                    <span>{discipline === "natación" ? "Ritmo (/100m)" : "Ritmo (/km)"}</span>
-                    <input type="text" placeholder={discipline === "natación" ? "1:45" : "4:30"} value={block.pace ?? ""} onChange={(e) => setBlocks((p) => p.map((b) => b.id === block.id ? { ...b, pace: e.target.value || undefined } : b))} />
-                  </label>
-                  <label className="ath-builder-field">
-                    <span>{discipline === "natación" ? "Distancia (m)" : "Distancia (km)"}</span>
-                    <input type="number" min={0} step={discipline === "natación" ? 25 : 0.5} placeholder={discipline === "natación" ? "400" : "5"} value={block.distanceM != null ? (discipline === "natación" ? block.distanceM : block.distanceM / 1000) : ""} onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) setBlocks((p) => p.map((b) => b.id === block.id ? { ...b, distanceM: discipline === "natación" ? v : v * 1000 } : b)); else setBlocks((p) => p.map((b) => b.id === block.id ? { ...b, distanceM: undefined } : b)); }} />
-                  </label>
+              <div className="ath-builder-block-fields">
+                {/* Length mode toggle + inputs */}
+                <div className="ath-builder-length-row">
+                  <div className="ath-builder-length-toggle">
+                    <button type="button" className={`ath-builder-len-btn ${block.lengthMode === "time" ? "active" : ""}`} onClick={() => updateBlockField(block.id, "lengthMode", "time")}>Tiempo</button>
+                    <button type="button" className={`ath-builder-len-btn ${block.lengthMode === "distance" ? "active" : ""}`} onClick={() => updateBlockField(block.id, "lengthMode", "distance")}>Distancia</button>
+                  </div>
+                  {block.type === "intervals" ? (
+                    <div className="ath-builder-interval-row">
+                      <label className="ath-builder-field"><span>Reps</span><input type="number" min={1} max={30} value={block.reps} onChange={(e) => updateBlockField(block.id, "reps", parseInt(e.target.value) || 1)} /></label>
+                      <span className="ath-builder-interval-x">×</span>
+                      {block.lengthMode === "time" ? (
+                        <label className="ath-builder-field"><span>Min</span><input type="number" min={1} max={60} value={block.durationMin} onChange={(e) => updateBlockField(block.id, "durationMin", parseInt(e.target.value) || 1)} /></label>
+                      ) : (
+                        <label className="ath-builder-field"><span>{discipline === "natación" ? "m" : "km"}</span><input type="number" min={0} step={discipline === "natación" ? 25 : 0.1} value={discipline === "natación" ? block.distanceM : block.distanceM / 1000 || ""} onChange={(e) => { const v = parseFloat(e.target.value); updateBlockField(block.id, "distanceM", isNaN(v) ? 0 : discipline === "natación" ? v : v * 1000); }} /></label>
+                      )}
+                      <span className="ath-builder-interval-plus">+</span>
+                      <label className="ath-builder-field"><span>Desc</span><input type="number" min={0} max={30} value={block.restMin} onChange={(e) => updateBlockField(block.id, "restMin", parseInt(e.target.value) || 0)} /></label>
+                    </div>
+                  ) : block.lengthMode === "time" ? (
+                    <label className="ath-builder-field"><span>Min</span><input type="number" min={1} max={240} value={block.durationMin} onChange={(e) => updateBlockField(block.id, "durationMin", parseInt(e.target.value) || 1)} /></label>
+                  ) : (
+                    <label className="ath-builder-field"><span>{discipline === "natación" ? "m" : "km"}</span><input type="number" min={0} step={discipline === "natación" ? 25 : 0.1} value={discipline === "natación" ? block.distanceM : block.distanceM / 1000 || ""} onChange={(e) => { const v = parseFloat(e.target.value); updateBlockField(block.id, "distanceM", isNaN(v) ? 0 : discipline === "natación" ? v : v * 1000); }} /></label>
+                  )}
                 </div>
-              )}
-              {discipline === "ciclismo" && (
-                <div className="ath-builder-extra-row">
-                  <label className="ath-builder-field">
-                    <span>Potencia (W)</span>
-                    <input type="number" min={0} max={2000} placeholder="220" value={block.powerW ?? ""} onChange={(e) => { const v = parseInt(e.target.value); setBlocks((p) => p.map((b) => b.id === block.id ? { ...b, powerW: isNaN(v) ? undefined : v } : b)); }} />
-                  </label>
+
+                {/* Zone chips — real athlete zones */}
+                <div className="ath-builder-zones">
+                  <span className="ath-builder-zones-label">Zona</span>
+                  <div className="ath-builder-zone-chips">
+                    {zones.map((z) => (
+                      <button key={z.idx} type="button" className={`ath-builder-zone-chip ${block.zoneIdx === z.idx ? "active" : ""}`} style={{ borderColor: z.color, color: block.zoneIdx === z.idx ? "#fff" : z.color, background: block.zoneIdx === z.idx ? z.color : "transparent" }} onClick={() => updateBlockField(block.id, "zoneIdx", z.idx)}>{z.label}</button>
+                    ))}
+                  </div>
                 </div>
-              )}
+
+                {/* Auto-filled targets from zone */}
+                <div className="ath-builder-targets">
+                  {isRunOrSwim && (
+                    <label className="ath-builder-field">
+                      <span>Ritmo ({paceUnit})</span>
+                      <input type="text" placeholder={discipline === "natación" ? "1:45" : "4:30"} value={block.pace ?? ""} onChange={(e) => updateBlockField(block.id, "pace", e.target.value || undefined)} />
+                      {zone?.pace_lower_seconds && zone?.pace_upper_seconds && (
+                        <small className="ath-builder-zone-hint">{formatPaceSec(zone.pace_lower_seconds)} – {formatPaceSec(zone.pace_upper_seconds)}</small>
+                      )}
+                    </label>
+                  )}
+                  {isCycling && (
+                    <label className="ath-builder-field">
+                      <span>Potencia (W)</span>
+                      <input type="number" min={0} max={2000} placeholder="220" value={block.powerW ?? ""} onChange={(e) => { const v = parseInt(e.target.value); updateBlockField(block.id, "powerW", isNaN(v) ? undefined : v); }} />
+                      {zone?.power_lower && zone?.power_upper && (
+                        <small className="ath-builder-zone-hint">{zone.power_lower} – {zone.power_upper} W</small>
+                      )}
+                    </label>
+                  )}
+                  {zone?.hr_lower && (
+                    <label className="ath-builder-field">
+                      <span>FC (bpm)</span>
+                      <input type="number" min={0} max={250} placeholder="145" value={block.hrTarget ?? ""} onChange={(e) => { const v = parseInt(e.target.value); updateBlockField(block.id, "hrTarget", isNaN(v) ? undefined : v); }} />
+                      <small className="ath-builder-zone-hint">{zone.hr_lower} – {zone.hr_upper ?? "?"} bpm</small>
+                    </label>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="ath-builder-add-wrap">
@@ -984,7 +1129,10 @@ function WorkoutBuilderInline({ calendarWeek, presetDate, onSave, onClose }: Bui
         )}
       </div>
 
-      <button type="button" className="ath-builder-save" disabled={blocks.length === 0} onClick={handleGoToEditor}>Siguiente: editar estructura</button>
+      <div className="ath-builder-actions">
+        <button type="button" className="ath-builder-save" disabled={blocks.length === 0} onClick={handleSaveDirect}>Guardar entreno</button>
+        <button type="button" className="ath-builder-save-secondary" disabled={blocks.length === 0} onClick={handleGoToEditor}>Editar estructura avanzada</button>
+      </div>
     </div>
   );
 }

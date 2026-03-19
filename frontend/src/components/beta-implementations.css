@@ -1,4 +1,4 @@
-/* Beta Implementations — metabolic charts */
+/* Beta Implementations — metabolic insight charts */
 
 .beta-implementations {
   display: grid;
@@ -235,93 +235,17 @@
   color: var(--primary, #10222a);
 }
 
-.beta-gastin-ref {
-  color: #9ca3af;
-  font-size: 0.68rem;
-}
+/* ─── Fuel Profile ─── */
 
-/* ─── Race Prediction Grid ─── */
-
-.beta-race-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 10px;
-}
-
-.beta-race-card {
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(16, 34, 42, 0.08);
-  background: #f9fafb;
-}
-
-.beta-race-label {
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--primary, #10222a);
-}
-
-.beta-race-paces {
-  display: grid;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.beta-race-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.76rem;
-}
-
-.beta-race-line small {
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.beta-race-line.ceiling strong {
-  color: #16a34a;
-}
-
-.beta-race-line.target strong {
-  color: #1153ad;
-}
-
-.beta-race-line.safe strong {
-  color: #9ca3af;
-}
-
-.beta-race-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: 0.66rem;
-}
-
-.beta-glycogen {
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-.beta-glycogen.high {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.beta-glycogen.moderate {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.beta-durability {
-  color: #6b7280;
-}
-
-.beta-confidence {
-  color: #9ca3af;
+.beta-fuel-implication {
+  margin: 8px 16px 12px;
+  font-size: 0.82rem;
+  color: #4b5563;
+  line-height: 1.5;
+  padding: 8px 12px;
+  background: rgba(59, 130, 246, 0.04);
+  border-radius: 8px;
+  border-left: 3px solid rgba(59, 130, 246, 0.3);
 }
 
 /* ─── Glycogen Grid ─── */
@@ -359,13 +283,131 @@
   color: #4b5563;
 }
 
-.beta-glycogen-alert {
-  color: #dc2626;
-  font-weight: 600;
-  margin-top: 4px;
+.beta-glycogen-message {
+  margin: 6px 0 4px;
+  font-size: 0.78rem;
+  color: #374151;
+  line-height: 1.4;
 }
 
-/* ── Mobile: single column cards, reduced padding ── */
+.beta-glycogen-strategies {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.beta-glycogen-strategies li {
+  margin-bottom: 2px;
+}
+
+/* ─── Trainability Badge ─── */
+
+.beta-trainability {
+  margin: 12px 16px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.beta-trainability-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.beta-trainability-icon {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.beta-trainability-label {
+  font-size: 0.82rem;
+  color: #6b7280;
+}
+
+.beta-trainability-value {
+  font-size: 1.1rem;
+}
+
+.beta-trainability-rate {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.beta-trainability-interp {
+  margin: 6px 0 4px;
+  font-size: 0.82rem;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.beta-trainability-components {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.beta-trainability-components span {
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 6px;
+}
+
+.beta-trainability-days {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+
+/* ─── Curve Alerts ─── */
+
+.beta-alerts-list {
+  display: grid;
+  gap: 8px;
+  padding: 4px 16px 12px;
+}
+
+.beta-alert-item {
+  padding: 10px 12px;
+  border-left: 4px solid #6b7280;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 0 8px 8px 0;
+}
+
+.beta-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.beta-alert-severity {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.beta-alert-title {
+  font-size: 0.85rem;
+  color: #1f2937;
+}
+
+.beta-alert-message {
+  font-size: 0.78rem;
+  color: #4b5563;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ── Mobile ── */
 @media (max-width: 640px) {
   .beta-implementations {
     gap: 12px;
@@ -396,15 +438,6 @@
     font-size: 0.72rem;
   }
 
-  .beta-race-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .beta-race-card {
-    padding: 10px;
-  }
-
   .beta-glycogen-grid {
     grid-template-columns: 1fr;
     gap: 8px;
@@ -430,6 +463,15 @@
   .beta-caution-list {
     padding: 0 12px 6px;
   }
+
+  .beta-trainability {
+    margin: 8px 12px;
+    padding: 10px;
+  }
+
+  .beta-alerts-list {
+    padding: 4px 12px 8px;
+  }
 }
 
 /* ── Extra small phones ── */
@@ -449,14 +491,6 @@
   .beta-chart-body {
     padding: 2px 4px 6px;
     min-height: 80px;
-  }
-
-  .beta-race-label {
-    font-size: 0.82rem;
-  }
-
-  .beta-race-line {
-    font-size: 0.72rem;
   }
 
   .beta-glycogen-card h4 {

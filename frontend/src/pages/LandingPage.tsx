@@ -312,8 +312,9 @@ function LandingInner() {
         <div className="lp-w lp-nav__row">
           <span className="lp-nav__brand">PeakAerobic</span>
           <div className="lp-nav__right">
+            <a href="#" className="lp-nav__link" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{t("nav_home")}</a>
             <a href="#demo" className="lp-nav__link">{t("nav_demo")}</a>
-            <a href="#athlete-portal" className="lp-nav__link">{t("nav_athlete")}</a>
+            <a href="/athlete" className="lp-nav__link">{t("nav_athlete")}</a>
             <a href="/coach" className="lp-nav__link">{t("nav_coach")}</a>
             <a href="#pricing" className="lp-nav__link">{t("nav_pricing")}</a>
             <a href="/resources" className="lp-nav__link">{t("foot_resources")}</a>
@@ -323,37 +324,19 @@ function LandingInner() {
         </div>
       </nav>
 
-      {/* ══ HERO ══ */}
+      {/* ══ HERO — Tesla/Apple style ══ */}
       <section className="lp-hero">
+        <img src="/foto-inicio-v3.jpg" alt="" className="lp-hero__img" />
         <div className="lp-hero__overlay" />
-        <div className="lp-w lp-hero__grid">
-          <div className="lp-hero__left">
-            <p className="lp-hero__kicker">{t("hero_kicker")}</p>
-            <h1 className="lp-hero__h1">
-              {t("hero_h1_1")}<br />
-              {t("hero_h1_2")} <em>{t("hero_h1_3")}</em>{t("hero_h1_4")}
-            </h1>
-            <p className="lp-hero__sub">{t("hero_sub")}</p>
-            <div className="lp-hero__acts">
-              <a href="#athlete-portal" className="lp-btn-solid lp-btn--athlete">{t("hero_cta_athlete")}</a>
-              <a href="#demo" className="lp-btn-ghost">{t("hero_cta")}</a>
-            </div>
-            <div className="lp-hero__proof">
-              <div className="lp-hero__proof-item">
-                <span className="lp-hero__proof-val">{t("hero_proof_methods")}</span>
-              </div>
-              <div className="lp-hero__proof-sep" />
-              <div className="lp-hero__proof-item">
-                <span className="lp-hero__proof-val">{t("hero_proof_blocks")}</span>
-              </div>
-              <div className="lp-hero__proof-sep" />
-              <div className="lp-hero__proof-item">
-                <span className="lp-hero__proof-val">{t("hero_proof_confidence")}</span>
-              </div>
-            </div>
-          </div>
-          <div className="lp-hero__right">
-            <HeroCurve />
+        <div className="lp-hero__content">
+          <h1 className="lp-hero__h1">
+            {t("hero_h1_1")}<br />
+            <em>{t("hero_h1_3")}</em>{t("hero_h1_4")}
+          </h1>
+          <p className="lp-hero__sub">{t("hero_sub")}</p>
+          <div className="lp-hero__acts">
+            <a href="#athlete-portal" className="lp-btn-solid lp-btn--hero">{t("hero_cta_athlete")}</a>
+            <a href="#demo" className="lp-btn-ghost lp-btn--hero-ghost">{t("hero_cta")}</a>
           </div>
         </div>
       </section>
@@ -428,7 +411,7 @@ function LandingInner() {
                     </li>
                   ))}
                 </ul>
-                <button className="lp-btn-solid lp-btn--elite lp-upgrade__cta" type="button">{t("up_elite_cta")}</button>
+                <button className="lp-btn-solid lp-btn--elite lp-upgrade__cta" onClick={() => navigate("/register")} type="button">{t("up_elite_cta")}</button>
               </div>
             </div>
           </div>
@@ -444,7 +427,7 @@ function LandingInner() {
           <div className="lp-w">
             <p className="lp-ey">{t("pred_ey")}</p>
             <h2 className="lp-h2">{t("pred_h2")}</h2>
-            <p className="lp-sub">{t("pred_sub")}</p>
+            <p className="lp-sub" style={{ textAlign: "center" }}>{t("pred_sub")}</p>
             <div className="lp-predictions">
               {[
                 { dist: "5K", time: "19:42", range: "19:12 -- 20:15" },
@@ -459,7 +442,6 @@ function LandingInner() {
                 </div>
               ))}
             </div>
-            <p className="lp-pred__inputs">{t("pred_inputs")}</p>
           </div>
         </section>
       </AnimSection>
@@ -957,8 +939,11 @@ function LandingInner() {
                     </li>
                   ))}
                 </ul>
-                <button className="lp-btn-solid lp-btn--elite lp-pricing__cta" type="button">{t("price_elite_cta")}</button>
+                <button className="lp-btn-solid lp-btn--elite lp-pricing__cta" onClick={() => navigate("/register")} type="button">{t("price_elite_cta")}</button>
               </div>
+            </div>
+            <div style={{ textAlign: "center", marginTop: 32 }}>
+              <a href="/compare-plans" className="lp-btn-ghost" style={{ fontSize: 15 }}>{t("price_compare")}</a>
             </div>
           </div>
         </section>
@@ -1127,6 +1112,89 @@ function LandingInner() {
                     <span>{tab.label}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* ══ PHONE MOCKUP ══ */}
+      <AnimSection>
+        <section className="lp-section">
+          <div className="lp-w">
+            <div className="lp-phone-section">
+              <div className="lp-phone-section__text">
+                <h2 className="lp-phone-section__title">{t("phone_h2")}</h2>
+                <p className="lp-phone-section__desc">{t("phone_sub")}</p>
+                <div className="lp-phone-section__badges">
+                  <span className="lp-showcase__badge lp-showcase__badge--green">{t("phone_b1")}</span>
+                  <span className="lp-showcase__badge lp-showcase__badge--orange">{t("phone_b2")}</span>
+                  <span className="lp-showcase__badge lp-showcase__badge--dark">{t("phone_b3")}</span>
+                </div>
+              </div>
+              <div className="lp-phone">
+                <div className="lp-phone__notch" />
+                <div className="lp-phone__screen">
+                  <div className="lp-phone__header">
+                    <svg width="14" height="14" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="#d26a36" strokeWidth="2.5"/><path d="M10 20 L16 10 L22 20" stroke="#d26a36" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+                    PeakAerobic
+                  </div>
+                  <div className="lp-phone__card">
+                    <span className="lp-phone__card-title">{t("phone_session_title")}</span>
+                    <span className="lp-phone__badge">LT2</span>
+                    <span className="lp-phone__workout-name">4x6{"'"} LT2 cruise intervals</span>
+                    <div className="lp-phone__steps">
+                      {[
+                        { label: t("phone_warmup"), dur: "15'", color: "#22c55e" },
+                        { label: "4x6' LT2", dur: "24'", color: "#F59E0B" },
+                        { label: "Rec 3'", dur: "12'", color: "#10B981" },
+                        { label: t("phone_cooldown"), dur: "10'", color: "#22c55e" },
+                      ].map((s: { label: string; dur: string; color: string }) => (
+                        <div key={s.label} className="lp-phone__step">
+                          <span className="lp-phone__step-bar" style={{ background: s.color }} />
+                          <span>{s.label}</span>
+                          <span style={{ color: "rgba(255,255,255,0.4)" }}>{s.dur}</span>
+                          <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 8 }}>{s.color === "#F59E0B" ? "LT2" : "Z1"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="lp-phone__card">
+                    <span className="lp-phone__card-title">{t("phone_readiness_title")}</span>
+                    <div className="lp-phone__wellness">
+                      <svg viewBox="0 0 56 56" width="48" height="48">
+                        <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+                        <circle cx="28" cy="28" r="22" fill="none" stroke="#22c55e" strokeWidth="4" strokeDasharray="100 138" strokeLinecap="round" transform="rotate(-90 28 28)" />
+                        <text x="28" y="32" textAnchor="middle" fill="#fff" fontSize="14" fontWeight="800" fontFamily="Space Grotesk">72</text>
+                      </svg>
+                      <div className="lp-phone__wellness-grid">
+                        <div className="lp-phone__wellness-item"><span className="lp-phone__wellness-val">48ms</span><span className="lp-phone__wellness-lbl">HRV</span></div>
+                        <div className="lp-phone__wellness-item"><span className="lp-phone__wellness-val">6.8h</span><span className="lp-phone__wellness-lbl">{t("phone_sleep")}</span></div>
+                        <div className="lp-phone__wellness-item"><span className="lp-phone__wellness-val">28</span><span className="lp-phone__wellness-lbl">{t("phone_stress")}</span></div>
+                        <div className="lp-phone__wellness-item"><span className="lp-phone__wellness-val">74%</span><span className="lp-phone__wellness-lbl">Battery</span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="lp-phone__nav">
+                    <div className="lp-phone__nav-item lp-phone__nav-item--active">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      {t("phone_nav_today")}
+                    </div>
+                    <div className="lp-phone__nav-item">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      {t("phone_nav_week")}
+                    </div>
+                    <div className="lp-phone__nav-item">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                      {t("phone_nav_progress")}
+                    </div>
+                    <div className="lp-phone__nav-item">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                      {t("phone_nav_recovery")}
+                    </div>
+                  </div>
+                </div>
+                <div className="lp-phone__bar" />
               </div>
             </div>
           </div>

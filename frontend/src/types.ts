@@ -638,6 +638,70 @@ export type IndividualThresholds = {
   } | null;
 };
 
+// ── Curve Insights ────────────────────────────────────────────────────────────
+
+export type FuelZone = {
+  zone: string;
+  label: string;
+  intensity: string;
+  fraction_vo2max: number;
+  cho_pct: number;
+  fat_pct: number;
+};
+
+export type FuelProfile = {
+  zones_fuel: FuelZone[];
+  crossover_fraction_vo2max: number | null;
+  vlamax_level: string;
+  implication: string;
+  model: string;
+  confidence: string;
+  note: string;
+};
+
+export type GlyogenPrediction = {
+  depletion_km: number | null;
+  depletion_time_min: number | null;
+  race_distance_km: number;
+  race_pace?: number;
+  glycogen_at_finish_pct: number;
+  risk_level: string;
+  message: string;
+  cho_pct_at_race_pace: number;
+  fraction_vo2max: number;
+  net_glycogen_cost_kcal_per_km?: number;
+  cho_intake_g_per_hour?: number;
+  strategies?: string[];
+  model?: string;
+  confidence?: string;
+};
+
+export type TrainabilityIndex = {
+  trainability_index: number;
+  response_per_week: number;
+  direction: string;
+  interpretation: string;
+  days_between_tests: number;
+  components: Record<string, number>;
+  significance_threshold: number;
+  model: string;
+};
+
+export type CurveAlert = {
+  code: string;
+  severity: string;
+  title: string;
+  message: string;
+  data: Record<string, number | string>;
+};
+
+export type CurveInsights = {
+  fuel_profile: FuelProfile | null;
+  glycogen_predictions: Record<string, GlyogenPrediction> | null;
+  trainability: TrainabilityIndex | null;
+  curve_alerts: CurveAlert[];
+};
+
 export type DisciplineView = {
   discipline: string;
   power_source?: string | null;
@@ -695,6 +759,7 @@ export type DisciplineView = {
     method: string;
     explanation: string[];
   } | null;
+  curve_insights?: CurveInsights | null;
 };
 
 export type AthleteAnalysis = {

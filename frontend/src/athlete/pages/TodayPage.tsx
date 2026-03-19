@@ -7,6 +7,8 @@ import { ReadinessRing } from "../components/ReadinessRing";
 import { VitalChip } from "../components/VitalChip";
 import { LactateStepInput, type LactateSubmission } from "../components/LactateStepInput";
 import { MicroContent } from "../components/MicroContent";
+import { useExplainer } from "../explainer/MetricExplainerContext";
+import { ActivityInsightsModal } from "../components/ActivityInsightsModal";
 import { stressLabel } from "../utils/wellness";
 import { formatSleepDuration, disciplineLabel } from "../utils/formatters";
 import { resolveTrainingThreshold } from "../../lib/trainingThresholds";
@@ -30,11 +32,13 @@ function weatherLabel(code: number): { icon: string; desc: string } {
 
 export function TodayPage() {
   const data = useAthleteData();
+  const { openExplainer } = useExplainer();
   const [detailSession, setDetailSession] = useState<PlanningPlannedSession | null>(null);
   const [analysisActivity, setAnalysisActivity] = useState<AthleteHealthActivity | null>(null);
   const [showLactateInput, setShowLactateInput] = useState(false);
   const [wellnessValues, setWellnessValues] = useState<WellnessCheckEntry>({});
   const [wellnessSaved, setWellnessSaved] = useState(false);
+  const [showActivityInsights, setShowActivityInsights] = useState(false);
 
   const todayLabel = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
 
@@ -413,37 +417,45 @@ export function TodayPage() {
 
       {/* Hero: 3 symmetrical rings — Estado (left) · Predisposición (center, large) · VO2max (right) */}
       <div className="ath-hero">
-        <ReadinessRing
-          score={data.trainingStatus.score}
-          label={data.trainingStatus.label}
-          tone={data.trainingStatus.tone}
-          title="Estado"
-          size="small"
-        />
-        <ReadinessRing
-          score={data.readiness.score}
-          label={data.readiness.label}
-          tone={data.readiness.tone}
-          title="Predisposición"
-          size="large"
-        />
+        <button type="button" className="ath-hero-ring-btn" onClick={() => openExplainer("training_status")}>
+          <ReadinessRing
+            score={data.trainingStatus.score}
+            label={data.trainingStatus.label}
+            tone={data.trainingStatus.tone}
+            title="Estado"
+            size="small"
+          />
+        </button>
+        <button type="button" className="ath-hero-ring-btn" onClick={() => openExplainer("readiness")}>
+          <ReadinessRing
+            score={data.readiness.score}
+            label={data.readiness.label}
+            tone={data.readiness.tone}
+            title="Predisposición"
+            size="large"
+          />
+        </button>
         {data.vo2maxValue !== null && Number.isFinite(data.vo2maxValue) ? (
-          <ReadinessRing
-            score={Math.min(100, Math.max(0, Math.round(((data.vo2maxValue - 25) / 45) * 100)))}
-            label={`${data.vo2maxValue.toFixed(1)}`}
-            tone="vo2"
-            title="VO₂max"
-            size="small"
-            subtitle={data.vo2maxLabel}
-          />
+          <button type="button" className="ath-hero-ring-btn" onClick={() => openExplainer("vo2max")}>
+            <ReadinessRing
+              score={Math.min(100, Math.max(0, Math.round(((data.vo2maxValue - 25) / 45) * 100)))}
+              label={`${data.vo2maxValue.toFixed(1)}`}
+              tone="vo2"
+              title="VO₂max"
+              size="small"
+              subtitle={data.vo2maxLabel}
+            />
+          </button>
         ) : (
-          <ReadinessRing
-            score={0}
-            label="—"
-            tone="neutral"
-            title="VO₂max"
-            size="small"
-          />
+          <button type="button" className="ath-hero-ring-btn" onClick={() => openExplainer("vo2max")}>
+            <ReadinessRing
+              score={0}
+              label="—"
+              tone="neutral"
+              title="VO₂max"
+              size="small"
+            />
+          </button>
         )}
       </div>
 
@@ -501,6 +513,7 @@ export function TodayPage() {
           sparkData={data.wellnessSeries.slice(-14)}
           sparkKey="sleepHours"
           sparkColor="#8B5CF6"
+          onClick={() => openExplainer("sleep")}
         />
         <VitalChip
           icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 12 6 12 8 6 11 18 14 8 16 12 22 12"/></svg>}
@@ -513,6 +526,7 @@ export function TodayPage() {
           sparkKey="hrv"
           sparkColor="#10B981"
           sparkRefBand={data.hrvAverage !== null ? { y1: data.hrvAverage * 0.92, y2: data.hrvAverage * 1.08 } : null}
+          onClick={() => openExplainer("hrv")}
         />
         <VitalChip
           icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>}
@@ -523,6 +537,7 @@ export function TodayPage() {
           sparkColor="#3B82F6"
           sparkRefBand={data.restingHrAverage !== null ? { y1: data.restingHrAverage - 3, y2: data.restingHrAverage + 3 } : null}
           delta={data.restingHrAverage !== null ? `Media ${data.restingHrAverage.toFixed(0)} bpm` : undefined}
+          onClick={() => openExplainer("resting_hr")}
         />
         <VitalChip
           icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>}
@@ -533,6 +548,7 @@ export function TodayPage() {
           sparkData={data.wellnessSeries.slice(-14)}
           sparkKey="stress"
           sparkColor="#F59E0B"
+          onClick={() => openExplainer("stress")}
         />
       </div>
 
@@ -541,7 +557,7 @@ export function TodayPage() {
       {/* ── Dashboard Widgets (Garmin-inspired) ──────────────── */}
       <div className="ath-dashboard-grid">
         {/* 1. Training Status Card */}
-        <div className="ath-dash-card ath-dash-status">
+        <div className="ath-dash-card ath-dash-status" onClick={() => openExplainer("training_status")} style={{ cursor: "pointer" }}>
           <div className="ath-dash-card-header">
             <span className="ath-dash-card-title">Estado de entrenamiento</span>
           </div>
@@ -578,7 +594,7 @@ export function TodayPage() {
         </div>
 
         {/* 2. Training Load 4-week chart */}
-        <div className="ath-dash-card ath-dash-load">
+        <div className="ath-dash-card ath-dash-load" onClick={() => openExplainer("training_load")} style={{ cursor: "pointer" }}>
           <div className="ath-dash-card-header">
             <span className="ath-dash-card-title">Carga de entrenamiento</span>
             <span className="ath-dash-card-period">28 días</span>
@@ -634,7 +650,7 @@ export function TodayPage() {
         </div>
 
         {/* 3. Last 7 Days summary */}
-        <div className="ath-dash-card ath-dash-week">
+        <div className="ath-dash-card ath-dash-week" onClick={() => setShowActivityInsights(true)} style={{ cursor: "pointer" }}>
           <div className="ath-dash-card-header">
             <span className="ath-dash-card-title">Últimos 7 días</span>
             <span className="ath-dash-card-period">{last7DaysSummary.reduce((s, d) => s + d.count, 0)} actividades</span>
@@ -1006,6 +1022,7 @@ export function TodayPage() {
           />
         );
       })()}
+      <ActivityInsightsModal open={showActivityInsights} onClose={() => setShowActivityInsights(false)} />
     </div>
   );
 }

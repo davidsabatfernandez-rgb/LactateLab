@@ -5,9 +5,9 @@ const config: CapacitorConfig = {
   appName: 'PeakAerobic',
   webDir: 'dist',
   server: {
-    // En desarrollo, apuntar al servidor Vite para hot-reload
-    // url: 'http://192.168.1.X:5173',
-    // cleartext: true,
+    // Live reload — descomentar para desarrollo con Xcode
+    url: 'http://172.20.10.3:5173',
+    cleartext: true,
     androidScheme: 'https',
     iosScheme: 'https',
   },

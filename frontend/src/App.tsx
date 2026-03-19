@@ -9,6 +9,8 @@ import { LoginForm } from "./components/LoginForm";
 import { api, getApiDebugInfo } from "./lib/api";
 import { AthleteDetailPage } from "./pages/AthleteDetailPage";
 import { AthleteDataProvider } from "./athlete/context/AthleteDataContext";
+import { MetricExplainerProvider } from "./athlete/explainer/MetricExplainerContext";
+import { MetricExplainer } from "./athlete/explainer/MetricExplainer";
 import { TodayPage } from "./athlete/pages/TodayPage";
 import { WeekPage } from "./athlete/pages/WeekPage";
 import { ProgressPage } from "./athlete/pages/ProgressPage";
@@ -34,6 +36,8 @@ import { LandingPage } from "./pages/LandingPage";
 import { CoachLandingPage } from "./pages/CoachLandingPage";
 import { ResourcesPage } from "./pages/ResourcesPage";
 import { ArticlePage } from "./pages/ArticlePage";
+import { ComparePlansPage } from "./pages/ComparePlansPage";
+import { AthleteLandingPage } from "./pages/AthleteLandingPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import { PageErrorBoundary } from "./components/PageErrorBoundary";
 import { ScienceAdvisor } from "./components/ScienceAdvisor";
@@ -294,6 +298,12 @@ export default function App() {
     if (location.pathname.startsWith("/resources/")) {
       return <ArticlePage />;
     }
+    if (location.pathname === "/athlete") {
+      return <AthleteLandingPage />;
+    }
+    if (location.pathname === "/compare-plans") {
+      return <ComparePlansPage />;
+    }
     if (location.pathname === "/login") {
       return <LoginForm onLogin={handleLogin} />;
     }
@@ -349,17 +359,20 @@ export default function App() {
     return (
       <AthleteLayout onLogout={handleLogout} fullName={authUser.full_name} themeMode={themeMode} onToggleTheme={() => setThemeMode((c) => (c === "dark" ? "light" : "dark"))}>
         <AthleteDataProvider user={authUser} token={token}>
-          <Routes>
-            <Route path="/athlete/today" element={<TodayPage />} />
-            <Route path="/athlete/week" element={<WeekPage />} />
-            <Route path="/athlete/progress" element={<ProgressPage />} />
-            <Route path="/athlete/recovery" element={<RecoveryPage />} />
-            <Route path="/athlete/zones" element={<ZonesPage />} />
-            <Route path="/athlete/tests" element={<MyTestsPage />} />
-            <Route path="/athlete/objectives" element={<ObjectivesPage />} />
-            <Route path="/athlete/settings" element={<SettingsPage />} />
-            <Route path="*" element={<TodayPage />} />
-          </Routes>
+          <MetricExplainerProvider>
+            <Routes>
+              <Route path="/athlete/today" element={<TodayPage />} />
+              <Route path="/athlete/week" element={<WeekPage />} />
+              <Route path="/athlete/progress" element={<ProgressPage />} />
+              <Route path="/athlete/recovery" element={<RecoveryPage />} />
+              <Route path="/athlete/zones" element={<ZonesPage />} />
+              <Route path="/athlete/tests" element={<MyTestsPage />} />
+              <Route path="/athlete/objectives" element={<ObjectivesPage />} />
+              <Route path="/athlete/settings" element={<SettingsPage />} />
+              <Route path="*" element={<TodayPage />} />
+            </Routes>
+            <MetricExplainer />
+          </MetricExplainerProvider>
         </AthleteDataProvider>
       </AthleteLayout>
     );

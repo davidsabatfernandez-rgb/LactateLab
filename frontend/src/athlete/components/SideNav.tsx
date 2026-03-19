@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAthleteDataSafe } from "../context/AthleteDataContext";
 
@@ -37,6 +38,20 @@ const tabs = [
     ),
   },
   {
+    id: "recovery",
+    path: "/athlete/recovery",
+    label: "Recuperación",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+    ),
+  },
+];
+
+// Tabs that only appear in "Más" menu on mobile, but show normally on desktop sidebar
+const secondaryTabs = [
+  {
     id: "zones",
     path: "/athlete/zones",
     label: "Mis Zonas",
@@ -46,16 +61,6 @@ const tabs = [
         <path d="M3 9h18" />
         <path d="M3 15h18" />
         <path d="M9 3v18" />
-      </svg>
-    ),
-  },
-  {
-    id: "recovery",
-    path: "/athlete/recovery",
-    label: "Recuperación",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
       </svg>
     ),
   },
@@ -95,6 +100,8 @@ const tabs = [
     ),
   },
 ];
+
+const allTabs = [...tabs, ...secondaryTabs];
 
 type Props = {
   fullName?: string | null;
@@ -176,6 +183,10 @@ export function SideNav({ fullName, onLogout, themeMode, onToggleTheme }: Props)
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  // Check if any secondary tab is active (to highlight "Más" button)
+  const secondaryActive = secondaryTabs.some((t) => currentPath.startsWith(t.path));
 
   return (
     <nav className="ath-side-nav">
@@ -184,8 +195,9 @@ export function SideNav({ fullName, onLogout, themeMode, onToggleTheme }: Props)
         <GarminSyncIndicator />
       </div>
 
-      <div className="ath-side-nav-links">
-        {tabs.map((tab) => {
+      {/* Desktop: show all tabs */}
+      <div className="ath-side-nav-links ath-side-nav-links--desktop">
+        {allTabs.map((tab) => {
           const active = currentPath.startsWith(tab.path);
           return (
             <button
@@ -200,6 +212,94 @@ export function SideNav({ fullName, onLogout, themeMode, onToggleTheme }: Props)
           );
         })}
       </div>
+
+      {/* Mobile: show primary tabs + "Más" button */}
+      <div className="ath-side-nav-links ath-side-nav-links--mobile">
+        {tabs.map((tab) => {
+          const active = currentPath.startsWith(tab.path);
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              className={`ath-side-nav-btn ${active ? "active" : ""}`}
+              onClick={() => { setMoreOpen(false); navigate(tab.path); }}
+            >
+              {tab.icon}
+              <span className="ath-side-nav-label">{tab.label}</span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          className={`ath-side-nav-btn ${secondaryActive || moreOpen ? "active" : ""}`}
+          onClick={() => setMoreOpen((v) => !v)}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+            <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+          </svg>
+          <span className="ath-side-nav-label">Más</span>
+        </button>
+      </div>
+
+      {/* "Más" slide-up sheet (mobile only) */}
+      {moreOpen && (
+        <>
+          <div className="ath-more-backdrop" onClick={() => setMoreOpen(false)} />
+          <div className="ath-more-sheet">
+            <div className="ath-more-sheet-handle" />
+            {secondaryTabs.map((tab) => {
+              const active = currentPath.startsWith(tab.path);
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className={`ath-more-sheet-btn ${active ? "active" : ""}`}
+                  onClick={() => { setMoreOpen(false); navigate(tab.path); }}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+            {onToggleTheme && (
+              <button
+                type="button"
+                className="ath-more-sheet-btn"
+                onClick={() => { onToggleTheme(); setMoreOpen(false); }}
+              >
+                {themeMode === "dark" ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="5" />
+                    <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                    <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                )}
+                <span>{themeMode === "dark" ? "Modo claro" : "Modo oscuro"}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className="ath-more-sheet-btn ath-more-sheet-btn--logout"
+              onClick={() => { setMoreOpen(false); onLogout(); }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>Cerrar sesión</span>
+            </button>
+          </div>
+        </>
+      )}
 
       <div className="ath-side-nav-bottom">
         {onToggleTheme && (
