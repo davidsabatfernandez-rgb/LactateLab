@@ -11,6 +11,7 @@ from sqlalchemy import select
 
 from app.core.security import decrypt_secret
 from app.models.athlete import Athlete
+from app.models.garmin_activity import GarminActivity
 from app.models.health_sample import HealthSample
 from app.services.garmin import GarminRequestError, _best_effort_connectapi, _garmin_session, _safe_connectapi, list_garmin_activities
 
@@ -100,12 +101,51 @@ def build_athlete_health_overview(
             providers[0]["detail"] = str(exc)
             notes.append("Garmin esta conectado, pero no hemos podido refrescar la actividad en este momento.")
 
+    # Fallback: load from stored garmin_activities table when live fetch failed or unavailable
+    if not activities and include_activity:
+        stored = db.scalars(
+            select(GarminActivity).where(
+                GarminActivity.athlete_id == athlete.id,
+                GarminActivity.started_at >= datetime.combine(window_start, datetime.min.time()),
+                GarminActivity.started_at <= datetime.combine(window_end, datetime.max.time()),
+            ).order_by(GarminActivity.started_at.desc()).limit(28)
+        ).all()
+        if stored:
+            for act in stored:
+                activities.append(_normalize_activity({
+                    "provider_activity_id": act.provider_activity_id,
+                    "sport_type": act.sport_type,
+                    "name": act.name,
+                    "started_at": act.started_at,
+                    "distance_m": act.distance_m,
+                    "moving_time_seconds": act.moving_time_seconds,
+                    "elapsed_time_seconds": act.elapsed_time_seconds,
+                    "average_heartrate": act.average_heartrate,
+                    "max_heartrate": act.max_heartrate,
+                    "average_watts": act.average_watts,
+                    "max_watts": act.max_watts,
+                    "average_speed_m_s": act.average_speed_m_s,
+                    "max_speed_m_s": act.max_speed_m_s,
+                    "total_elevation_gain_m": act.total_elevation_gain_m,
+                    "average_cadence": act.average_cadence,
+                    "calories": act.calories,
+                    "device_name": act.device_name,
+                    "tss": act.tss,
+                }))
+            if providers[0]["status"] == "error":
+                providers[0]["status"] = "cached"
+                providers[0]["detail"] = "Mostrando actividades almacenadas"
+
     activities.sort(key=lambda item: item["started_at"], reverse=True)
 
-    if athlete.garmin_connected and include_activity and not activities and providers[0]["status"] != "error":
+    has_garmin_data = bool(athlete.garmin_connected or activities)
+    if has_garmin_data and include_activity and not activities and providers[0]["status"] != "error":
         notes.append("No hay actividad Garmin visible en la ventana seleccionada.")
-    if not athlete.garmin_connected:
+    if not has_garmin_data:
         notes.append("Conecta Garmin para activar la capa paralela de actividad y salud del atleta.")
+    if activities and not athlete.garmin_connected:
+        providers[0]["connected"] = True
+        providers[0]["status"] = "cached"
 
     summary = _build_summary(activities)
     calendar = _build_calendar(window_start, window_end, activities)
