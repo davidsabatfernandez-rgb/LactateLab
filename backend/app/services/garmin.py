@@ -37,25 +37,44 @@ def _create_garmin_client(
 
     Uses token-first strategy: if a saved token is available, try to restore
     the session. If that fails (or no token), fall back to email/password login.
+
+    garminconnect v0.2.x does not support prompt_mfa, so we call garth.login()
+    directly with the MFA prompt and then attach the authenticated garth client
+    to the Garmin wrapper.
     """
-    from garminconnect import Garmin, GarminConnectAuthenticationError
+    from garminconnect import Garmin
+    import garth as garth_module
 
     if token_dict:
         try:
             client = Garmin()
             client.login(token_dict)
-            # Quick check that session is alive
             client.get_full_name()
             return client
         except Exception:
             pass  # token expired/invalid — fall through to password login
 
     try:
-        client = Garmin(email=email, password=password, is_cn=False, prompt_mfa=_build_mfa_prompt(mfa_code))
-        client.login()
+        # Use garth directly for login so we can pass prompt_mfa
+        garth_client = garth_module.Client(domain="garmin.com")
+        garth_client.login(email, password, prompt_mfa=_build_mfa_prompt(mfa_code))
+
+        # Create garminconnect wrapper and inject the authenticated garth session
+        client = Garmin(email=email, password=password)
+        client.garth = garth_client
+
+        # Load profile data that garminconnect.login() normally sets
+        client.display_name = garth_client.profile.get("displayName", "")
+        client.full_name = garth_client.profile.get("fullName", "")
+        try:
+            settings = client.connectapi("/userprofile-service/userprofile/user-settings")
+            client.unit_system = settings.get("userData", {}).get("measurementSystem", "")
+        except Exception:
+            client.unit_system = ""
+
         return client
-    except GarminConnectAuthenticationError as exc:
-        raise _classify_garmin_error(exc) from exc
+    except GarminRequestError:
+        raise  # re-raise our own MFA error from _build_mfa_prompt
     except Exception as exc:
         raise _classify_garmin_error(exc) from exc
 
