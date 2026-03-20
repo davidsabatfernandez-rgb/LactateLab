@@ -13,7 +13,7 @@ from app.core.security import decrypt_secret
 from app.models.athlete import Athlete
 from app.models.garmin_activity import GarminActivity
 from app.models.health_sample import HealthSample
-from app.services.garmin import GarminRequestError, _best_effort_connectapi, _garmin_session, _safe_connectapi, list_garmin_activities
+from app.services.garmin import GarminRequestError, _best_effort_connectapi, _garmin_session, list_garmin_activities
 
 DEFAULT_WINDOW_DAYS = 28
 MAX_WINDOW_DAYS = 84
@@ -330,31 +330,42 @@ def _load_garmin_health_snapshot(
     except ValueError as exc:
         raise GarminRequestError("Garmin credentials could not be restored for this athlete", status_code=502) from exc
 
-    with _garmin_session(email=email, password=password, token=token, allow_reauth=True) as garth:
+    with _garmin_session(email=email, password=password, token=token, allow_reauth=True) as client:
+        garth_mod = getattr(client, "garth", None)  # underlying garth module
         window_start = window_end - timedelta(days=WELLNESS_LOOKBACK_DAYS - 1)
-        sleep_scores = _best_effort_list(lambda: garth.DailySleep.list(end=window_end, period=WELLNESS_LOOKBACK_DAYS))
-        steps = _best_effort_list(lambda: garth.DailySteps.list(end=window_end, period=WELLNESS_LOOKBACK_DAYS))
-        stress = _best_effort_list(lambda: garth.DailyStress.list(end=window_end, period=WELLNESS_LOOKBACK_DAYS))
-        intensity = _best_effort_list(lambda: garth.DailyIntensityMinutes.list(end=window_end, period=WELLNESS_LOOKBACK_DAYS))
-        hrv = _best_effort_list(lambda: garth.DailyHRV.list(end=window_end, period=WELLNESS_LOOKBACK_DAYS))
+
+        # Try garth dataclass methods first (via the garminconnect client's garth attr)
+        sleep_scores = []
+        steps = []
+        stress = []
+        intensity = []
+        hrv = []
+        if garth_mod:
+            import garth as garth_import
+            sleep_scores = _best_effort_list(lambda: garth_import.DailySleep.list(end=window_end, period=WELLNESS_LOOKBACK_DAYS))
+            steps = _best_effort_list(lambda: garth_import.DailySteps.list(end=window_end, period=WELLNESS_LOOKBACK_DAYS))
+            stress = _best_effort_list(lambda: garth_import.DailyStress.list(end=window_end, period=WELLNESS_LOOKBACK_DAYS))
+            intensity = _best_effort_list(lambda: garth_import.DailyIntensityMinutes.list(end=window_end, period=WELLNESS_LOOKBACK_DAYS))
+            hrv = _best_effort_list(lambda: garth_import.DailyHRV.list(end=window_end, period=WELLNESS_LOOKBACK_DAYS))
+
         raw_sleep_scores = _best_effort_connectapi(
-            garth,
+            client,
             f"/wellness-service/stats/daily/sleep/score/{window_start.isoformat()}/{window_end.isoformat()}",
         )
         raw_steps = _best_effort_connectapi(
-            garth,
+            client,
             f"/usersummary-service/stats/steps/daily/{window_start.isoformat()}/{window_end.isoformat()}",
         )
         raw_stress = _best_effort_connectapi(
-            garth,
+            client,
             f"/usersummary-service/stats/stress/daily/{window_start.isoformat()}/{window_end.isoformat()}",
         )
         raw_intensity = _best_effort_connectapi(
-            garth,
+            client,
             f"/usersummary-service/stats/im/daily/{window_start.isoformat()}/{window_end.isoformat()}",
         )
         raw_hrv = _best_effort_connectapi(
-            garth,
+            client,
             f"/hrv-service/hrv/daily/{window_start.isoformat()}/{window_end.isoformat()}",
         )
 
@@ -406,15 +417,16 @@ def _load_garmin_health_snapshot(
             None,
         )
         if latest_sleep_day:
-            sleep_detail = _best_effort_item(lambda: garth.SleepData.get(latest_sleep_day))
-            username = getattr(getattr(garth, "client", None), "username", None)
+            if garth_mod:
+                sleep_detail = _best_effort_item(lambda: garth_import.SleepData.get(latest_sleep_day))
+            username = getattr(getattr(garth_mod, "client", None), "username", None) if garth_mod else None
             raw_sleep_detail = _best_effort_connectapi(
-                garth,
+                client,
                 f"/wellness-service/wellness/dailySleepData/{username}?date={latest_sleep_day}&nonSleepBufferMinutes=60",
             ) if username else None
-            daily_sleep_detail_map = _load_daily_sleep_detail_map(garth, username, sleep_scores, window_end) if username else {}
-        user_settings = _best_effort_connectapi(garth, "/userprofile-service/userprofile/user-settings")
-        latest_activity_summary, latest_activity_detail = _load_latest_activity_performance_payloads(garth, window_end)
+            daily_sleep_detail_map = _load_daily_sleep_detail_map(client, username, sleep_scores, window_end) if username else {}
+        user_settings = _best_effort_connectapi(client, "/userprofile-service/userprofile/user-settings")
+        latest_activity_summary, latest_activity_detail = _load_latest_activity_performance_payloads(client, window_end)
 
     health_days = _build_health_days(sleep_scores, steps, stress, intensity, hrv, daily_sleep_detail_map)[:7]
     health_metrics = _build_health_metrics(sleep_scores, steps, stress, intensity, hrv, sleep_detail, raw_sleep_detail)

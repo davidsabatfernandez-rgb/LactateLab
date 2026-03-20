@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import io
+import json
 import zipfile
 from contextlib import contextmanager
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from threading import Lock
 from typing import Any
 
@@ -22,6 +23,90 @@ class GarminRequestError(ValueError):
         self.status_code = status_code
 
 
+# ---------------------------------------------------------------------------
+# Session management — garminconnect.Garmin wrapper
+# ---------------------------------------------------------------------------
+
+def _create_garmin_client(
+    email: str,
+    password: str,
+    token_dict: dict | None = None,
+    mfa_code: str | None = None,
+) -> Any:
+    """Create and authenticate a Garmin client.
+
+    Uses token-first strategy: if a saved token is available, try to restore
+    the session. If that fails (or no token), fall back to email/password login.
+    """
+    from garminconnect import Garmin, GarminConnectAuthenticationError
+
+    if token_dict:
+        try:
+            client = Garmin()
+            client.login(token_dict)
+            # Quick check that session is alive
+            client.get_full_name()
+            return client
+        except Exception:
+            pass  # token expired/invalid — fall through to password login
+
+    try:
+        client = Garmin(email=email, password=password, is_cn=False, prompt_mfa=_build_mfa_prompt(mfa_code))
+        client.login()
+        return client
+    except GarminConnectAuthenticationError as exc:
+        raise _classify_garmin_error(exc) from exc
+    except Exception as exc:
+        raise _classify_garmin_error(exc) from exc
+
+
+@contextmanager
+def _garmin_session(
+    *,
+    email: str,
+    password: str,
+    token: str | None,
+    mfa_code: str | None = None,
+    allow_reauth: bool = True,
+):
+    """Context manager that yields an authenticated Garmin client."""
+    token_dict = None
+    if token:
+        try:
+            token_dict = json.loads(token)
+        except (json.JSONDecodeError, TypeError):
+            token_dict = None
+
+    with GARMIN_SESSION_LOCK:
+        client = _create_garmin_client(email, password, token_dict, mfa_code)
+        yield client
+
+
+def _export_token(client: Any) -> str | None:
+    """Export the current session token as a JSON string."""
+    try:
+        token_dict = client.garth.dumps()
+        if isinstance(token_dict, str):
+            return token_dict
+        return json.dumps(token_dict) if token_dict else None
+    except Exception:
+        return None
+
+
+def _save_token_to_athlete(db: Session, athlete: Athlete, client: Any) -> None:
+    """Refresh and persist the session token after an API call."""
+    athlete.garmin_last_sync_at = datetime.now(timezone.utc)
+    refreshed_token = _export_token(client)
+    if refreshed_token:
+        athlete.garmin_token_encrypted = encrypt_secret(refreshed_token)
+    db.add(athlete)
+    db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Public API — connect, list, detail, sync, push
+# ---------------------------------------------------------------------------
+
 def connect_garmin_account(
     db: Session,
     athlete_id: int,
@@ -33,10 +118,10 @@ def connect_garmin_account(
     if athlete is None:
         raise GarminRequestError("Athlete not found", status_code=404)
 
-    with _garmin_session(email=email, password=password, token=None, mfa_code=mfa_code, allow_reauth=True) as garth:
-        profile = _safe_connectapi(garth, "/userprofile-service/socialProfile")
-        garmin_user_id = _extract_garmin_user_id(profile)
-        exported_token = _export_token(garth)
+    with _garmin_session(email=email, password=password, token=None, mfa_code=mfa_code) as client:
+        profile = client.get_full_name()
+        garmin_user_id = _extract_garmin_user_id_from_client(client)
+        exported_token = _export_token(client)
 
     existing = db.scalar(select(Athlete).where(Athlete.garmin_user_id == garmin_user_id, Athlete.id != athlete_id))
     if existing is not None:
@@ -73,12 +158,15 @@ def list_garmin_activities(
     password = decrypt_secret(athlete.garmin_password_encrypted)
     token = decrypt_secret(athlete.garmin_token_encrypted) if athlete.garmin_token_encrypted else None
 
-    with _garmin_session(email=email, password=password, token=token, allow_reauth=True) as garth:
-        search_limit = 200 if activity_limit is None else max(1, min(activity_limit * 3, 200))
-        raw_activities = _safe_connectapi(
-            garth,
-            f"activitylist-service/activities/search/activities?startDate={start_date.isoformat()}&limit={search_limit}",
-        )
+    with _garmin_session(email=email, password=password, token=token, allow_reauth=True) as client:
+        try:
+            raw_activities = client.get_activities_by_date(
+                start_date.isoformat(),
+                end_date.isoformat(),
+            )
+        except Exception as exc:
+            raise GarminRequestError(f"Failed to fetch Garmin activities: {exc}", status_code=502) from exc
+
         if not isinstance(raw_activities, list):
             raise GarminRequestError("Unexpected Garmin activities payload", status_code=502)
 
@@ -103,11 +191,16 @@ def list_garmin_activities(
             detail_scope = "preview"
 
             if include_full_detail:
-                detail = _best_effort_connectapi(garth, f"activity-service/activity/{activity_id}/splits")
-                summary_response = _best_effort_connectapi(garth, f"activity-service/activity/{activity_id}")
-                summary_detail = summary_response if isinstance(summary_response, dict) else {}
-                detail_splits = detail if isinstance(detail, list) else []
-                extras = _collect_extended_activity_payloads(garth, activity_id)
+                try:
+                    summary_detail = client.get_activity(activity_id) or {}
+                except Exception:
+                    summary_detail = {}
+                try:
+                    splits_raw = client.get_activity_splits(activity_id)
+                    detail_splits = splits_raw if isinstance(splits_raw, list) else []
+                except Exception:
+                    detail_splits = []
+                extras = _collect_extended_activity_payloads_gc(client, activity_id)
                 detail_scope = "full"
 
             activities.append(
@@ -122,12 +215,7 @@ def list_garmin_activities(
             if activity_limit is not None and len(activities) >= activity_limit:
                 break
 
-        athlete.garmin_last_sync_at = datetime.now(timezone.utc)
-        refreshed_token = _export_token(garth)
-        if refreshed_token:
-            athlete.garmin_token_encrypted = encrypt_secret(refreshed_token)
-        db.add(athlete)
-        db.commit()
+        _save_token_to_athlete(db, athlete, client)
 
     return activities
 
@@ -144,35 +232,41 @@ def get_garmin_activity_detail(
     password = decrypt_secret(athlete.garmin_password_encrypted)
     token = decrypt_secret(athlete.garmin_token_encrypted) if athlete.garmin_token_encrypted else None
 
-    with _garmin_session(email=email, password=password, token=token, allow_reauth=True) as garth:
-        detail = _safe_connectapi(garth, f"activity-service/activity/{activity_id}")
+    with _garmin_session(email=email, password=password, token=token, allow_reauth=True) as client:
+        try:
+            detail = client.get_activity(activity_id)
+        except Exception as exc:
+            raise GarminRequestError(f"Failed to fetch activity detail: {exc}", status_code=502) from exc
+
         if not isinstance(detail, dict):
             raise GarminRequestError("Unexpected Garmin activity detail payload", status_code=502)
 
-        splits = _best_effort_connectapi(garth, f"activity-service/activity/{activity_id}/splits")
-        extras = _collect_extended_activity_payloads(garth, activity_id)
+        try:
+            splits_raw = client.get_activity_splits(activity_id)
+            splits = splits_raw if isinstance(splits_raw, list) else []
+        except Exception:
+            splits = []
+
+        extras = _collect_extended_activity_payloads_gc(client, activity_id)
         activity = _normalize_activity(
             detail,
             detail,
-            splits if isinstance(splits, list) else [],
+            splits,
             extras=extras,
             detail_scope="full",
         )
 
-        athlete.garmin_last_sync_at = datetime.now(timezone.utc)
-        refreshed_token = _export_token(garth)
-        if refreshed_token:
-            athlete.garmin_token_encrypted = encrypt_secret(refreshed_token)
-        db.add(athlete)
-        db.commit()
+        _save_token_to_athlete(db, athlete, client)
 
     return activity
 
 
+# ---------------------------------------------------------------------------
+# Error classification
+# ---------------------------------------------------------------------------
+
 def _classify_garmin_error(exc: Exception) -> GarminRequestError:
-    """Classify a garth/requests exception into a user-friendly GarminRequestError."""
     msg = str(exc).lower()
-    # Check preauthorized 401 FIRST (URL contains 'mfa' in accepts-mfa-tokens param)
     if "preauthorized" in msg and "401" in msg:
         return GarminRequestError(
             "Tu cuenta de Garmin no tiene Garmin Connect activado. "
@@ -186,7 +280,7 @@ def _classify_garmin_error(exc: Exception) -> GarminRequestError:
             "Garmin requiere verificación MFA. Introduce el código que has recibido por email.",
             status_code=401,
         )
-    if "401" in msg and "unauthorized" in msg:
+    if "401" in msg or "unauthorized" in msg or "authentication" in msg:
         return GarminRequestError(
             "Credenciales de Garmin incorrectas. Verifica tu email y contraseña.",
             status_code=401,
@@ -194,187 +288,127 @@ def _classify_garmin_error(exc: Exception) -> GarminRequestError:
     return GarminRequestError(f"Garmin login failed: {exc}", status_code=502)
 
 
-@contextmanager
-def _garmin_session(
-    *,
-    email: str,
-    password: str,
-    token: str | None,
-    mfa_code: str | None = None,
-    allow_reauth: bool = True,
-):
-    garth, garth_error = _import_garth()
-    with GARMIN_SESSION_LOCK:
-        _logout_if_available(garth)
-
-        if token:
-            try:
-                _load_token(garth, token)
-                _safe_connectapi(garth, "/userprofile-service/socialProfile")
-                yield garth
-                return
-            except GarminRequestError:
-                if not allow_reauth:
-                    raise
-                _logout_if_available(garth)
-
-        import logging
-        _log = logging.getLogger(__name__)
-        _log.info("Garmin login attempt for %s (mfa_code=%s)", email, "yes" if mfa_code else "no")
-        try:
-            login_result = garth.login(
-                email,
-                password,
-                prompt_mfa=_build_mfa_prompt(mfa_code),
-            )
-            _log.info("Garmin login succeeded for %s", email)
-        except GarminRequestError:
-            raise  # re-raise our own MFA error
-        except garth_error as exc:
-            _log.warning("Garmin login failed (GarthException) for %s: %s", email, exc)
-            raise _classify_garmin_error(exc) from exc
-        except Exception as exc:  # pragma: no cover - defensive for library edge cases
-            _log.warning("Garmin login failed (generic) for %s: %s", email, exc)
-            raise _classify_garmin_error(exc) from exc
-
-        yield garth
-
-
-def _import_garth():
-    try:
-        import garth
-        from garth.exc import GarthException
-    except ImportError as exc:  # pragma: no cover - depends on local installation
-        raise GarminRequestError(
-            "Garmin support is not installed. Run `pip install -r requirements.txt` in backend first.",
-            status_code=503,
-        ) from exc
-    return garth, GarthException
-
-
-def _safe_connectapi(garth: Any, path: str) -> Any:
-    try:
-        return garth.connectapi(path)
-    except Exception as exc:
-        raise GarminRequestError(f"Garmin request failed for `{path}`: {exc}", status_code=502) from exc
-
-
-def _best_effort_connectapi(garth: Any, path: str) -> Any | None:
-    try:
-        return _safe_connectapi(garth, path)
-    except GarminRequestError:
-        return None
-
-
-def _best_effort_download(garth: Any, path: str) -> bytes | None:
-    download = getattr(garth, "download", None)
-    if not callable(download):
-        return None
-    try:
-        payload = download(path)
-    except Exception:
-        return None
-    return payload if isinstance(payload, (bytes, bytearray)) and payload else None
-
-
-def _extract_garmin_user_id(profile: dict[str, Any]) -> int:
-    for key in ("id", "profileId", "userId", "garminGUID"):
-        value = _coerce_int(profile.get(key))
-        if value is not None:
-            return value
-    raise GarminRequestError("Garmin profile did not include a usable user id", status_code=502)
-
-
-def _export_token(garth: Any) -> str | None:
-    client = getattr(garth, "client", None)
-    if client is None or not hasattr(client, "dumps"):
-        return None
-    try:
-        payload = client.dumps()
-    except Exception:
-        return None
-    return payload if isinstance(payload, str) and payload else None
-
-
-def _load_token(garth: Any, token: str) -> None:
-    client = getattr(garth, "client", None)
-    if client is None or not hasattr(client, "loads"):
-        raise GarminRequestError("Garmin token restore is not available in the installed library", status_code=503)
-    try:
-        client.loads(token)
-    except Exception as exc:
-        raise GarminRequestError(f"Garmin saved session could not be restored: {exc}", status_code=401) from exc
-
-
-def _logout_if_available(garth: Any) -> None:
-    logout = getattr(garth, "logout", None)
-    if callable(logout):
-        try:
-            logout()
-        except Exception:
-            pass
-
-
 def _build_mfa_prompt(mfa_code: str | None):
     def prompt() -> str:
         if not mfa_code:
             raise GarminRequestError("Garmin requires MFA. Add the MFA code and try again.", status_code=400)
         return mfa_code
-
     return prompt
 
 
-def _collect_extended_activity_payloads(garth: Any, activity_id: int) -> dict[str, Any]:
+# ---------------------------------------------------------------------------
+# Extended activity payloads (garminconnect methods)
+# ---------------------------------------------------------------------------
+
+def _collect_extended_activity_payloads_gc(client: Any, activity_id: int) -> dict[str, Any]:
     payloads: dict[str, Any] = {}
-    candidate_paths: dict[str, list[str]] = {
-        "activity_details": [f"activity-service/activity/{activity_id}/details"],
-        "hr_time_in_zones": [
-            f"activity-service/activity/{activity_id}/hrTimeInZones",
-            f"activity-service/activity/{activity_id}/heartRateTimeInZones",
-        ],
-        "power_time_in_zones": [
-            f"activity-service/activity/{activity_id}/powerTimeInZones",
-        ],
-        "pace_time_in_zones": [
-            f"activity-service/activity/{activity_id}/paceTimeInZones",
-        ],
-        "speed_time_in_zones": [
-            f"activity-service/activity/{activity_id}/speedTimeInZones",
-        ],
-        "elevation_chart_data": [
-            f"activity-service/activity/{activity_id}/elevationChartData",
-        ],
-        "weather": [
-            f"activity-service/activity/{activity_id}/weather",
-        ],
+
+    methods: dict[str, str] = {
+        "hr_time_in_zones": "get_activity_hr_in_timezones",
+        "weather": "get_activity_weather",
     }
 
-    for key, paths in candidate_paths.items():
-        for path in paths:
-            payload = _best_effort_connectapi(garth, path)
-            if payload is None:
-                continue
-            payloads[key] = payload
-            payloads.setdefault("_sources", {})[key] = path
-            break
+    for key, method_name in methods.items():
+        method = getattr(client, method_name, None)
+        if not callable(method):
+            continue
+        try:
+            result = method(activity_id)
+            if result is not None:
+                payloads[key] = result
+        except Exception:
+            pass
 
-    fit_archive = _best_effort_download(garth, f"/download-service/files/activity/{activity_id}")
-    if fit_archive:
-        parsed_fit = _best_effort_parse_fit_archive(fit_archive)
-        if parsed_fit:
-            payloads["fit_file"] = parsed_fit
+    # Raw connectapi calls for endpoints without dedicated methods
+    raw_paths: dict[str, str] = {
+        "activity_details": f"activity-service/activity/{activity_id}/details",
+        "power_time_in_zones": f"activity-service/activity/{activity_id}/powerTimeInZones",
+        "pace_time_in_zones": f"activity-service/activity/{activity_id}/paceTimeInZones",
+        "speed_time_in_zones": f"activity-service/activity/{activity_id}/speedTimeInZones",
+        "elevation_chart_data": f"activity-service/activity/{activity_id}/elevationChartData",
+    }
+    for key, path in raw_paths.items():
+        try:
+            result = client.connectapi(path)
+            if result is not None:
+                payloads[key] = result
+        except Exception:
+            pass
+
+    # FIT file download
+    try:
+        fit_data = client.download_activity(activity_id)
+        if fit_data:
+            parsed_fit = _best_effort_parse_fit_archive(fit_data if isinstance(fit_data, bytes) else bytes(fit_data))
+            if parsed_fit:
+                payloads["fit_file"] = parsed_fit
+    except Exception:
+        pass
 
     return payloads
 
+
+# ---------------------------------------------------------------------------
+# Helpers kept from garth — used by athlete_health.py imports
+# ---------------------------------------------------------------------------
+
+def _safe_connectapi(client: Any, path: str) -> Any:
+    try:
+        return client.connectapi(path)
+    except Exception as exc:
+        raise GarminRequestError(f"Garmin request failed for `{path}`: {exc}", status_code=502) from exc
+
+
+def _best_effort_connectapi(client: Any, path: str) -> Any | None:
+    try:
+        return _safe_connectapi(client, path)
+    except GarminRequestError:
+        return None
+
+
+# ---------------------------------------------------------------------------
+# User ID extraction
+# ---------------------------------------------------------------------------
+
+def _extract_garmin_user_id_from_client(client: Any) -> int:
+    """Extract user ID from an authenticated garminconnect client."""
+    # Try the display_name / user profile methods
+    try:
+        profile = client.connectapi("/userprofile-service/socialProfile")
+        if isinstance(profile, dict):
+            for key in ("id", "profileId", "userId", "displayName"):
+                value = _coerce_int(profile.get(key))
+                if value is not None:
+                    return value
+    except Exception:
+        pass
+
+    # Fallback: use garth's underlying user data
+    try:
+        if hasattr(client, "garth") and hasattr(client.garth, "client"):
+            user_settings = client.connectapi("/userprofile-service/usersettings")
+            if isinstance(user_settings, dict):
+                uid = _coerce_int(user_settings.get("id")) or _coerce_int(user_settings.get("userId"))
+                if uid is not None:
+                    return uid
+    except Exception:
+        pass
+
+    # Last resort: hash the email to create a stable numeric ID
+    import hashlib
+    email = getattr(client, "email", "") or ""
+    return int(hashlib.sha256(email.encode()).hexdigest()[:12], 16)
+
+
+# ---------------------------------------------------------------------------
+# FIT file parsing (unchanged)
+# ---------------------------------------------------------------------------
 
 def _best_effort_parse_fit_archive(archive_bytes: bytes) -> dict[str, Any] | None:
     try:
         from fitparse import FitFile
     except ImportError:
-        return {
-            "available": False,
-            "error": "fitparse_not_installed",
-        }
+        return {"available": False, "error": "fitparse_not_installed"}
 
     try:
         with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
@@ -445,7 +479,6 @@ def _best_effort_parse_fit_archive(archive_bytes: bytes) -> dict[str, Any] | Non
 def _sample_fit_records(records: list[dict[str, Any]], max_points: int = 400) -> list[dict[str, Any]]:
     if len(records) <= max_points:
         return records
-
     stride = max(1, len(records) // max_points)
     sampled = [record for index, record in enumerate(records) if index % stride == 0]
     if sampled[-1] != records[-1]:
@@ -455,22 +488,10 @@ def _sample_fit_records(records: list[dict[str, Any]], max_points: int = 400) ->
 
 def _extract_fit_streams(records: list[dict[str, Any]]) -> dict[str, list[Any]]:
     stream_keys = [
-        "timestamp",
-        "heart_rate",
-        "power",
-        "cadence",
-        "speed",
-        "distance",
-        "altitude",
-        "temperature",
-        "enhanced_speed",
-        "enhanced_altitude",
-        "position_lat",
-        "position_long",
-        "vertical_oscillation",
-        "stance_time",
-        "stance_time_percent",
-        "step_length",
+        "timestamp", "heart_rate", "power", "cadence", "speed", "distance",
+        "altitude", "temperature", "enhanced_speed", "enhanced_altitude",
+        "position_lat", "position_long", "vertical_oscillation",
+        "stance_time", "stance_time_percent", "step_length",
     ]
     streams: dict[str, list[Any]] = {}
     for key in stream_keys:
@@ -479,6 +500,10 @@ def _extract_fit_streams(records: list[dict[str, Any]]) -> dict[str, list[Any]]:
             streams[key] = values
     return streams
 
+
+# ---------------------------------------------------------------------------
+# Activity normalization (unchanged — same Garmin JSON structure)
+# ---------------------------------------------------------------------------
 
 def _normalize_activity(
     summary: dict[str, Any],
@@ -535,9 +560,7 @@ def _normalize_activity(
             "detail": detail,
             "splits": splits,
             "extras": extras or {},
-            "meta": {
-                "detail_scope": detail_scope,
-            },
+            "meta": {"detail_scope": detail_scope},
         },
     }
 
@@ -557,6 +580,10 @@ def _normalize_split(payload: dict[str, Any], lap_index: int) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Primitive helpers (unchanged)
+# ---------------------------------------------------------------------------
+
 def _activity_started_at(payload: dict[str, Any]) -> datetime | None:
     return _datetime_from_value(payload.get("startTimeGMT") or payload.get("startTimeLocal"))
 
@@ -568,7 +595,6 @@ def _datetime_from_value(value: Any) -> datetime | None:
         return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
     if not isinstance(value, str):
         return None
-
     normalized = value.strip()
     if not normalized:
         return None
@@ -614,7 +640,6 @@ def _normalize_latlng(value: Any) -> list[float]:
         values = list(value)
     else:
         return []
-
     normalized: list[float] = []
     for item in values[:2]:
         parsed = _coerce_float(item)
@@ -624,7 +649,7 @@ def _normalize_latlng(value: Any) -> list[float]:
 
 
 # ---------------------------------------------------------------------------
-# Garmin Workout Push — enviar entrenos estructurados a Garmin Connect
+# Garmin Workout Push — structured workouts to Garmin Connect
 # ---------------------------------------------------------------------------
 
 _SPORT_TYPE_MAP: dict[str, dict[str, Any]] = {
@@ -674,7 +699,6 @@ _TARGET_TYPE_MAP: dict[str, dict[str, Any]] = {
 
 
 def _build_garmin_step(step: dict[str, Any], order: int) -> dict[str, Any]:
-    """Convert a WorkoutStep dict to a Garmin workout step DTO."""
     step_type_key = step.get("step_type", "interval")
     length_type = step.get("length_type", "open")
     length_value = step.get("length_value")
@@ -693,13 +717,7 @@ def _build_garmin_step(step: dict[str, Any], order: int) -> dict[str, Any]:
 
     target_value_one: Any = None
     target_value_two: Any = None
-    if target_type_key == "pace" and target.get("value_from") and target.get("value_to"):
-        target_value_one = float(target["value_from"])
-        target_value_two = float(target["value_to"])
-    elif target_type_key == "heart_rate" and target.get("value_from") and target.get("value_to"):
-        target_value_one = float(target["value_from"])
-        target_value_two = float(target["value_to"])
-    elif target_type_key == "power" and target.get("value_from") and target.get("value_to"):
+    if target_type_key in ("pace", "heart_rate", "power") and target.get("value_from") and target.get("value_to"):
         target_value_one = float(target["value_from"])
         target_value_two = float(target["value_to"])
 
@@ -725,7 +743,6 @@ def _build_garmin_step(step: dict[str, Any], order: int) -> dict[str, Any]:
 
 
 def _build_garmin_repeat_step(step: dict[str, Any], order: int, child_steps: list[dict[str, Any]]) -> dict[str, Any]:
-    """Convert a repeat WorkoutStep to a Garmin repeat DTO."""
     return {
         "type": "RepeatGroupDTO",
         "stepId": None,
@@ -738,7 +755,6 @@ def _build_garmin_repeat_step(step: dict[str, Any], order: int, child_steps: lis
 
 
 def workout_definition_to_garmin_payload(definition: dict[str, Any]) -> dict[str, Any]:
-    """Convert a full WorkoutDefinition dict to a Garmin Connect workout JSON payload."""
     sport = definition.get("sport", "running")
     sport_type = _SPORT_TYPE_MAP.get(sport, _SPORT_TYPE_MAP["running"])
 
@@ -778,10 +794,6 @@ def push_workout_to_garmin(
     *,
     scheduled_date: str | None = None,
 ) -> dict[str, Any]:
-    """Push a structured workout to Garmin Connect for the athlete.
-
-    Returns the Garmin response (includes workoutId on success).
-    """
     if not athlete.garmin_connected or not athlete.garmin_email or not athlete.garmin_password_encrypted:
         raise GarminRequestError("Athlete does not have Garmin connected", status_code=400)
 
@@ -791,9 +803,9 @@ def push_workout_to_garmin(
 
     garmin_payload = workout_definition_to_garmin_payload(workout_definition)
 
-    with _garmin_session(email=email, password=password, token=token, allow_reauth=True) as garth_client:
+    with _garmin_session(email=email, password=password, token=token, allow_reauth=True) as client:
         try:
-            result = garth_client.connectapi(
+            result = client.connectapi(
                 "/workout-service/workout",
                 method="POST",
                 json=garmin_payload,
@@ -801,28 +813,21 @@ def push_workout_to_garmin(
         except Exception as exc:
             raise GarminRequestError(f"Failed to push workout to Garmin: {exc}", status_code=502) from exc
 
-        # Schedule the workout on the calendar if we have a date and workoutId
         garmin_workout_id = None
         if isinstance(result, dict):
             garmin_workout_id = result.get("workoutId")
 
         if garmin_workout_id and scheduled_date:
             try:
-                garth_client.connectapi(
+                client.connectapi(
                     f"/workout-service/schedule/{garmin_workout_id}",
                     method="POST",
                     json={"date": scheduled_date},
                 )
             except Exception:
-                pass  # scheduling is best-effort; the workout is already created
+                pass
 
-        # Refresh token
-        athlete.garmin_last_sync_at = datetime.now(timezone.utc)
-        refreshed_token = _export_token(garth_client)
-        if refreshed_token:
-            athlete.garmin_token_encrypted = encrypt_secret(refreshed_token)
-        db.add(athlete)
-        db.commit()
+        _save_token_to_athlete(db, athlete, client)
 
     return result if isinstance(result, dict) else {"status": "sent"}
 
@@ -847,16 +852,13 @@ def _normalize_discipline(sport_type: str) -> str:
 
 def sync_garmin_activities(db: Session, athlete: Athlete, days_back: int = 56) -> dict:
     """Sync Garmin activities into DB. Default 56 days (8 weeks) for CTL/ATL convergence."""
-    from datetime import timedelta
     from app.models.garmin_activity import GarminActivity
 
     end_date = datetime.utcnow().date()
     start_date = (datetime.utcnow() - timedelta(days=days_back)).date()
 
-    # Fetch from Garmin API (lightweight, no full detail needed for storage)
     activities = list_garmin_activities(db, athlete, start_date, end_date, include_full_detail=False)
 
-    # Get existing activity IDs to avoid duplicates
     existing_ids = set(
         row[0] for row in db.query(GarminActivity.provider_activity_id)
         .filter(GarminActivity.athlete_id == athlete.id)
@@ -874,7 +876,6 @@ def sync_garmin_activities(db: Session, athlete: Athlete, days_back: int = 56) -
         sport = act.get("sport_type") or act.get("activityType", {}).get("typeKey", "other")
         discipline = _normalize_discipline(sport)
 
-        # Calculate TSS if possible
         tss_val, tss_method = _estimate_tss_for_activity(act, athlete)
 
         ga = GarminActivity(
@@ -907,14 +908,11 @@ def sync_garmin_activities(db: Session, athlete: Athlete, days_back: int = 56) -
 
     db.commit()
 
-    # Update last sync
     athlete.garmin_last_sync_at = now
     db.commit()
 
     total = db.query(GarminActivity).filter(GarminActivity.athlete_id == athlete.id).count()
 
-    # Auto-link activities to planned sessions (run always, not just on new_count > 0,
-    # because planned sessions may have been created after the last sync)
     matching_result = {}
     try:
         from app.services.activity_matching import match_activities_to_sessions
@@ -955,24 +953,20 @@ def _parse_activity_datetime(act: dict):
 
 
 def _estimate_tss_for_activity(act: dict, athlete: Athlete) -> tuple:
-    """Simple TSS estimation from activity data. Returns (tss, method)."""
     duration_s = act.get("moving_time_seconds") or act.get("movingDuration") or act.get("duration")
     if not duration_s or duration_s < 60:
         return (None, None)
 
     duration_h = duration_s / 3600.0
 
-    # Power-based TSS (most accurate)
     avg_power = act.get("average_watts") or act.get("avgPower")
     if avg_power and avg_power > 0:
-        # Estimate FTP as 75% of max power if we don't have it
         ftp = getattr(athlete, "ftp_cycling_watts", None) or (avg_power * 1.2)
         if ftp > 0:
             intensity = avg_power / ftp
             tss = (duration_s * avg_power * intensity) / (ftp * 3600) * 100
             return (round(tss, 1), "power")
 
-    # HR-based TSS (trimp-like)
     avg_hr = act.get("average_heartrate") or act.get("averageHR")
     max_hr = act.get("max_heartrate") or act.get("maxHR")
     if avg_hr and avg_hr > 0:
@@ -986,13 +980,11 @@ def _estimate_tss_for_activity(act: dict, athlete: Athlete) -> tuple:
             tss = duration_h * intensity * intensity * 100
             return (round(min(tss, 500), 1), "hr")
 
-    # Duration-based estimate (lowest accuracy)
-    tss = duration_h * 50  # ~50 TSS/hour for easy work
+    tss = duration_h * 50
     return (round(min(tss, 400), 1), "estimate")
 
 
 def get_stored_activities(db: Session, athlete_id: int, start_date: str = None, end_date: str = None, discipline: str = None):
-    """Get stored Garmin activities from DB."""
     from app.models.garmin_activity import GarminActivity
 
     query = db.query(GarminActivity).filter(GarminActivity.athlete_id == athlete_id)
