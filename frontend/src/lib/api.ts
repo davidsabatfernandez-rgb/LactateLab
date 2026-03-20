@@ -49,7 +49,7 @@ async function nativeRequest<T>(path: string, options: FetchOptions = {}): Promi
     data: data as any,
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !path.includes("/garmin/")) {
     window.dispatchEvent(new CustomEvent("auth:unauthorized"));
   }
   if (response.status >= 400) {
@@ -187,7 +187,7 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
     try {
       const response = await fetchWithTimeout(requestUrl, { ...options, headers });
       if (!response.ok) {
-        if (response.status === 401) {
+        if (response.status === 401 && !path.includes("/garmin/")) {
           window.dispatchEvent(new CustomEvent("auth:unauthorized"));
         }
         const detail = await parseErrorPayload(response);
@@ -232,7 +232,7 @@ async function requestForm<T>(path: string, body: FormData, token: string): Prom
     try {
       const response = await fetchWithTimeout(requestUrl, { method: "POST", headers, body });
       if (!response.ok) {
-        if (response.status === 401) {
+        if (response.status === 401 && !path.includes("/garmin/")) {
           window.dispatchEvent(new CustomEvent("auth:unauthorized"));
         }
         const detail = await parseErrorPayload(response);
