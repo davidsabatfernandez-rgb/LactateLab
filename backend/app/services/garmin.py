@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import decrypt_secret, encrypt_secret
 from app.models.athlete import Athlete
+from app.models.garmin_activity import GarminActivity
 
 GARMIN_SESSION_LOCK = Lock()
 
@@ -247,27 +248,56 @@ def get_garmin_activity_detail(
     if not athlete.garmin_connected or not athlete.garmin_email or not athlete.garmin_password_encrypted:
         raise GarminRequestError("Athlete does not have Garmin connected", status_code=400)
 
-    email = athlete.garmin_email
-    password = decrypt_secret(athlete.garmin_password_encrypted)
-    token = decrypt_secret(athlete.garmin_token_encrypted) if athlete.garmin_token_encrypted else None
+    # Try live Garmin API first
+    live_error = None
+    try:
+        email = athlete.garmin_email
+        password = decrypt_secret(athlete.garmin_password_encrypted)
+        token = decrypt_secret(athlete.garmin_token_encrypted) if athlete.garmin_token_encrypted else None
 
-    with _garmin_session(email=email, password=password, token=token, allow_reauth=True) as client:
-        try:
-            detail = client.get_activity(activity_id)
-        except Exception as exc:
-            raise GarminRequestError(f"Failed to fetch activity detail: {exc}", status_code=502) from exc
+        with _garmin_session(email=email, password=password, token=token, allow_reauth=True) as client:
+            try:
+                detail = client.get_activity(activity_id)
+            except Exception as exc:
+                raise GarminRequestError(f"Failed to fetch activity detail: {exc}", status_code=502) from exc
 
-        if not isinstance(detail, dict):
-            raise GarminRequestError("Unexpected Garmin activity detail payload", status_code=502)
+            if not isinstance(detail, dict):
+                raise GarminRequestError("Unexpected Garmin activity detail payload", status_code=502)
 
-        try:
-            splits_raw = client.get_activity_splits(activity_id)
-            splits = splits_raw if isinstance(splits_raw, list) else []
-        except Exception:
-            splits = []
+            try:
+                splits_raw = client.get_activity_splits(activity_id)
+                splits = splits_raw if isinstance(splits_raw, list) else []
+            except Exception:
+                splits = []
 
-        extras = _collect_extended_activity_payloads_gc(client, activity_id)
-        activity = _normalize_activity(
+            extras = _collect_extended_activity_payloads_gc(client, activity_id)
+            activity = _normalize_activity(
+                detail,
+                detail,
+                splits,
+                extras=extras,
+                detail_scope="full",
+            )
+
+            _save_token_to_athlete(db, athlete, client)
+
+        return activity
+    except Exception as exc:
+        live_error = exc
+
+    # Fallback: try to serve from stored raw_summary in DB
+    stored = db.scalar(
+        select(GarminActivity).where(
+            GarminActivity.athlete_id == athlete.id,
+            GarminActivity.provider_activity_id == activity_id,
+        )
+    )
+    if stored and stored.raw_summary:
+        raw = stored.raw_summary if isinstance(stored.raw_summary, dict) else json.loads(stored.raw_summary)
+        detail = raw.get("detail", {})
+        splits = raw.get("splits", [])
+        extras = raw.get("extras", {})
+        return _normalize_activity(
             detail,
             detail,
             splits,
@@ -275,9 +305,8 @@ def get_garmin_activity_detail(
             detail_scope="full",
         )
 
-        _save_token_to_athlete(db, athlete, client)
-
-    return activity
+    # No fallback available — raise original error
+    raise live_error
 
 
 # ---------------------------------------------------------------------------
