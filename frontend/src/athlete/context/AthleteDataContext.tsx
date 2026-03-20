@@ -72,6 +72,7 @@ type AthleteDataContextType = {
   moveSession: (sessionId: number, newDate: string) => void;
   removeSession: (sessionId: number) => void;
   refreshHealth: () => Promise<void>;
+  refreshAnalysis: () => Promise<void>;
   user: AuthUser;
   token: string;
 };
@@ -118,7 +119,7 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
       setGarminSyncStatus((prev) => prev ? { ...prev, last_sync_at: result.last_sync_at, stale: false } : prev);
       // Refresh health and planned sessions after sync completes (non-blocking)
       api.athleteHealthOverview(token, user.athlete_id, 28, {
-        includeActivity: false, includeRawWellness: false, refreshLiveHealth: true,
+        includeActivity: true, includeRawWellness: false, refreshLiveHealth: true,
       }).then((result) => setHealth(result as AthleteHealthOverview)).catch(() => {});
       api.athletePlannedSessions(token, user.athlete_id).then((sessions) => {
         setPlannedSessions((sessions as PlanningPlannedSession[]) ?? []);
@@ -210,7 +211,7 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
       setHealthError(null);
       try {
         const result = (await api.athleteHealthOverview(token, user.athlete_id, 28, {
-          includeActivity: false, includeRawWellness: false,
+          includeActivity: true, includeRawWellness: false,
           refreshLiveHealth: Boolean(analysis?.athlete?.garmin_connected),
         })) as AthleteHealthOverview;
         if (!cancelled) setHealth(result);
@@ -244,13 +245,27 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
     setHealthError(null);
     try {
       const result = (await api.athleteHealthOverview(token, user.athlete_id, 28, {
-        includeActivity: false, includeRawWellness: false, refreshLiveHealth: true,
+        includeActivity: true, includeRawWellness: false, refreshLiveHealth: true,
       })) as AthleteHealthOverview;
       setHealth(result);
     } catch (e) {
       setHealthError(e instanceof Error ? e.message : "Error refrescando salud.");
     } finally {
       setHealthLoading(false);
+    }
+  }
+
+  async function refreshAnalysis() {
+    if (!user?.athlete_id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = (await api.athleteAnalysis(token, user.athlete_id)) as AthleteAnalysis;
+      setAnalysis(result);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error refrescando datos.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -443,7 +458,7 @@ export function AthleteDataProvider({ user, token, children }: { user: AuthUser;
     bodyBatteryDelta, bodyBatteryAverage, recoveryScore, currentSleepHours, sleepHoursAverage,
     balancePos, balanceLbl, vo2maxValue, vo2maxLabel, derivedMetrics,
     garminSyncStatus, garminSyncing, garminSyncError, triggerGarminSync,
-    addAthleteSession, moveSession, removeSession, refreshHealth, user, token,
+    addAthleteSession, moveSession, removeSession, refreshHealth, refreshAnalysis, user, token,
   };
 
   return <AthleteDataContext.Provider value={value}>{children}</AthleteDataContext.Provider>;
