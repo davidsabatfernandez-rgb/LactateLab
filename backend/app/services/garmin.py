@@ -278,7 +278,7 @@ def _classify_garmin_error(exc: Exception) -> GarminRequestError:
     if "mfa" in msg or "verification" in msg:
         return GarminRequestError(
             "Garmin requiere verificación MFA. Introduce el código que has recibido por email.",
-            status_code=401,
+            status_code=403,
         )
     if "401" in msg or "unauthorized" in msg or "authentication" in msg:
         return GarminRequestError(
