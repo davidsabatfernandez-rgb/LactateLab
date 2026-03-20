@@ -294,12 +294,23 @@ def get_garmin_activity_detail(
     )
     if stored and stored.raw_summary:
         raw = stored.raw_summary if isinstance(stored.raw_summary, dict) else json.loads(stored.raw_summary)
-        detail = raw.get("detail", {})
-        splits = raw.get("splits", [])
-        extras = raw.get("extras", {})
+        # Support both formats:
+        # Format A (manual enrichment): {detail: {...}, splits: [...], extras: {...}}
+        # Format B (sync enrichment): {raw_detail: {extras: {...}}, ...activity fields...}
+        if "detail" in raw and isinstance(raw["detail"], dict) and "activityId" not in raw["detail"]:
+            # Format A: dedicated detail/splits/extras keys
+            detail_data = raw.get("detail", {})
+            splits = raw.get("splits", [])
+            extras = raw.get("extras", {})
+        else:
+            # Format B: raw_summary IS the normalized activity dict
+            detail_data = raw
+            splits = raw.get("laps", [])
+            rd = raw.get("raw_detail", {})
+            extras = rd.get("extras", {}) if isinstance(rd, dict) else {}
         return _normalize_activity(
-            detail,
-            detail,
+            detail_data,
+            detail_data,
             splits,
             extras=extras,
             detail_scope="full",
@@ -916,6 +927,17 @@ def sync_garmin_activities(db: Session, athlete: Athlete, days_back: int = 56) -
     new_count = 0
     now = datetime.utcnow()
 
+    # Prepare Garmin client for FIT downloads (reuse the session)
+    gc_client = None
+    try:
+        email = athlete.garmin_email
+        password = decrypt_secret(athlete.garmin_password_encrypted)
+        token = decrypt_secret(athlete.garmin_token_encrypted) if athlete.garmin_token_encrypted else None
+        token_dict = json.loads(token) if token else None
+        gc_client = _create_garmin_client(email, password, token_dict)
+    except Exception:
+        pass  # Will sync without FIT files
+
     for act in activities:
         act_id = act.get("provider_activity_id") or act.get("activityId")
         if not act_id or act_id in existing_ids:
@@ -925,6 +947,20 @@ def sync_garmin_activities(db: Session, athlete: Athlete, days_back: int = 56) -
         discipline = _normalize_discipline(sport)
 
         tss_val, tss_method = _estimate_tss_for_activity(act, athlete)
+
+        # Enrich raw_summary with FIT streams and extended data
+        enriched = dict(act)
+        if gc_client:
+            try:
+                extras = _collect_extended_activity_payloads_gc(gc_client, act_id)
+                if extras:
+                    raw_detail = enriched.get("raw_detail", {})
+                    if not isinstance(raw_detail, dict):
+                        raw_detail = {}
+                    raw_detail["extras"] = extras
+                    enriched["raw_detail"] = raw_detail
+            except Exception:
+                pass
 
         ga = GarminActivity(
             athlete_id=athlete.id,
@@ -948,13 +984,20 @@ def sync_garmin_activities(db: Session, athlete: Athlete, days_back: int = 56) -
             device_name=act.get("device_name") or act.get("deviceId"),
             tss=tss_val,
             tss_method=tss_method,
-            raw_summary=act,
+            raw_summary=enriched,
             synced_at=now,
         )
         db.add(ga)
         new_count += 1
 
     db.commit()
+
+    # Save refreshed token if we used a client
+    if gc_client:
+        try:
+            _save_token_to_athlete(db, athlete, gc_client)
+        except Exception:
+            pass
 
     athlete.garmin_last_sync_at = now
     db.commit()

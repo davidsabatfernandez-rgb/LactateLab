@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
   Tooltip, ReferenceLine, ReferenceArea, Bar, BarChart, Cell,
@@ -342,12 +343,20 @@ function parseTimeline(detail: GarminActivity): TimelinePoint[] {
   const streams = fit?.streams ?? detail.raw_detail?.streams;
   if (!streams) return [];
 
-  const hrData = (streams.heart_rate?.data ?? []) as number[];
-  const speedData = (streams.speed?.data ?? streams.enhanced_speed?.data ?? []) as number[];
-  const powerData = (streams.power?.data ?? []) as number[];
-  const cadenceData = (streams.cadence?.data ?? []) as number[];
-  const altData = (streams.altitude?.data ?? streams.enhanced_altitude?.data ?? []) as number[];
-  const timeData = (streams.timestamp?.data ?? []) as number[];
+  // Support both {field: {data: [...]}} and {field: [...]} formats
+  const s = (key: string): number[] => {
+    const v = streams[key];
+    if (!v) return [];
+    if (Array.isArray(v)) return v;
+    if (v.data && Array.isArray(v.data)) return v.data;
+    return [];
+  };
+  const hrData = s("heart_rate") as number[];
+  const speedData = (s("speed").length ? s("speed") : s("enhanced_speed")) as number[];
+  const powerData = s("power") as number[];
+  const cadenceData = s("cadence") as number[];
+  const altData = (s("altitude").length ? s("altitude") : s("enhanced_altitude")) as number[];
+  const timeData = s("timestamp") as number[];
 
   const len = Math.max(hrData.length, speedData.length, powerData.length);
   if (len === 0) return [];
@@ -616,7 +625,7 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
     console.log("Post-workout feedback:", { rpe, note: athleteNote, activityId: activity.provider_activity_id });
   }, [rpe, athleteNote, activity.provider_activity_id]);
 
-  return (
+  return createPortal(
     <div className="ath-modal-backdrop" onClick={onClose}>
       <div className="ath-pwd-fullpage" onClick={(e) => e.stopPropagation()}>
 
@@ -1399,7 +1408,8 @@ export function PostWorkoutAnalysis({ activity, plannedSession, lt1, lt2, token,
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
