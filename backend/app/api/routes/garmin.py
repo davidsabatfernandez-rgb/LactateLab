@@ -108,6 +108,8 @@ def get_athlete_garmin_activity_detail(
         activity = get_garmin_activity_detail(db, athlete, activity_id)
     except GarminRequestError as exc:
         raise HTTPException(status_code=_garmin_http_status(exc), detail=str(exc)) from exc
+    except (ValueError, Exception) as exc:
+        raise HTTPException(status_code=502, detail=f"Error fetching Garmin activity detail: {exc}") from exc
 
     return GarminActivityRead(**activity)
 
