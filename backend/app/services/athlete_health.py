@@ -96,7 +96,7 @@ def build_athlete_health_overview(
                 activity_limit=28,
             )
             activities = [_normalize_activity(item) for item in raw_activities]
-        except GarminRequestError as exc:
+        except (GarminRequestError, ValueError, Exception) as exc:
             providers[0]["status"] = "error"
             providers[0]["detail"] = str(exc)
             notes.append("Garmin esta conectado, pero no hemos podido refrescar la actividad en este momento.")
@@ -162,7 +162,7 @@ def build_athlete_health_overview(
                 window_end,
                 include_raw_wellness=include_raw_wellness,
             )
-        except GarminRequestError as exc:
+        except (GarminRequestError, ValueError, Exception) as exc:
             if not providers[0]["detail"]:
                 providers[0]["detail"] = str(exc)
             notes.append("No hemos podido traer los parametros de salud Garmin en este momento.")
