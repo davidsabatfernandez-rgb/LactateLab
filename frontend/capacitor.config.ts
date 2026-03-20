@@ -6,8 +6,8 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     // Live reload — descomentar para desarrollo con Xcode
-    url: 'http://192.168.1.42:5173',
-    cleartext: true,
+    // url: 'http://192.168.1.42:5173',
+    // cleartext: true,
     androidScheme: 'https',
     iosScheme: 'https',
   },
@@ -21,8 +21,7 @@ const config: CapacitorConfig = {
       splashImmersive: false,
     },
     StatusBar: {
-      style: 'LIGHT',
-      backgroundColor: '#FFFFFF',
+      style: 'DARK',
     },
   },
   ios: {

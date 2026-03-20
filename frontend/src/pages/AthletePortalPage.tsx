@@ -1849,7 +1849,9 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
         weight: val,
         source: "manual",
       });
-      window.location.reload();
+      setWeightInput("");
+      const refreshed = await api.athleteAnalysis(token, user.athlete_id) as AthleteAnalysis;
+      setAnalysis(refreshed);
     } catch {
       // silent
     } finally {

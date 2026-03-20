@@ -138,7 +138,9 @@ export function Layout({ onLogout, themeMode, onToggleTheme, children }: LayoutP
       </aside>
 
       {/* ── Main content ───────────────────────────────────────── */}
-      <main className="content">{children}</main>
+      <main className="content" key={location.pathname}>
+        <div className="page-transition">{children}</div>
+      </main>
 
       {/* ── Mobile bottom navigation (visible only <=768px via CSS) */}
       <nav className="mob-bottom-nav" aria-label="Navegacion principal movil">

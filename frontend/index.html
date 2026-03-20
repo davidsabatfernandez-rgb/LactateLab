@@ -46,6 +46,26 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="app-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:16px;">
+      <img src="/app-icon.png" alt="PeakAerobic" width="96" height="96" style="border-radius:22px;" />
+      <p style="font-family:'Source Sans 3',sans-serif;font-size:14px;margin:0;">Cargando...</p>
+    </div>
+    <style>
+      #app-loader { background: #fff; color: #5e6d72; }
+      @media (prefers-color-scheme: dark) { #app-loader { background: #0C0C14; color: #888; } }
+    </style>
+    <script>
+      // Remove loader once React mounts
+      const observer = new MutationObserver(() => {
+        const root = document.getElementById('root');
+        if (root && root.children.length > 0) {
+          const loader = document.getElementById('app-loader');
+          if (loader) { loader.style.opacity = '0'; loader.style.transition = 'opacity 0.3s'; setTimeout(() => loader.remove(), 300); }
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.getElementById('root'), { childList: true });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
   </html>

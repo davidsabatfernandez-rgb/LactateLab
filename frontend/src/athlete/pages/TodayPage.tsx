@@ -189,7 +189,7 @@ export function TodayPage() {
       setShowWeightInput(false);
       setWeightDraft("");
       // Trigger refresh
-      window.location.reload();
+      await data.refreshAnalysis();
     } catch {
       // silent
     } finally {

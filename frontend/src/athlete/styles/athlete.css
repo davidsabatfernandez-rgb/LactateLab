@@ -390,8 +390,12 @@
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
     flex: 1;
     min-height: 0;
+  }
+  .native-app .ath-content {
+    padding-top: max(env(safe-area-inset-top, 0px), 54px);
   }
 }
 
@@ -6520,6 +6524,10 @@
 @media (max-width: 600px) {
   .ath-pwd-fullpage {
     border-radius: 0;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .native-app .ath-pwd-fullpage {
+    padding-top: max(env(safe-area-inset-top, 0px), 54px);
   }
 
   /* Header: compact */
@@ -6552,7 +6560,7 @@
 
   /* Body: tighter padding */
   .ath-pwd-body {
-    padding: 12px 12px 32px;
+    padding: 12px 12px calc(80px + env(safe-area-inset-bottom, 0px));
   }
 
   /* Report card: 2 columns */

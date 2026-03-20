@@ -2,9 +2,15 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
+import { Capacitor } from "@capacitor/core";
 import App from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./styles.css";
+
+// Add native class to html for iOS-specific CSS
+if (Capacitor.isNativePlatform()) {
+  document.documentElement.classList.add("native-app");
+}
 import "./planning/styles/planning-layout.css";
 import "./planning/styles/planning-calendar.css";
 import "./planning/styles/planning-cards.css";

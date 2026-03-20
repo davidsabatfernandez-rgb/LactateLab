@@ -61,15 +61,14 @@ export async function isAvailable(): Promise<boolean> {
 }
 
 const READ_PERMISSIONS = [
-  "HKQuantityTypeIdentifierHeartRateVariabilitySDNN",
-  "HKQuantityTypeIdentifierRestingHeartRate",
-  "HKQuantityTypeIdentifierRespiratoryRate",
-  "HKQuantityTypeIdentifierOxygenSaturation",
-  "HKQuantityTypeIdentifierStepCount",
-  "HKQuantityTypeIdentifierAppleExerciseTime",
-  "HKQuantityTypeIdentifierActiveEnergyBurned",
-  "HKQuantityTypeIdentifierVO2Max",
-  "HKCategoryTypeIdentifierSleepAnalysis",
+  "heartRateVariabilitySDNN",
+  "restingHeartRate",
+  "respiratoryRate",
+  "oxygenSaturation",
+  "stepCount",
+  "appleExerciseTime",
+  "activeEnergyBurned",
+  "sleepAnalysis",
 ];
 
 export async function requestAuthorization(): Promise<boolean> {
@@ -103,15 +102,14 @@ export async function readHealthData(days = 7): Promise<HealthSample[]> {
   const endISO = end.toISOString();
 
   // Collect all data in parallel
-  const [hrv, rhr, sleep, steps, exercise, respRate, spo2, vo2max] = await Promise.all([
-    _queryQuantity(plugin, "HKQuantityTypeIdentifierHeartRateVariabilitySDNN", startISO, endISO),
-    _queryQuantity(plugin, "HKQuantityTypeIdentifierRestingHeartRate", startISO, endISO),
+  const [hrv, rhr, sleep, steps, exercise, respRate, spo2] = await Promise.all([
+    _queryQuantity(plugin, "heartRateVariabilitySDNN", startISO, endISO),
+    _queryQuantity(plugin, "restingHeartRate", startISO, endISO),
     _querySleep(plugin, startISO, endISO),
-    _queryQuantity(plugin, "HKQuantityTypeIdentifierStepCount", startISO, endISO),
-    _queryQuantity(plugin, "HKQuantityTypeIdentifierAppleExerciseTime", startISO, endISO),
-    _queryQuantity(plugin, "HKQuantityTypeIdentifierRespiratoryRate", startISO, endISO),
-    _queryQuantity(plugin, "HKQuantityTypeIdentifierOxygenSaturation", startISO, endISO),
-    _queryQuantity(plugin, "HKQuantityTypeIdentifierVO2Max", startISO, endISO),
+    _queryQuantity(plugin, "stepCount", startISO, endISO),
+    _queryQuantity(plugin, "appleExerciseTime", startISO, endISO),
+    _queryQuantity(plugin, "respiratoryRate", startISO, endISO),
+    _queryQuantity(plugin, "oxygenSaturation", startISO, endISO),
   ]);
 
   // Aggregate by date
@@ -163,11 +161,6 @@ export async function readHealthData(days = 7): Promise<HealthSample[]> {
     ensureDay(dateStr).spo2 = avg <= 1 ? Math.round(avg * 100) : Math.round(avg);
   }
 
-  // VO2max — latest per day
-  for (const [dateStr, values] of _groupByDate(vo2max)) {
-    ensureDay(dateStr).vo2max = values[values.length - 1];
-  }
-
   return Array.from(byDate.values()).sort((a, b) => a.sample_date.localeCompare(b.sample_date));
 }
 
@@ -198,7 +191,7 @@ async function _querySleep(plugin: any, start: string, end: string): Promise<Map
   const result = new Map<string, SleepDay>();
   try {
     const raw = await plugin.queryHKitSampleType({
-      sampleName: "HKCategoryTypeIdentifierSleepAnalysis",
+      sampleName: "sleepAnalysis",
       startDate: start,
       endDate: end,
       limit: 0,

@@ -40,7 +40,7 @@ function daysUntil(dateStr: string) {
 }
 
 export function ObjectivesPage() {
-  const { analysis, token, user, loading } = useAthleteData();
+  const { analysis, token, user, loading, refreshAnalysis } = useAthleteData();
   const athleteId = user.athlete_id;
 
   const [submitting, setSubmitting] = useState(false);
@@ -104,8 +104,7 @@ export function ObjectivesPage() {
         notes: "",
       }));
       setShowForm(false);
-      // Reload page data by forcing re-render (analysis will refresh via context)
-      window.location.reload();
+      await refreshAnalysis();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo guardar el objetivo.");
     } finally {
@@ -121,7 +120,7 @@ export function ObjectivesPage() {
     try {
       await api.deleteAthleteTarget(token, athleteId, targetId);
       setMessage("Objetivo eliminado.");
-      window.location.reload();
+      await refreshAnalysis();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo eliminar el objetivo.");
     } finally {

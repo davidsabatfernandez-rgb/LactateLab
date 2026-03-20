@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSHealthShareUsageDescription</key>
 	<string>PeakAerobic usa tus datos de salud (frecuencia cardiaca en reposo, variabilidad cardiaca, sueno, saturacion de oxigeno, pasos y VO2max) para calcular tu estado de recuperacion y optimizar tu plan de entrenamiento.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>PeakAerobic registra tus sesiones de entrenamiento y datos de lactato en Apple Health para mantener un historial completo de tu rendimiento.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -49,5 +51,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
