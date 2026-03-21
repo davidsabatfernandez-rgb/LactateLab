@@ -132,6 +132,9 @@ class AthleteBase(BaseModel):
     training_goal: Optional[str] = None
     notes: Optional[str] = None
     athlete_level: str = "trained"
+    threshold_mode: str = "lactate"
+    """'lactate' | 'field_tests'"""
+    vo2max_ml_kg_min: Optional[float] = Field(default=None, ge=15, le=95)
     training_hr_max: Optional[int] = Field(default=None, ge=100, le=230)
     hr_rest: Optional[int] = Field(default=None, ge=20, le=100)
     ftp_cycling_watts: Optional[int] = Field(default=None, ge=50, le=600)
@@ -157,6 +160,8 @@ class AthleteUpdate(BaseModel):
     training_goal: Optional[str] = None
     notes: Optional[str] = None
     athlete_level: Optional[str] = None
+    threshold_mode: Optional[str] = None
+    vo2max_ml_kg_min: Optional[float] = Field(default=None, ge=15, le=95)
     training_hr_max: Optional[int] = Field(default=None, ge=100, le=230)
     hr_rest: Optional[int] = Field(default=None, ge=20, le=100)
     ftp_cycling_watts: Optional[int] = Field(default=None, ge=50, le=600)
@@ -174,6 +179,8 @@ class AthleteRead(AthleteBase):
     garmin_user_id: Optional[int] = None
     garmin_connected: bool = False
     cycling_interpolated_from_running: bool = False
+    threshold_mode: str = "lactate"
+    vo2max_ml_kg_min: Optional[float] = None
     weights: list[AthleteWeightHistoryRead] = []
     focus_blocks: list[AthleteFocusBlockRead] = []
     targets: list[AthleteTargetRead] = []

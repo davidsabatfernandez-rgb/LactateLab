@@ -59,6 +59,10 @@ class Athlete(Base):
     apple_health_connected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     """Whether the athlete has granted HealthKit permissions in the iOS app."""
     apple_health_last_sync_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    threshold_mode: Mapped[str] = mapped_column(String(20), nullable=False, default="lactate", server_default="lactate")
+    """Modo de umbrales: 'lactate' (tests de lactato) | 'field_tests' (decoupling + CRI 30'). Determina qué motor fisiológico se usa."""
+    vo2max_ml_kg_min: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    """VO2max opcional (ml/kg/min). Campo informativo, no afecta prescripción."""
     created_at: Mapped[date] = mapped_column(Date)
     coach_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
 

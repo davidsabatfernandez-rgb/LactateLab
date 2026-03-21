@@ -311,6 +311,9 @@ def create_athlete(payload: AthleteCreate, db: Session = Depends(get_db), user: 
         goal_category=payload.goal_category,
         training_goal=payload.training_goal,
         notes=payload.notes,
+        athlete_level=payload.athlete_level,
+        threshold_mode=payload.threshold_mode,
+        vo2max_ml_kg_min=payload.vo2max_ml_kg_min,
         created_at=payload.created_at,
         coach_id=user.id if user.role == "coach" else None,
     )

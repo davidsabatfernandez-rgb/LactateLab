@@ -2006,7 +2006,12 @@ export function AthletePortalPage({ user, token }: AthletePortalPageProps) {
 
         {/* Centered name + phrase */}
         <div className="ap-hero-center">
-          <h1 className="ap-hero-name">{analysis.athlete.name}</h1>
+          <h1 className="ap-hero-name">
+            {analysis.athlete.name}
+            {analysis.athlete.threshold_mode === "field_tests" && (
+              <span style={{ marginLeft: 8, fontSize: "0.45em", padding: "2px 8px", borderRadius: 6, background: "#b08020", color: "#fff", verticalAlign: "middle", fontWeight: 600, letterSpacing: 0.3 }}>Tests de campo</span>
+            )}
+          </h1>
           <p className="ap-hero-phrase">{dailyPhrase}</p>
         </div>
 

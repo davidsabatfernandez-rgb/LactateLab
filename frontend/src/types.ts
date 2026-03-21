@@ -14,6 +14,8 @@ export type Athlete = {
   garmin_user_id?: number | null;
   garmin_connected: boolean;
   athlete_level: string;
+  threshold_mode: string;
+  vo2max_ml_kg_min?: number | null;
   hr_rest?: number | null;
   ftp_cycling_watts?: number | null;
   ftpa_running_pace?: number | null;

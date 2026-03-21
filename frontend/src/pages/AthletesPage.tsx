@@ -21,6 +21,8 @@ type AthleteFormState = {
   notes: string;
   training_goal: string;
   athlete_level: string;
+  threshold_mode: string;
+  vo2max_ml_kg_min: string;
 };
 
 const initialForm: AthleteFormState = {
@@ -34,6 +36,8 @@ const initialForm: AthleteFormState = {
   notes: "",
   training_goal: "",
   athlete_level: "trained",
+  threshold_mode: "lactate",
+  vo2max_ml_kg_min: "",
 };
 
 function disciplineLabel(value: string) {
@@ -86,6 +90,8 @@ function athleteToForm(athlete: Athlete): AthleteFormState {
     notes: athlete.notes ?? "",
     training_goal: athlete.training_goal ?? "",
     athlete_level: athlete.athlete_level ?? "trained",
+    threshold_mode: athlete.threshold_mode ?? "lactate",
+    vo2max_ml_kg_min: athlete.vo2max_ml_kg_min ? String(athlete.vo2max_ml_kg_min) : "",
   };
 }
 
@@ -159,6 +165,8 @@ export function AthletesPage({ athletes, token, onRefresh }: AthletesPageProps) 
       training_goal: currentForm.training_goal || null,
       notes: currentForm.notes || null,
       athlete_level: currentForm.athlete_level || "trained",
+      threshold_mode: currentForm.threshold_mode || "lactate",
+      vo2max_ml_kg_min: currentForm.vo2max_ml_kg_min ? Number(currentForm.vo2max_ml_kg_min) : null,
     };
   }
 
@@ -429,6 +437,22 @@ export function AthletesPage({ athletes, token, onRefresh }: AthletesPageProps) 
                   <option value="trained">Entrenado</option>
                   <option value="competitive">Competitivo</option>
                 </select>
+              </label>
+              <label>
+                Modo de umbrales
+                <select value={form.threshold_mode} onChange={(event) => setForm({ ...form, threshold_mode: event.target.value })}>
+                  <option value="lactate">Lactato</option>
+                  <option value="field_tests">Tests de campo</option>
+                </select>
+              </label>
+              {form.threshold_mode === "field_tests" && (
+                <p className="full-width" style={{ margin: "-0.25rem 0 0.5rem", fontSize: "0.82rem", color: "#b08020", lineHeight: 1.4 }}>
+                  Los umbrales se estimaran mediante test de decoupling (LT1) y contrarreloj 30' (LT2). Algunos bloques de entrenamiento no estaran disponibles hasta completar los tests.
+                </p>
+              )}
+              <label>
+                VO2max (ml/kg/min)
+                <input type="number" step="0.1" min="15" max="95" placeholder="Opcional" value={form.vo2max_ml_kg_min} onChange={(event) => setForm({ ...form, vo2max_ml_kg_min: event.target.value })} />
               </label>
               <label className="full-width">
                 Objetivo del atleta

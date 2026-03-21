@@ -2599,6 +2599,8 @@ function FunctionalThresholdsEditor({ athlete, token }: { athlete: Athlete; toke
   const [rftpaPace, setRftpaPace] = useState(secondsToPace(athlete.ftpa_running_pace));
   const [cssPace, setCssPace] = useState(secondsToPace(athlete.css_swimming_pace));
   const [hrRest, setHrRest] = useState(athlete.hr_rest?.toString() ?? "");
+  const [thresholdMode, setThresholdMode] = useState(athlete.threshold_mode ?? "lactate");
+  const [vo2maxVal, setVo2maxVal] = useState(athlete.vo2max_ml_kg_min?.toString() ?? "");
   const [saving, setSaving] = useState(false);
   const [savedField, setSavedField] = useState<string | null>(null);
 
@@ -2618,6 +2620,39 @@ function FunctionalThresholdsEditor({ athlete, token }: { athlete: Athlete; toke
 
   return (
     <div className="ad-functional-thresholds" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem", padding: "0.75rem 0" }}>
+      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>Modo de umbrales</span>
+        <select
+          value={thresholdMode}
+          onChange={(e) => {
+            const next = e.target.value;
+            setThresholdMode(next);
+            saveField("threshold_mode", next);
+          }}
+          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+        >
+          <option value="lactate">Lactato</option>
+          <option value="field_tests">Tests de campo</option>
+        </select>
+        {savedField === "threshold_mode" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
+      </label>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>VO2max (ml/kg/min)</span>
+        <input
+          type="number"
+          step="0.1"
+          min="15"
+          max="95"
+          placeholder="Opcional"
+          value={vo2maxVal}
+          onChange={(e) => setVo2maxVal(e.target.value)}
+          onBlur={() => { const v = parseFloat(vo2maxVal); saveField("vo2max_ml_kg_min", isNaN(v) ? null : v); }}
+          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+        />
+        {savedField === "vo2max_ml_kg_min" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
+      </label>
+
       <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
         <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FTP Ciclismo (W)</span>
         <input
@@ -4961,7 +4996,12 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
         <div className="hero-main">
           <span className="eyebrow">{disciplineLabel(activeDiscipline)}</span>
           <div className="athlete-title-row">
-            <h1>{analysis.athlete.name}</h1>
+            <h1>
+              {analysis.athlete.name}
+              {analysis.athlete.threshold_mode === "field_tests" && (
+                <span style={{ marginLeft: 10, fontSize: "0.4em", padding: "2px 8px", borderRadius: 6, background: "#b08020", color: "#fff", verticalAlign: "middle", fontWeight: 600, letterSpacing: 0.3 }}>Tests de campo</span>
+              )}
+            </h1>
             <button className="ghost-button" type="button" onClick={() => setTargetsOverlayOpen(true)}>
               Objetivos y competiciones
             </button>
