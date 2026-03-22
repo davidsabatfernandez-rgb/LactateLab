@@ -404,7 +404,7 @@ const BETA_T: Record<string, Record<string, string>> = {
 
     pain_hr_title: "El 70% de los atletas entrena con zonas equivocadas",
     pain_hr_1: "220\u2212edad tiene un error de \u00B110-20 ppm. Tu Garmin usa esta f\u00F3rmula por defecto.",
-    pain_hr_2: "Zona 2 no deber\u00EDa ser imposible. Si tienes que caminar, tus zonas est\u00E1n mal \u2014 no tu forma f\u00EDsica.",
+    pain_hr_2: "Si Zona 2 te parece imposiblemente lenta, el problema no es tu forma f\u00EDsica \u2014 son tus zonas. La mayor\u00EDa est\u00E1n calculadas con una f\u00F3rmula que no te representa.",
     pain_hr_3: "La deriva card\u00EDaca sube tu FC 10-20 ppm en ejercicio estable. Sin umbrales de lactato como ancla, persigues un objetivo que se mueve.",
     pain_hr_4: "Zonas de running \u2260 zonas de ciclismo. Si usas las mismas para ambos, una est\u00E1 mal.",
     pain_lac_title: "Un test sin an\u00E1lisis es un n\u00FAmero en una libreta",
@@ -450,6 +450,20 @@ const BETA_T: Record<string, Record<string, string>> = {
 
     demo_ey: "Pru\u00E9balo t\u00FA mismo",
     demo_h2: "Demo interactiva",
+
+    ap_ey: "Tu portal de atleta",
+    ap_h2: "Todo lo que necesitas. En una sola app.",
+    ap_sub: "Entreno del dia, semana, progreso, zonas, objetivos — todo conectado a tu fisiologia real.",
+    ap_1_title: "Tu dia, de un vistazo",
+    ap_1_desc: "Readiness score, sesion del dia con cada paso detallado, y metricas de bienestar. Sabes exactamente que hacer y como te encuentras.",
+    ap_2_title: "Semana y calendario",
+    ap_2_desc: "Vista semanal con sesiones por disciplina, distribucion de zonas y volumen. Arrastra para reorganizar. Sincroniza con Google Calendar.",
+    ap_3_title: "Evolucion de umbrales y predicciones",
+    ap_3_desc: "Ve como evolucionan tu LT1 y LT2 test a test. Predicciones de carrera actualizadas con bandas de confianza para 5K, 10K, media y maraton.",
+    ap_4_title: "Zonas reales, no formulas",
+    ap_4_desc: "7 zonas calculadas desde tu lactato real. FC, ritmo y potencia para cada zona. Actualizadas cada vez que subes un test.",
+    ap_5_title: "Objetivos de carrera",
+    ap_5_desc: "Define tus pruebas objetivo con fecha, disciplina y marca. El sistema adapta tu periodizacion y te muestra la cuenta atras.",
 
     price_ey: "Planes beta",
     price_h2: "Elige tu plan",
@@ -556,7 +570,7 @@ const BETA_T: Record<string, Record<string, string>> = {
 
     pain_hr_title: "70% of athletes train with wrong zones",
     pain_hr_1: "220\u2212age has an error of \u00B110-20 bpm. Your Garmin uses this formula by default.",
-    pain_hr_2: "Zone 2 shouldn't be impossible. If you have to walk, your zones are wrong \u2014 not your fitness.",
+    pain_hr_2: "If Zone 2 feels impossibly slow, the problem isn't your fitness \u2014 it's your zones. Most are calculated with a formula that doesn't represent you.",
     pain_hr_3: "Cardiac drift raises your HR 10-20 bpm during steady exercise. Without lactate thresholds as an anchor, you're chasing a moving target.",
     pain_hr_4: "Running zones \u2260 cycling zones. If you use the same for both, one is wrong.",
     pain_lac_title: "A test without analysis is a number in a notebook",
@@ -602,6 +616,20 @@ const BETA_T: Record<string, Record<string, string>> = {
 
     demo_ey: "Try it yourself",
     demo_h2: "Interactive demo",
+
+    ap_ey: "Your athlete portal",
+    ap_h2: "Everything you need. One app.",
+    ap_sub: "Today's training, weekly view, progress, zones, objectives — all connected to your real physiology.",
+    ap_1_title: "Your day, at a glance",
+    ap_1_desc: "Readiness score, today's session with every step detailed, and wellness metrics. Know exactly what to do and how you feel.",
+    ap_2_title: "Week and calendar",
+    ap_2_desc: "Weekly view with sessions by discipline, zone distribution and volume. Drag to reorganize. Sync with Google Calendar.",
+    ap_3_title: "Threshold evolution and predictions",
+    ap_3_desc: "Watch your LT1 and LT2 evolve test by test. Race predictions updated with confidence bands for 5K, 10K, half and marathon.",
+    ap_4_title: "Real zones, not formulas",
+    ap_4_desc: "7 zones calculated from your real lactate. HR, pace and power for each zone. Updated every time you upload a test.",
+    ap_5_title: "Race objectives",
+    ap_5_desc: "Define your target races with date, discipline and goal time. The system adapts your periodization and shows the countdown.",
 
     price_ey: "Beta plans",
     price_h2: "Choose your plan",
@@ -1029,7 +1057,285 @@ function LandingInner() {
       </AnimSection>
       <LactateDemo />
 
-      {/* ══ 6. PRICING — 4 tiers ══ */}
+      {/* ══ 6. ATHLETE PORTAL SHOWCASE ══ */}
+      <AnimSection>
+        <section className="lp-section lp-section--dark" id="athlete-portal">
+          <div className="lp-w" style={{ textAlign: "center", marginBottom: 48 }}>
+            <p className="lp-ey lp-ey--light">{t("ap_ey")}</p>
+            <h2 className="lp-h2 lp-h2--light">{t("ap_h2")}</h2>
+            <p className="lp-sub lp-sub--light">{t("ap_sub")}</p>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* ── Screen 1: Today View ── */}
+      <AnimSection>
+        <section className="lp-section lp-section--dark lp-showcase" style={{ paddingTop: 0 }}>
+          <div className="lp-w lp-showcase__row">
+            <div>
+              <span className="lp-showcase__num" style={{ color: "#d26a36" }}>01</span>
+              <h3 className="lp-showcase__title" style={{ color: "#fff" }}>{t("ap_1_title")}</h3>
+              <p className="lp-showcase__desc" style={{ color: "rgba(255,255,255,0.55)" }}>{t("ap_1_desc")}</p>
+            </div>
+            <div className="lp-showcase__visual">
+              <div style={{ background: "#0e1e24", borderRadius: 16, padding: 24, border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+                {/* Readiness ring + wellness chips */}
+                <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
+                  <svg viewBox="0 0 80 80" width="80" height="80">
+                    <circle cx="40" cy="40" r="34" fill="none" stroke="#1a2f38" strokeWidth="6" />
+                    <circle cx="40" cy="40" r="34" fill="none" stroke="#22c55e" strokeWidth="6" strokeDasharray={`${2 * Math.PI * 34 * 0.78} ${2 * Math.PI * 34 * 0.22}`} strokeLinecap="round" transform="rotate(-90 40 40)" />
+                    <text x="40" y="36" textAnchor="middle" fill="#fff" fontSize="18" fontWeight="700" fontFamily="Space Grotesk">78</text>
+                    <text x="40" y="50" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="8" fontFamily="Space Grotesk">READINESS</text>
+                  </svg>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {[
+                      { label: "HRV", val: "52ms", color: "#22c55e" },
+                      { label: "Sleep", val: "7.2h", color: "#22c55e" },
+                      { label: "Stress", val: "24", color: "#22c55e" },
+                    ].map(w => (
+                      <div key={w.label} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontFamily: "Space Grotesk" }}>
+                        <span style={{ color: "rgba(255,255,255,0.4)", minWidth: 40 }}>{w.label}</span>
+                        <span style={{ color: w.color, fontWeight: 600 }}>{w.val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Session card */}
+                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 14, marginBottom: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <span style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "Space Grotesk" }}>Intervalos de umbral</span>
+                    <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 6, background: "rgba(245,158,11,0.15)", color: "#f59e0b", fontWeight: 700, fontFamily: "Space Grotesk" }}>CALIDAD</span>
+                  </div>
+                  {[
+                    { step: "Calentamiento", dur: "15'", color: "#22c55e" },
+                    { step: "4\u00D76' ritmo fuerte", dur: "24'", color: "#f59e0b" },
+                    { step: "Recuperaci\u00F3n", dur: "12'", color: "#22c55e" },
+                    { step: "Vuelta calma", dur: "10'", color: "#22c55e" },
+                  ].map((s, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.06)" : "none", fontSize: 11, fontFamily: "Space Grotesk" }}>
+                      <span style={{ width: 4, height: 18, borderRadius: 2, background: s.color, flexShrink: 0 }} />
+                      <span style={{ color: "rgba(255,255,255,0.8)", flex: 1 }}>{s.step}</span>
+                      <span style={{ color: "rgba(255,255,255,0.4)" }}>{s.dur}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* Bottom nav */}
+                <div style={{ display: "flex", justifyContent: "space-around", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 10 }}>
+                  {[
+                    { label: "Today", active: true },
+                    { label: "Semana", active: false },
+                    { label: "Progreso", active: false },
+                    { label: "Recup", active: false },
+                  ].map(n => (
+                    <span key={n.label} style={{ fontSize: 9, fontFamily: "Space Grotesk", fontWeight: n.active ? 700 : 400, color: n.active ? "#d26a36" : "rgba(255,255,255,0.3)" }}>{n.label}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* ── Screen 2: Week View (reversed) ── */}
+      <AnimSection>
+        <section className="lp-section lp-section--dark lp-showcase" style={{ paddingTop: 0 }}>
+          <div className="lp-w lp-showcase__row lp-showcase__row--reverse">
+            <div>
+              <span className="lp-showcase__num" style={{ color: "#d26a36" }}>02</span>
+              <h3 className="lp-showcase__title" style={{ color: "#fff" }}>{t("ap_2_title")}</h3>
+              <p className="lp-showcase__desc" style={{ color: "rgba(255,255,255,0.55)" }}>{t("ap_2_desc")}</p>
+            </div>
+            <div className="lp-showcase__visual">
+              <div style={{ background: "#0e1e24", borderRadius: 16, padding: 20, border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+                {/* Day headers */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 6 }}>
+                  {["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"].map(d => (
+                    <span key={d} style={{ fontSize: 9, fontWeight: 600, color: "rgba(255,255,255,0.35)", textAlign: "center", fontFamily: "Space Grotesk" }}>{d}</span>
+                  ))}
+                </div>
+                {/* Calendar cells */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+                  {[
+                    { day: "14", label: null, type: "rest" },
+                    { day: "15", label: "Intervalos", type: "key" },
+                    { day: "16", label: "40' suave", type: "easy" },
+                    { day: "17", label: null, type: "rest" },
+                    { day: "18", label: "Tempo", type: "key" },
+                    { day: "19", label: "Tirada larga", type: "long" },
+                    { day: "20", label: null, type: "rest" },
+                  ].map((c, i) => {
+                    const bg = c.type === "key" ? "rgba(245,158,11,0.1)" : c.type === "easy" ? "rgba(34,197,94,0.08)" : c.type === "long" ? "rgba(59,130,246,0.1)" : "rgba(255,255,255,0.02)";
+                    const border = c.type === "key" ? "1px solid rgba(245,158,11,0.25)" : c.type === "long" ? "1px solid rgba(59,130,246,0.25)" : c.type === "easy" ? "1px solid rgba(34,197,94,0.15)" : "1px solid rgba(255,255,255,0.04)";
+                    const badgeColor = c.type === "key" ? "#f59e0b" : c.type === "long" ? "#3b82f6" : "#22c55e";
+                    const badgeLabel = c.type === "key" ? "CALIDAD" : c.type === "long" ? "LARGO" : "";
+                    return (
+                      <div key={i} style={{ background: bg, border, borderRadius: 8, padding: "8px 4px", minHeight: 60, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.5)", fontFamily: "Space Grotesk" }}>{c.day}</span>
+                        {c.label && <span style={{ fontSize: 8, color: "rgba(255,255,255,0.7)", fontFamily: "Space Grotesk", textAlign: "center", lineHeight: 1.3 }}>{c.label}</span>}
+                        {badgeLabel && <span style={{ fontSize: 7, padding: "1px 5px", borderRadius: 4, background: `${badgeColor}22`, color: badgeColor, fontWeight: 700, fontFamily: "Space Grotesk" }}>{badgeLabel}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Volume summary */}
+                <div style={{ marginTop: 12, textAlign: "center", fontSize: 11, fontFamily: "Space Grotesk", color: "rgba(255,255,255,0.4)" }}>
+                  42 km &middot; 4h 20min
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* ── Screen 3: Progress — Thresholds + Predictions ── */}
+      <AnimSection>
+        <section className="lp-section lp-section--dark lp-showcase" style={{ paddingTop: 0 }}>
+          <div className="lp-w lp-showcase__row">
+            <div>
+              <span className="lp-showcase__num" style={{ color: "#d26a36" }}>03</span>
+              <h3 className="lp-showcase__title" style={{ color: "#fff" }}>{t("ap_3_title")}</h3>
+              <p className="lp-showcase__desc" style={{ color: "rgba(255,255,255,0.55)" }}>{t("ap_3_desc")}</p>
+            </div>
+            <div className="lp-showcase__visual">
+              <div style={{ background: "#0e1e24", borderRadius: 16, padding: 20, border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+                {/* Threshold evolution chart */}
+                <div style={{ marginBottom: 6, fontSize: 10, color: "rgba(255,255,255,0.4)", fontFamily: "Space Grotesk", fontWeight: 600 }}>LT2 &amp; LT1 — 6 meses</div>
+                <svg viewBox="0 0 340 120" width="100%" preserveAspectRatio="xMidYMid meet" style={{ marginBottom: 16 }}>
+                  {/* Grid lines */}
+                  {[20, 45, 70, 95].map(y => (
+                    <line key={y} x1="30" y1={y} x2="330" y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" />
+                  ))}
+                  {/* Y-axis labels (pace - lower = faster = better) */}
+                  <text x="26" y="23" textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Space Grotesk">4:00</text>
+                  <text x="26" y="48" textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Space Grotesk">4:15</text>
+                  <text x="26" y="73" textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Space Grotesk">4:30</text>
+                  <text x="26" y="98" textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Space Grotesk">4:45</text>
+                  {/* X-axis labels */}
+                  {["Oct", "Nov", "Dic", "Ene", "Feb", "Mar", "Abr"].map((m, i) => (
+                    <text key={m} x={30 + i * 50} y="115" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Space Grotesk">{m}</text>
+                  ))}
+                  {/* LT2 line (orange) — pace improving (going down on chart = going up numerically but lower pace = faster) */}
+                  <polyline points="30,90 80,82 130,72 180,62 230,52 280,42 330,35" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  {/* LT1 line (green) — parallel */}
+                  <polyline points="30,78 80,72 130,64 180,56 230,48 280,40 330,33" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
+                  {/* LT2 dots */}
+                  {[[30,90],[80,82],[130,72],[180,62],[230,52],[280,42],[330,35]].map(([cx,cy], i) => (
+                    <circle key={`lt2-${i}`} cx={cx} cy={cy} r="3" fill="#0e1e24" stroke="#f97316" strokeWidth="1.5" />
+                  ))}
+                  {/* LT1 dots */}
+                  {[[30,78],[80,72],[130,64],[180,56],[230,48],[280,40],[330,33]].map(([cx,cy], i) => (
+                    <circle key={`lt1-${i}`} cx={cx} cy={cy} r="2.5" fill="#0e1e24" stroke="#22c55e" strokeWidth="1.5" opacity="0.7" />
+                  ))}
+                  {/* Legend */}
+                  <circle cx="250" cy="8" r="3" fill="#f97316" />
+                  <text x="256" y="11" fill="rgba(255,255,255,0.5)" fontSize="7" fontFamily="Space Grotesk">LT2</text>
+                  <circle cx="285" cy="8" r="3" fill="#22c55e" />
+                  <text x="291" y="11" fill="rgba(255,255,255,0.5)" fontSize="7" fontFamily="Space Grotesk">LT1</text>
+                </svg>
+                {/* Prediction cards */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                  {[
+                    { dist: "5K", time: "19:42", pace: "3:56/km" },
+                    { dist: "10K", time: "41:08", pace: "4:07/km" },
+                    { dist: "Media", time: "1:31:24", pace: "4:20/km" },
+                    { dist: "Marat\u00F3n", time: "3:12:40", pace: "4:34/km" },
+                  ].map(p => (
+                    <div key={p.dist} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
+                      <div style={{ fontSize: 8, color: "rgba(255,255,255,0.35)", fontFamily: "Space Grotesk", fontWeight: 600, marginBottom: 4 }}>{p.dist}</div>
+                      <div style={{ fontSize: 13, color: "#fff", fontWeight: 700, fontFamily: "Space Grotesk" }}>{p.time}</div>
+                      <div style={{ fontSize: 8, color: "#d26a36", fontFamily: "Space Grotesk", marginTop: 2 }}>{p.pace}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* ── Screen 4: Zones (reversed) ── */}
+      <AnimSection>
+        <section className="lp-section lp-section--dark lp-showcase" style={{ paddingTop: 0 }}>
+          <div className="lp-w lp-showcase__row lp-showcase__row--reverse">
+            <div>
+              <span className="lp-showcase__num" style={{ color: "#d26a36" }}>04</span>
+              <h3 className="lp-showcase__title" style={{ color: "#fff" }}>{t("ap_4_title")}</h3>
+              <p className="lp-showcase__desc" style={{ color: "rgba(255,255,255,0.55)" }}>{t("ap_4_desc")}</p>
+            </div>
+            <div className="lp-showcase__visual">
+              <div style={{ background: "#0e1e24", borderRadius: 16, padding: 20, border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+                {[
+                  { zone: "Recuperaci\u00F3n", hr: "<130 bpm", pace: ">6:10/km", color: "#86efac", pct: 0.25 },
+                  { zone: "Base", hr: "130-145", pace: "5:30-6:10", color: "#22c55e", pct: 0.38 },
+                  { zone: "Aer\u00F3bico", hr: "145-156", pace: "4:50-5:30", color: "#3b82f6", pct: 0.52 },
+                  { zone: "Moderado", hr: "156-164", pace: "4:30-4:50", color: "#8b5cf6", pct: 0.65 },
+                  { zone: "Umbral", hr: "164-172", pace: "4:10-4:30", color: "#f59e0b", pct: 0.78 },
+                  { zone: "Intenso", hr: "172-184", pace: "3:50-4:10", color: "#ef4444", pct: 0.88 },
+                  { zone: "Sprint", hr: ">184", pace: "<3:50", color: "#991b1b", pct: 1.0 },
+                ].map((z, i) => (
+                  <div key={i} style={{ marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", fontWeight: 600, fontFamily: "Space Grotesk" }}>{z.zone}</span>
+                      <div style={{ fontSize: 9, fontFamily: "Space Grotesk", color: "rgba(255,255,255,0.4)", display: "flex", gap: 12 }}>
+                        <span>{z.hr}</span>
+                        <span>{z.pace}</span>
+                      </div>
+                    </div>
+                    <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                      <div style={{ width: `${z.pct * 100}%`, height: "100%", borderRadius: 3, background: z.color }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* ── Screen 5: Objectives ── */}
+      <AnimSection>
+        <section className="lp-section lp-section--dark lp-showcase" style={{ paddingTop: 0, paddingBottom: 64 }}>
+          <div className="lp-w lp-showcase__row">
+            <div>
+              <span className="lp-showcase__num" style={{ color: "#d26a36" }}>05</span>
+              <h3 className="lp-showcase__title" style={{ color: "#fff" }}>{t("ap_5_title")}</h3>
+              <p className="lp-showcase__desc" style={{ color: "rgba(255,255,255,0.55)" }}>{t("ap_5_desc")}</p>
+            </div>
+            <div className="lp-showcase__visual">
+              <div style={{ background: "#0e1e24", borderRadius: 16, padding: 20, border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+                {[
+                  { name: "Marat\u00F3n Valencia", sport: "Running", date: "1 dic 2026", days: "254", goal: "sub 3:15", priority: "Alta", prColor: "#ef4444" },
+                  { name: "10K San Silvestre", sport: "Running", date: "31 dic 2026", days: "284", goal: "sub 40:00", priority: "Media", prColor: "#f59e0b" },
+                ].map((obj, i) => (
+                  <div key={i} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: 14, marginBottom: i < 1 ? 10 : 0, borderLeft: `3px solid ${obj.prColor}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", fontFamily: "Space Grotesk" }}>{obj.name}</span>
+                      <span style={{ fontSize: 8, padding: "2px 7px", borderRadius: 4, background: `${obj.prColor}22`, color: obj.prColor, fontWeight: 700, fontFamily: "Space Grotesk" }}>{obj.priority}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 12, fontSize: 10, fontFamily: "Space Grotesk", color: "rgba(255,255,255,0.45)" }}>
+                      <span>{obj.sport}</span>
+                      <span>{obj.date}</span>
+                      <span style={{ color: "rgba(255,255,255,0.25)" }}>en {obj.days} d\u00EDas</span>
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 11, fontFamily: "Space Grotesk" }}>
+                      <span style={{ color: "rgba(255,255,255,0.5)" }}>Objetivo: </span>
+                      <span style={{ color: "#d26a36", fontWeight: 700 }}>{obj.goal}</span>
+                    </div>
+                  </div>
+                ))}
+                {/* Add button */}
+                <div style={{ marginTop: 12, display: "flex", justifyContent: "center" }}>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", border: "1px dashed rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                    <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 18, lineHeight: 1 }}>+</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* ══ 7. PRICING — 4 tiers ══ */}
       <AnimSection>
         <section className="lp-section lp-section--warm" id="pricing">
           <div className="lp-w">
@@ -1124,7 +1430,7 @@ function LandingInner() {
         </section>
       </AnimSection>
 
-      {/* ══ 7. SOCIAL PROOF ══ */}
+      {/* ══ 8. SOCIAL PROOF ══ */}
       <AnimSection>
         <section className="lp-section" id="proof">
           <div className="lp-w">
@@ -1149,7 +1455,7 @@ function LandingInner() {
         </section>
       </AnimSection>
 
-      {/* ══ 8. FAQ — 10 questions ══ */}
+      {/* ══ 9. FAQ — 10 questions ══ */}
       <AnimSection>
         <section className="lp-section lp-section--warm" id="faq">
           <div className="lp-w">
@@ -1167,7 +1473,7 @@ function LandingInner() {
         </section>
       </AnimSection>
 
-      {/* ══ 9. FINAL CTA — Beta signup form ══ */}
+      {/* ══ 10. FINAL CTA — Beta signup form ══ */}
       <section className="lp-cta-section" id="acceso">
         <div className="lp-w lp-cta-section__inner">
           <h2 className="lp-h2">{t("cta_h2")}</h2>
