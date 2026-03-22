@@ -1817,6 +1817,69 @@
   font-weight: 500;
 }
 
+.ath-curve-tooltip-ctx {
+  font-size: 10px;
+  color: #d26a36;
+  font-weight: 500;
+}
+
+/* Overlay chips */
+.ath-curve-overlays {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 8px 10px;
+}
+
+.ath-curve-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.3;
+  background: var(--ath-bg-subtle);
+  border: 1px solid var(--ath-border);
+}
+
+.ath-curve-chip--green { background: var(--ath-green-bg); border-color: var(--ath-green); }
+.ath-curve-chip--red   { background: var(--ath-red-bg);   border-color: var(--ath-red);   }
+.ath-curve-chip--amber { background: var(--ath-amber-bg); border-color: var(--ath-amber); }
+
+.ath-curve-chip__label {
+  font-weight: 600;
+  color: var(--ath-text);
+}
+
+.ath-curve-chip__value {
+  font-weight: 400;
+  color: var(--ath-text-secondary);
+}
+
+/* Legend */
+.ath-curve-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  color: var(--ath-text-secondary);
+}
+
+.ath-curve-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ath-curve-legend__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    MicroContent — Educational expandable block
    ═══════════════════════════════════════════════════════════════ */

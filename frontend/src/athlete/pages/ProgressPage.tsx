@@ -65,20 +65,37 @@ export function ProgressPage() {
   const trendData = selectedSnapshot?.trend ?? [];
   const trendDiscipline = selectedSnapshot?.discipline ?? "running";
 
-  // HR-based thresholds for simplified lactate curve
+  // Thresholds for lactate curve
   const selectedView = selectedSnapshot?.view;
-  const lt1Hr = selectedView?.thresholds?.find((t) => t.name === "LT1")?.heart_rate ?? null;
-  const lt2Hr = selectedView?.thresholds?.find((t) => t.name === "LT2")?.heart_rate ?? null;
+  const lt1Th = selectedView?.thresholds?.find((t) => t.name === "LT1");
+  const lt2Th = selectedView?.thresholds?.find((t) => t.name === "LT2");
+  const lt1Hr = lt1Th?.heart_rate ?? null;
+  const lt2Hr = lt2Th?.heart_rate ?? null;
 
-  // Extract real lactate curve data points from measurement_log
+  // Extract real lactate curve data with contextual lactate from curve_history (HR axis)
   const realCurveData = useMemo(() => {
+    // Prefer curve_history.hr which has contextual_lactate, fall back to measurement_log
+    const curveHr = selectedView?.curve_history?.hr;
+    if (curveHr && curveHr.length >= 3) {
+      const peakVal = selectedView?.measured_vlamax?.peak_lactate;
+      return curveHr
+        .filter((p) => typeof p.x === "number" && typeof p.lactate === "number")
+        .map((p) => ({
+          hr: Math.round(p.x),
+          lactate: p.lactate,
+          contextual_lactate: typeof p.contextual_lactate === "number" ? p.contextual_lactate : undefined,
+          is_peak: peakVal != null && Math.abs(p.lactate - peakVal) < 0.05,
+        }))
+        .sort((a, b) => a.hr - b.hr);
+    }
+    // Fallback: measurement_log
     const log = selectedView?.measurement_log ?? [];
     const points = log
       .filter((entry) => entry.heart_rate_avg != null && entry.lactate_mmol != null && entry.lactate_mmol > 0)
       .map((entry) => ({ hr: Math.round(entry.heart_rate_avg!), lactate: entry.lactate_mmol }))
       .sort((a, b) => a.hr - b.hr);
     return points.length >= 3 ? points : undefined;
-  }, [selectedView?.measurement_log]);
+  }, [selectedView?.curve_history?.hr, selectedView?.measurement_log, selectedView?.measured_vlamax]);
 
   // Derive maxHr from real data or thresholds instead of hardcoding
   const maxHr = useMemo(() => {
@@ -86,6 +103,32 @@ export function ProgressPage() {
     if (typeof lt2Hr === "number") return Math.round(lt2Hr + 25);
     return 190;
   }, [realCurveData, lt2Hr]);
+
+  // Build overlay chips (LT1/LT2 values + confidence)
+  const curveOverlays = useMemo(() => {
+    const chips: Array<{ label: string; value: string; tone: "green" | "red" | "amber" | "neutral" }> = [];
+    const fmtTh = (th: typeof lt1Th) => {
+      if (!th) return null;
+      const parts: string[] = [];
+      if (th.pace_seconds_per_km) parts.push(formatPace(th.pace_seconds_per_km));
+      if (th.power_watts) parts.push(`${Math.round(th.power_watts)} W`);
+      if (th.heart_rate) parts.push(`${Math.round(th.heart_rate)} bpm`);
+      if (th.lactate != null) parts.push(`${th.lactate.toFixed(1)} mmol`);
+      return parts.join(" · ");
+    };
+    const lt1Str = fmtTh(lt1Th);
+    if (lt1Str) chips.push({ label: "LT1", value: lt1Str, tone: "green" });
+    const lt2Str = fmtTh(lt2Th);
+    if (lt2Str) chips.push({ label: "LT2", value: lt2Str, tone: "red" });
+    if (lt1Th || lt2Th) {
+      const conf = Math.round(((lt1Th?.confidence ?? 0) + (lt2Th?.confidence ?? 0)) / ((lt1Th ? 1 : 0) + (lt2Th ? 1 : 0)) * 100);
+      chips.push({ label: "Confianza", value: `${conf}%`, tone: conf >= 70 ? "green" : conf >= 50 ? "amber" : "neutral" });
+    }
+    return chips;
+  }, [lt1Th, lt2Th]);
+
+  // Peak lactate
+  const peakLactate = selectedView?.measured_vlamax?.peak_lactate ?? null;
 
   // Engagement metrics
   const consistency = useMemo(() => consistencyScore(weeklyVolume12, volumeDiscipline), [weeklyVolume12, volumeDiscipline]);
@@ -256,6 +299,8 @@ export function ProgressPage() {
             lt2Hr={typeof lt2Hr === "number" ? lt2Hr : null}
             maxHr={maxHr}
             dataPoints={realCurveData}
+            overlays={curveOverlays}
+            peakLactate={peakLactate}
           />
         ) : (
           <p style={{ color: "var(--ath-text-muted, #888)", fontSize: "0.9rem", padding: "24px 0" }}>
