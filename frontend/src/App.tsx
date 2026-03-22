@@ -26,8 +26,6 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { GarminConnectPage } from "./pages/GarminConnectPage";
 import { LibraryGeneratorPage } from "./pages/LibraryGeneratorPage";
 import { LibraryPage } from "./pages/LibraryPage";
-
-import { PendingUsersPage } from "./pages/PendingUsersPage";
 import { PlanningPage } from "./pages/PlanningPage";
 import { SessionDetailPage } from "./pages/SessionDetailPage";
 import { SessionsPage } from "./pages/SessionsPage";
@@ -400,7 +398,6 @@ export default function App() {
           <Route path="/strava-information" element={<StravaInformationPage token={token} athletes={athletes} />} />
           <Route path="/garmin-connect" element={<GarminConnectPage token={token} athletes={athletes} onDataChanged={() => refreshData(token)} />} />
           <Route path="/virtual-ride" element={<VirtualRidePage />} />
-          <Route path="/pending-users" element={<PendingUsersPage token={token} />} />
           <Route path="/athletes" element={<AthletesPage athletes={athletes} token={token} onRefresh={() => refreshData(token)} />} />
           <Route path="/athletes/:athleteId" element={<PageErrorBoundary><AthleteDetailRoute token={token} onDataChanged={() => refreshData(token)} /></PageErrorBoundary>} />
           <Route path="/athletes/:athleteId/targets" element={<AthleteTargetsRoute token={token} onDataChanged={() => refreshData(token)} />} />
