@@ -397,7 +397,7 @@ const BETA_T: Record<string, Record<string, string>> = {
     nav_enter: "Entrar",
 
     hero_h1: "\u00BFEst\u00E1s entrenando en la zona correcta? Solo tu fisiolog\u00EDa tiene la respuesta.",
-    hero_sub: "PeakAerobic analiza tu test de lactato con 7+ m\u00E9todos cient\u00EDficos y calcula tus zonas reales \u2014 no estimaciones, no f\u00F3rmulas, no suposiciones. \u00BFA\u00FAn no haces tests de lactato? Empieza gratis con tus datos de frecuencia card\u00EDaca.",
+    hero_sub: "PeakAerobic analiza tu test de lactato con 7+ m\u00E9todos cient\u00EDficos, calcula tus zonas reales y construye planes de entrenamiento por objetivos con periodizaci\u00F3n Olbrecht. \u00BFA\u00FAn no testas? Empieza gratis con tu FC.",
     hero_cta_primary: "Analiza tu test de lactato",
     hero_cta_secondary: "\u00BFA\u00FAn no testas? Empieza con tu FC",
     hero_note: "Beta privada \u00B7 Plazas limitadas \u00B7 Revisi\u00F3n semanal con fisi\u00F3logo",
@@ -462,55 +462,94 @@ const BETA_T: Record<string, Record<string, string>> = {
     ap_3_desc: "Ve como evolucionan tu LT1 y LT2 test a test. Predicciones de carrera actualizadas con bandas de confianza para 5K, 10K, media y maraton.",
     ap_4_title: "Zonas reales, no formulas",
     ap_4_desc: "7 zonas calculadas desde tu lactato real. FC, ritmo y potencia para cada zona. Actualizadas cada vez que subes un test.",
-    ap_5_title: "Objetivos de carrera",
-    ap_5_desc: "Define tus pruebas objetivo con fecha, disciplina y marca. El sistema adapta tu periodizacion y te muestra la cuenta atras.",
+    ap_5_title: "Objetivos que dirigen tu plan",
+    ap_5_desc: "Define tus carreras con fecha, disciplina y marca objetivo. El sistema analiza tus brechas, selecciona el bloque de periodizacion optimo y construye tu plan semanal alrededor de tus objetivos.",
 
-    price_ey: "Planes beta",
+    obj_ey: "Entrena por objetivos",
+    obj_h2: "Tu carrera manda. El plan se construye solo.",
+    obj_sub: "Define tu objetivo, nosotros analizamos tus brechas fisiol\u00F3gicas, seleccionamos el bloque de periodizaci\u00F3n \u00F3ptimo y prescribimos cada sesi\u00F3n. Semana a semana, el plan se adapta a tu progreso real.",
+    obj_step1_title: "Define tu objetivo",
+    obj_step1_text: "Marat\u00F3n Valencia sub 3:15, Ironman 70.3, 10K sub 40... con fecha y prioridad.",
+    obj_step2_title: "Analizamos tus brechas",
+    obj_step2_text: "El motor fisiol\u00F3gico detecta d\u00F3nde necesitas mejorar: LT2, capacidad aer\u00F3bica, VLamax...",
+    obj_step3_title: "Bloque de periodizaci\u00F3n Olbrecht",
+    obj_step3_text: "IA selecciona el bloque \u00F3ptimo (AEC, THR, AEP, ANC...) con duraci\u00F3n y dosis espec\u00EDficas.",
+    obj_step4_title: "Plan semanal adaptativo",
+    obj_step4_text: "Sesiones prescritas con estructura, zonas y envío a Garmin. Se adapta según tu bienestar y resultados.",
+    obj_mock_gap: "Brecha detectada",
+    obj_mock_gap_detail: "LT2 necesita +16s/km",
+    obj_mock_block: "Bloque seleccionado",
+    obj_mock_block_detail: "Desarrollo de umbral \u00B7 4 semanas",
+    obj_mock_sessions: "Sesiones prescritas",
+
+    price_ey: "Planes",
     price_h2: "Elige tu plan",
-    price_sub: "Precios de beta. Bloquea tu precio para siempre.",
+    price_sub: "Desde el laboratorio de lactato hasta coaching completo. Precios de beta \u2014 bloquea tu precio para siempre.",
     price_period: "mes",
-    price_bottom: "Empieza con frecuencia card\u00EDaca. Mejora con lactato. Entrena con ciencia.",
+    price_bottom: "Todos los planes incluyen detecci\u00F3n multi-m\u00E9todo de LT1/LT2 con scoring de confianza.",
 
-    price_free_name: "Free",
+    price_free_name: "Gratis",
     price_free_amount: "0\u20AC",
     price_free_desc: "Para empezar con frecuencia card\u00EDaca",
-    price_free_f1: "Zonas estimadas desde FC",
+    price_free_f1: "5 zonas estimadas desde FC",
     price_free_f2: "2 tests de lactato (demo)",
-    price_free_f3: "Sugerencia diaria de entrenamiento",
-    price_free_f4: "Predicci\u00F3n de carrera b\u00E1sica",
+    price_free_f3: "Sugerencia diaria (1 sesi\u00F3n)",
+    price_free_f4: "1 predicci\u00F3n de carrera b\u00E1sica",
     price_free_f5: "Sincronizaci\u00F3n Garmin/Strava",
+    price_free_f6: "1 objetivo de carrera",
     price_free_cta: "Empieza gratis",
 
     price_lab_name: "Lactate Lab",
     price_lab_amount: "7,99\u20AC",
-    price_lab_desc: "Para quien ya testa",
+    price_lab_desc: "Para quien ya testa lactato",
     price_lab_f1: "Tests de lactato ilimitados",
     price_lab_f2: "7 zonas desde datos reales",
-    price_lab_f3: "Evoluci\u00F3n de umbrales test a test",
-    price_lab_f4: "Predicciones de carrera precisas",
-    price_lab_f5: "Comparaci\u00F3n de sesiones",
+    price_lab_f3: "Umbrales din\u00E1micos por sesi\u00F3n",
+    price_lab_f4: "Evoluci\u00F3n de umbrales test a test",
+    price_lab_f5: "Predicciones todas las distancias",
+    price_lab_f6: "Comparaci\u00F3n de sesiones lado a lado",
+    price_lab_f7: "VLamax num\u00E9rico + brecha de capacidad",
     price_lab_cta: "Empezar",
 
-    price_ai_name: "AI Plan",
+    price_ai_name: "Plan IA",
     price_ai_badge: "Popular",
     price_ai_amount: "19,99\u20AC",
-    price_ai_desc: "Tu entrenador inteligente",
+    price_ai_desc: "Plan completo con periodizaci\u00F3n inteligente",
     price_ai_f1: "Todo lo de Lactate Lab +",
-    price_ai_f2: "Plan IA completo",
-    price_ai_f3: "Periodizaci\u00F3n Olbrecht",
-    price_ai_f4: "Env\u00EDo a Garmin autom\u00E1tico",
-    price_ai_f5: "Revisi\u00F3n semanal por David (email)",
+    price_ai_f2: "Plan IA completo (1 disciplina)",
+    price_ai_f3: "Periodizaci\u00F3n Olbrecht (AEC/THR/AEP...)",
+    price_ai_f4: "Calendario: hoy + semana + zonas",
+    price_ai_f5: "Env\u00EDo a Garmin autom\u00E1tico",
+    price_ai_f6: "David revisa tu plan + datos semanal",
+    price_ai_f7: "Test de deriva de FC guiado",
+    price_ai_f8: "Hasta 3 objetivos con prioridad",
     price_ai_cta: "Solicitar acceso",
+
+    price_pro_name: "PRO+",
+    price_pro_badge: "Multi-disciplina",
+    price_pro_amount: "34,99\u20AC",
+    price_pro_desc: "Para atletas multi-deporte y obsesionados con los datos",
+    price_pro_f1: "Todo lo de Plan IA +",
+    price_pro_f2: "Plan IA multi-disciplina",
+    price_pro_f3: "Detecci\u00F3n de estancamiento",
+    price_pro_f4: "VO2max + VLamax longitudinal",
+    price_pro_f5: "IA Q&A + PubMed + tus datos",
+    price_pro_f6: "HRV/sue\u00F1o 30 d\u00EDas + correlaciones",
+    price_pro_f7: "Predicciones: durabilidad + gluc\u00F3geno + qu\u00E9 pasa si",
+    price_pro_f8: "Objetivos ilimitados multi-disciplina",
+    price_pro_cta: "Solicitar acceso",
 
     price_elite_name: "Elite",
     price_elite_badge: "Coaching 1:1",
     price_elite_amount: "199\u20AC",
-    price_elite_desc: "Coaching 1:1 con fisi\u00F3logo",
-    price_elite_f1: "Todo lo de AI Plan +",
-    price_elite_f2: "Llamada semanal 30 min",
-    price_elite_f3: "WhatsApp/Telegram 24h",
-    price_elite_f4: "Coach ajusta personalmente",
-    price_elite_f5: "Objetivos ilimitados multi-disciplina",
+    price_elite_desc: "Coaching completo con fisi\u00F3logo del deporte",
+    price_elite_f1: "Todo lo de PRO+ +",
+    price_elite_f2: "Coach valida y ajusta tu plan",
+    price_elite_f3: "Llamada semanal 30 min",
+    price_elite_f4: "WhatsApp/Telegram 24h",
+    price_elite_f5: "Coach re-planifica semanalmente",
+    price_elite_f6: "Feedback del coach por sesi\u00F3n",
+    price_elite_f7: "Asesor\u00EDa nutricional",
     price_elite_cta: "Contactar",
 
     proof_ey: "Atletas que ya lo usan",
@@ -563,7 +602,7 @@ const BETA_T: Record<string, Record<string, string>> = {
     nav_enter: "Log in",
 
     hero_h1: "Are you training in the right zone? Only your physiology has the answer.",
-    hero_sub: "PeakAerobic analyzes your lactate test with 7+ scientific methods and calculates your real zones \u2014 no estimates, no formulas, no guessing. Don't do lactate tests yet? Start free with your heart rate data.",
+    hero_sub: "PeakAerobic analyzes your lactate test with 7+ scientific methods, calculates your real zones and builds objective-based training plans with Olbrecht periodization. No tests yet? Start free with your HR.",
     hero_cta_primary: "Analyze your lactate test",
     hero_cta_secondary: "No tests yet? Start with your HR",
     hero_note: "Private beta \u00B7 Limited spots \u00B7 Weekly review with physiologist",
@@ -628,55 +667,94 @@ const BETA_T: Record<string, Record<string, string>> = {
     ap_3_desc: "Watch your LT1 and LT2 evolve test by test. Race predictions updated with confidence bands for 5K, 10K, half and marathon.",
     ap_4_title: "Real zones, not formulas",
     ap_4_desc: "7 zones calculated from your real lactate. HR, pace and power for each zone. Updated every time you upload a test.",
-    ap_5_title: "Race objectives",
-    ap_5_desc: "Define your target races with date, discipline and goal time. The system adapts your periodization and shows the countdown.",
+    ap_5_title: "Objectives that drive your plan",
+    ap_5_desc: "Define your races with date, discipline and goal time. The system analyzes your gaps, selects the optimal periodization block and builds your weekly plan around your objectives.",
 
-    price_ey: "Beta plans",
+    obj_ey: "Train by objectives",
+    obj_h2: "Your race decides. The plan builds itself.",
+    obj_sub: "Define your goal, we analyze your physiological gaps, select the optimal periodization block and prescribe each session. Week by week, the plan adapts to your real progress.",
+    obj_step1_title: "Define your objective",
+    obj_step1_text: "Valencia Marathon sub 3:15, Ironman 70.3, 10K sub 40... with date and priority.",
+    obj_step2_title: "We analyze your gaps",
+    obj_step2_text: "The physiological engine detects where you need to improve: LT2, aerobic capacity, VLamax...",
+    obj_step3_title: "Olbrecht periodization block",
+    obj_step3_text: "AI selects the optimal block (AEC, THR, AEP, ANC...) with specific duration and dose.",
+    obj_step4_title: "Adaptive weekly plan",
+    obj_step4_text: "Prescribed sessions with structure, zones and Garmin push. Adapts based on your wellness and results.",
+    obj_mock_gap: "Gap detected",
+    obj_mock_gap_detail: "LT2 needs +16s/km",
+    obj_mock_block: "Block selected",
+    obj_mock_block_detail: "Threshold development \u00B7 4 weeks",
+    obj_mock_sessions: "Prescribed sessions",
+
+    price_ey: "Plans",
     price_h2: "Choose your plan",
-    price_sub: "Beta pricing. Lock your price forever.",
+    price_sub: "From lactate lab to full coaching. Beta pricing \u2014 lock your price forever.",
     price_period: "mo",
-    price_bottom: "Start with heart rate. Upgrade with lactate. Train with science.",
+    price_bottom: "All plans include multi-method LT1/LT2 detection with confidence scoring.",
 
     price_free_name: "Free",
     price_free_amount: "\u20AC0",
     price_free_desc: "Start with heart rate",
-    price_free_f1: "Estimated zones from HR",
+    price_free_f1: "5 estimated zones from HR",
     price_free_f2: "2 lactate tests (demo)",
-    price_free_f3: "Daily training suggestion",
-    price_free_f4: "Basic race prediction",
+    price_free_f3: "Daily suggestion (1 session)",
+    price_free_f4: "1 basic race prediction",
     price_free_f5: "Garmin/Strava sync",
+    price_free_f6: "1 race objective",
     price_free_cta: "Start free",
 
     price_lab_name: "Lactate Lab",
     price_lab_amount: "\u20AC7.99",
-    price_lab_desc: "For those who test",
+    price_lab_desc: "For those who test lactate",
     price_lab_f1: "Unlimited lactate tests",
     price_lab_f2: "7 zones from real data",
-    price_lab_f3: "Threshold evolution test to test",
-    price_lab_f4: "Precise race predictions",
-    price_lab_f5: "Session comparison",
+    price_lab_f3: "Dynamic thresholds per session",
+    price_lab_f4: "Threshold evolution test to test",
+    price_lab_f5: "Predictions for all distances",
+    price_lab_f6: "Side-by-side session comparison",
+    price_lab_f7: "Numeric VLamax + capacity gap",
     price_lab_cta: "Get started",
 
     price_ai_name: "AI Plan",
     price_ai_badge: "Popular",
     price_ai_amount: "\u20AC19.99",
-    price_ai_desc: "Your smart coach",
+    price_ai_desc: "Full plan with smart periodization",
     price_ai_f1: "Everything in Lactate Lab +",
-    price_ai_f2: "Full AI training plan",
-    price_ai_f3: "Olbrecht periodization",
-    price_ai_f4: "Auto-push to Garmin",
-    price_ai_f5: "Weekly review by David (email)",
+    price_ai_f2: "Full AI plan (1 discipline)",
+    price_ai_f3: "Olbrecht periodization (AEC/THR/AEP...)",
+    price_ai_f4: "Calendar: today + week + zones",
+    price_ai_f5: "Auto-push to Garmin",
+    price_ai_f6: "David reviews your plan + data weekly",
+    price_ai_f7: "Guided HR drift test",
+    price_ai_f8: "Up to 3 objectives with priority",
     price_ai_cta: "Request access",
+
+    price_pro_name: "PRO+",
+    price_pro_badge: "Multi-discipline",
+    price_pro_amount: "\u20AC34.99",
+    price_pro_desc: "For multi-sport athletes and data obsessives",
+    price_pro_f1: "Everything in AI Plan +",
+    price_pro_f2: "Multi-discipline AI plan",
+    price_pro_f3: "Stagnation detection",
+    price_pro_f4: "VO2max + VLamax longitudinal",
+    price_pro_f5: "AI Q&A + PubMed + your data",
+    price_pro_f6: "HRV/sleep 30 days + correlations",
+    price_pro_f7: "Predictions: durability + glycogen + what if",
+    price_pro_f8: "Unlimited multi-discipline objectives",
+    price_pro_cta: "Request access",
 
     price_elite_name: "Elite",
     price_elite_badge: "1:1 Coaching",
     price_elite_amount: "\u20AC199",
-    price_elite_desc: "1:1 coaching with physiologist",
-    price_elite_f1: "Everything in AI Plan +",
-    price_elite_f2: "Weekly 30-min call",
-    price_elite_f3: "WhatsApp/Telegram 24h",
-    price_elite_f4: "Coach adjusts plan personally",
-    price_elite_f5: "Unlimited multi-discipline goals",
+    price_elite_desc: "Full coaching with sport physiologist",
+    price_elite_f1: "Everything in PRO+ +",
+    price_elite_f2: "Coach validates and adjusts your plan",
+    price_elite_f3: "Weekly 30-min call",
+    price_elite_f4: "WhatsApp/Telegram 24h",
+    price_elite_f5: "Coach re-plans weekly",
+    price_elite_f6: "Coach feedback per session",
+    price_elite_f7: "Nutritional advice",
     price_elite_cta: "Contact",
 
     proof_ey: "Athletes already using it",
@@ -1335,7 +1413,99 @@ function LandingInner() {
         </section>
       </AnimSection>
 
-      {/* ══ 7. PRICING — 4 tiers ══ */}
+      {/* ══ 6b. OBJECTIVE-BASED TRAINING — Pipeline ══ */}
+      <AnimSection>
+        <section className="lp-section lp-section--warm" id="objectives">
+          <div className="lp-w">
+            <p className="lp-ey">{t("obj_ey")}</p>
+            <h2 className="lp-h2">{t("obj_h2")}</h2>
+            <p className="lp-sub" style={{ textAlign: "center", maxWidth: 700, margin: "0 auto 48px" }}>{t("obj_sub")}</p>
+
+            {/* Pipeline steps */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24, maxWidth: 1000, margin: "0 auto 48px" }}>
+              {([
+                { n: "1", icon: <IconRace />, key: "obj_step1" },
+                { n: "2", icon: <IconCurve />, key: "obj_step2" },
+                { n: "3", icon: <IconEngine />, key: "obj_step3" },
+                { n: "4", icon: <IconPlan />, key: "obj_step4" },
+              ] as const).map((step, i) => (
+                <div key={step.n} style={{ textAlign: "center", position: "relative" }}>
+                  {i > 0 && (
+                    <div style={{ position: "absolute", left: -12, top: 28, width: 24, height: 2, background: "linear-gradient(90deg, rgba(210,106,54,0.15), rgba(210,106,54,0.4))" }} />
+                  )}
+                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(210,106,54,0.08)", border: "2px solid rgba(210,106,54,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+                    {step.icon}
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#d26a36", marginBottom: 6, fontFamily: "Space Grotesk" }}>{step.n}</div>
+                  <h4 style={{ fontSize: 15, fontWeight: 700, color: "#1a2f38", margin: "0 0 6px" }}>{t(`${step.key}_title`)}</h4>
+                  <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.5, margin: 0 }}>{t(`${step.key}_text`)}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Visual mockup: objective → gap → block → sessions */}
+            <div style={{ maxWidth: 720, margin: "0 auto", background: "#0e1e24", borderRadius: 20, padding: "28px 32px", border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+              {/* Objective card */}
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20, padding: "14px 16px", background: "rgba(239,68,68,0.06)", borderRadius: 12, borderLeft: "3px solid #ef4444" }}>
+                <IconRace />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", fontFamily: "Space Grotesk" }}>Marat&oacute;n Valencia — sub 3:15</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "Space Grotesk" }}>1 dic 2026 &middot; 254 d&iacute;as &middot; Prioridad alta</div>
+                </div>
+              </div>
+
+              {/* Arrow */}
+              <div style={{ textAlign: "center", margin: "4px 0" }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4 L10 16 M6 12 L10 16 L14 12" stroke="#d26a36" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </div>
+
+              {/* Gap + Block side by side */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
+                <div style={{ background: "rgba(249,115,22,0.06)", borderRadius: 10, padding: 14, border: "1px solid rgba(249,115,22,0.15)" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#f97316", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontFamily: "Space Grotesk" }}>{t("obj_mock_gap")}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", fontFamily: "Space Grotesk" }}>{t("obj_mock_gap_detail")}</div>
+                </div>
+                <div style={{ background: "rgba(34,197,94,0.06)", borderRadius: 10, padding: 14, border: "1px solid rgba(34,197,94,0.15)" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#22c55e", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontFamily: "Space Grotesk" }}>{t("obj_mock_block")}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", fontFamily: "Space Grotesk" }}>{t("obj_mock_block_detail")}</div>
+                </div>
+              </div>
+
+              {/* Arrow */}
+              <div style={{ textAlign: "center", margin: "4px 0" }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4 L10 16 M6 12 L10 16 L14 12" stroke="#d26a36" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </div>
+
+              {/* Sessions preview */}
+              <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#d26a36", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, fontFamily: "Space Grotesk" }}>{t("obj_mock_sessions")}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+                  {[
+                    { day: "Lun", session: null, type: "rest" },
+                    { day: "Mar", session: "6\u00D74' LT2", type: "key" },
+                    { day: "Mie", session: "40' Z2", type: "easy" },
+                    { day: "Jue", session: null, type: "rest" },
+                    { day: "Vie", session: "Tempo", type: "key" },
+                    { day: "Sab", session: "24km Z2", type: "long" },
+                    { day: "Dom", session: null, type: "rest" },
+                  ].map((d, i) => {
+                    const bg = d.type === "key" ? "rgba(245,158,11,0.12)" : d.type === "easy" ? "rgba(34,197,94,0.08)" : d.type === "long" ? "rgba(59,130,246,0.1)" : "rgba(255,255,255,0.02)";
+                    const border = d.type === "key" ? "1px solid rgba(245,158,11,0.25)" : d.type === "long" ? "1px solid rgba(59,130,246,0.2)" : "1px solid rgba(255,255,255,0.06)";
+                    return (
+                      <div key={i} style={{ background: bg, border, borderRadius: 8, padding: "8px 4px", textAlign: "center", minHeight: 48, display: "flex", flexDirection: "column", justifyContent: "center", gap: 4 }}>
+                        <span style={{ fontSize: 9, fontWeight: 600, color: "rgba(255,255,255,0.4)", fontFamily: "Space Grotesk" }}>{d.day}</span>
+                        {d.session && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.75)", fontFamily: "Space Grotesk", lineHeight: 1.3 }}>{d.session}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </AnimSection>
+
+      {/* ══ 7. PRICING — 5 tiers ══ */}
       <AnimSection>
         <section className="lp-section lp-section--warm" id="pricing">
           <div className="lp-w">
@@ -1343,17 +1513,17 @@ function LandingInner() {
             <h2 className="lp-h2">{t("price_h2")}</h2>
             <p className="lp-sub" style={{ textAlign: "center" }}>{t("price_sub")}</p>
 
-            <div className="lp-pricing__grid lp-pricing__grid--four" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginTop: 48, maxWidth: 1100, marginLeft: "auto", marginRight: "auto", flexWrap: "wrap" as never }}>
+            {/* Row 1: 3 cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, marginTop: 48, maxWidth: 1000, marginLeft: "auto", marginRight: "auto" }}>
               {/* Free */}
               <div className="lp-pricing__card">
                 <span className="lp-pricing__plan-name">{t("price_free_name")}</span>
                 <div className="lp-pricing__price">
                   <span className="lp-pricing__amount">{t("price_free_amount")}</span>
-                  <span className="lp-pricing__period">/{t("price_period")}</span>
                 </div>
                 <p className="lp-pricing__plan-desc">{t("price_free_desc")}</p>
                 <ul className="lp-pricing__features">
-                  {(["price_free_f1","price_free_f2","price_free_f3","price_free_f4","price_free_f5"] as const).map(k => (
+                  {(["price_free_f1","price_free_f2","price_free_f3","price_free_f4","price_free_f5","price_free_f6"] as const).map(k => (
                     <li key={k}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                       {t(k)}
@@ -1372,7 +1542,7 @@ function LandingInner() {
                 </div>
                 <p className="lp-pricing__plan-desc">{t("price_lab_desc")}</p>
                 <ul className="lp-pricing__features">
-                  {(["price_lab_f1","price_lab_f2","price_lab_f3","price_lab_f4","price_lab_f5"] as const).map(k => (
+                  {(["price_lab_f1","price_lab_f2","price_lab_f3","price_lab_f4","price_lab_f5","price_lab_f6","price_lab_f7"] as const).map(k => (
                     <li key={k}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                       {t(k)}
@@ -1384,7 +1554,7 @@ function LandingInner() {
 
               {/* AI Plan — highlighted */}
               <div className="lp-pricing__card lp-pricing__card--proplus" style={{ position: "relative" }}>
-                <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "#d26a36", color: "#fff", fontSize: 12, fontWeight: 700, padding: "4px 16px", borderRadius: 20, letterSpacing: 0.5 }}>{t("price_ai_badge")}</span>
+                <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "#d26a36", color: "#fff", fontSize: 12, fontWeight: 700, padding: "4px 16px", borderRadius: 20, letterSpacing: 0.5, whiteSpace: "nowrap" }}>{t("price_ai_badge")}</span>
                 <span className="lp-pricing__plan-name">{t("price_ai_name")}</span>
                 <div className="lp-pricing__price">
                   <span className="lp-pricing__amount">{t("price_ai_amount")}</span>
@@ -1392,7 +1562,7 @@ function LandingInner() {
                 </div>
                 <p className="lp-pricing__plan-desc">{t("price_ai_desc")}</p>
                 <ul className="lp-pricing__features">
-                  {(["price_ai_f1","price_ai_f2","price_ai_f3","price_ai_f4","price_ai_f5"] as const).map(k => (
+                  {(["price_ai_f1","price_ai_f2","price_ai_f3","price_ai_f4","price_ai_f5","price_ai_f6","price_ai_f7","price_ai_f8"] as const).map(k => (
                     <li key={k}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d26a36" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                       {t(k)}
@@ -1401,10 +1571,33 @@ function LandingInner() {
                 </ul>
                 <button className="lp-btn-solid lp-btn--coach lp-pricing__cta" onClick={() => navigate("/login")} type="button">{t("price_ai_cta")}</button>
               </div>
+            </div>
+
+            {/* Row 2: 2 cards centered */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20, marginTop: 20, maxWidth: 660, marginLeft: "auto", marginRight: "auto" }}>
+              {/* PRO+ */}
+              <div className="lp-pricing__card lp-pricing__card--proplus" style={{ position: "relative" }}>
+                <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(135deg, #d26a36, #e8944a)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 14px", borderRadius: 20, letterSpacing: 0.5, whiteSpace: "nowrap" }}>{t("price_pro_badge")}</span>
+                <span className="lp-pricing__plan-name">{t("price_pro_name")}</span>
+                <div className="lp-pricing__price">
+                  <span className="lp-pricing__amount">{t("price_pro_amount")}</span>
+                  <span className="lp-pricing__period">/{t("price_period")}</span>
+                </div>
+                <p className="lp-pricing__plan-desc">{t("price_pro_desc")}</p>
+                <ul className="lp-pricing__features">
+                  {(["price_pro_f1","price_pro_f2","price_pro_f3","price_pro_f4","price_pro_f5","price_pro_f6","price_pro_f7","price_pro_f8"] as const).map(k => (
+                    <li key={k}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d26a36" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      {t(k)}
+                    </li>
+                  ))}
+                </ul>
+                <button className="lp-btn-solid lp-btn--coach lp-pricing__cta" onClick={() => navigate("/login")} type="button">{t("price_pro_cta")}</button>
+              </div>
 
               {/* Elite */}
-              <div className="lp-pricing__card lp-pricing__card--elite">
-                <span className="lp-pricing__badge-elite">{t("price_elite_badge")}</span>
+              <div className="lp-pricing__card lp-pricing__card--elite" style={{ position: "relative" }}>
+                <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(135deg, #c9a44c, #d4b868)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 14px", borderRadius: 20, letterSpacing: 0.5, whiteSpace: "nowrap" }}>{t("price_elite_badge")}</span>
                 <span className="lp-pricing__plan-name">{t("price_elite_name")}</span>
                 <div className="lp-pricing__price">
                   <span className="lp-pricing__amount">{t("price_elite_amount")}</span>
@@ -1412,7 +1605,7 @@ function LandingInner() {
                 </div>
                 <p className="lp-pricing__plan-desc">{t("price_elite_desc")}</p>
                 <ul className="lp-pricing__features">
-                  {(["price_elite_f1","price_elite_f2","price_elite_f3","price_elite_f4","price_elite_f5"] as const).map(k => (
+                  {(["price_elite_f1","price_elite_f2","price_elite_f3","price_elite_f4","price_elite_f5","price_elite_f6","price_elite_f7"] as const).map(k => (
                     <li key={k}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c9a44c" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                       {t(k)}
