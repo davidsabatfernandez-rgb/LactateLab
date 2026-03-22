@@ -1867,3 +1867,136 @@ def analyse_physiological_gap(ctx: PhysiologicalContext) -> PhysiologicalGapResu
         borderline=borderline,
         borderline_note=borderline_note,
     )
+
+
+# ── Field-test guard for planning engine ─────────────────────────────────
+# Builds PhysiologicalContext + PhysiologicalGapResult from FieldTestSnapshot
+# instead of lactate analysis. Used when athlete.threshold_mode == 'field_tests'.
+# Blocks ANC/ANP (require VLamax from lactate).
+
+# Allowed blocks for field-test athletes by data availability
+_FIELD_TEST_BLOCKS_BOTH = {
+    "aerobic_capacity_block",
+    "threshold_development_block",
+    "aerobic_power_block",
+    "competition_specific_block",
+}
+_FIELD_TEST_BLOCKS_LT1_ONLY = {
+    "aerobic_capacity_block",
+}
+
+
+def build_field_test_physio_context(
+    snapshot: Any,
+    athlete_level: str,
+    discipline: str,
+    distance_category: Optional[str],
+    target_pace_label: Optional[str],
+    target_power_watts: Optional[float],
+    weeks_to_goal: Optional[int],
+) -> PhysiologicalContext:
+    """Build PhysiologicalContext from a FieldTestSnapshot (no lactate data).
+
+    The snapshot carries LT1/LT2 pace (sec/km) and HR from field tests.
+    Confidence is capped at 0.60 (field tests never reach lactate-level confidence).
+    """
+    lt1_kmh: Optional[float] = None
+    lt2_kmh: Optional[float] = None
+    lt1_conf = 0.0
+    lt2_conf = 0.0
+    test_age: Optional[int] = None
+
+    if snapshot is not None:
+        if snapshot.lt1_pace_seconds_per_km and snapshot.lt1_pace_seconds_per_km > 0:
+            lt1_kmh = round(3600.0 / snapshot.lt1_pace_seconds_per_km, 3)
+            lt1_conf = min(snapshot.lt1_confidence or 0.0, 0.60)
+        if snapshot.lt2_pace_seconds_per_km and snapshot.lt2_pace_seconds_per_km > 0:
+            lt2_kmh = round(3600.0 / snapshot.lt2_pace_seconds_per_km, 3)
+            lt2_conf = min(snapshot.lt2_confidence or 0.0, 0.60)
+
+        # Test age from most recent test date
+        from datetime import date as _date
+        _today = _date.today()
+        _dates = [d for d in [snapshot.lt1_last_test_date, snapshot.lt2_last_test_date] if d]
+        if _dates:
+            test_age = (_today - max(_dates)).days
+
+    target_kmh = _pace_label_to_kmh(target_pace_label)
+    metric_type = "power_watts" if discipline == "ciclismo" and target_power_watts else "pace_kmh" if target_kmh else "none"
+
+    lt1_val = None  # No power data from field tests (running only)
+    lt2_val = None
+    if metric_type == "pace_kmh":
+        lt1_val = lt1_kmh
+        lt2_val = lt2_kmh
+
+    capacity_profile = build_capacity_profile(
+        lt1_value=lt1_val,
+        lt2_value=lt2_val,
+        lt1_conf=lt1_conf,
+        lt2_conf=lt2_conf,
+        athlete_level=athlete_level,
+        discipline=discipline,
+        metric_type=metric_type,
+        lt2_speed_kmh=lt2_kmh,
+        lt2_heart_rate=snapshot.lt2_hr if snapshot else None,
+    )
+
+    return PhysiologicalContext(
+        lt1_kmh=lt1_kmh,
+        lt2_kmh=lt2_kmh,
+        lt1_power_watts=None,
+        lt2_power_watts=None,
+        lt1_confidence=lt1_conf,
+        lt2_confidence=lt2_conf,
+        test_age_days=test_age,
+        peak_lactate_1km=None,  # No lactate data
+        athlete_level=athlete_level,
+        distance_category=distance_category,
+        target_pace_kmh=target_kmh,
+        target_power_watts=target_power_watts,
+        metric_type=metric_type,
+        weeks_to_goal=weeks_to_goal,
+        raw_curve_points=None,
+        capacity_profile=capacity_profile,
+    )
+
+
+def guard_field_test_block(
+    gap_result: PhysiologicalGapResult,
+    has_lt1: bool,
+    has_lt2: bool,
+) -> PhysiologicalGapResult:
+    """Restrict the recommended block for field-test athletes.
+
+    Rules:
+    - ANC/ANP never available (require VLamax from lactate).
+    - Without LT2 data → only AEC.
+    - Without any data → testing_decision_block (prescribe field tests).
+    """
+    if not has_lt1 and not has_lt2:
+        gap_result.recommended_block = "testing_decision_block"
+        gap_result.data_quality = "none"
+        gap_result.reasons.append(
+            "Sin datos de tests de campo — el atleta necesita realizar "
+            "un test de decoupling (LT1) y/o un CRI 30' (LT2)."
+        )
+        return gap_result
+
+    allowed = _FIELD_TEST_BLOCKS_BOTH if has_lt2 else _FIELD_TEST_BLOCKS_LT1_ONLY
+
+    if gap_result.recommended_block not in allowed:
+        # Downgrade to best available block
+        if has_lt2:
+            gap_result.recommended_block = "aerobic_capacity_block"
+        else:
+            gap_result.recommended_block = "aerobic_capacity_block"
+        gap_result.reasons.append(
+            "Bloque restringido: sin datos de lactato, los bloques ANC/ANP "
+            "no están disponibles (requieren VLamax). "
+            + ("" if has_lt2 else "Sin LT2, solo bloques de capacidad aeróbica. ")
+            + "Se recomienda realizar tests de lactato para desbloquear "
+            "el análisis fisiológico completo."
+        )
+
+    return gap_result

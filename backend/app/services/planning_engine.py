@@ -22,7 +22,9 @@ from app.services.block_rationale import (
 from app.services.mesocycle_library import FOUNDATION_PILLARS, select_mesocycle_template, templates_for_discipline
 from app.services.physiological_engine import (
     analyse_physiological_gap,
+    build_field_test_physio_context,
     build_physiological_context,
+    guard_field_test_block,
 )
 from app.services.target_taxonomy import infer_distance_category
 from app.services.mesocycle_detector import detect_mesocycles, serialize_detected_mesocycles
@@ -1613,50 +1615,80 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
     physio_ctx = None
     peak_lactate_proxy = None
     raw_curve_points: list[dict[str, Any]] = []
+    _threshold_mode = getattr(athlete, "threshold_mode", "lactate") or "lactate"
+
     if next_target_obj:
         weeks_to_goal = (next_target_obj.target_date - today).days // 7
-        _disc_view = (analysis.get("discipline_views") or {}).get(selected_discipline) or {}
-        raw_curve_points = _raw_lactate_curve(athlete, selected_discipline)
-        peak_lactate_proxy = _peak_lactate_proxy(_disc_view, raw_curve_points)
 
-        # ── Gather HR data for VO2max estimation (Swain+ACSM) ────────────
-        _lt2_hr = _extract_lt2_heart_rate(analysis, selected_discipline)
-        _hr_max = _extract_hr_max(athlete, selected_discipline)
-        _hr_rest = _extract_hr_rest(db, athlete)
-        _garmin_vo2 = _extract_garmin_vo2max(db, athlete, selected_discipline)
+        if _threshold_mode == "field_tests":
+            # ── Field-test pathway ────────────────────────────────────
+            from app.models.field_test import FieldTestSnapshot
+            _ft_snapshot = db.scalar(
+                select(FieldTestSnapshot).where(
+                    FieldTestSnapshot.athlete_id == athlete_id,
+                    FieldTestSnapshot.discipline == selected_discipline,
+                )
+            )
+            physio_ctx = build_field_test_physio_context(
+                snapshot=_ft_snapshot,
+                athlete_level=getattr(athlete, "athlete_level", "trained") or "trained",
+                discipline=selected_discipline,
+                distance_category=resolved_distance_category,
+                target_pace_label=getattr(next_target_obj, "target_pace_label", None)
+                    or getattr(next_target_obj, "target_running_pace_label", None),
+                target_power_watts=getattr(next_target_obj, "target_power_watts", None)
+                    or getattr(next_target_obj, "target_cycling_power_watts", None),
+                weeks_to_goal=weeks_to_goal,
+            )
+            physio_gap = analyse_physiological_gap(physio_ctx)
+            # Guard: restrict blocks for field-test athletes
+            _has_lt1 = _ft_snapshot is not None and _ft_snapshot.lt1_pace_seconds_per_km is not None
+            _has_lt2 = _ft_snapshot is not None and _ft_snapshot.lt2_pace_seconds_per_km is not None
+            physio_gap = guard_field_test_block(physio_gap, _has_lt1, _has_lt2)
+        else:
+            # ── Lactate pathway (original) ────────────────────────────
+            _disc_view = (analysis.get("discipline_views") or {}).get(selected_discipline) or {}
+            raw_curve_points = _raw_lactate_curve(athlete, selected_discipline)
+            peak_lactate_proxy = _peak_lactate_proxy(_disc_view, raw_curve_points)
 
-        # Find latest measured VLamax from athlete's snapshots
-        _measured_vlamax = None
-        for _snap in reversed(getattr(athlete, "snapshots", []) or []):
-            _mv = (_snap.payload or {}).get("measured_vlamax")
-            if _mv and _mv.get("vlamax_mmol_min"):
-                _measured_vlamax = _mv
-                break
+            # ── Gather HR data for VO2max estimation (Swain+ACSM) ────────────
+            _lt2_hr = _extract_lt2_heart_rate(analysis, selected_discipline)
+            _hr_max = _extract_hr_max(athlete, selected_discipline)
+            _hr_rest = _extract_hr_rest(db, athlete)
+            _garmin_vo2 = _extract_garmin_vo2max(db, athlete, selected_discipline)
 
-        physio_ctx = build_physiological_context(
-            analysis=analysis,
-            athlete_level=getattr(athlete, "athlete_level", "trained") or "trained",
-            discipline=selected_discipline,
-            distance_category=resolved_distance_category,
-            target_pace_label=getattr(next_target_obj, "target_pace_label", None)
-                or getattr(next_target_obj, "target_running_pace_label", None),
-            target_power_watts=getattr(next_target_obj, "target_power_watts", None)
-                or getattr(next_target_obj, "target_cycling_power_watts", None),
-            weeks_to_goal=weeks_to_goal,
-            peak_lactate_1km=peak_lactate_proxy,
-            raw_curve_points=raw_curve_points,
-            dynamic_thresholds=analysis.get("dynamic_thresholds"),
-            lt2_heart_rate=_lt2_hr,
-            hr_max=_hr_max,
-            hr_rest=_hr_rest,
-            weight_kg=getattr(athlete, "weight", None),
-            garmin_vo2max=_garmin_vo2,
-            measured_vlamax=_measured_vlamax,
-        )
-        # I2 — Inyectar estado de estancamiento al contexto fisiológico
-        physio_ctx.stagnation_detected = stagnation_detected
-        physio_ctx.stagnation_tests_count = stagnation_tests
-        physio_gap = analyse_physiological_gap(physio_ctx)
+            # Find latest measured VLamax from athlete's snapshots
+            _measured_vlamax = None
+            for _snap in reversed(getattr(athlete, "snapshots", []) or []):
+                _mv = (_snap.payload or {}).get("measured_vlamax")
+                if _mv and _mv.get("vlamax_mmol_min"):
+                    _measured_vlamax = _mv
+                    break
+
+            physio_ctx = build_physiological_context(
+                analysis=analysis,
+                athlete_level=getattr(athlete, "athlete_level", "trained") or "trained",
+                discipline=selected_discipline,
+                distance_category=resolved_distance_category,
+                target_pace_label=getattr(next_target_obj, "target_pace_label", None)
+                    or getattr(next_target_obj, "target_running_pace_label", None),
+                target_power_watts=getattr(next_target_obj, "target_power_watts", None)
+                    or getattr(next_target_obj, "target_cycling_power_watts", None),
+                weeks_to_goal=weeks_to_goal,
+                peak_lactate_1km=peak_lactate_proxy,
+                raw_curve_points=raw_curve_points,
+                dynamic_thresholds=analysis.get("dynamic_thresholds"),
+                lt2_heart_rate=_lt2_hr,
+                hr_max=_hr_max,
+                hr_rest=_hr_rest,
+                weight_kg=getattr(athlete, "weight", None),
+                garmin_vo2max=_garmin_vo2,
+                measured_vlamax=_measured_vlamax,
+            )
+            # I2 — Inyectar estado de estancamiento al contexto fisiológico
+            physio_ctx.stagnation_detected = stagnation_detected
+            physio_ctx.stagnation_tests_count = stagnation_tests
+            physio_gap = analyse_physiological_gap(physio_ctx)
 
     durability_state = _estimate_durability_state(
         recent_sessions,
