@@ -278,126 +278,17 @@ function IconWorkout() {
   );
 }
 
-/* ── Zone Reality Check Calculator ── */
-function ZoneCheck({ t }: { t: (k: string) => string }) {
-  const navigate = useNavigate();
-  const [age, setAge] = useState<string>("");
-  const [maxHR, setMaxHR] = useState<string>("");
-  const [calculated, setCalculated] = useState(false);
-
-  const ageNum = parseInt(age, 10);
-  const maxHRNum = parseInt(maxHR, 10);
-  const formulaMax = 220 - (isNaN(ageNum) ? 30 : ageNum);
-  const hasRealMax = !isNaN(maxHRNum) && maxHRNum > 100 && maxHRNum < 230;
-
-  const garminZ2Low = Math.round(formulaMax * 0.6);
-  const garminZ2High = Math.round(formulaMax * 0.7);
-  const realZ2Low = hasRealMax ? Math.round(maxHRNum * 0.6) : null;
-  const realZ2High = hasRealMax ? Math.round(maxHRNum * 0.7) : null;
-  const gap = hasRealMax ? Math.abs(maxHRNum - formulaMax) : null;
-
-  function handleCalc(e: React.FormEvent) {
-    e.preventDefault();
-    if (!isNaN(ageNum) && ageNum > 10 && ageNum < 90) setCalculated(true);
-  }
-
-  return (
-    <div style={{ maxWidth: 600, margin: "0 auto", background: "rgba(210,106,54,0.04)", borderRadius: 20, padding: "40px 32px", border: "1px solid rgba(210,106,54,0.12)" }}>
-      <form onSubmit={handleCalc} style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center", marginBottom: calculated ? 32 : 0 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: "#5e7078" }}>{t("zrc_age_label")}</label>
-          <input
-            type="number" min="12" max="85"
-            value={age} onChange={(e) => { setAge(e.target.value); setCalculated(false); }}
-            placeholder={t("zrc_age_ph")}
-            style={{ width: 120, padding: "10px 14px", borderRadius: 10, border: "1px solid rgba(210,106,54,0.2)", background: "#fff", fontSize: 15, fontWeight: 600, color: "#1a2f38" }}
-          />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: "#5e7078" }}>{t("zrc_maxhr_label")}</label>
-          <input
-            type="number" min="120" max="225"
-            value={maxHR} onChange={(e) => { setMaxHR(e.target.value); setCalculated(false); }}
-            placeholder={t("zrc_maxhr_ph")}
-            style={{ width: 180, padding: "10px 14px", borderRadius: 10, border: "1px solid rgba(210,106,54,0.2)", background: "#fff", fontSize: 15, fontWeight: 600, color: "#1a2f38" }}
-          />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-          <button type="submit" className="lp-btn-solid" style={{ padding: "10px 28px", fontSize: 14 }}>{t("zrc_calc_btn")}</button>
-        </div>
-      </form>
-
-      {calculated && (
-        <div style={{ animation: "fadeInUp .4s ease" }}>
-          <div style={{ display: "grid", gridTemplateColumns: hasRealMax ? "1fr 1fr" : "1fr", gap: 20, marginBottom: 24 }}>
-            {/* Garmin/Strava estimate */}
-            <div style={{ background: "rgba(239,68,68,0.06)", borderRadius: 14, padding: 20, border: "1px solid rgba(239,68,68,0.15)", textAlign: "center" }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", textTransform: "uppercase", letterSpacing: 1 }}>{t("zrc_garmin_label")}</span>
-              <div style={{ fontSize: 11, color: "#9aabb4", marginTop: 4 }}>FC max = {formulaMax} bpm (220-{age})</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#1a2f38", marginTop: 8 }}>{garminZ2Low} - {garminZ2High}</div>
-              <div style={{ fontSize: 12, color: "#5e7078" }}>bpm</div>
-            </div>
-
-            {/* Real max */}
-            {hasRealMax && realZ2Low && realZ2High && gap !== null && (
-              <div style={{ background: "rgba(34,197,94,0.06)", borderRadius: 14, padding: 20, border: "1px solid rgba(34,197,94,0.15)", textAlign: "center" }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", textTransform: "uppercase", letterSpacing: 1 }}>{t("zrc_real_label")}</span>
-                <div style={{ fontSize: 11, color: "#9aabb4", marginTop: 4 }}>FC max = {maxHRNum} bpm ({t("zrc_real_measured")})</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: "#1a2f38", marginTop: 8 }}>{realZ2Low} - {realZ2High}</div>
-                <div style={{ fontSize: 12, color: "#5e7078" }}>bpm</div>
-              </div>
-            )}
-          </div>
-
-          {hasRealMax && gap !== null && (
-            <div style={{ textAlign: "center", marginBottom: 20 }}>
-              <span style={{ display: "inline-block", background: gap > 5 ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)", color: gap > 5 ? "#ef4444" : "#22c55e", fontWeight: 700, fontSize: 14, padding: "6px 20px", borderRadius: 20 }}>
-                {t("zrc_gap")}: {gap} bpm
-              </span>
-            </div>
-          )}
-
-          {/* Confidence bar */}
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600, marginBottom: 6 }}>
-              <span style={{ color: "#f97316" }}>{t("zrc_conf_hr")}</span>
-              <span style={{ color: "#22c55e" }}>{t("zrc_conf_lac")}</span>
-            </div>
-            <div style={{ height: 8, borderRadius: 4, background: "#e5e7eb", overflow: "hidden", display: "flex" }}>
-              <div style={{ width: "60%", background: "linear-gradient(90deg, #f97316, #fb923c)", borderRadius: "4px 0 0 4px" }} />
-              <div style={{ width: "34%", background: "linear-gradient(90deg, #22c55e, #16a34a)", borderRadius: "0 4px 4px 0", marginLeft: "auto" }} />
-            </div>
-          </div>
-
-          {!hasRealMax && (
-            <p style={{ fontSize: 13, color: "#9aabb4", textAlign: "center", lineHeight: 1.6, marginBottom: 16 }}>
-              {t("zrc_no_maxhr_warning")}
-            </p>
-          )}
-
-          <div style={{ textAlign: "center" }}>
-            <button className="lp-btn-solid" style={{ fontSize: 14 }} onClick={() => navigate("/login")} type="button">
-              {t("zrc_cta")}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ── Inline translations for the beta landing ── */
 const BETA_T: Record<string, Record<string, string>> = {
   es: {
     nav_home: "Inicio",
-    nav_zones: "Zonas",
     nav_demo: "Demo",
     nav_pricing: "Planes",
     nav_faq: "FAQ",
     nav_enter: "Entrar",
 
-    hero_h1: "\u00BFEst\u00E1s entrenando en la zona correcta? Solo tu fisiolog\u00EDa tiene la respuesta.",
-    hero_sub: "PeakAerobic analiza tu test de lactato con 7+ m\u00E9todos cient\u00EDficos, calcula tus zonas reales y construye planes de entrenamiento por objetivos con periodizaci\u00F3n Olbrecht. \u00BFA\u00FAn no testas? Empieza gratis con tu FC.",
+    hero_h1: "Entrena seg\u00FAn tu cuerpo, no seg\u00FAn una f\u00F3rmula",
+    hero_sub: "An\u00E1lisis de lactato multi-m\u00E9todo, zonas reales, planes de entrenamiento por objetivos y seguimiento de tu evoluci\u00F3n fisiol\u00F3gica \u2014 todo en una app.",
     hero_cta_primary: "Analiza tu test de lactato",
     hero_cta_secondary: "\u00BFA\u00FAn no testas? Empieza con tu FC",
     hero_note: "Beta privada \u00B7 Plazas limitadas \u00B7 Revisi\u00F3n semanal con fisi\u00F3logo",
@@ -413,40 +304,23 @@ const BETA_T: Record<string, Record<string, string>> = {
     pain_lac_3: "INSCYD cobra 150-350\u20AC por an\u00E1lisis. T\u00FA mereces an\u00E1lisis ilimitado por una fracci\u00F3n del coste.",
     pain_lac_4: "VLamax, brechas de capacidad y predicciones de carrera necesitan m\u00E1s que un Excel.",
 
-    zrc_ey: "Comprueba tus zonas",
-    zrc_h2: "\u00BFCu\u00E1nto se equivocan tus zonas?",
-    zrc_sub: "Introduce tu edad y frecuencia card\u00EDaca m\u00E1xima real. Te mostramos la diferencia.",
-    zrc_age_label: "Edad",
-    zrc_age_ph: "30",
-    zrc_maxhr_label: "FC m\u00E1xima real",
-    zrc_maxhr_ph: "Si la conoces",
-    zrc_calc_btn: "Calcular",
-    zrc_garmin_label: "Zona 2 Garmin/Strava",
-    zrc_real_label: "Tu Zona 2 real",
-    zrc_real_measured: "medida",
-    zrc_gap: "Diferencia",
-    zrc_conf_hr: "~60% precisi\u00F3n sin lactato",
-    zrc_conf_lac: "94%+ con lactato",
-    zrc_no_maxhr_warning: "Sin tu FC m\u00E1xima real, esto es solo una estimaci\u00F3n. Con un test de lactato: precisi\u00F3n >94%.",
-    zrc_cta: "\u00BFQuieres saber tus zonas reales? Haz un test de lactato",
-
     how_ey: "C\u00F3mo funciona",
-    how_h2: "Dos caminos, un destino",
+    how_h2: "Dos caminos, un destino: entrenar mejor",
     how_path_hr: "Entreno con frecuencia card\u00EDaca",
     how_hr_1_title: "Crea tu perfil",
     how_hr_1_text: "Introduce FC m\u00E1xima, FC reposo, deporte y nivel",
-    how_hr_2_title: "Entrena y ajusta",
-    how_hr_2_text: "Recibe sugerencias basadas en tus zonas de FC",
-    how_hr_3_title: "Haz tu primer test de lactato",
-    how_hr_3_text: "Cuando est\u00E9s listo, sube los datos y descubre tus zonas REALES",
+    how_hr_2_title: "Detectamos tus debilidades",
+    how_hr_2_text: "El sistema analiza tus datos y encuentra d\u00F3nde necesitas mejorar",
+    how_hr_3_title: "Recibe entrenamientos espec\u00EDficos",
+    how_hr_3_text: "Prescribimos sesiones dise\u00F1adas para atacar tus puntos d\u00E9biles y mejorar tu rendimiento",
     how_path_lac: "Ya hago tests de lactato",
     how_lac_1_title: "Sube tu test",
     how_lac_1_text: "Cualquier protocolo, cualquier formato",
     how_lac_2_title: "An\u00E1lisis multi-m\u00E9todo",
     how_lac_2_text: "7+ algoritmos con scoring de confianza",
-    how_lac_3_title: "Tracking y evoluci\u00F3n",
-    how_lac_3_text: "Cada test actualiza tu perfil fisiol\u00F3gico",
-    how_converge: "Empieces por donde empieces, PeakAerobic construye tu perfil fisiol\u00F3gico y adapta tu entrenamiento a TU cuerpo.",
+    how_lac_3_title: "Plan basado en tus brechas",
+    how_lac_3_text: "Detectamos tus debilidades fisiol\u00F3gicas y prescribimos entrenamientos espec\u00EDficos para cerrarlas",
+    how_converge: "Empieces por donde empieces, PeakAerobic detecta tus debilidades reales y prescribe entrenamientos espec\u00EDficos para mejorarlas.",
 
     demo_ey: "Pru\u00E9balo t\u00FA mismo",
     demo_h2: "Demo interactiva",
@@ -464,6 +338,8 @@ const BETA_T: Record<string, Record<string, string>> = {
     ap_4_desc: "7 zonas calculadas desde tu lactato real. FC, ritmo y potencia para cada zona. Actualizadas cada vez que subes un test.",
     ap_5_title: "Objetivos que dirigen tu plan",
     ap_5_desc: "Define tus carreras con fecha, disciplina y marca objetivo. El sistema analiza tus brechas, selecciona el bloque de periodizacion optimo y construye tu plan semanal alrededor de tus objetivos.",
+    ap_6_title: "Predicciones de carrera",
+    ap_6_desc: "Predicciones actualizadas para todas las distancias con bandas de confianza. 5K, 10K, media y marat\u00F3n basadas en tu fisiolog\u00EDa real.",
 
     obj_ey: "Entrena por objetivos",
     obj_h2: "Tu carrera manda. El plan se construye solo.",
@@ -472,8 +348,8 @@ const BETA_T: Record<string, Record<string, string>> = {
     obj_step1_text: "Marat\u00F3n Valencia sub 3:15, Ironman 70.3, 10K sub 40... con fecha y prioridad.",
     obj_step2_title: "Analizamos tus brechas",
     obj_step2_text: "El motor fisiol\u00F3gico detecta d\u00F3nde necesitas mejorar: LT2, capacidad aer\u00F3bica, VLamax...",
-    obj_step3_title: "Bloque de periodizaci\u00F3n Olbrecht",
-    obj_step3_text: "IA selecciona el bloque \u00F3ptimo (AEC, THR, AEP, ANC...) con duraci\u00F3n y dosis espec\u00EDficas.",
+    obj_step3_title: "Bloque de periodizaci\u00F3n \u00F3ptimo",
+    obj_step3_text: "IA selecciona el bloque \u00F3ptimo (capacidad aer\u00F3bica, umbral, potencia...) con duraci\u00F3n y dosis espec\u00EDficas.",
     obj_step4_title: "Plan semanal adaptativo",
     obj_step4_text: "Sesiones prescritas con estructura, zonas y envío a Garmin. Se adapta según tu bienestar y resultados.",
     obj_mock_gap: "Brecha detectada",
@@ -517,7 +393,7 @@ const BETA_T: Record<string, Record<string, string>> = {
     price_ai_desc: "Plan completo con periodizaci\u00F3n inteligente",
     price_ai_f1: "Todo lo de Lactate Lab +",
     price_ai_f2: "Plan IA completo (1 disciplina)",
-    price_ai_f3: "Periodizaci\u00F3n Olbrecht (AEC/THR/AEP...)",
+    price_ai_f3: "Periodizaci\u00F3n inteligente por bloques",
     price_ai_f4: "Calendario: hoy + semana + zonas",
     price_ai_f5: "Env\u00EDo a Garmin autom\u00E1tico",
     price_ai_f6: "David revisa tu plan + datos semanal",
@@ -595,14 +471,13 @@ const BETA_T: Record<string, Record<string, string>> = {
   },
   en: {
     nav_home: "Home",
-    nav_zones: "Zones",
     nav_demo: "Demo",
     nav_pricing: "Plans",
     nav_faq: "FAQ",
     nav_enter: "Log in",
 
-    hero_h1: "Are you training in the right zone? Only your physiology has the answer.",
-    hero_sub: "PeakAerobic analyzes your lactate test with 7+ scientific methods, calculates your real zones and builds objective-based training plans with Olbrecht periodization. No tests yet? Start free with your HR.",
+    hero_h1: "Train according to your body, not a formula",
+    hero_sub: "Multi-method lactate analysis, real zones, objective-based training plans and physiological evolution tracking \u2014 all in one app.",
     hero_cta_primary: "Analyze your lactate test",
     hero_cta_secondary: "No tests yet? Start with your HR",
     hero_note: "Private beta \u00B7 Limited spots \u00B7 Weekly review with physiologist",
@@ -618,40 +493,23 @@ const BETA_T: Record<string, Record<string, string>> = {
     pain_lac_3: "INSCYD charges \u20AC150-350 per analysis. You deserve unlimited analysis for a fraction of the cost.",
     pain_lac_4: "VLamax, capacity gaps, and race predictions need more than a spreadsheet.",
 
-    zrc_ey: "Check your zones",
-    zrc_h2: "How wrong are your zones?",
-    zrc_sub: "Enter your age and real max heart rate. We'll show you the difference.",
-    zrc_age_label: "Age",
-    zrc_age_ph: "30",
-    zrc_maxhr_label: "Real max HR",
-    zrc_maxhr_ph: "If you know it",
-    zrc_calc_btn: "Calculate",
-    zrc_garmin_label: "Garmin/Strava Zone 2",
-    zrc_real_label: "Your real Zone 2",
-    zrc_real_measured: "measured",
-    zrc_gap: "Gap",
-    zrc_conf_hr: "~60% accuracy without lactate",
-    zrc_conf_lac: "94%+ with lactate",
-    zrc_no_maxhr_warning: "Without your real max HR, this is just an estimate. With a lactate test: >94% accuracy.",
-    zrc_cta: "Want to know your real zones? Do a lactate test",
-
     how_ey: "How it works",
-    how_h2: "Two paths, one destination",
+    how_h2: "Two paths, one destination: train better",
     how_path_hr: "I train with heart rate",
     how_hr_1_title: "Create your profile",
     how_hr_1_text: "Enter max HR, resting HR, sport and level",
-    how_hr_2_title: "Train and adjust",
-    how_hr_2_text: "Get suggestions based on your HR zones",
-    how_hr_3_title: "Do your first lactate test",
-    how_hr_3_text: "When you're ready, upload data and discover your REAL zones",
+    how_hr_2_title: "We detect your weaknesses",
+    how_hr_2_text: "The system analyzes your data and finds where you need to improve",
+    how_hr_3_title: "Get specific workouts",
+    how_hr_3_text: "We prescribe sessions designed to target your weak points and improve your performance",
     how_path_lac: "I already do lactate tests",
     how_lac_1_title: "Upload your test",
     how_lac_1_text: "Any protocol, any format",
     how_lac_2_title: "Multi-method analysis",
     how_lac_2_text: "7+ algorithms with confidence scoring",
-    how_lac_3_title: "Tracking and evolution",
-    how_lac_3_text: "Each test updates your physiological profile",
-    how_converge: "No matter where you start, PeakAerobic builds your physiological profile and adapts your training to YOUR body.",
+    how_lac_3_title: "Plan based on your gaps",
+    how_lac_3_text: "We detect your physiological weaknesses and prescribe specific workouts to close them",
+    how_converge: "No matter where you start, PeakAerobic detects your real weaknesses and prescribes specific workouts to improve them.",
 
     demo_ey: "Try it yourself",
     demo_h2: "Interactive demo",
@@ -669,6 +527,8 @@ const BETA_T: Record<string, Record<string, string>> = {
     ap_4_desc: "7 zones calculated from your real lactate. HR, pace and power for each zone. Updated every time you upload a test.",
     ap_5_title: "Objectives that drive your plan",
     ap_5_desc: "Define your races with date, discipline and goal time. The system analyzes your gaps, selects the optimal periodization block and builds your weekly plan around your objectives.",
+    ap_6_title: "Race predictions",
+    ap_6_desc: "Updated predictions for all distances with confidence bands. 5K, 10K, half and marathon based on your real physiology.",
 
     obj_ey: "Train by objectives",
     obj_h2: "Your race decides. The plan builds itself.",
@@ -677,8 +537,8 @@ const BETA_T: Record<string, Record<string, string>> = {
     obj_step1_text: "Valencia Marathon sub 3:15, Ironman 70.3, 10K sub 40... with date and priority.",
     obj_step2_title: "We analyze your gaps",
     obj_step2_text: "The physiological engine detects where you need to improve: LT2, aerobic capacity, VLamax...",
-    obj_step3_title: "Olbrecht periodization block",
-    obj_step3_text: "AI selects the optimal block (AEC, THR, AEP, ANC...) with specific duration and dose.",
+    obj_step3_title: "Optimal periodization block",
+    obj_step3_text: "AI selects the optimal block (aerobic capacity, threshold, power...) with specific duration and dose.",
     obj_step4_title: "Adaptive weekly plan",
     obj_step4_text: "Prescribed sessions with structure, zones and Garmin push. Adapts based on your wellness and results.",
     obj_mock_gap: "Gap detected",
@@ -722,7 +582,7 @@ const BETA_T: Record<string, Record<string, string>> = {
     price_ai_desc: "Full plan with smart periodization",
     price_ai_f1: "Everything in Lactate Lab +",
     price_ai_f2: "Full AI plan (1 discipline)",
-    price_ai_f3: "Olbrecht periodization (AEC/THR/AEP...)",
+    price_ai_f3: "Smart block periodization",
     price_ai_f4: "Calendar: today + week + zones",
     price_ai_f5: "Auto-push to Garmin",
     price_ai_f6: "David reviews your plan + data weekly",
@@ -840,7 +700,6 @@ function LandingInner() {
           <span className="lp-nav__brand">PeakAerobic</span>
           <div className="lp-nav__right">
             <a href="#" className="lp-nav__link" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{t("nav_home")}</a>
-            <a href="#zones" className="lp-nav__link">{t("nav_zones")}</a>
             <a href="#demo" className="lp-nav__link">{t("nav_demo")}</a>
             <a href="#pricing" className="lp-nav__link">{t("nav_pricing")}</a>
             <a href="#faq" className="lp-nav__link">{t("nav_faq")}</a>
@@ -1058,18 +917,6 @@ function LandingInner() {
         </section>
       </AnimSection>
 
-      {/* ══ 3. ZONE REALITY CHECK — Interactive ══ */}
-      <AnimSection>
-        <section className="lp-section" id="zones">
-          <div className="lp-w">
-            <p className="lp-ey">{t("zrc_ey")}</p>
-            <h2 className="lp-h2">{t("zrc_h2")}</h2>
-            <p className="lp-sub" style={{ textAlign: "center", maxWidth: 540, margin: "0 auto 40px" }}>{t("zrc_sub")}</p>
-            <ZoneCheck t={t} />
-          </div>
-        </section>
-      </AnimSection>
-
       {/* ══ 4. HOW IT WORKS — Two parallel paths ══ */}
       <AnimSection>
         <section className="lp-section lp-section--warm" id="how">
@@ -1135,278 +982,146 @@ function LandingInner() {
       </AnimSection>
       <LactateDemo />
 
-      {/* ══ 6. ATHLETE PORTAL SHOWCASE ══ */}
+      {/* ══ 6. ATHLETE PORTAL SHOWCASE — Cards on white ══ */}
       <AnimSection>
-        <section className="lp-section lp-section--dark" id="athlete-portal">
-          <div className="lp-w" style={{ textAlign: "center", marginBottom: 48 }}>
-            <p className="lp-ey lp-ey--light">{t("ap_ey")}</p>
-            <h2 className="lp-h2 lp-h2--light">{t("ap_h2")}</h2>
-            <p className="lp-sub lp-sub--light">{t("ap_sub")}</p>
-          </div>
-        </section>
-      </AnimSection>
+        <section className="lp-section lp-section--warm" id="athlete-portal">
+          <div className="lp-w">
+            <p className="lp-ey">{t("ap_ey")}</p>
+            <h2 className="lp-h2">{t("ap_h2")}</h2>
+            <p className="lp-sub" style={{ textAlign: "center", maxWidth: 600, margin: "0 auto 48px" }}>{t("ap_sub")}</p>
 
-      {/* ── Screen 1: Today View ── */}
-      <AnimSection>
-        <section className="lp-section lp-section--dark lp-showcase" style={{ paddingTop: 0 }}>
-          <div className="lp-w lp-showcase__row">
-            <div>
-              <span className="lp-showcase__num" style={{ color: "#d26a36" }}>01</span>
-              <h3 className="lp-showcase__title" style={{ color: "#fff" }}>{t("ap_1_title")}</h3>
-              <p className="lp-showcase__desc" style={{ color: "rgba(255,255,255,0.55)" }}>{t("ap_1_desc")}</p>
-            </div>
-            <div className="lp-showcase__visual">
-              <div style={{ background: "#0e1e24", borderRadius: 16, padding: 24, border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-                {/* Readiness ring + wellness chips */}
-                <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
-                  <svg viewBox="0 0 80 80" width="80" height="80">
-                    <circle cx="40" cy="40" r="34" fill="none" stroke="#1a2f38" strokeWidth="6" />
-                    <circle cx="40" cy="40" r="34" fill="none" stroke="#22c55e" strokeWidth="6" strokeDasharray={`${2 * Math.PI * 34 * 0.78} ${2 * Math.PI * 34 * 0.22}`} strokeLinecap="round" transform="rotate(-90 40 40)" />
-                    <text x="40" y="36" textAnchor="middle" fill="#fff" fontSize="18" fontWeight="700" fontFamily="Space Grotesk">78</text>
-                    <text x="40" y="50" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="8" fontFamily="Space Grotesk">READINESS</text>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, maxWidth: 1000, margin: "0 auto" }}>
+              {/* Card 1: Today */}
+              <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
+                <div style={{ marginBottom: 20 }}>
+                  <svg viewBox="0 0 200 100" width="100%" preserveAspectRatio="xMidYMid meet">
+                    <rect x="0" y="0" width="200" height="100" rx="12" fill="#f8fafb" />
+                    <circle cx="50" cy="50" r="28" fill="none" stroke="#e5e7eb" strokeWidth="5" />
+                    <circle cx="50" cy="50" r="28" fill="none" stroke="#22c55e" strokeWidth="5" strokeDasharray="132 176" strokeLinecap="round" transform="rotate(-90 50 50)" />
+                    <text x="50" y="55" textAnchor="middle" fill="#1a2f38" fontSize="16" fontWeight="800" fontFamily="Space Grotesk">78</text>
+                    <rect x="95" y="20" width="90" height="12" rx="4" fill="#e5e7eb" />
+                    <rect x="95" y="38" width="70" height="8" rx="3" fill="#f3f4f6" />
+                    <rect x="95" y="55" width="90" height="24" rx="6" fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.2)" strokeWidth="1" />
+                    <text x="140" y="71" textAnchor="middle" fill="#22c55e" fontSize="8" fontWeight="700" fontFamily="Space Grotesk">LISTO</text>
                   </svg>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {[
-                      { label: "HRV", val: "52ms", color: "#22c55e" },
-                      { label: "Sleep", val: "7.2h", color: "#22c55e" },
-                      { label: "Stress", val: "24", color: "#22c55e" },
-                    ].map(w => (
-                      <div key={w.label} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontFamily: "Space Grotesk" }}>
-                        <span style={{ color: "rgba(255,255,255,0.4)", minWidth: 40 }}>{w.label}</span>
-                        <span style={{ color: w.color, fontWeight: 600 }}>{w.val}</span>
-                      </div>
+                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1a2f38", margin: "0 0 8px" }}>{t("ap_1_title")}</h3>
+                <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.6, margin: 0 }}>{t("ap_1_desc")}</p>
+              </div>
+
+              {/* Card 2: Week */}
+              <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
+                <div style={{ marginBottom: 20 }}>
+                  <svg viewBox="0 0 200 100" width="100%" preserveAspectRatio="xMidYMid meet">
+                    <rect x="0" y="0" width="200" height="100" rx="12" fill="#f8fafb" />
+                    {[0,1,2,3,4,5,6].map(i => {
+                      const x = 12 + i * 26;
+                      const colors = ["transparent", "#f59e0b", "#22c55e", "transparent", "#f59e0b", "#3b82f6", "transparent"];
+                      const heights = [0, 50, 30, 0, 45, 60, 0];
+                      return (
+                        <g key={i}>
+                          <rect x={x} y={88 - heights[i]} width="20" height={heights[i]} rx="4" fill={colors[i] || "transparent"} opacity="0.2" />
+                          {heights[i] > 0 && <rect x={x} y={88 - heights[i]} width="20" height={heights[i]} rx="4" fill={colors[i]} opacity="0.6" />}
+                          <text x={x + 10} y="98" textAnchor="middle" fill="#9ca3af" fontSize="7" fontFamily="Space Grotesk">{["L","M","X","J","V","S","D"][i]}</text>
+                        </g>
+                      );
+                    })}
+                    <text x="12" y="16" fill="#1a2f38" fontSize="9" fontWeight="700" fontFamily="Space Grotesk">Semana 12</text>
+                    <text x="188" y="16" textAnchor="end" fill="#9ca3af" fontSize="8" fontFamily="Space Grotesk">42 km</text>
+                  </svg>
+                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1a2f38", margin: "0 0 8px" }}>{t("ap_2_title")}</h3>
+                <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.6, margin: 0 }}>{t("ap_2_desc")}</p>
+              </div>
+
+              {/* Card 3: Evolution */}
+              <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
+                <div style={{ marginBottom: 20 }}>
+                  <svg viewBox="0 0 200 100" width="100%" preserveAspectRatio="xMidYMid meet">
+                    <rect x="0" y="0" width="200" height="100" rx="12" fill="#f8fafb" />
+                    <polyline points="20,75 50,68 80,58 110,48 140,38 170,30" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
+                    <polyline points="20,65 50,60 80,52 110,44 140,36 170,28" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+                    {[[20,75],[50,68],[80,58],[110,48],[140,38],[170,30]].map(([cx,cy],i) => (
+                      <circle key={i} cx={cx} cy={cy} r="3" fill="#fff" stroke="#f97316" strokeWidth="1.5" />
                     ))}
-                  </div>
+                    <circle cx="155" cy="15" r="3" fill="#f97316" /><text x="163" y="18" fill="#9ca3af" fontSize="7" fontFamily="Space Grotesk">LT2</text>
+                    <circle cx="178" cy="15" r="3" fill="#22c55e" /><text x="186" y="18" fill="#9ca3af" fontSize="7" fontFamily="Space Grotesk">LT1</text>
+                  </svg>
                 </div>
-                {/* Session card */}
-                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 14, marginBottom: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <span style={{ color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "Space Grotesk" }}>Intervalos de umbral</span>
-                    <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 6, background: "rgba(245,158,11,0.15)", color: "#f59e0b", fontWeight: 700, fontFamily: "Space Grotesk" }}>CALIDAD</span>
-                  </div>
-                  {[
-                    { step: "Calentamiento", dur: "15'", color: "#22c55e" },
-                    { step: "4\u00D76' ritmo fuerte", dur: "24'", color: "#f59e0b" },
-                    { step: "Recuperaci\u00F3n", dur: "12'", color: "#22c55e" },
-                    { step: "Vuelta calma", dur: "10'", color: "#22c55e" },
-                  ].map((s, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.06)" : "none", fontSize: 11, fontFamily: "Space Grotesk" }}>
-                      <span style={{ width: 4, height: 18, borderRadius: 2, background: s.color, flexShrink: 0 }} />
-                      <span style={{ color: "rgba(255,255,255,0.8)", flex: 1 }}>{s.step}</span>
-                      <span style={{ color: "rgba(255,255,255,0.4)" }}>{s.dur}</span>
-                    </div>
-                  ))}
-                </div>
-                {/* Bottom nav */}
-                <div style={{ display: "flex", justifyContent: "space-around", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 10 }}>
-                  {[
-                    { label: "Today", active: true },
-                    { label: "Semana", active: false },
-                    { label: "Progreso", active: false },
-                    { label: "Recup", active: false },
-                  ].map(n => (
-                    <span key={n.label} style={{ fontSize: 9, fontFamily: "Space Grotesk", fontWeight: n.active ? 700 : 400, color: n.active ? "#d26a36" : "rgba(255,255,255,0.3)" }}>{n.label}</span>
-                  ))}
-                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1a2f38", margin: "0 0 8px" }}>{t("ap_3_title")}</h3>
+                <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.6, margin: 0 }}>{t("ap_3_desc")}</p>
               </div>
-            </div>
-          </div>
-        </section>
-      </AnimSection>
 
-      {/* ── Screen 2: Week View (reversed) ── */}
-      <AnimSection>
-        <section className="lp-section lp-section--dark lp-showcase" style={{ paddingTop: 0 }}>
-          <div className="lp-w lp-showcase__row lp-showcase__row--reverse">
-            <div>
-              <span className="lp-showcase__num" style={{ color: "#d26a36" }}>02</span>
-              <h3 className="lp-showcase__title" style={{ color: "#fff" }}>{t("ap_2_title")}</h3>
-              <p className="lp-showcase__desc" style={{ color: "rgba(255,255,255,0.55)" }}>{t("ap_2_desc")}</p>
-            </div>
-            <div className="lp-showcase__visual">
-              <div style={{ background: "#0e1e24", borderRadius: 16, padding: 20, border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-                {/* Day headers */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 6 }}>
-                  {["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"].map(d => (
-                    <span key={d} style={{ fontSize: 9, fontWeight: 600, color: "rgba(255,255,255,0.35)", textAlign: "center", fontFamily: "Space Grotesk" }}>{d}</span>
-                  ))}
+              {/* Card 4: Zones */}
+              <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
+                <div style={{ marginBottom: 20 }}>
+                  <svg viewBox="0 0 200 100" width="100%" preserveAspectRatio="xMidYMid meet">
+                    <rect x="0" y="0" width="200" height="100" rx="12" fill="#f8fafb" />
+                    {[
+                      { y: 14, w: 45, color: "#86efac", label: "Recuperaci\u00F3n" },
+                      { y: 28, w: 70, color: "#22c55e", label: "Base" },
+                      { y: 42, w: 95, color: "#3b82f6", label: "Aer\u00F3bico" },
+                      { y: 56, w: 120, color: "#8b5cf6", label: "Moderado" },
+                      { y: 70, w: 145, color: "#f59e0b", label: "Umbral" },
+                      { y: 84, w: 170, color: "#ef4444", label: "Intenso" },
+                    ].map((z, i) => (
+                      <g key={i}>
+                        <rect x="12" y={z.y} width={z.w} height="10" rx="5" fill={z.color} opacity="0.7" />
+                        <text x={z.w + 16} y={z.y + 8} fill="#9ca3af" fontSize="7" fontFamily="Space Grotesk">{z.label}</text>
+                      </g>
+                    ))}
+                  </svg>
                 </div>
-                {/* Calendar cells */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
-                  {[
-                    { day: "14", label: null, type: "rest" },
-                    { day: "15", label: "Intervalos", type: "key" },
-                    { day: "16", label: "40' suave", type: "easy" },
-                    { day: "17", label: null, type: "rest" },
-                    { day: "18", label: "Tempo", type: "key" },
-                    { day: "19", label: "Tirada larga", type: "long" },
-                    { day: "20", label: null, type: "rest" },
-                  ].map((c, i) => {
-                    const bg = c.type === "key" ? "rgba(245,158,11,0.1)" : c.type === "easy" ? "rgba(34,197,94,0.08)" : c.type === "long" ? "rgba(59,130,246,0.1)" : "rgba(255,255,255,0.02)";
-                    const border = c.type === "key" ? "1px solid rgba(245,158,11,0.25)" : c.type === "long" ? "1px solid rgba(59,130,246,0.25)" : c.type === "easy" ? "1px solid rgba(34,197,94,0.15)" : "1px solid rgba(255,255,255,0.04)";
-                    const badgeColor = c.type === "key" ? "#f59e0b" : c.type === "long" ? "#3b82f6" : "#22c55e";
-                    const badgeLabel = c.type === "key" ? "CALIDAD" : c.type === "long" ? "LARGO" : "";
-                    return (
-                      <div key={i} style={{ background: bg, border, borderRadius: 8, padding: "8px 4px", minHeight: 60, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                        <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.5)", fontFamily: "Space Grotesk" }}>{c.day}</span>
-                        {c.label && <span style={{ fontSize: 8, color: "rgba(255,255,255,0.7)", fontFamily: "Space Grotesk", textAlign: "center", lineHeight: 1.3 }}>{c.label}</span>}
-                        {badgeLabel && <span style={{ fontSize: 7, padding: "1px 5px", borderRadius: 4, background: `${badgeColor}22`, color: badgeColor, fontWeight: 700, fontFamily: "Space Grotesk" }}>{badgeLabel}</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Volume summary */}
-                <div style={{ marginTop: 12, textAlign: "center", fontSize: 11, fontFamily: "Space Grotesk", color: "rgba(255,255,255,0.4)" }}>
-                  42 km &middot; 4h 20min
-                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1a2f38", margin: "0 0 8px" }}>{t("ap_4_title")}</h3>
+                <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.6, margin: 0 }}>{t("ap_4_desc")}</p>
               </div>
-            </div>
-          </div>
-        </section>
-      </AnimSection>
 
-      {/* ── Screen 3: Progress — Thresholds + Predictions ── */}
-      <AnimSection>
-        <section className="lp-section lp-section--dark lp-showcase" style={{ paddingTop: 0 }}>
-          <div className="lp-w lp-showcase__row">
-            <div>
-              <span className="lp-showcase__num" style={{ color: "#d26a36" }}>03</span>
-              <h3 className="lp-showcase__title" style={{ color: "#fff" }}>{t("ap_3_title")}</h3>
-              <p className="lp-showcase__desc" style={{ color: "rgba(255,255,255,0.55)" }}>{t("ap_3_desc")}</p>
-            </div>
-            <div className="lp-showcase__visual">
-              <div style={{ background: "#0e1e24", borderRadius: 16, padding: 20, border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-                {/* Threshold evolution chart */}
-                <div style={{ marginBottom: 6, fontSize: 10, color: "rgba(255,255,255,0.4)", fontFamily: "Space Grotesk", fontWeight: 600 }}>LT2 &amp; LT1 — 6 meses</div>
-                <svg viewBox="0 0 340 120" width="100%" preserveAspectRatio="xMidYMid meet" style={{ marginBottom: 16 }}>
-                  {/* Grid lines */}
-                  {[20, 45, 70, 95].map(y => (
-                    <line key={y} x1="30" y1={y} x2="330" y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" />
-                  ))}
-                  {/* Y-axis labels (pace - lower = faster = better) */}
-                  <text x="26" y="23" textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Space Grotesk">4:00</text>
-                  <text x="26" y="48" textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Space Grotesk">4:15</text>
-                  <text x="26" y="73" textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Space Grotesk">4:30</text>
-                  <text x="26" y="98" textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Space Grotesk">4:45</text>
-                  {/* X-axis labels */}
-                  {["Oct", "Nov", "Dic", "Ene", "Feb", "Mar", "Abr"].map((m, i) => (
-                    <text key={m} x={30 + i * 50} y="115" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Space Grotesk">{m}</text>
-                  ))}
-                  {/* LT2 line (orange) — pace improving (going down on chart = going up numerically but lower pace = faster) */}
-                  <polyline points="30,90 80,82 130,72 180,62 230,52 280,42 330,35" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  {/* LT1 line (green) — parallel */}
-                  <polyline points="30,78 80,72 130,64 180,56 230,48 280,40 330,33" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
-                  {/* LT2 dots */}
-                  {[[30,90],[80,82],[130,72],[180,62],[230,52],[280,42],[330,35]].map(([cx,cy], i) => (
-                    <circle key={`lt2-${i}`} cx={cx} cy={cy} r="3" fill="#0e1e24" stroke="#f97316" strokeWidth="1.5" />
-                  ))}
-                  {/* LT1 dots */}
-                  {[[30,78],[80,72],[130,64],[180,56],[230,48],[280,40],[330,33]].map(([cx,cy], i) => (
-                    <circle key={`lt1-${i}`} cx={cx} cy={cy} r="2.5" fill="#0e1e24" stroke="#22c55e" strokeWidth="1.5" opacity="0.7" />
-                  ))}
-                  {/* Legend */}
-                  <circle cx="250" cy="8" r="3" fill="#f97316" />
-                  <text x="256" y="11" fill="rgba(255,255,255,0.5)" fontSize="7" fontFamily="Space Grotesk">LT2</text>
-                  <circle cx="285" cy="8" r="3" fill="#22c55e" />
-                  <text x="291" y="11" fill="rgba(255,255,255,0.5)" fontSize="7" fontFamily="Space Grotesk">LT1</text>
-                </svg>
-                {/* Prediction cards */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
-                  {[
-                    { dist: "5K", time: "19:42", pace: "3:56/km" },
-                    { dist: "10K", time: "41:08", pace: "4:07/km" },
-                    { dist: "Media", time: "1:31:24", pace: "4:20/km" },
-                    { dist: "Marat\u00F3n", time: "3:12:40", pace: "4:34/km" },
-                  ].map(p => (
-                    <div key={p.dist} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
-                      <div style={{ fontSize: 8, color: "rgba(255,255,255,0.35)", fontFamily: "Space Grotesk", fontWeight: 600, marginBottom: 4 }}>{p.dist}</div>
-                      <div style={{ fontSize: 13, color: "#fff", fontWeight: 700, fontFamily: "Space Grotesk" }}>{p.time}</div>
-                      <div style={{ fontSize: 8, color: "#d26a36", fontFamily: "Space Grotesk", marginTop: 2 }}>{p.pace}</div>
-                    </div>
-                  ))}
+              {/* Card 5: Objectives */}
+              <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
+                <div style={{ marginBottom: 20 }}>
+                  <svg viewBox="0 0 200 100" width="100%" preserveAspectRatio="xMidYMid meet">
+                    <rect x="0" y="0" width="200" height="100" rx="12" fill="#f8fafb" />
+                    <rect x="12" y="12" width="176" height="34" rx="8" fill="rgba(239,68,68,0.06)" stroke="rgba(239,68,68,0.15)" strokeWidth="1" />
+                    <rect x="12" y="12" width="3" height="34" rx="1.5" fill="#ef4444" />
+                    <text x="24" y="28" fill="#1a2f38" fontSize="9" fontWeight="700" fontFamily="Space Grotesk">Marat\u00F3n Valencia</text>
+                    <text x="24" y="40" fill="#9ca3af" fontSize="7" fontFamily="Space Grotesk">sub 3:15 \u00B7 254 d\u00EDas</text>
+                    <text x="170" y="32" textAnchor="end" fill="#ef4444" fontSize="7" fontWeight="700" fontFamily="Space Grotesk">ALTA</text>
+                    <rect x="12" y="52" width="176" height="34" rx="8" fill="rgba(245,158,11,0.06)" stroke="rgba(245,158,11,0.15)" strokeWidth="1" />
+                    <rect x="12" y="52" width="3" height="34" rx="1.5" fill="#f59e0b" />
+                    <text x="24" y="68" fill="#1a2f38" fontSize="9" fontWeight="700" fontFamily="Space Grotesk">10K San Silvestre</text>
+                    <text x="24" y="80" fill="#9ca3af" fontSize="7" fontFamily="Space Grotesk">sub 40:00 \u00B7 284 d\u00EDas</text>
+                    <text x="170" y="72" textAnchor="end" fill="#f59e0b" fontSize="7" fontWeight="700" fontFamily="Space Grotesk">MEDIA</text>
+                  </svg>
                 </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1a2f38", margin: "0 0 8px" }}>{t("ap_5_title")}</h3>
+                <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.6, margin: 0 }}>{t("ap_5_desc")}</p>
               </div>
-            </div>
-          </div>
-        </section>
-      </AnimSection>
 
-      {/* ── Screen 4: Zones (reversed) ── */}
-      <AnimSection>
-        <section className="lp-section lp-section--dark lp-showcase" style={{ paddingTop: 0 }}>
-          <div className="lp-w lp-showcase__row lp-showcase__row--reverse">
-            <div>
-              <span className="lp-showcase__num" style={{ color: "#d26a36" }}>04</span>
-              <h3 className="lp-showcase__title" style={{ color: "#fff" }}>{t("ap_4_title")}</h3>
-              <p className="lp-showcase__desc" style={{ color: "rgba(255,255,255,0.55)" }}>{t("ap_4_desc")}</p>
-            </div>
-            <div className="lp-showcase__visual">
-              <div style={{ background: "#0e1e24", borderRadius: 16, padding: 20, border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-                {[
-                  { zone: "Recuperaci\u00F3n", hr: "<130 bpm", pace: ">6:10/km", color: "#86efac", pct: 0.25 },
-                  { zone: "Base", hr: "130-145", pace: "5:30-6:10", color: "#22c55e", pct: 0.38 },
-                  { zone: "Aer\u00F3bico", hr: "145-156", pace: "4:50-5:30", color: "#3b82f6", pct: 0.52 },
-                  { zone: "Moderado", hr: "156-164", pace: "4:30-4:50", color: "#8b5cf6", pct: 0.65 },
-                  { zone: "Umbral", hr: "164-172", pace: "4:10-4:30", color: "#f59e0b", pct: 0.78 },
-                  { zone: "Intenso", hr: "172-184", pace: "3:50-4:10", color: "#ef4444", pct: 0.88 },
-                  { zone: "Sprint", hr: ">184", pace: "<3:50", color: "#991b1b", pct: 1.0 },
-                ].map((z, i) => (
-                  <div key={i} style={{ marginBottom: 8 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", fontWeight: 600, fontFamily: "Space Grotesk" }}>{z.zone}</span>
-                      <div style={{ fontSize: 9, fontFamily: "Space Grotesk", color: "rgba(255,255,255,0.4)", display: "flex", gap: 12 }}>
-                        <span>{z.hr}</span>
-                        <span>{z.pace}</span>
-                      </div>
-                    </div>
-                    <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
-                      <div style={{ width: `${z.pct * 100}%`, height: "100%", borderRadius: 3, background: z.color }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-      </AnimSection>
-
-      {/* ── Screen 5: Objectives ── */}
-      <AnimSection>
-        <section className="lp-section lp-section--dark lp-showcase" style={{ paddingTop: 0, paddingBottom: 64 }}>
-          <div className="lp-w lp-showcase__row">
-            <div>
-              <span className="lp-showcase__num" style={{ color: "#d26a36" }}>05</span>
-              <h3 className="lp-showcase__title" style={{ color: "#fff" }}>{t("ap_5_title")}</h3>
-              <p className="lp-showcase__desc" style={{ color: "rgba(255,255,255,0.55)" }}>{t("ap_5_desc")}</p>
-            </div>
-            <div className="lp-showcase__visual">
-              <div style={{ background: "#0e1e24", borderRadius: 16, padding: 20, border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-                {[
-                  { name: "Marat\u00F3n Valencia", sport: "Running", date: "1 dic 2026", days: "254", goal: "sub 3:15", priority: "Alta", prColor: "#ef4444" },
-                  { name: "10K San Silvestre", sport: "Running", date: "31 dic 2026", days: "284", goal: "sub 40:00", priority: "Media", prColor: "#f59e0b" },
-                ].map((obj, i) => (
-                  <div key={i} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: 14, marginBottom: i < 1 ? 10 : 0, borderLeft: `3px solid ${obj.prColor}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", fontFamily: "Space Grotesk" }}>{obj.name}</span>
-                      <span style={{ fontSize: 8, padding: "2px 7px", borderRadius: 4, background: `${obj.prColor}22`, color: obj.prColor, fontWeight: 700, fontFamily: "Space Grotesk" }}>{obj.priority}</span>
-                    </div>
-                    <div style={{ display: "flex", gap: 12, fontSize: 10, fontFamily: "Space Grotesk", color: "rgba(255,255,255,0.45)" }}>
-                      <span>{obj.sport}</span>
-                      <span>{obj.date}</span>
-                      <span style={{ color: "rgba(255,255,255,0.25)" }}>en {obj.days} d\u00EDas</span>
-                    </div>
-                    <div style={{ marginTop: 8, fontSize: 11, fontFamily: "Space Grotesk" }}>
-                      <span style={{ color: "rgba(255,255,255,0.5)" }}>Objetivo: </span>
-                      <span style={{ color: "#d26a36", fontWeight: 700 }}>{obj.goal}</span>
-                    </div>
-                  </div>
-                ))}
-                {/* Add button */}
-                <div style={{ marginTop: 12, display: "flex", justifyContent: "center" }}>
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", border: "1px dashed rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                    <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 18, lineHeight: 1 }}>+</span>
-                  </div>
+              {/* Card 6: Predictions */}
+              <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
+                <div style={{ marginBottom: 20 }}>
+                  <svg viewBox="0 0 200 100" width="100%" preserveAspectRatio="xMidYMid meet">
+                    <rect x="0" y="0" width="200" height="100" rx="12" fill="#f8fafb" />
+                    {[
+                      { x: 14, dist: "5K", time: "19:42", pace: "3:56" },
+                      { x: 60, dist: "10K", time: "41:08", pace: "4:07" },
+                      { x: 106, dist: "Media", time: "1:31", pace: "4:20" },
+                      { x: 152, dist: "Marat\u00F3n", time: "3:12", pace: "4:34" },
+                    ].map((p, i) => (
+                      <g key={i}>
+                        <rect x={p.x} y="12" width="40" height="76" rx="8" fill="rgba(210,106,54,0.04)" stroke="rgba(210,106,54,0.1)" strokeWidth="1" />
+                        <text x={p.x + 20} y="28" textAnchor="middle" fill="#9ca3af" fontSize="7" fontWeight="600" fontFamily="Space Grotesk">{p.dist}</text>
+                        <text x={p.x + 20} y="48" textAnchor="middle" fill="#1a2f38" fontSize="11" fontWeight="800" fontFamily="Space Grotesk">{p.time}</text>
+                        <text x={p.x + 20} y="62" textAnchor="middle" fill="#d26a36" fontSize="7" fontFamily="Space Grotesk">{p.pace}</text>
+                        <rect x={p.x + 6} y="70" width="28" height="4" rx="2" fill="#e5e7eb" />
+                        <rect x={p.x + 6} y="70" width={20 - i * 3} height="4" rx="2" fill="#22c55e" opacity="0.7" />
+                        <text x={p.x + 20} y="82" textAnchor="middle" fill="#9ca3af" fontSize="6" fontFamily="Space Grotesk">{["95%","88%","82%","74%"][i]}</text>
+                      </g>
+                    ))}
+                  </svg>
                 </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1a2f38", margin: "0 0 8px" }}>{t("ap_6_title")}</h3>
+                <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.6, margin: 0 }}>{t("ap_6_desc")}</p>
               </div>
             </div>
           </div>
