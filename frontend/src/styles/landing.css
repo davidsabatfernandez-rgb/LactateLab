@@ -15,7 +15,7 @@ html { scroll-behavior: smooth; }
   --c-muted: #5e7078;
   --c-faint: #9aabb4;
   --c-bg: #f7f6f4;
-  --c-surface: #fff;
+  --c-surface: #ffffff;
   --c-border: rgba(14, 30, 36, 0.07);
   --c-green: #22c55e;
   --c-orange: #f97316;
@@ -349,6 +349,7 @@ html { scroll-behavior: smooth; }
 
 .lp-section--light {
   background: #ffffff;
+  border-bottom: 1px solid rgba(14, 30, 36, 0.06);
 }
 
 /* 3. Problem
@@ -421,10 +422,16 @@ html { scroll-behavior: smooth; }
 }
 
 .lp-how__path {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
   border-radius: 20px;
   padding: 32px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.lp-how__path:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.08);
 }
 
 .lp-how__path--green {
@@ -439,7 +446,7 @@ html { scroll-behavior: smooth; }
   font-family: var(--ff-display);
   font-size: 17px;
   font-weight: 700;
-  color: #fff;
+  color: var(--c-dark);
   margin: 0 0 24px;
   text-align: center;
 }
@@ -474,13 +481,13 @@ html { scroll-behavior: smooth; }
   font-family: var(--ff-display);
   font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--c-dark);
   margin: 0 0 4px;
 }
 
 .lp-how__path-step-text {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--c-muted);
   line-height: 1.6;
   margin: 0;
 }
@@ -489,11 +496,11 @@ html { scroll-behavior: smooth; }
   text-align: center;
   font-size: 15px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--c-dark);
   margin: 48px auto 0;
   max-width: 600px;
   padding: 20px 32px;
-  background: rgba(210, 106, 54, 0.08);
+  background: var(--c-accent-soft);
   border: 1px solid rgba(210, 106, 54, 0.15);
   border-radius: 12px;
 }
@@ -518,6 +525,7 @@ html { scroll-behavior: smooth; }
   padding: 0;
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
 }
 
 .lp-showcase__card:hover {
@@ -544,61 +552,75 @@ html { scroll-behavior: smooth; }
   margin: 0 18px 18px;
 }
 
-/* 7. AI Spotlight
+/* 7. Physiology Engine Spotlight
    ─────────────────────────────────────────── */
-.lp-ai__cols {
+.lp-phys__cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 32px;
+  gap: 24px;
   max-width: 900px;
   margin: 48px auto 0;
 }
 
-.lp-ai__col {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.lp-phys__col {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
   border-radius: 20px;
   padding: 32px;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.lp-ai__col-title {
+.lp-phys__col:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+}
+
+.lp-phys__col--engine {
+  border-top: 3px solid var(--c-green);
+}
+
+.lp-phys__col--coach {
+  border-top: 3px solid var(--c-accent);
+}
+
+.lp-phys__col-title {
   font-family: var(--ff-display);
   font-size: 17px;
   font-weight: 700;
-  color: #fff;
+  color: var(--c-dark);
   margin: 0 0 20px;
 }
 
-.lp-ai__list {
+.lp-phys__list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.lp-ai__list li {
+.lp-phys__list li {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 8px 0;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--c-muted);
   line-height: 1.6;
 }
 
-.lp-ai__list li svg {
+.lp-phys__list li svg {
   flex-shrink: 0;
   margin-top: 2px;
 }
 
-.lp-ai__price-anchor {
+.lp-phys__price-anchor {
   text-align: center;
   font-size: 16px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--c-dark);
   margin: 48px auto 0;
   max-width: 700px;
   padding: 24px 32px;
-  background: rgba(210, 106, 54, 0.08);
+  background: var(--c-accent-soft);
   border: 1px solid rgba(210, 106, 54, 0.15);
   border-radius: 12px;
 }
@@ -623,7 +645,7 @@ html { scroll-behavior: smooth; }
   flex-direction: column;
   transition: transform 0.2s, box-shadow 0.2s;
   position: relative;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
 }
 
 .lp-pricing__card:hover {
@@ -1598,8 +1620,8 @@ html { scroll-behavior: smooth; }
     gap: 16px;
   }
 
-  /* AI spotlight: 2 -> 1 */
-  .lp-ai__cols {
+  /* Phys engine: 2 -> 1 */
+  .lp-phys__cols {
     grid-template-columns: 1fr;
   }
 

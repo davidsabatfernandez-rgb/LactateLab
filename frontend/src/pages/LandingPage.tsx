@@ -159,20 +159,20 @@ const LANDING_T: Record<string, Record<string, string>> = {
     ap_6_title: "Objetivos de carrera",
     ap_6_desc: "Define carreras con fecha y marca. El plan se adapta.",
 
-    /* AI spotlight */
-    ai_ey: "Lo que nos hace diferentes",
-    ai_h2: "IA que planifica. Un fisiologo que valida.",
-    ai_engine_title: "El motor de IA",
-    ai_engine_1: "Periodizacion por bloques basada en tus brechas fisiologicas",
-    ai_engine_2: "Se adapta a tus umbrales de lactato, no a formulas genericas",
-    ai_engine_3: "Ajusta cuando la vida se interpone",
-    ai_engine_4: "Envia sesiones estructuradas a tu Garmin",
-    ai_human_title: "La revision humana",
-    ai_human_1: "David revisa tu plan y datos cada semana",
-    ai_human_2: "Detecta lo que los algoritmos no ven",
-    ai_human_3: "Valida transiciones de bloque y progresion",
-    ai_human_4: "No es un chatbot — es un fisiologo real",
-    ai_price_anchor: "Un entrenador personal cobra €150-300/mes. PeakAerobic AI Plan: €19,99/mes — con revision semanal incluida.",
+    /* Physiology engine spotlight */
+    phys_ey: "Prescripcion basada en tu fisiologia",
+    phys_h2: "El motor analiza. Tu entrenador decide.",
+    phys_engine_title: "El motor fisiologico",
+    phys_engine_1: "Detecta tu perfil metabolico desde tus tests de lactato",
+    phys_engine_2: "Identifica la debilidad limitante (gap aerobico, techo de lactato, VLamax...)",
+    phys_engine_3: "Prescribe el bloque de entrenamiento que mas te conviene ahora",
+    phys_engine_4: "Progresion por peldanos de dosis — sin saltos bruscos",
+    phys_human_title: "Tu entrenador decide",
+    phys_human_1: "Revisa la prescripcion cada semana",
+    phys_human_2: "Ajusta segun tu contexto, fatiga y calendario",
+    phys_human_3: "Aprueba el plan final antes de que llegue a tu Garmin",
+    phys_human_4: "No es un algoritmo solo — hay un fisiologo detras",
+    phys_price_anchor: "Un entrenador personal cobra €150-300/mes. PeakAerobic desde €19,99/mes — con revision semanal incluida.",
 
     /* Pricing */
     price_ey: "Planes",
@@ -187,23 +187,23 @@ const LANDING_T: Record<string, Record<string, string>> = {
     price_free_f4: "1 prediccion de carrera",
     price_free_f5: "Sincronizacion Garmin/Strava",
     price_free_cta: "Empieza gratis",
-    price_ai_name: "AI Plan",
+    price_ai_name: "Plan Completo",
     price_ai_badge: "Popular",
     price_ai_amount: "19,99€",
-    price_ai_desc: "Analisis completo + plan de entrenamiento",
+    price_ai_desc: "Analisis + plan de entrenamiento personalizado",
     price_ai_f1: "Tests de lactato ilimitados",
     price_ai_f2: "7 zonas desde datos reales",
     price_ai_f3: "Umbrales dinamicos + evolucion",
-    price_ai_f4: "Plan IA completo por objetivos",
-    price_ai_f5: "Periodizacion inteligente por bloques",
+    price_ai_f4: "Plan completo por objetivos",
+    price_ai_f5: "Periodizacion por bloques fisiologicos",
     price_ai_f6: "Envio a Garmin automatico",
     price_ai_f7: "Revision semanal por David",
-    price_ai_cta: "Elige AI Plan",
+    price_ai_cta: "Elige Plan Completo",
     price_elite_name: "Elite",
     price_elite_badge: "Coaching 1:1",
     price_elite_amount: "199€",
     price_elite_desc: "Coaching completo con fisiologo",
-    price_elite_f1: "Todo lo de AI Plan +",
+    price_elite_f1: "Todo lo del Plan Completo +",
     price_elite_f2: "Llamada semanal 30 min",
     price_elite_f3: "WhatsApp/Telegram 24h",
     price_elite_f4: "Coach ajusta y re-planifica",
@@ -311,20 +311,20 @@ const LANDING_T: Record<string, Record<string, string>> = {
     ap_6_title: "Race objectives",
     ap_6_desc: "Define races with date and goal. The plan adapts.",
 
-    /* AI spotlight */
-    ai_ey: "What makes us different",
-    ai_h2: "AI that plans. A physiologist who validates.",
-    ai_engine_title: "The AI engine",
-    ai_engine_1: "Block periodization based on your physiological gaps",
-    ai_engine_2: "Adapts to your lactate thresholds, not generic formulas",
-    ai_engine_3: "Adjusts when life gets in the way",
-    ai_engine_4: "Pushes structured sessions to your Garmin",
-    ai_human_title: "The human review",
-    ai_human_1: "David reviews your plan and data every week",
-    ai_human_2: "Catches what algorithms miss",
-    ai_human_3: "Validates block transitions and progression",
-    ai_human_4: "Not a chatbot — a real physiologist",
-    ai_price_anchor: "A personal coach costs €150-300/mo. PeakAerobic AI Plan: €19.99/mo — with weekly review included.",
+    /* Physiology engine spotlight */
+    phys_ey: "Prescription based on your physiology",
+    phys_h2: "The engine analyzes. Your coach decides.",
+    phys_engine_title: "The physiological engine",
+    phys_engine_1: "Detects your metabolic profile from your lactate tests",
+    phys_engine_2: "Identifies your limiting weakness (aerobic gap, lactate ceiling, VLamax...)",
+    phys_engine_3: "Prescribes the training block that suits you best right now",
+    phys_engine_4: "Dose-step progression — no abrupt jumps",
+    phys_human_title: "Your coach decides",
+    phys_human_1: "Reviews the prescription every week",
+    phys_human_2: "Adjusts based on your context, fatigue and calendar",
+    phys_human_3: "Approves the final plan before it reaches your Garmin",
+    phys_human_4: "Not just an algorithm — there's a physiologist behind it",
+    phys_price_anchor: "A personal coach costs €150-300/mo. PeakAerobic from €19.99/mo — with weekly review included.",
 
     /* Pricing */
     price_ey: "Plans",
@@ -339,23 +339,23 @@ const LANDING_T: Record<string, Record<string, string>> = {
     price_free_f4: "1 race prediction",
     price_free_f5: "Garmin/Strava sync",
     price_free_cta: "Start free",
-    price_ai_name: "AI Plan",
+    price_ai_name: "Full Plan",
     price_ai_badge: "Popular",
     price_ai_amount: "€19.99",
-    price_ai_desc: "Full analysis + training plan",
+    price_ai_desc: "Analysis + personalized training plan",
     price_ai_f1: "Unlimited lactate tests",
     price_ai_f2: "7 zones from real data",
     price_ai_f3: "Dynamic thresholds + evolution",
-    price_ai_f4: "Full AI plan by objectives",
-    price_ai_f5: "Smart block periodization",
+    price_ai_f4: "Full plan by objectives",
+    price_ai_f5: "Physiological block periodization",
     price_ai_f6: "Auto-push to Garmin",
     price_ai_f7: "Weekly review by David",
-    price_ai_cta: "Choose AI Plan",
+    price_ai_cta: "Choose Full Plan",
     price_elite_name: "Elite",
     price_elite_badge: "1:1 Coaching",
     price_elite_amount: "€199",
     price_elite_desc: "Full coaching with physiologist",
-    price_elite_f1: "Everything in AI Plan +",
+    price_elite_f1: "Everything in Full Plan +",
     price_elite_f2: "Weekly 30-min call",
     price_elite_f3: "WhatsApp/Telegram 24h",
     price_elite_f4: "Coach adjusts and re-plans",
@@ -482,7 +482,7 @@ function LandingInner() {
 
       {/* ══ 3. THE PROBLEM — Two panels ══ */}
       <AnimSection>
-        <section className="lp-section lp-section--warm" id="problem">
+        <section className="lp-section lp-section--light" id="problem">
           <div className="lp-w">
             <p className="lp-ey">{t("problem_ey")}</p>
             <h2 className="lp-h2">{t("problem_h2")}</h2>
@@ -512,10 +512,10 @@ function LandingInner() {
 
       {/* ══ 4. HOW IT WORKS — Two paths ══ */}
       <AnimSection>
-        <section className="lp-section lp-section--dark" id="how">
+        <section className="lp-section lp-section--light" id="how">
           <div className="lp-w">
-            <p className="lp-ey lp-ey--light">{t("how_ey")}</p>
-            <h2 className="lp-h2 lp-h2--light">{t("how_h2")}</h2>
+            <p className="lp-ey">{t("how_ey")}</p>
+            <h2 className="lp-h2">{t("how_h2")}</h2>
             <div className="lp-how__paths">
               {/* HR path */}
               <div className="lp-how__path lp-how__path--green">
@@ -562,7 +562,7 @@ function LandingInner() {
 
       {/* ══ 6. THE APP — 6 feature cards (3x2) ══ */}
       <AnimSection>
-        <section className="lp-section lp-section--warm" id="athlete-portal">
+        <section className="lp-section lp-section--light" id="athlete-portal">
           <div className="lp-w">
             <p className="lp-ey">{t("ap_ey")}</p>
             <h2 className="lp-h2">{t("ap_h2")}</h2>
@@ -706,40 +706,40 @@ function LandingInner() {
         </section>
       </AnimSection>
 
-      {/* ══ 7. AI PLAN SPOTLIGHT ══ */}
+      {/* ══ 7. PHYSIOLOGY ENGINE SPOTLIGHT ══ */}
       <AnimSection>
-        <section className="lp-section lp-section--dark" id="ai-spotlight">
+        <section className="lp-section lp-section--light" id="phys-engine">
           <div className="lp-w">
-            <p className="lp-ey lp-ey--light">{t("ai_ey")}</p>
-            <h2 className="lp-h2 lp-h2--light">{t("ai_h2")}</h2>
-            <div className="lp-ai__cols">
-              <div className="lp-ai__col">
-                <h3 className="lp-ai__col-title">{t("ai_engine_title")}</h3>
-                <ul className="lp-ai__list">
-                  <li>{check("#22c55e")}<span>{t("ai_engine_1")}</span></li>
-                  <li>{check("#22c55e")}<span>{t("ai_engine_2")}</span></li>
-                  <li>{check("#22c55e")}<span>{t("ai_engine_3")}</span></li>
-                  <li>{check("#22c55e")}<span>{t("ai_engine_4")}</span></li>
+            <p className="lp-ey">{t("phys_ey")}</p>
+            <h2 className="lp-h2">{t("phys_h2")}</h2>
+            <div className="lp-phys__cols">
+              <div className="lp-phys__col lp-phys__col--engine">
+                <h3 className="lp-phys__col-title">{t("phys_engine_title")}</h3>
+                <ul className="lp-phys__list">
+                  <li>{check("#22c55e")}<span>{t("phys_engine_1")}</span></li>
+                  <li>{check("#22c55e")}<span>{t("phys_engine_2")}</span></li>
+                  <li>{check("#22c55e")}<span>{t("phys_engine_3")}</span></li>
+                  <li>{check("#22c55e")}<span>{t("phys_engine_4")}</span></li>
                 </ul>
               </div>
-              <div className="lp-ai__col">
-                <h3 className="lp-ai__col-title">{t("ai_human_title")}</h3>
-                <ul className="lp-ai__list">
-                  <li>{check("#d26a36")}<span>{t("ai_human_1")}</span></li>
-                  <li>{check("#d26a36")}<span>{t("ai_human_2")}</span></li>
-                  <li>{check("#d26a36")}<span>{t("ai_human_3")}</span></li>
-                  <li>{check("#d26a36")}<span>{t("ai_human_4")}</span></li>
+              <div className="lp-phys__col lp-phys__col--coach">
+                <h3 className="lp-phys__col-title">{t("phys_human_title")}</h3>
+                <ul className="lp-phys__list">
+                  <li>{check("#d26a36")}<span>{t("phys_human_1")}</span></li>
+                  <li>{check("#d26a36")}<span>{t("phys_human_2")}</span></li>
+                  <li>{check("#d26a36")}<span>{t("phys_human_3")}</span></li>
+                  <li>{check("#d26a36")}<span>{t("phys_human_4")}</span></li>
                 </ul>
               </div>
             </div>
-            <p className="lp-ai__price-anchor">{t("ai_price_anchor")}</p>
+            <p className="lp-phys__price-anchor">{t("phys_price_anchor")}</p>
           </div>
         </section>
       </AnimSection>
 
       {/* ══ 8. PRICING — 3 tiers ══ */}
       <AnimSection>
-        <section className="lp-section lp-section--warm" id="pricing">
+        <section className="lp-section lp-section--light" id="pricing">
           <div className="lp-w">
             <p className="lp-ey">{t("price_ey")}</p>
             <h2 className="lp-h2">{t("price_h2")}</h2>
@@ -760,7 +760,7 @@ function LandingInner() {
                 <button className="lp-btn-solid lp-btn--ghost lp-pricing__cta" onClick={() => navigate("/login")} type="button">{t("price_free_cta")}</button>
               </div>
 
-              {/* AI Plan — highlighted */}
+              {/* Full Plan — highlighted */}
               <div className="lp-pricing__card lp-pricing__card--highlighted">
                 <span className="lp-pricing__badge">{t("price_ai_badge")}</span>
                 <span className="lp-pricing__plan-name">{t("price_ai_name")}</span>
@@ -806,7 +806,7 @@ function LandingInner() {
 
       {/* ══ 9. FAQ ══ */}
       <AnimSection>
-        <section className="lp-section lp-section--warm" id="faq">
+        <section className="lp-section lp-section--light" id="faq">
           <div className="lp-w">
             <div className="lp-faq__wrap">
               <p className="lp-ey">{t("faq_ey")}</p>

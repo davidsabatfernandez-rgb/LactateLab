@@ -33,7 +33,7 @@ const T: Record<Lang, Record<string, string>> = {
     f_evolution: "Evoluci\u00f3n de umbrales",
     f_compare: "Comparaci\u00f3n de sesiones",
     f_vlamax: "Estimaci\u00f3n VLamax",
-    f_ai_plan: "Plan de entrenamiento IA",
+    f_ai_plan: "Plan de entrenamiento personalizado",
     f_blocks: "Periodizaci\u00f3n por bloques",
     f_calendar: "Vistas del calendario",
     f_garmin: "Env\u00edo a Garmin",
@@ -72,7 +72,7 @@ const T: Record<Lang, Record<string, string>> = {
     f_evolution: "Threshold evolution",
     f_compare: "Session comparison",
     f_vlamax: "VLamax estimation",
-    f_ai_plan: "AI training plan",
+    f_ai_plan: "Personalized training plan",
     f_blocks: "Block periodisation",
     f_calendar: "Calendar views",
     f_garmin: "Push to Garmin",
@@ -105,7 +105,7 @@ interface Plan {
 const PLANS: Plan[] = [
   { id: "free", name: "Free", monthlyPrice: 0 },
   { id: "lactate", name: "Lactate Lab", monthlyPrice: 7.99 },
-  { id: "ai", name: "AI Plan", monthlyPrice: 19.99, highlighted: true },
+  { id: "ai", name: "Plan Completo", monthlyPrice: 19.99, highlighted: true },
   { id: "pro_plus", name: "Pro+", monthlyPrice: 34.99 },
   { id: "elite", name: "Elite", monthlyPrice: 199 },
 ];
@@ -228,8 +228,8 @@ const ES_FEATURES: FeatureRow[] = [
     values: {
       free: "Sugerencia diaria (1 sesi\u00f3n)",
       lactate: `${D} (herramienta de an\u00e1lisis)`,
-      ai: "Plan IA completo 1 disciplina",
-      pro_plus: "Plan IA multi-disciplina",
+      ai: "Plan completo 1 disciplina",
+      pro_plus: "Plan multi-disciplina",
       elite: "Completo + coach ajusta",
     },
   },
@@ -239,7 +239,7 @@ const ES_FEATURES: FeatureRow[] = [
     values: {
       free: D,
       lactate: D,
-      ai: "IA selecciona bloque",
+      ai: "Seleccion fisiologica de bloque",
       pro_plus: "+ detecci\u00f3n estancamiento",
       elite: "Coach selecciona + override",
     },
@@ -431,8 +431,8 @@ const EN_FEATURES: FeatureRow[] = [
     values: {
       free: "Daily suggestion (1 session)",
       lactate: `${D} (analysis tool)`,
-      ai: "Full AI plan 1 discipline",
-      pro_plus: "AI plan multi-discipline",
+      ai: "Full plan 1 discipline",
+      pro_plus: "Plan multi-discipline",
       elite: "Full + coach adjusts",
     },
   },
@@ -442,7 +442,7 @@ const EN_FEATURES: FeatureRow[] = [
     values: {
       free: D,
       lactate: D,
-      ai: "AI selects block",
+      ai: "Physiological block selection",
       pro_plus: "+ stagnation detection",
       elite: "Coach selects + override",
     },
