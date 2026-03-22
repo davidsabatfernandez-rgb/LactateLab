@@ -458,7 +458,7 @@ function LandingInner() {
         </div>
       </nav>
 
-      {/* ══ 2. HERO — Full-width photo background, centered ══ */}
+      {/* ══ 2. HERO — White bg, cyclist photo, not full height ══ */}
       <section className="lp-hero">
         <div className="lp-hero__center">
           <h1 className="lp-hero__h1">
@@ -475,6 +475,7 @@ function LandingInner() {
           </div>
           <p className="lp-hero__sub">{t("hero_sub")}</p>
         </div>
+        <img src="/hero-cyclist.jpg" alt="" className="lp-hero__img" loading="eager" />
       </section>
 
       {/* ══ 3. THE PROBLEM — Two panels ══ */}
