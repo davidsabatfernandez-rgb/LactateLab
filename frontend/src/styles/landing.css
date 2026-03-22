@@ -118,65 +118,67 @@ html { scroll-behavior: smooth; }
    ─────────────────────────────────────────── */
 .lp-hero {
   min-height: 100vh;
-  background: var(--c-dark);
+  background: url("/hero-triathlete.jpg") center/cover no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 120px 24px 60px;
   overflow: hidden;
+  position: relative;
 }
 
-.lp-hero__inner {
+.lp-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 18, 22, 0.65);
+  z-index: 1;
+}
+
+.lp-hero__center {
+  position: relative;
+  z-index: 2;
+  max-width: 720px;
+  text-align: center;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  min-height: calc(100vh - 180px);
   justify-content: center;
-  gap: 60px;
-  max-width: var(--max);
-  width: 100%;
-  margin: 0 auto;
-}
-
-.lp-hero__content {
-  flex: 1;
-  max-width: 560px;
 }
 
 .lp-hero__h1 {
   font-family: var(--ff-display);
-  font-size: clamp(30px, 4.5vw, 48px);
+  font-size: clamp(28px, 4.5vw, 44px);
   font-weight: 700;
-  line-height: 1.12;
+  line-height: 1.18;
   letter-spacing: -0.035em;
-  margin: 0 0 20px;
+  margin: 0 0 32px;
   color: #fff;
 }
 
-.lp-hero__sub {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.55);
-  max-width: 500px;
-  margin: 0 0 32px;
-  line-height: 1.7;
+.lp-hero__highlight {
+  text-decoration: underline;
+  text-decoration-color: var(--c-accent);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 3px;
 }
 
 .lp-hero__ctas {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 14px;
+  justify-content: center;
+  margin-bottom: auto;
 }
 
-.lp-hero__trust {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.35);
-  letter-spacing: 0.02em;
-  margin: 0;
-}
-
-.lp-hero__curve-wrap {
-  flex: 1;
+.lp-hero__sub {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
   max-width: 560px;
-  min-width: 300px;
+  margin: auto 0 0;
+  line-height: 1.7;
+  text-align: center;
 }
 
 /* Animated curve */
@@ -1567,41 +1569,21 @@ html { scroll-behavior: smooth; }
 
   /* Hero */
   .lp-hero {
-    min-height: auto;
-    padding: 100px 20px 48px;
-  }
-
-  .lp-hero__inner {
-    flex-direction: column;
-    text-align: center;
-    gap: 32px;
-  }
-
-  .lp-hero__content {
-    max-width: 100%;
-  }
-
-  .lp-hero__sub {
-    margin: 0 auto 32px;
+    min-height: 100vh;
+    padding: 100px 20px 40px;
   }
 
   .lp-hero__h1 {
-    font-size: clamp(26px, 7vw, 38px);
+    font-size: clamp(24px, 7vw, 34px);
   }
 
   .lp-hero__ctas {
-    justify-content: center;
     flex-direction: column;
     align-items: center;
   }
 
-  .lp-hero__trust {
-    text-align: center;
-  }
-
-  .lp-hero__curve-wrap {
-    max-width: 100%;
-    min-width: 0;
+  .lp-hero__center {
+    min-height: calc(100vh - 140px);
   }
 
   /* Problem: 2 cols -> 1 col */

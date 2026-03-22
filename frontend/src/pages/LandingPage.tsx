@@ -102,11 +102,11 @@ const LANDING_T: Record<string, Record<string, string>> = {
     nav_enter: "Entrar",
 
     /* Hero */
-    hero_h1: "¿Estas entrenando en la zona correcta? Solo tu fisiologia tiene la respuesta.",
+    hero_h1_pre: "¿Estas entrenando en la zona correcta? Solo ",
+    hero_h1_highlight: "tu fisiologia tiene la respuesta.",
     hero_sub: "PeakAerobic analiza tu test de lactato con 7+ metodos cientificos y calcula tus zonas reales — no estimaciones, no formulas, no suposiciones. ¿Aun no haces tests de lactato? Empieza gratis con tus datos de frecuencia cardiaca.",
     hero_cta_primary: "Analiza tu test de lactato →",
     hero_cta_secondary: "¿Aun no testas? Empieza con tu FC →",
-    hero_trust: "Deteccion multi-metodo · 7+ algoritmos validados · Running · Ciclismo · Natacion",
 
     /* Problem */
     problem_ey: "El problema",
@@ -254,11 +254,11 @@ const LANDING_T: Record<string, Record<string, string>> = {
     nav_enter: "Log in",
 
     /* Hero */
-    hero_h1: "Are you training in the right zone? Only your physiology has the answer.",
+    hero_h1_pre: "Are you training in the right zone? Only ",
+    hero_h1_highlight: "your physiology has the answer.",
     hero_sub: "PeakAerobic analyzes your lactate test with 7+ scientific methods and calculates your real zones — no estimates, no formulas, no guessing. Don't do lactate tests yet? Start free with your heart rate data.",
     hero_cta_primary: "Analyze your lactate test →",
     hero_cta_secondary: "No tests yet? Start with your HR →",
-    hero_trust: "Multi-method detection · 7+ validated algorithms · Running · Cycling · Swimming",
 
     /* Problem */
     problem_ey: "The problem",
@@ -458,25 +458,22 @@ function LandingInner() {
         </div>
       </nav>
 
-      {/* ══ 2. HERO — Split layout ══ */}
+      {/* ══ 2. HERO — Full-width photo background, centered ══ */}
       <section className="lp-hero">
-        <div className="lp-hero__inner">
-          <div className="lp-hero__content">
-            <h1 className="lp-hero__h1">{t("hero_h1")}</h1>
-            <p className="lp-hero__sub">{t("hero_sub")}</p>
-            <div className="lp-hero__ctas">
-              <button className="lp-btn-solid lp-btn--hero" onClick={() => navigate("/compare-plans")} type="button">
-                {t("hero_cta_primary")}
-              </button>
-              <button className="lp-btn-solid lp-btn--hero-ghost" onClick={() => navigate("/compare-plans")} type="button">
-                {t("hero_cta_secondary")}
-              </button>
-            </div>
-            <p className="lp-hero__trust">{t("hero_trust")}</p>
+        <div className="lp-hero__center">
+          <h1 className="lp-hero__h1">
+            {t("hero_h1_pre")}
+            <span className="lp-hero__highlight">{t("hero_h1_highlight")}</span>
+          </h1>
+          <div className="lp-hero__ctas">
+            <button className="lp-btn-solid lp-btn--hero" onClick={() => navigate("/compare-plans")} type="button">
+              {t("hero_cta_primary")}
+            </button>
+            <button className="lp-btn-solid lp-btn--hero-ghost" onClick={() => navigate("/compare-plans")} type="button">
+              {t("hero_cta_secondary")}
+            </button>
           </div>
-          <div className="lp-hero__curve-wrap">
-            <HeroCurve />
-          </div>
+          <p className="lp-hero__sub">{t("hero_sub")}</p>
         </div>
       </section>
 
