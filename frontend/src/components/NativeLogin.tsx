@@ -100,9 +100,9 @@ export function NativeLogin({ onLogin }: NativeLoginProps) {
         payload.garmin_email = garminEmail;
         payload.garmin_password = garminPass;
       }
-      const result = await api.registerAthlete(payload);
-      await setStoredToken(result.access_token);
-      window.location.href = "/athlete";
+      await api.registerAthlete(payload);
+      setError("Cuenta creada. Esta pendiente de aprobacion.");
+      setView("login");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo crear la cuenta.");
     } finally {
