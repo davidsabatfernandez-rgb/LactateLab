@@ -15,8 +15,8 @@ const MODE_COPY: Record<LoginMode, { title: string; hint: string; defaultEmail: 
   coach: {
     title: "Acceso entrenador",
     hint: "Laboratorio, planificación y revisión fisiológica.",
-    defaultEmail: "coach@lactatelab.dev",
-    defaultPassword: "demo1234",
+    defaultEmail: "",
+    defaultPassword: "",
   },
   athlete: {
     title: "Acceso atleta",
@@ -104,6 +104,9 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
   const [athError, setAthError] = useState<string | null>(null);
   const [athLoading, setAthLoading] = useState(false);
 
+  // Pending approval state (post-register)
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+
   function selectMode(m: LoginMode) {
     setMode(m);
     setAuthView("login");
@@ -171,9 +174,8 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
         payload.garmin_email = athGarminEmail;
         payload.garmin_password = athGarminPassword;
       }
-      const result = await api.registerAthlete(payload);
-      localStorage.setItem("lactate-token", result.access_token);
-      window.location.href = "/athlete";
+      await api.registerAthlete(payload);
+      setPendingMessage("Cuenta creada correctamente. Está pendiente de aprobación — te avisaremos cuando puedas acceder.");
     } catch (err) {
       setAthError(err instanceof Error ? err.message : "No se pudo crear la cuenta.");
     } finally {
@@ -206,9 +208,8 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
     if (regPassword !== regConfirmPassword) { setRegError("Las contraseñas no coinciden."); return; }
     setRegLoading(true);
     try {
-      const result = await api.register({ email: regEmail, password: regPassword, full_name: regFullName });
-      localStorage.setItem("lactate-token", result.access_token);
-      window.location.href = "/planning";
+      await api.register({ email: regEmail, password: regPassword, full_name: regFullName });
+      setPendingMessage("Cuenta creada correctamente. Está pendiente de aprobación — te avisaremos cuando puedas acceder.");
     } catch (err) {
       setRegError(err instanceof Error ? err.message : "No se pudo crear la cuenta.");
     } finally {
@@ -244,14 +245,16 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
         </div>
 
         {/* -- View: Select mode -- */}
-        {authView === "select" && (
+        {!pendingMessage && authView === "select" && (
           <div className="lf-view lf-view-select">
             <p className="lf-subtitle">Inicia sesión como entrenador o accede al portal de atleta.</p>
             <div className="lf-mode-selector">
+              {/* COACH — hidden for now
               <button type="button" className="lf-mode-btn" onClick={() => selectMode("coach")}>
                 <strong>Entrenador</strong>
                 <small>Laboratorio y planificación</small>
               </button>
+              */}
               <button type="button" className="lf-mode-btn" onClick={() => selectMode("athlete")}>
                 <strong>Atleta</strong>
                 <small>Portal personal</small>
@@ -261,16 +264,18 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
               <button type="button" className="lf-link-btn" onClick={() => { setAuthView("athlete-step1"); setAthError(null); }}>
                 Crear cuenta de atleta
               </button>
+              {/* COACH — hidden for now
               <button type="button" className="lf-link-btn" onClick={() => setAuthView("register")}>
                 Crear cuenta de entrenador
               </button>
+              */}
               <Link to="/virtual-ride" className="lf-link-btn">Virtual Ride</Link>
             </div>
           </div>
         )}
 
         {/* -- View: Login form -- */}
-        {authView === "login" && copy && (
+        {!pendingMessage && authView === "login" && copy && (
           <form className="lf-view lf-view-form" onSubmit={handleLogin}>
             <div className="lf-form-header">
               <button type="button" className="lf-back-btn" onClick={goBack}>&larr;</button>
@@ -295,11 +300,13 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
               <button type="button" className="lf-link-btn" onClick={() => { setAuthView("forgot"); setForgotError(null); setForgotSuccess(false); }}>
                 ¿Olvidaste tu contraseña?
               </button>
+              {/* COACH — hidden for now
               {mode === "coach" && (
                 <button type="button" className="lf-link-btn" onClick={() => { setAuthView("register"); setRegError(null); }}>
                   Crear cuenta de entrenador
                 </button>
               )}
+              */}
               {mode === "athlete" && (
                 <button type="button" className="lf-link-btn" onClick={() => { setAuthView("athlete-step1"); setAthError(null); }}>
                   Crear cuenta de atleta
@@ -310,7 +317,7 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
         )}
 
         {/* -- View: Register (coach) -- */}
-        {authView === "register" && (
+        {!pendingMessage && authView === "register" && (
           <form className="lf-view lf-view-form" onSubmit={handleRegister}>
             <div className="lf-form-header">
               <button type="button" className="lf-back-btn" onClick={goBack}>&larr;</button>
@@ -348,7 +355,7 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
         )}
 
         {/* -- View: Forgot password -- */}
-        {authView === "forgot" && (
+        {!pendingMessage && authView === "forgot" && (
           <form className="lf-view lf-view-form" onSubmit={handleForgot}>
             <div className="lf-form-header">
               <button type="button" className="lf-back-btn" onClick={goBack}>&larr;</button>
@@ -384,7 +391,7 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
         )}
 
         {/* -- View: Athlete Step 1 — Personal info -- */}
-        {authView === "athlete-step1" && (
+        {!pendingMessage && authView === "athlete-step1" && (
           <div className="lf-view lf-view-form">
             <div className="lf-form-header">
               <button type="button" className="lf-back-btn" onClick={goBack}>&larr;</button>
@@ -466,7 +473,7 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
         )}
 
         {/* -- View: Athlete Step 2 — Sport -- */}
-        {authView === "athlete-step2" && (
+        {!pendingMessage && authView === "athlete-step2" && (
           <div className="lf-view lf-view-form">
             <div className="lf-form-header">
               <button type="button" className="lf-back-btn" onClick={goBack}>&larr;</button>
@@ -501,7 +508,7 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
         )}
 
         {/* -- View: Athlete Step 3 — Garmin (optional) -- */}
-        {authView === "athlete-step3" && (
+        {!pendingMessage && authView === "athlete-step3" && (
           <div className="lf-view lf-view-form">
             <div className="lf-form-header">
               <button type="button" className="lf-back-btn" onClick={goBack}>&larr;</button>
@@ -547,6 +554,24 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
                 onClick={() => submitAthleteRegistration(true)}
               >
                 Saltar este paso
+              </button>
+            </div>
+          </div>
+        )}
+        {/* -- View: Pending approval -- */}
+        {pendingMessage && (
+          <div className="lf-view lf-view-form">
+            <div className="lf-success-block" style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>&#10003;</div>
+              <h2 style={{ marginBottom: "0.5rem" }}>Registro completado</h2>
+              <p style={{ color: "#6b7280", lineHeight: 1.5 }}>{pendingMessage}</p>
+              <button
+                type="button"
+                className="lf-submit-btn"
+                style={{ marginTop: "1.25rem" }}
+                onClick={() => { setPendingMessage(null); setAuthView("select"); }}
+              >
+                Volver al inicio
               </button>
             </div>
           </div>
