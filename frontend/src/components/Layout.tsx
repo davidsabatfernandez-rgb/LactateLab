@@ -117,6 +117,7 @@ export function Layout({ onLogout, themeMode, onToggleTheme, children }: LayoutP
               </div>
             ) : null}
           </div>
+          <NavLink to="/pending-users">Usuarios pendientes</NavLink>
           <NavLink to="/strava-information">Strava Information</NavLink>
           <NavLink to="/garmin-connect">Garmin Connect</NavLink>
         </nav>

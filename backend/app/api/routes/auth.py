@@ -18,6 +18,8 @@ from app.schemas.auth import (
     InviteAthleteResponse,
     LoginRequest,
     MessageResponse,
+    PendingUserRead,
+    RegisterPendingResponse,
     RegisterRequest,
     RegisterResponse,
     ResetPasswordRequest,
@@ -50,6 +52,9 @@ def login(payload: LoginRequest, db: Session = Depends(get_db), _rate: None = De
     if user is None or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tu cuenta está pendiente de aprobación. Te avisaremos cuando esté activa.")
+
     if password_needs_rehash(user.hashed_password):
         user.hashed_password = get_password_hash(payload.password)
         db.add(user)
@@ -58,9 +63,9 @@ def login(payload: LoginRequest, db: Session = Depends(get_db), _rate: None = De
     return TokenResponse(access_token=create_access_token(user.email))
 
 
-@router.post("/register", response_model=RegisterResponse)
-def register(payload: RegisterRequest, db: Session = Depends(get_db), _rate: None = Depends(check_rate_limit)) -> RegisterResponse:
-    """Register a new coach account."""
+@router.post("/register", response_model=RegisterPendingResponse)
+def register(payload: RegisterRequest, db: Session = Depends(get_db), _rate: None = Depends(check_rate_limit)) -> RegisterPendingResponse:
+    """Register a new coach account (pending approval)."""
     existing = db.scalar(select(User).where(User.email == payload.email))
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ya existe una cuenta con este email")
@@ -73,16 +78,16 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db), _rate: Non
         hashed_password=get_password_hash(payload.password),
         full_name=payload.full_name,
         role="coach",
+        is_active=False,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    token = create_access_token(user.email)
-    return RegisterResponse(access_token=token, user_id=user.id, role=user.role)
+    return RegisterPendingResponse(message="Cuenta creada. Está pendiente de aprobación.", user_id=user.id)
 
 
-@router.post("/register-athlete", response_model=RegisterResponse)
+@router.post("/register-athlete", response_model=RegisterPendingResponse)
 def register_athlete(
     payload: AthleteRegisterRequest,
     db: Session = Depends(get_db),
@@ -140,13 +145,14 @@ def register_athlete(
     db.add(athlete)
     db.flush()  # get athlete.id without committing
 
-    # --- Create User record ---
+    # --- Create User record (pending approval) ---
     user = User(
         email=payload.email,
         hashed_password=get_password_hash(payload.password),
         full_name=payload.full_name,
         role="athlete",
         athlete_id=athlete.id,
+        is_active=False,
     )
     db.add(user)
     db.commit()
@@ -167,8 +173,7 @@ def register_athlete(
         except Exception:
             logger.warning("Garmin connection failed during athlete self-registration for %s — skipping", payload.email)
 
-    token = create_access_token(user.email)
-    return RegisterResponse(access_token=token, user_id=user.id, role=user.role)
+    return RegisterPendingResponse(message="Cuenta creada. Está pendiente de aprobación.", user_id=user.id)
 
 
 @router.post("/invite-athlete", response_model=InviteAthleteResponse)
@@ -203,6 +208,54 @@ def invite_athlete(
     db.commit()
 
     return InviteAthleteResponse(message="Cuenta de atleta creada", email=payload.email, athlete_id=athlete.id)
+
+
+@router.get("/pending-users", response_model=list[PendingUserRead])
+def pending_users(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """List users pending approval (coach only)."""
+    if user.role != "coach":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo los coaches pueden ver usuarios pendientes")
+    rows = db.scalars(select(User).where(User.is_active == False).order_by(User.created_at.desc())).all()  # noqa: E712
+    return [
+        PendingUserRead(
+            id=u.id, email=u.email, full_name=u.full_name,
+            role=u.role, created_at=u.created_at.isoformat() if u.created_at else "",
+        )
+        for u in rows
+    ]
+
+
+@router.patch("/users/{user_id}/activate", response_model=MessageResponse)
+def activate_user(user_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> MessageResponse:
+    """Approve a pending user (coach only)."""
+    if user.role != "coach":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo los coaches pueden aprobar usuarios")
+    target = db.scalar(select(User).where(User.id == user_id))
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+    target.is_active = True
+    db.commit()
+    return MessageResponse(message=f"Usuario {target.email} aprobado")
+
+
+@router.delete("/users/{user_id}/reject", response_model=MessageResponse)
+def reject_user(user_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> MessageResponse:
+    """Reject and delete a pending user (coach only)."""
+    if user.role != "coach":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo los coaches pueden rechazar usuarios")
+    target = db.scalar(select(User).where(User.id == user_id))
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+    if target.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No se puede rechazar un usuario ya activo")
+    # If athlete role, also remove the athlete record
+    if target.role == "athlete" and target.athlete_id:
+        athlete = db.scalar(select(Athlete).where(Athlete.id == target.athlete_id))
+        if athlete:
+            db.delete(athlete)
+    db.delete(target)
+    db.commit()
+    return MessageResponse(message=f"Usuario {target.email} rechazado y eliminado")
 
 
 @router.post("/refresh", response_model=TokenResponse)

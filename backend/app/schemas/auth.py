@@ -88,6 +88,21 @@ class AthleteRegisterRequest(BaseModel):
     garmin_password: Optional[str] = None
 
 
+class RegisterPendingResponse(BaseModel):
+    message: str
+    user_id: int
+
+
+class PendingUserRead(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    role: str
+    created_at: str
+
+    model_config = {"from_attributes": True}
+
+
 class StravaConnectStartResponse(BaseModel):
     authorize_url: str
     athlete_id: int
