@@ -717,31 +717,19 @@ function LandingInner() {
           </h1>
           <p className="lp-hero__sub">{t("hero_sub")}</p>
 
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: 28 }}>
-            <button className="lp-btn-solid" style={{ fontSize: 15, padding: "14px 32px" }} onClick={() => navigate("/login")} type="button">
+          <div className="lp-hero__ctas">
+            <button className="lp-btn-solid lp-hero__cta-primary" onClick={() => navigate("/login")} type="button">
               {t("hero_cta_primary")}
             </button>
             <button
               type="button"
               onClick={() => navigate("/login")}
-              style={{
-                background: "transparent",
-                border: "1.5px solid rgba(255,255,255,0.35)",
-                color: "rgba(255,255,255,0.85)",
-                padding: "12px 28px",
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all .2s",
-              }}
-              onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.borderColor = "#d26a36"; (e.target as HTMLButtonElement).style.color = "#fff"; }}
-              onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.35)"; (e.target as HTMLButtonElement).style.color = "rgba(255,255,255,0.85)"; }}
+              className="lp-hero__cta-secondary"
             >
               {t("hero_cta_secondary")}
             </button>
           </div>
-          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", marginTop: 14, textAlign: "center" }}>{t("hero_note")}</p>
+          <p className="lp-hero__note">{t("hero_note")}</p>
         </div>
 
         {/* App mockups — kept from original */}
@@ -880,17 +868,17 @@ function LandingInner() {
       <AnimSection>
         <section className="lp-section lp-section--dark" id="pain">
           <div className="lp-w">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, flexWrap: "wrap" as never }}>
+            <div className="lp-pain__grid">
               {/* Panel Left: HR Athletes */}
-              <div style={{ background: "rgba(239,68,68,0.06)", borderRadius: 20, padding: "36px 32px", border: "1px solid rgba(239,68,68,0.12)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+              <div className="lp-pain__panel lp-pain__panel--hr">
+                <div className="lp-pain__header">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                  <h3 style={{ fontSize: 19, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.3 }}>{t("pain_hr_title")}</h3>
+                  <h3 className="lp-pain__title">{t("pain_hr_title")}</h3>
                 </div>
-                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+                <ul className="lp-pain__list">
                   {(["pain_hr_1","pain_hr_2","pain_hr_3","pain_hr_4"] as const).map(k => (
-                    <li key={k} style={{ display: "flex", gap: 10, fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.6 }}>
-                      <span style={{ color: "#ef4444", fontWeight: 700, fontSize: 16, lineHeight: 1.4, flexShrink: 0 }}>x</span>
+                    <li key={k} className="lp-pain__item">
+                      <span className="lp-pain__x lp-pain__x--red">x</span>
                       <span>{t(k)}</span>
                     </li>
                   ))}
@@ -898,15 +886,15 @@ function LandingInner() {
               </div>
 
               {/* Panel Right: Lactate Athletes */}
-              <div style={{ background: "rgba(210,106,54,0.06)", borderRadius: 20, padding: "36px 32px", border: "1px solid rgba(210,106,54,0.12)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+              <div className="lp-pain__panel lp-pain__panel--lac">
+                <div className="lp-pain__header">
                   <IconCurve />
-                  <h3 style={{ fontSize: 19, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.3 }}>{t("pain_lac_title")}</h3>
+                  <h3 className="lp-pain__title">{t("pain_lac_title")}</h3>
                 </div>
-                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+                <ul className="lp-pain__list">
                   {(["pain_lac_1","pain_lac_2","pain_lac_3","pain_lac_4"] as const).map(k => (
-                    <li key={k} style={{ display: "flex", gap: 10, fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.6 }}>
-                      <span style={{ color: "#d26a36", fontWeight: 700, fontSize: 16, lineHeight: 1.4, flexShrink: 0 }}>x</span>
+                    <li key={k} className="lp-pain__item">
+                      <span className="lp-pain__x lp-pain__x--orange">x</span>
                       <span>{t(k)}</span>
                     </li>
                   ))}
@@ -924,36 +912,36 @@ function LandingInner() {
             <p className="lp-ey">{t("how_ey")}</p>
             <h2 className="lp-h2">{t("how_h2")}</h2>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, marginTop: 48, maxWidth: 900, marginLeft: "auto", marginRight: "auto", flexWrap: "wrap" as never }}>
+            <div className="lp-how-paths">
               {/* Path Left: HR */}
-              <div style={{ background: "rgba(34,197,94,0.04)", borderRadius: 20, padding: 32, border: "1px solid rgba(34,197,94,0.12)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+              <div className="lp-how-paths__card lp-how-paths__card--hr">
+                <div className="lp-how-paths__header">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: "#1a2f38" }}>{t("how_path_hr")}</span>
+                  <span className="lp-how-paths__label">{t("how_path_hr")}</span>
                 </div>
                 {(["1","2","3"] as const).map(n => (
-                  <div key={n} style={{ display: "flex", gap: 14, marginBottom: 20, alignItems: "flex-start" }}>
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#22c55e", color: "#fff", fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{n}</div>
+                  <div key={n} className="lp-how-paths__step">
+                    <div className="lp-how-paths__num lp-how-paths__num--green">{n}</div>
                     <div>
-                      <h4 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 4px", color: "#1a2f38" }}>{t(`how_hr_${n}_title`)}</h4>
-                      <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.5, margin: 0 }}>{t(`how_hr_${n}_text`)}</p>
+                      <h4 className="lp-how-paths__step-title">{t(`how_hr_${n}_title`)}</h4>
+                      <p className="lp-how-paths__step-text">{t(`how_hr_${n}_text`)}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
               {/* Path Right: Lactate */}
-              <div style={{ background: "rgba(210,106,54,0.04)", borderRadius: 20, padding: 32, border: "1px solid rgba(210,106,54,0.12)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+              <div className="lp-how-paths__card lp-how-paths__card--lac">
+                <div className="lp-how-paths__header">
                   <IconCurve />
-                  <span style={{ fontSize: 15, fontWeight: 700, color: "#1a2f38" }}>{t("how_path_lac")}</span>
+                  <span className="lp-how-paths__label">{t("how_path_lac")}</span>
                 </div>
                 {(["1","2","3"] as const).map(n => (
-                  <div key={n} style={{ display: "flex", gap: 14, marginBottom: 20, alignItems: "flex-start" }}>
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#d26a36", color: "#fff", fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{n}</div>
+                  <div key={n} className="lp-how-paths__step">
+                    <div className="lp-how-paths__num lp-how-paths__num--orange">{n}</div>
                     <div>
-                      <h4 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 4px", color: "#1a2f38" }}>{t(`how_lac_${n}_title`)}</h4>
-                      <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.5, margin: 0 }}>{t(`how_lac_${n}_text`)}</p>
+                      <h4 className="lp-how-paths__step-title">{t(`how_lac_${n}_title`)}</h4>
+                      <p className="lp-how-paths__step-text">{t(`how_lac_${n}_text`)}</p>
                     </div>
                   </div>
                 ))}
@@ -961,9 +949,9 @@ function LandingInner() {
             </div>
 
             {/* Convergence line */}
-            <div style={{ textAlign: "center", marginTop: 40, maxWidth: 700, marginLeft: "auto", marginRight: "auto" }}>
-              <div style={{ width: 2, height: 32, background: "linear-gradient(180deg, #22c55e, #d26a36)", margin: "0 auto 16px", borderRadius: 2 }} />
-              <p style={{ fontSize: 15, fontWeight: 600, color: "#1a2f38", lineHeight: 1.6 }}>
+            <div className="lp-how-paths__converge">
+              <div className="lp-how-paths__converge-line" />
+              <p className="lp-how-paths__converge-text">
                 {t("how_converge")}
               </p>
             </div>
@@ -988,12 +976,12 @@ function LandingInner() {
           <div className="lp-w">
             <p className="lp-ey">{t("ap_ey")}</p>
             <h2 className="lp-h2">{t("ap_h2")}</h2>
-            <p className="lp-sub" style={{ textAlign: "center", maxWidth: 600, margin: "0 auto 48px" }}>{t("ap_sub")}</p>
+            <p className="lp-sub">{t("ap_sub")}</p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, maxWidth: 1000, margin: "0 auto" }}>
+            <div className="lp-showcase__grid">
               {/* Card 1: Today */}
-              <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
-                <div style={{ marginBottom: 20 }}>
+              <div className="lp-showcase__card">
+                <div className="lp-showcase__card-visual">
                   <svg viewBox="0 0 200 100" width="100%" preserveAspectRatio="xMidYMid meet">
                     <rect x="0" y="0" width="200" height="100" rx="12" fill="#f8fafb" />
                     <circle cx="50" cy="50" r="28" fill="none" stroke="#e5e7eb" strokeWidth="5" />
@@ -1005,13 +993,13 @@ function LandingInner() {
                     <text x="140" y="71" textAnchor="middle" fill="#22c55e" fontSize="8" fontWeight="700" fontFamily="Space Grotesk">LISTO</text>
                   </svg>
                 </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1a2f38", margin: "0 0 8px" }}>{t("ap_1_title")}</h3>
-                <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.6, margin: 0 }}>{t("ap_1_desc")}</p>
+                <h3 className="lp-showcase__card-title">{t("ap_1_title")}</h3>
+                <p className="lp-showcase__card-desc">{t("ap_1_desc")}</p>
               </div>
 
               {/* Card 2: Week */}
-              <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
-                <div style={{ marginBottom: 20 }}>
+              <div className="lp-showcase__card">
+                <div className="lp-showcase__card-visual">
                   <svg viewBox="0 0 200 100" width="100%" preserveAspectRatio="xMidYMid meet">
                     <rect x="0" y="0" width="200" height="100" rx="12" fill="#f8fafb" />
                     {[0,1,2,3,4,5,6].map(i => {
@@ -1030,13 +1018,13 @@ function LandingInner() {
                     <text x="188" y="16" textAnchor="end" fill="#9ca3af" fontSize="8" fontFamily="Space Grotesk">42 km</text>
                   </svg>
                 </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1a2f38", margin: "0 0 8px" }}>{t("ap_2_title")}</h3>
-                <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.6, margin: 0 }}>{t("ap_2_desc")}</p>
+                <h3 className="lp-showcase__card-title">{t("ap_2_title")}</h3>
+                <p className="lp-showcase__card-desc">{t("ap_2_desc")}</p>
               </div>
 
               {/* Card 3: Evolution */}
-              <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
-                <div style={{ marginBottom: 20 }}>
+              <div className="lp-showcase__card">
+                <div className="lp-showcase__card-visual">
                   <svg viewBox="0 0 200 100" width="100%" preserveAspectRatio="xMidYMid meet">
                     <rect x="0" y="0" width="200" height="100" rx="12" fill="#f8fafb" />
                     <polyline points="20,75 50,68 80,58 110,48 140,38 170,30" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
@@ -1048,13 +1036,13 @@ function LandingInner() {
                     <circle cx="178" cy="15" r="3" fill="#22c55e" /><text x="186" y="18" fill="#9ca3af" fontSize="7" fontFamily="Space Grotesk">LT1</text>
                   </svg>
                 </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1a2f38", margin: "0 0 8px" }}>{t("ap_3_title")}</h3>
-                <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.6, margin: 0 }}>{t("ap_3_desc")}</p>
+                <h3 className="lp-showcase__card-title">{t("ap_3_title")}</h3>
+                <p className="lp-showcase__card-desc">{t("ap_3_desc")}</p>
               </div>
 
               {/* Card 4: Zones */}
-              <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
-                <div style={{ marginBottom: 20 }}>
+              <div className="lp-showcase__card">
+                <div className="lp-showcase__card-visual">
                   <svg viewBox="0 0 200 100" width="100%" preserveAspectRatio="xMidYMid meet">
                     <rect x="0" y="0" width="200" height="100" rx="12" fill="#f8fafb" />
                     {[
@@ -1072,13 +1060,13 @@ function LandingInner() {
                     ))}
                   </svg>
                 </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1a2f38", margin: "0 0 8px" }}>{t("ap_4_title")}</h3>
-                <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.6, margin: 0 }}>{t("ap_4_desc")}</p>
+                <h3 className="lp-showcase__card-title">{t("ap_4_title")}</h3>
+                <p className="lp-showcase__card-desc">{t("ap_4_desc")}</p>
               </div>
 
               {/* Card 5: Objectives */}
-              <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
-                <div style={{ marginBottom: 20 }}>
+              <div className="lp-showcase__card">
+                <div className="lp-showcase__card-visual">
                   <svg viewBox="0 0 200 100" width="100%" preserveAspectRatio="xMidYMid meet">
                     <rect x="0" y="0" width="200" height="100" rx="12" fill="#f8fafb" />
                     <rect x="12" y="12" width="176" height="34" rx="8" fill="rgba(239,68,68,0.06)" stroke="rgba(239,68,68,0.15)" strokeWidth="1" />
@@ -1093,13 +1081,13 @@ function LandingInner() {
                     <text x="170" y="72" textAnchor="end" fill="#f59e0b" fontSize="7" fontWeight="700" fontFamily="Space Grotesk">MEDIA</text>
                   </svg>
                 </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1a2f38", margin: "0 0 8px" }}>{t("ap_5_title")}</h3>
-                <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.6, margin: 0 }}>{t("ap_5_desc")}</p>
+                <h3 className="lp-showcase__card-title">{t("ap_5_title")}</h3>
+                <p className="lp-showcase__card-desc">{t("ap_5_desc")}</p>
               </div>
 
               {/* Card 6: Predictions */}
-              <div style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
-                <div style={{ marginBottom: 20 }}>
+              <div className="lp-showcase__card">
+                <div className="lp-showcase__card-visual">
                   <svg viewBox="0 0 200 100" width="100%" preserveAspectRatio="xMidYMid meet">
                     <rect x="0" y="0" width="200" height="100" rx="12" fill="#f8fafb" />
                     {[
@@ -1120,8 +1108,8 @@ function LandingInner() {
                     ))}
                   </svg>
                 </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#1a2f38", margin: "0 0 8px" }}>{t("ap_6_title")}</h3>
-                <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.6, margin: 0 }}>{t("ap_6_desc")}</p>
+                <h3 className="lp-showcase__card-title">{t("ap_6_title")}</h3>
+                <p className="lp-showcase__card-desc">{t("ap_6_desc")}</p>
               </div>
             </div>
           </div>
@@ -1134,34 +1122,34 @@ function LandingInner() {
           <div className="lp-w">
             <p className="lp-ey">{t("obj_ey")}</p>
             <h2 className="lp-h2">{t("obj_h2")}</h2>
-            <p className="lp-sub" style={{ textAlign: "center", maxWidth: 700, margin: "0 auto 48px" }}>{t("obj_sub")}</p>
+            <p className="lp-sub">{t("obj_sub")}</p>
 
             {/* Pipeline steps */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24, maxWidth: 1000, margin: "0 auto 48px" }}>
+            <div className="lp-pipeline__grid">
               {([
                 { n: "1", icon: <IconRace />, key: "obj_step1" },
                 { n: "2", icon: <IconCurve />, key: "obj_step2" },
                 { n: "3", icon: <IconEngine />, key: "obj_step3" },
                 { n: "4", icon: <IconPlan />, key: "obj_step4" },
               ] as const).map((step, i) => (
-                <div key={step.n} style={{ textAlign: "center", position: "relative" }}>
+                <div key={step.n} className="lp-pipeline__step">
                   {i > 0 && (
-                    <div style={{ position: "absolute", left: -12, top: 28, width: 24, height: 2, background: "linear-gradient(90deg, rgba(210,106,54,0.15), rgba(210,106,54,0.4))" }} />
+                    <div className="lp-pipeline__connector" />
                   )}
-                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(210,106,54,0.08)", border: "2px solid rgba(210,106,54,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+                  <div className="lp-pipeline__icon">
                     {step.icon}
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#d26a36", marginBottom: 6, fontFamily: "Space Grotesk" }}>{step.n}</div>
-                  <h4 style={{ fontSize: 15, fontWeight: 700, color: "#1a2f38", margin: "0 0 6px" }}>{t(`${step.key}_title`)}</h4>
-                  <p style={{ fontSize: 13, color: "#5e7078", lineHeight: 1.5, margin: 0 }}>{t(`${step.key}_text`)}</p>
+                  <div className="lp-pipeline__num">{step.n}</div>
+                  <h4 className="lp-pipeline__title">{t(`${step.key}_title`)}</h4>
+                  <p className="lp-pipeline__text">{t(`${step.key}_text`)}</p>
                 </div>
               ))}
             </div>
 
             {/* Visual mockup: objective → gap → block → sessions */}
-            <div style={{ maxWidth: 720, margin: "0 auto", background: "#0e1e24", borderRadius: 20, padding: "28px 32px", border: "1px solid rgba(255,255,255,0.06)", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+            <div className="lp-obj-mock">
               {/* Objective card */}
-              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20, padding: "14px 16px", background: "rgba(239,68,68,0.06)", borderRadius: 12, borderLeft: "3px solid #ef4444" }}>
+              <div className="lp-obj-mock__objective">
                 <IconRace />
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", fontFamily: "Space Grotesk" }}>Marat&oacute;n Valencia — sub 3:15</div>
@@ -1175,14 +1163,14 @@ function LandingInner() {
               </div>
 
               {/* Gap + Block side by side */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
-                <div style={{ background: "rgba(249,115,22,0.06)", borderRadius: 10, padding: 14, border: "1px solid rgba(249,115,22,0.15)" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#f97316", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontFamily: "Space Grotesk" }}>{t("obj_mock_gap")}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", fontFamily: "Space Grotesk" }}>{t("obj_mock_gap_detail")}</div>
+              <div className="lp-obj-mock__duo">
+                <div className="lp-obj-mock__duo-card lp-obj-mock__duo-card--gap">
+                  <div className="lp-obj-mock__duo-label lp-obj-mock__duo-label--orange">{t("obj_mock_gap")}</div>
+                  <div className="lp-obj-mock__duo-value">{t("obj_mock_gap_detail")}</div>
                 </div>
-                <div style={{ background: "rgba(34,197,94,0.06)", borderRadius: 10, padding: 14, border: "1px solid rgba(34,197,94,0.15)" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#22c55e", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontFamily: "Space Grotesk" }}>{t("obj_mock_block")}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", fontFamily: "Space Grotesk" }}>{t("obj_mock_block_detail")}</div>
+                <div className="lp-obj-mock__duo-card lp-obj-mock__duo-card--block">
+                  <div className="lp-obj-mock__duo-label lp-obj-mock__duo-label--green">{t("obj_mock_block")}</div>
+                  <div className="lp-obj-mock__duo-value">{t("obj_mock_block_detail")}</div>
                 </div>
               </div>
 
@@ -1192,9 +1180,9 @@ function LandingInner() {
               </div>
 
               {/* Sessions preview */}
-              <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#d26a36", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, fontFamily: "Space Grotesk" }}>{t("obj_mock_sessions")}</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+              <div className="lp-obj-mock__sessions">
+                <div className="lp-obj-mock__sessions-label">{t("obj_mock_sessions")}</div>
+                <div className="lp-obj-mock__sessions-grid">
                   {[
                     { day: "Lun", session: null, type: "rest" },
                     { day: "Mar", session: "6\u00D74' LT2", type: "key" },
@@ -1226,10 +1214,10 @@ function LandingInner() {
           <div className="lp-w">
             <p className="lp-ey">{t("price_ey")}</p>
             <h2 className="lp-h2">{t("price_h2")}</h2>
-            <p className="lp-sub" style={{ textAlign: "center" }}>{t("price_sub")}</p>
+            <p className="lp-sub">{t("price_sub")}</p>
 
             {/* Row 1: 3 cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, marginTop: 48, maxWidth: 1000, marginLeft: "auto", marginRight: "auto" }}>
+            <div className="lp-pricing__grid lp-pricing__grid--three">
               {/* Free */}
               <div className="lp-pricing__card">
                 <span className="lp-pricing__plan-name">{t("price_free_name")}</span>
@@ -1268,8 +1256,8 @@ function LandingInner() {
               </div>
 
               {/* AI Plan — highlighted */}
-              <div className="lp-pricing__card lp-pricing__card--proplus" style={{ position: "relative" }}>
-                <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "#d26a36", color: "#fff", fontSize: 12, fontWeight: 700, padding: "4px 16px", borderRadius: 20, letterSpacing: 0.5, whiteSpace: "nowrap" }}>{t("price_ai_badge")}</span>
+              <div className="lp-pricing__card lp-pricing__card--proplus">
+                <span className="lp-pricing__badge lp-pricing__badge--accent">{t("price_ai_badge")}</span>
                 <span className="lp-pricing__plan-name">{t("price_ai_name")}</span>
                 <div className="lp-pricing__price">
                   <span className="lp-pricing__amount">{t("price_ai_amount")}</span>
@@ -1289,10 +1277,10 @@ function LandingInner() {
             </div>
 
             {/* Row 2: 2 cards centered */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20, marginTop: 20, maxWidth: 660, marginLeft: "auto", marginRight: "auto" }}>
+            <div className="lp-pricing__grid lp-pricing__grid--two">
               {/* PRO+ */}
-              <div className="lp-pricing__card lp-pricing__card--proplus" style={{ position: "relative" }}>
-                <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(135deg, #d26a36, #e8944a)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 14px", borderRadius: 20, letterSpacing: 0.5, whiteSpace: "nowrap" }}>{t("price_pro_badge")}</span>
+              <div className="lp-pricing__card lp-pricing__card--proplus">
+                <span className="lp-pricing__badge lp-pricing__badge--gradient">{t("price_pro_badge")}</span>
                 <span className="lp-pricing__plan-name">{t("price_pro_name")}</span>
                 <div className="lp-pricing__price">
                   <span className="lp-pricing__amount">{t("price_pro_amount")}</span>
@@ -1311,8 +1299,8 @@ function LandingInner() {
               </div>
 
               {/* Elite */}
-              <div className="lp-pricing__card lp-pricing__card--elite" style={{ position: "relative" }}>
-                <span style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(135deg, #c9a44c, #d4b868)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 14px", borderRadius: 20, letterSpacing: 0.5, whiteSpace: "nowrap" }}>{t("price_elite_badge")}</span>
+              <div className="lp-pricing__card lp-pricing__card--elite">
+                <span className="lp-pricing__badge lp-pricing__badge--gold">{t("price_elite_badge")}</span>
                 <span className="lp-pricing__plan-name">{t("price_elite_name")}</span>
                 <div className="lp-pricing__price">
                   <span className="lp-pricing__amount">{t("price_elite_amount")}</span>
@@ -1331,7 +1319,7 @@ function LandingInner() {
               </div>
             </div>
 
-            <p style={{ textAlign: "center", marginTop: 40, fontSize: 15, fontWeight: 600, color: "#5e7078" }}>
+            <p className="lp-pricing__bottom-note">
               {t("price_bottom")}
             </p>
           </div>
