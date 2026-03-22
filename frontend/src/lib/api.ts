@@ -304,7 +304,7 @@ export const api = {
     }),
   me: (token: string) => request<{ id: number; email: string; role: string; full_name: string; athlete_id?: number | null }>("/auth/me", { token }),
   register: (payload: { email: string; password: string; full_name: string }) =>
-    request<{ access_token: string; token_type: string }>("/auth/register", {
+    request<{ message: string; user_id: number }>("/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -328,7 +328,7 @@ export const api = {
     garmin_email?: string;
     garmin_password?: string;
   }) =>
-    request<{ access_token: string; token_type: string; user_id: number; role: string }>("/auth/register-athlete", {
+    request<{ message: string; user_id: number }>("/auth/register-athlete", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -355,6 +355,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  pendingUsers: (token: string) =>
+    request<{ id: number; email: string; full_name: string; role: string; created_at: string }[]>("/auth/pending-users", { token }),
+  activateUser: (token: string, userId: number) =>
+    request<{ message: string }>(`/auth/users/${userId}/activate`, { token, method: "PATCH" }),
+  rejectUser: (token: string, userId: number) =>
+    request<{ message: string }>(`/auth/users/${userId}/reject`, { token, method: "DELETE" }),
   stravaConnectStart: (token: string, options?: { athleteId?: number; returnPath?: string }) => {
     const params = new URLSearchParams();
     if (options?.athleteId) params.set("athlete_id", String(options.athleteId));
@@ -830,4 +836,5 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ email }),
     }),
+
 };
