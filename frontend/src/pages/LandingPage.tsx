@@ -315,7 +315,9 @@ function LandingInner() {
             <a href="#" className="lp-nav__link" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{t("nav_home")}</a>
             <a href="#demo" className="lp-nav__link">{t("nav_demo")}</a>
             <a href="/athlete" className="lp-nav__link">{t("nav_athlete")}</a>
+            {/* COACH — hidden for now
             <a href="/coach" className="lp-nav__link">{t("nav_coach")}</a>
+            */}
             <a href="#pricing" className="lp-nav__link">{t("nav_pricing")}</a>
             <a href="/resources" className="lp-nav__link">{t("foot_resources")}</a>
             <LangSwitch />
