@@ -1,8 +1,31 @@
 import { LangProvider, useLang, type Lang, LANG_LABELS } from "../landing/i18n";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ALL_ARTICLES } from "../resources";
 import { ArticleGraphic } from "../resources/ArticleGraphics";
+
+/* ── Dynamic SEO meta tags ── */
+function usePageSEO(title: string, description: string, canonicalPath: string) {
+  useEffect(() => {
+    const prev = document.title;
+    document.title = title;
+    const setMeta = (attr: string, key: string, val: string) => {
+      let el = document.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null;
+      if (!el) { el = document.createElement("meta"); el.setAttribute(attr, key); document.head.appendChild(el); }
+      el.setAttribute("content", val);
+    };
+    setMeta("name", "description", description);
+    setMeta("property", "og:title", title);
+    setMeta("property", "og:description", description);
+    setMeta("property", "og:url", `https://peakaerobic.com${canonicalPath}`);
+    setMeta("property", "og:type", "article");
+    setMeta("name", "twitter:title", title);
+    setMeta("name", "twitter:description", description);
+    let canonical = document.querySelector("link[rel='canonical']") as HTMLLinkElement | null;
+    if (canonical) canonical.href = `https://peakaerobic.com${canonicalPath}`;
+    return () => { document.title = prev; };
+  }, [title, description, canonicalPath]);
+}
 
 /* ── Reused components ── */
 function LangSwitch() {
@@ -29,6 +52,23 @@ function ArticleInner() {
   const navigate = useNavigate();
 
   const article = slug ? ALL_ARTICLES[slug] : null;
+
+  /* Dynamic SEO for each article */
+  const articleTitle = article
+    ? (t(`res_${slugToKey(slug)}_title`) !== `res_${slugToKey(slug)}_title`
+      ? t(`res_${slugToKey(slug)}_title`)
+      : article.sections[0]?.heading || slug)
+    : "PeakAerobic";
+  const articleDesc = article
+    ? (t(`res_${slugToKey(slug)}_desc`) !== `res_${slugToKey(slug)}_desc`
+      ? t(`res_${slugToKey(slug)}_desc`)
+      : article.sections[0]?.heading || "")
+    : "";
+  usePageSEO(
+    `${articleTitle} | PeakAerobic`,
+    articleDesc,
+    `/resources/${slug}`,
+  );
 
   if (!article) {
     return (
@@ -74,11 +114,22 @@ function ArticleInner() {
         </div>
       </div>
 
+      {/* JSON-LD Article structured data */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": articleTitle,
+        "description": articleDesc,
+        "url": `https://peakaerobic.com/resources/${slug}`,
+        "publisher": { "@type": "Organization", "name": "PeakAerobic", "url": "https://peakaerobic.com" },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": `https://peakaerobic.com/resources/${slug}` },
+      }) }} />
+
       {/* Article */}
       <article className="art-content">
         <div className="lp-w art-content__wrapper">
           <header className="art-content__header">
-            <h1 className="art-content__h1">{t(`res_${slugToKey(slug)}_title`) !== `res_${slugToKey(slug)}_title` ? t(`res_${slugToKey(slug)}_title`) : (article as Record<string, unknown>).title as string || article.sections[0]?.heading}</h1>
+            <h1 className="art-content__h1">{articleTitle}</h1>
           </header>
 
           <ArticleGraphic slug={slug} />

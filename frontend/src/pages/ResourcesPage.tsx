@@ -244,6 +244,14 @@ function ResourcesInner() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<string>("all");
 
+  useEffect(() => {
+    document.title = "Recursos — PeakAerobic | Ciencia del lactato y entrenamiento";
+    const desc = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
+    if (desc) desc.content = "Articulos sobre umbrales de lactato, zonas de entrenamiento, periodizacion y fisiologia deportiva. Aprende a entrenar con ciencia.";
+    const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (canonical) canonical.href = "https://peakaerobic.com/resources";
+  }, []);
+
   const filtered = filter === "all" ? ARTICLES : ARTICLES.filter(a => a.category === filter);
 
   return (
