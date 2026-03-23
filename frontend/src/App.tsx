@@ -37,11 +37,13 @@ import { CoachLandingPage } from "./pages/CoachLandingPage";
 import { ResourcesPage } from "./pages/ResourcesPage";
 import { ArticlePage } from "./pages/ArticlePage";
 import { ComparePlansPage } from "./pages/ComparePlansPage";
+import { AthleteCatalogPage } from "./pages/AthleteCatalogPage";
 import { AthleteLandingPage } from "./pages/AthleteLandingPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import { PageErrorBoundary } from "./components/PageErrorBoundary";
 import { ScienceAdvisor } from "./components/ScienceAdvisor";
-import { Athlete, AthleteAnalysis, AuthUser, DashboardData, SessionAnalysis, SessionSummary } from "./types";
+import { Athlete, AthleteAnalysis, AuthUser, DashboardData, SessionAnalysis, SessionSummary, type PlanTier, PLAN_FEATURES } from "./types";
+import { PlanGate } from "./components/PlanGate";
 
 type ThemeMode = "light" | "dark";
 
@@ -306,6 +308,9 @@ export default function App() {
     if (location.pathname === "/compare-plans") {
       return <ComparePlansPage />;
     }
+    if (location.pathname === "/athlete-catalog") {
+      return <AthleteCatalogPage />;
+    }
     if (location.pathname === "/login") {
       return <LoginForm onLogin={handleLogin} />;
     }
@@ -365,10 +370,26 @@ export default function App() {
             <Routes>
               <Route path="/athlete/today" element={<TodayPage />} />
               <Route path="/athlete/week" element={<WeekPage />} />
-              <Route path="/athlete/progress" element={<ProgressPage />} />
-              <Route path="/athlete/recovery" element={<RecoveryPage />} />
-              <Route path="/athlete/zones" element={<ZonesPage />} />
-              <Route path="/athlete/tests" element={<MyTestsPage />} />
+              <Route path="/athlete/progress" element={
+                <PlanGate userPlan={(authUser.plan_tier || "free") as PlanTier} requiredPlan="pro" feature="has_progress">
+                  <ProgressPage />
+                </PlanGate>
+              } />
+              <Route path="/athlete/recovery" element={
+                <PlanGate userPlan={(authUser.plan_tier || "free") as PlanTier} requiredPlan="pro" feature="has_recovery">
+                  <RecoveryPage />
+                </PlanGate>
+              } />
+              <Route path="/athlete/zones" element={
+                <PlanGate userPlan={(authUser.plan_tier || "free") as PlanTier} requiredPlan="lactate" feature="has_zones">
+                  <ZonesPage />
+                </PlanGate>
+              } />
+              <Route path="/athlete/tests" element={
+                <PlanGate userPlan={(authUser.plan_tier || "free") as PlanTier} requiredPlan="lactate" feature="has_lab">
+                  <MyTestsPage />
+                </PlanGate>
+              } />
               <Route path="/athlete/objectives" element={<ObjectivesPage />} />
               <Route path="/athlete/settings" element={<SettingsPage />} />
               <Route path="*" element={<TodayPage />} />

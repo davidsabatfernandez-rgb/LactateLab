@@ -19,6 +19,7 @@ from app.schemas.auth import (
     LoginRequest,
     MessageResponse,
     PendingUserRead,
+    PlanInfoRead,
     RegisterPendingResponse,
     RegisterRequest,
     RegisterResponse,
@@ -27,6 +28,7 @@ from app.schemas.auth import (
     StravaTestConnectRequest,
     StravaTestConnectResponse,
     TokenResponse,
+    UpdatePlanRequest,
     UserRead,
 )
 from app.services.google_calendar import (
@@ -145,6 +147,10 @@ def register_athlete(
     db.add(athlete)
     db.flush()  # get athlete.id without committing
 
+    # --- Validate plan_tier ---
+    valid_tiers = {"free", "lactate", "pro", "pro_plus", "elite"}
+    plan_tier = payload.plan_tier if payload.plan_tier in valid_tiers else "free"
+
     # --- Create User record (pending approval) ---
     user = User(
         email=payload.email,
@@ -152,6 +158,7 @@ def register_athlete(
         full_name=payload.full_name,
         role="athlete",
         athlete_id=athlete.id,
+        plan_tier=plan_tier,
         is_active=False,
     )
     db.add(user)
@@ -468,3 +475,98 @@ def strava_test_connect(
         strava_athlete_id=athlete.strava_athlete_id or 0,
         connected=athlete.strava_connected,
     )
+
+
+# ── Plan tier configuration ──────────────────────────────────────────
+PLAN_FEATURES = {
+    "free": {
+        "name": "Gratis",
+        "max_disciplines": 1,
+        "max_tests_per_month": 2,
+        "has_lab": False,
+        "has_dynamic_thresholds": False,
+        "has_planning": False,
+        "has_zones": False,
+        "has_progress": False,
+        "has_recovery": False,
+        "has_specialist": False,
+    },
+    "lactate": {
+        "name": "Lactate Lab",
+        "max_disciplines": 1,
+        "max_tests_per_month": -1,
+        "has_lab": True,
+        "has_dynamic_thresholds": True,
+        "has_planning": False,
+        "has_zones": True,
+        "has_progress": False,
+        "has_recovery": False,
+        "has_specialist": False,
+    },
+    "pro": {
+        "name": "Pro",
+        "max_disciplines": 1,
+        "max_tests_per_month": -1,
+        "has_lab": True,
+        "has_dynamic_thresholds": True,
+        "has_planning": True,
+        "has_zones": True,
+        "has_progress": True,
+        "has_recovery": True,
+        "has_specialist": False,
+    },
+    "pro_plus": {
+        "name": "Pro+",
+        "max_disciplines": 3,
+        "max_tests_per_month": -1,
+        "has_lab": True,
+        "has_dynamic_thresholds": True,
+        "has_planning": True,
+        "has_zones": True,
+        "has_progress": True,
+        "has_recovery": True,
+        "has_specialist": False,
+    },
+    "elite": {
+        "name": "Elite",
+        "max_disciplines": -1,
+        "max_tests_per_month": -1,
+        "has_lab": True,
+        "has_dynamic_thresholds": True,
+        "has_planning": True,
+        "has_zones": True,
+        "has_progress": True,
+        "has_recovery": True,
+        "has_specialist": True,
+    },
+}
+
+PLAN_HIERARCHY = ["free", "lactate", "pro", "pro_plus", "elite"]
+
+
+@router.get("/plan", response_model=PlanInfoRead)
+def get_plan(user: User = Depends(get_current_user)) -> PlanInfoRead:
+    """Get current user's plan info and features."""
+    tier = user.plan_tier or "free"
+    features = PLAN_FEATURES.get(tier, PLAN_FEATURES["free"])
+    return PlanInfoRead(plan_tier=tier, plan_name=features["name"], features=features)
+
+
+@router.patch("/plan", response_model=PlanInfoRead)
+def update_plan(
+    payload: UpdatePlanRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> PlanInfoRead:
+    """Update user's plan tier (MVP: direct upgrade, no Stripe yet)."""
+    valid_tiers = set(PLAN_HIERARCHY)
+    if payload.plan_tier not in valid_tiers:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Plan inválido. Opciones: {', '.join(PLAN_HIERARCHY)}")
+
+    user.plan_tier = payload.plan_tier
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    features = PLAN_FEATURES.get(payload.plan_tier, PLAN_FEATURES["free"])
+    return PlanInfoRead(plan_tier=payload.plan_tier, plan_name=features["name"], features=features)

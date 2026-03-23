@@ -16,6 +16,8 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(50))
     full_name: Mapped[str] = mapped_column(String(255))
     athlete_id: Mapped[Optional[int]] = mapped_column(ForeignKey("athletes.id"), nullable=True)
+    plan_tier: Mapped[str] = mapped_column(String(30), nullable=False, default="free", server_default="free")
+    """Plan tier: free | lactate | pro | pro_plus | elite"""
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 

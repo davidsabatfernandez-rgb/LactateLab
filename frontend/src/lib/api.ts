@@ -704,8 +704,18 @@ export const api = {
   athleteSessions: (token: string, athleteId: number) => request(`/sessions?athlete_id=${athleteId}`, { token }),
   createSession: (token: string, payload: unknown) =>
     request("/sessions", { token, method: "POST", body: JSON.stringify(payload) }),
+  updateSession: (token: string, sessionId: number, payload: unknown) =>
+    request(`/sessions/${sessionId}`, { token, method: "PATCH", body: JSON.stringify(payload) }),
+  deleteSession: (token: string, sessionId: number) =>
+    request(`/sessions/${sessionId}`, { token, method: "DELETE" }),
+  getSession: (token: string, sessionId: number) =>
+    request(`/sessions/${sessionId}`, { token }),
   updateInterval: (token: string, intervalId: number, payload: unknown) =>
     request(`/sessions/intervals/${intervalId}`, { token, method: "PATCH", body: JSON.stringify(payload) }),
+  addInterval: (token: string, sessionId: number, payload: unknown) =>
+    request(`/sessions/${sessionId}/intervals`, { token, method: "POST", body: JSON.stringify(payload) }),
+  deleteInterval: (token: string, intervalId: number) =>
+    request(`/sessions/intervals/${intervalId}`, { token, method: "DELETE" }),
   deleteLactateSample: (token: string, intervalId: number) =>
     request(`/sessions/intervals/${intervalId}/lactate-sample`, { token, method: "DELETE" }),
   sessionAnalysis: (token: string, sessionId: string | number) => request(`/sessions/${sessionId}/analysis`, { token }),
@@ -835,6 +845,16 @@ export const api = {
     request<{ status: string }>("/beta-signup", {
       method: "POST",
       body: JSON.stringify({ email }),
+    }),
+
+  // ── Plan Management ──
+  getPlan: (token: string) =>
+    request<{ plan_tier: string; plan_name: string; features: Record<string, unknown> }>("/auth/plan", { token }),
+  updatePlan: (token: string, plan_tier: string) =>
+    request<{ plan_tier: string; plan_name: string; features: Record<string, unknown> }>("/auth/plan", {
+      token,
+      method: "PATCH",
+      body: JSON.stringify({ plan_tier }),
     }),
 
 };

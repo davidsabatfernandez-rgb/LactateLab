@@ -117,7 +117,7 @@ class MeasurementLogRead(BaseModel):
 
 class RealThresholdItemRead(BaseModel):
     name: str
-    lactate: float
+    lactate: Optional[float] = None
     pace_seconds_per_km: Optional[float] = None
     power_watts: Optional[float] = None
     heart_rate: Optional[int] = None
@@ -215,6 +215,7 @@ class DisciplineAnalysisRead(BaseModel):
     target_curve: Optional[dict] = None
     level_suggestion: Optional[LevelSuggestionRead] = None
     curve_insights: Optional[dict] = None
+    threshold_anchor_status: Optional[dict] = None
 
 
 class SessionAnalysisRead(BaseModel):

@@ -3,6 +3,7 @@ import { useAthleteData } from "../context/AthleteDataContext";
 import { disciplineLabel } from "../utils/formatters";
 import { api } from "../../lib/api";
 import type { TrainingZoneSet } from "../../types";
+import { ThresholdAnchorBanner } from "../components/ThresholdAnchorBanner";
 
 const ZONE_COLORS_FALLBACK = [
   "#10B981", // 1 REC - green
@@ -21,26 +22,42 @@ function formatPaceValue(seconds: number | null | undefined): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+type StalenessInfo = {
+  is_stale: boolean;
+  reason: string | null;
+  lt2_pace_delta_seconds: number | null;
+  lt2_hr_delta: number | null;
+  lt2_power_delta: number | null;
+};
+
 export function ZonesPage() {
   const data = useAthleteData();
   const snapshots = data.disciplineSnapshots;
   const [zoneSet, setZoneSet] = useState<TrainingZoneSet | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [staleness, setStaleness] = useState<StalenessInfo | null>(null);
 
   const athleteId = data.user?.athlete_id;
 
-  // Fetch active zone set when discipline changes
+  // Fetch active zone set + staleness check
   const fetchZones = useCallback(async () => {
     if (!athleteId) return;
     setLoading(true);
     setError(null);
+    setStaleness(null);
     try {
       const result = await api.activeTrainingZoneSet(data.token, athleteId, data.selectedDiscipline);
       setZoneSet(result as TrainingZoneSet);
+
+      // Check if zones are stale (thresholds improved since zones were created)
+      try {
+        const stale = await api.zoneStalenessCheck(data.token, athleteId, data.selectedDiscipline);
+        setStaleness(stale);
+      } catch { /* staleness is optional */ }
     } catch {
       setZoneSet(null);
-      setError("No hay zonas configuradas para esta disciplina.");
+      setError("Tu entrenador aún no ha configurado zonas para esta disciplina.");
     } finally {
       setLoading(false);
     }
@@ -53,6 +70,13 @@ export function ZonesPage() {
   const hasPace = zones.some((z) => z.pace_lower_seconds || z.pace_upper_seconds);
   const hasPower = zones.some((z) => z.power_lower || z.power_upper);
 
+  // Anchor status from discipline view
+  const anchorStatus = useMemo(() => {
+    const views = data.analysis?.discipline_views ?? {};
+    const view = views[data.selectedDiscipline];
+    return view?.threshold_anchor_status ?? null;
+  }, [data.analysis, data.selectedDiscipline]);
+
   // Updated date
   const updatedLabel = useMemo(() => {
     if (!zoneSet) return null;
@@ -60,6 +84,25 @@ export function ZonesPage() {
     if (isNaN(d.getTime())) return null;
     return d.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
   }, [zoneSet]);
+
+  // Build staleness detail text
+  const stalenessDetail = useMemo(() => {
+    if (!staleness?.is_stale) return null;
+    const parts: string[] = [];
+    if (staleness.lt2_pace_delta_seconds && Math.abs(staleness.lt2_pace_delta_seconds) >= 3) {
+      const sign = staleness.lt2_pace_delta_seconds < 0 ? "+" : "-";
+      parts.push(`${sign}${Math.abs(Math.round(staleness.lt2_pace_delta_seconds))}s/km en ritmo`);
+    }
+    if (staleness.lt2_hr_delta && Math.abs(staleness.lt2_hr_delta) >= 2) {
+      const sign = staleness.lt2_hr_delta > 0 ? "+" : "";
+      parts.push(`${sign}${Math.round(staleness.lt2_hr_delta)} bpm en FC`);
+    }
+    if (staleness.lt2_power_delta && Math.abs(staleness.lt2_power_delta) >= 3) {
+      const sign = staleness.lt2_power_delta > 0 ? "+" : "";
+      parts.push(`${sign}${Math.round(staleness.lt2_power_delta)}W en potencia`);
+    }
+    return parts.length > 0 ? parts.join(", ") : null;
+  }, [staleness]);
 
   return (
     <div className="ath-page ath-zones">
@@ -77,14 +120,57 @@ export function ZonesPage() {
         ))}
       </div>
 
+      <ThresholdAnchorBanner anchorStatus={anchorStatus} />
+
+      {/* Staleness banner — zones pending validation */}
+      {staleness?.is_stale && zones.length > 0 && (
+        <div className="ath-zones-stale-banner">
+          <div className="ath-zones-stale-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <div className="ath-zones-stale-text">
+            <strong>Zonas pendientes de validación debido a mejora</strong>
+            <p>
+              Tus umbrales han cambiado desde que se configuraron estas zonas.
+              {stalenessDetail && <> Cambio detectado: {stalenessDetail}.</>}
+              {" "}Tu entrenador las actualizará pronto.
+            </p>
+          </div>
+        </div>
+      )}
+
       {loading && <p className="ath-zones-status">Cargando zonas...</p>}
-      {!loading && error && <p className="ath-zones-status muted">{error}</p>}
+
+      {/* Empty state — no coach zones */}
+      {!loading && error && (
+        <div className="ath-zones-empty">
+          <div className="ath-zones-empty-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.35">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
+          </div>
+          <p className="ath-zones-empty-title">Sin zonas configuradas</p>
+          <p className="ath-zones-empty-sub">
+            Tu entrenador aún no ha configurado zonas de entrenamiento para {disciplineLabel(data.selectedDiscipline).toLowerCase()}.
+            Una vez las defina, aparecerán aquí con los rangos de ritmo, frecuencia cardíaca y potencia.
+          </p>
+        </div>
+      )}
 
       {!loading && zones.length > 0 && (
         <>
           {/* Header */}
           <div className="ath-zones-header">
-            <h2 className="ath-section-title" style={{ margin: 0 }}>Mis zonas de entrenamiento</h2>
+            <h2 className="ath-section-title" style={{ margin: 0 }}>
+              {zoneSet?.name || "Mis zonas de entrenamiento"}
+            </h2>
             {updatedLabel && <span className="ath-zones-updated">Actualizado {updatedLabel}</span>}
           </div>
 
@@ -155,6 +241,14 @@ export function ZonesPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Zone notes from coach */}
+          {zoneSet?.notes && (
+            <div className="ath-zones-coach-notes">
+              <strong>Nota del entrenador</strong>
+              <p>{zoneSet.notes}</p>
+            </div>
+          )}
 
           {/* Zone descriptions */}
           {zones.some((z) => z.description) && (

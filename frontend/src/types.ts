@@ -20,6 +20,7 @@ export type Athlete = {
   ftp_cycling_watts?: number | null;
   ftpa_running_pace?: number | null;
   css_swimming_pace?: number | null;
+  training_hr_max?: number | null;
   created_at: string;
   weights?: Array<{
     id: number;
@@ -37,7 +38,29 @@ export type AuthUser = {
   role: string;
   full_name: string;
   athlete_id?: number | null;
+  plan_tier?: string;
 };
+
+export type PlanTier = "free" | "lactate" | "pro" | "pro_plus" | "elite";
+
+export const PLAN_FEATURES: Record<PlanTier, {
+  name: string;
+  has_lab: boolean;
+  has_planning: boolean;
+  has_zones: boolean;
+  has_progress: boolean;
+  has_recovery: boolean;
+  has_dynamic_thresholds: boolean;
+  max_disciplines: number;
+}> = {
+  free: { name: "Gratis", has_lab: false, has_planning: false, has_zones: false, has_progress: false, has_recovery: false, has_dynamic_thresholds: false, max_disciplines: 1 },
+  lactate: { name: "Lactate Lab", has_lab: true, has_planning: false, has_zones: true, has_progress: false, has_recovery: false, has_dynamic_thresholds: true, max_disciplines: 1 },
+  pro: { name: "Pro", has_lab: true, has_planning: true, has_zones: true, has_progress: true, has_recovery: true, has_dynamic_thresholds: true, max_disciplines: 1 },
+  pro_plus: { name: "Pro+", has_lab: true, has_planning: true, has_zones: true, has_progress: true, has_recovery: true, has_dynamic_thresholds: true, max_disciplines: 3 },
+  elite: { name: "Elite", has_lab: true, has_planning: true, has_zones: true, has_progress: true, has_recovery: true, has_dynamic_thresholds: true, max_disciplines: -1 },
+};
+
+export const PLAN_HIERARCHY: PlanTier[] = ["free", "lactate", "pro", "pro_plus", "elite"];
 
 export type StravaActivity = {
   provider_activity_id: number;
@@ -387,6 +410,7 @@ export type SessionSummary = {
   temperature_c?: number | null;
   comments?: string | null;
   sprint_protocol?: string | null;
+  is_draft?: boolean;
   intervals?: SessionInterval[];
 };
 
@@ -762,6 +786,14 @@ export type DisciplineView = {
     explanation: string[];
   } | null;
   curve_insights?: CurveInsights | null;
+  threshold_anchor_status?: {
+    status: "anclado" | "detectado" | "consolidado" | "mixed";
+    lt1_status: "anclado" | "detectado" | "consolidado";
+    lt2_status: "anclado" | "detectado" | "consolidado";
+    anchor_source: string;
+    message_short: string;
+    message_athlete: string;
+  } | null;
 };
 
 export type AthleteAnalysis = {

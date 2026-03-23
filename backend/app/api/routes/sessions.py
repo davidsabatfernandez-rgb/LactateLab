@@ -11,7 +11,7 @@ from app.models.session import LactateSample, Session as AthleteSession, Session
 from app.models.user import User
 from app.schemas.analytics import SessionAnalysisRead
 from app.schemas.imports import ImportCommitResponse, ImportPreviewResponse
-from app.schemas.session import SessionCreate, SessionIntervalUpdate, SessionRead, SessionUpdate
+from app.schemas.session import SessionCreate, SessionIntervalCreate, SessionIntervalUpdate, SessionRead, SessionUpdate
 from app.services.analytics import analyze_session, recalculate_athlete
 from app.services.importer import build_import_preview, commit_import, parse_json_form_field
 
@@ -114,6 +114,52 @@ def update_interval(interval_id: int, payload: SessionIntervalUpdate, db: Sessio
     return refreshed
 
 
+@router.post("/{session_id}/intervals", response_model=SessionRead, status_code=status.HTTP_201_CREATED)
+def add_interval(session_id: int, payload: SessionIntervalCreate, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    session = db.scalar(_session_query().where(AthleteSession.id == session_id))
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    data = payload.model_dump()
+    sample_data = data.pop("lactate_sample", None)
+    interval = SessionInterval(**data, session_id=session_id)
+    if sample_data:
+        interval.lactate_sample = LactateSample(**sample_data)
+    db.add(interval)
+    db.commit()
+    try:
+        recalculate_athlete(db, session.athlete_id)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning("Recalculation failed for athlete %s after adding interval", session.athlete_id)
+    refreshed = db.scalar(_session_query().where(AthleteSession.id == session_id))
+    return refreshed
+
+
+@router.delete("/intervals/{interval_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_interval(interval_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    interval = db.scalar(select(SessionInterval).options(joinedload(SessionInterval.session)).where(SessionInterval.id == interval_id))
+    if interval is None:
+        raise HTTPException(status_code=404, detail="Interval not found")
+    athlete_id = interval.session.athlete_id
+    session_id = interval.session_id
+    db.delete(interval)
+    db.commit()
+    # Check if session still has intervals
+    remaining = db.scalar(select(SessionInterval).where(SessionInterval.session_id == session_id))
+    if remaining is None:
+        # Delete the session if no intervals left
+        session = db.scalar(select(AthleteSession).where(AthleteSession.id == session_id))
+        if session:
+            db.delete(session)
+            db.commit()
+    try:
+        recalculate_athlete(db, athlete_id)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning("Recalculation failed for athlete %s after deleting interval", athlete_id)
+
+
 @router.delete("/intervals/{interval_id}/lactate-sample", status_code=status.HTTP_204_NO_CONTENT)
 def delete_interval_lactate_sample(interval_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     interval = db.scalar(select(SessionInterval).options(joinedload(SessionInterval.lactate_sample), joinedload(SessionInterval.session)).where(SessionInterval.id == interval_id))
@@ -153,10 +199,40 @@ def update_session(session_id: int, payload: SessionUpdate, db: Session = Depend
 
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_session(session_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    from app.models.metrics import PhysiologicalSnapshot, PerformanceEstimate
+
     session = db.scalar(select(AthleteSession).where(AthleteSession.id == session_id))
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
     athlete_id = session.athlete_id
+
+    # Delete associated snapshots and their performance estimates
+    snapshots = db.scalars(
+        select(PhysiologicalSnapshot).where(PhysiologicalSnapshot.session_id == session_id)
+    ).all()
+    snap_ids = [s.id for s in snapshots]
+    if snap_ids:
+        db.execute(
+            select(PerformanceEstimate).where(PerformanceEstimate.snapshot_id.in_(snap_ids))
+        )
+        for est in db.scalars(select(PerformanceEstimate).where(PerformanceEstimate.snapshot_id.in_(snap_ids))).all():
+            db.delete(est)
+        for snap in snapshots:
+            db.delete(snap)
+
+    # Also clean up orphan snapshots (session_id=NULL) for this athlete
+    orphans = db.scalars(
+        select(PhysiologicalSnapshot).where(
+            PhysiologicalSnapshot.athlete_id == athlete_id,
+            PhysiologicalSnapshot.session_id.is_(None),
+        )
+    ).all()
+    for orphan in orphans:
+        # Delete estimates tied to orphan snapshots
+        for est in db.scalars(select(PerformanceEstimate).where(PerformanceEstimate.snapshot_id == orphan.id)).all():
+            db.delete(est)
+        db.delete(orphan)
+
     db.delete(session)
     db.commit()
     try:

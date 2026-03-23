@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from statistics import mean, median
 from typing import Any, Optional
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_ as db_or, select
 from sqlalchemy.orm import Session, defer, joinedload
 
 from app.core.config import get_settings
@@ -127,7 +127,41 @@ def _session_density(session: AthleteSession) -> float:
     return total_work / total
 
 
-def _interval_duration_score(duration_seconds: int) -> float:
+def _interval_duration_score(duration_seconds: int, discipline: str = "running") -> float:
+    """Score interval duration — optimal ranges differ by discipline."""
+    disc = (discipline or "running").lower()
+
+    if disc in ("ciclismo", "cycling"):
+        if duration_seconds < 150:
+            return 0.35
+        if duration_seconds < 240:
+            return 0.55
+        if duration_seconds <= 360:
+            return 0.82
+        if duration_seconds <= 720:
+            return 0.95
+        if duration_seconds <= 900:
+            return 0.88
+        if duration_seconds <= 1200:
+            return 0.74
+        return 0.55
+
+    if disc in ("natacion", "natación", "swimming"):
+        if duration_seconds < 90:
+            return 0.38
+        if duration_seconds < 150:
+            return 0.68
+        if duration_seconds <= 240:
+            return 0.92
+        if duration_seconds <= 360:
+            return 0.90
+        if duration_seconds <= 480:
+            return 0.75
+        if duration_seconds <= 720:
+            return 0.60
+        return 0.45
+
+    # Running (default)
     if duration_seconds < 120:
         return 0.42
     if duration_seconds < 180:
@@ -145,8 +179,8 @@ def _interval_duration_score(duration_seconds: int) -> float:
     return 0.5
 
 
-def _interval_protocol_score(interval: SessionInterval) -> float:
-    duration_score = _interval_duration_score(interval.duration_seconds)
+def _interval_protocol_score(interval: SessionInterval, discipline: str = "running") -> float:
+    duration_score = _interval_duration_score(interval.duration_seconds, discipline)
     rest_ratio = (interval.rest_seconds or 0) / max(interval.duration_seconds, 1)
     if rest_ratio <= 0.15:
         rest_score = 1.0
@@ -363,7 +397,7 @@ def _build_candidates(session: AthleteSession, max_sample_delay_seconds: Optiona
                 "load": load,
                 "interval": interval,
                 "lactate": sample.contextual_lactate or sample.lactate_mmol,
-                "protocol_score": round(_interval_protocol_score(interval) * fatigue, 2),
+                "protocol_score": round(_interval_protocol_score(interval, session.discipline) * fatigue, 2),
                 "sample_delay_seconds": sample.sample_delay_seconds,
                 "accumulated_fatigue_penalty": fatigue,
             }
@@ -733,6 +767,32 @@ def _thresholds_from_session(session: AthleteSession) -> list[ThresholdResult]:
     lt1 = _aggregate_threshold("LT1", method_outputs)
     lt2 = _aggregate_threshold("LT2", method_outputs)
 
+    # B1b — Filtro por rango de lactato: si los datos de la sesión no cubren
+    # el rango fisiológico de un umbral, no lo publicamos.
+    # LT2 requiere datos por encima de ~2.5 mmol; LT1 requiere datos por debajo de ~3.5 mmol.
+    max_lactate = max(lactates)
+    min_lactate = min(lactates)
+    _LT2_MIN_MAX_LACTATE = 2.5  # No se puede detectar LT2 si el máximo no llega a 2.5
+    _LT1_MAX_MIN_LACTATE = 3.5  # No se puede detectar LT1 si el mínimo supera 3.5
+    if max_lactate < _LT2_MIN_MAX_LACTATE:
+        lt2 = ThresholdResult(
+            name="LT2", lactate=None, pace_seconds_per_km=None, power_watts=None,
+            heart_rate=None, power_source=None, method="insufficient_range",
+            confidence=0.0, rationale=(
+                f"Lactato máximo de la sesión ({max_lactate:.1f} mmol) insuficiente "
+                f"para detectar LT2. Solo se informa LT1."
+            ), methods_compared=[], agreement_score=0.0, evidence_level="low",
+        )
+    if min_lactate > _LT1_MAX_MIN_LACTATE:
+        lt1 = ThresholdResult(
+            name="LT1", lactate=None, pace_seconds_per_km=None, power_watts=None,
+            heart_rate=None, power_source=None, method="insufficient_range",
+            confidence=0.0, rationale=(
+                f"Lactato mínimo de la sesión ({min_lactate:.1f} mmol) demasiado alto "
+                f"para detectar LT1. Solo se informa LT2."
+            ), methods_compared=[], agreement_score=0.0, evidence_level="low",
+        )
+
     # B2 — Validación LT1 < LT2: tras agregar, verificamos que LT1 sea
     # fisiológicamente inferior a LT2. Si LT1 >= LT2 en lactato, o si
     # LT1 es más rápido que LT2 (en ritmo: menor s/km = más rápido),
@@ -836,6 +896,662 @@ _INDIVIDUAL_MIN_AGREEMENT = 0.62
 _INDIVIDUAL_MIN_CONFIDENCE = 0.78
 _INDIVIDUAL_RULESET_VERSION = 2
 _REAL_RULESET_VERSION = 3
+
+# ── Threshold anchor system (simplified) ─────────────────────────────────
+# Two states per threshold: "anclado" (2.0/4.0 mmol) or "detectado" (curve break).
+# The dynamic engine is the single source of truth:
+#   1. It accumulates weighted cross-session points
+#   2. We detect curve breaks on those accumulated points
+#   3. It translates any lactate level → pace/HR/power
+# Each threshold (LT1, LT2) is evaluated independently.
+
+_BREAK_MIN_CONFIDENCE = 0.70   # Minimum confidence to promote from anchored → detected
+_BREAK_MIN_POINTS_LT1 = 3     # Minimum points near LT1 zone (lactate < 3.0)
+_BREAK_MIN_POINTS_LT2 = 3     # Minimum points near LT2 zone (lactate > 2.5)
+
+
+def _detect_curve_break_accumulated(
+    points: list[dict[str, Any]],
+    name: str,
+) -> Optional[dict[str, Any]]:
+    """Detect LT1 or LT2 curve break from accumulated dynamic engine points.
+
+    Works on the weighted cross-session points from the dynamic engine.
+    Returns {"lactate": float, "confidence": float} or None.
+
+    Uses the same physiological logic as per-session detection but adapted
+    for cross-session accumulated data (dicts, not interval objects).
+    """
+    if not points:
+        return None
+
+    # Build sorted candidate list (by load — pace or power)
+    candidates: list[dict[str, Any]] = []
+    for p in points:
+        lac = p.get("contextualized_lactate") or p.get("raw_lactate")
+        pace = p.get("pace_seconds_per_km")
+        power = p.get("power_watts")
+        hr = p.get("heart_rate")
+        weight = p.get("point_weight", 1.0)
+        if not lac or lac <= 0:
+            continue
+        # Need at least pace or power as load metric
+        load = None
+        if power and power > 0:
+            load = float(power)
+        elif pace and pace > 0:
+            load = 3600 / float(pace)  # convert to speed for monotonic ordering
+        if load is None:
+            continue
+        candidates.append({
+            "lactate": lac, "load": load,
+            "pace_seconds_per_km": pace, "power_watts": power,
+            "heart_rate": hr, "weight": weight,
+        })
+
+    if len(candidates) < 3:
+        return None
+
+    # Sort by LACTATE ascending — cross-session points are not monotonic
+    # in load (faster athlete at same lactate), but we detect breaks in the
+    # lactate dimension (where the curve inflects).
+    candidates.sort(key=lambda c: c["lactate"])
+
+    # Filter by lactate zone
+    if name == "LT1":
+        # Only use points in the LT1-relevant range (lactate < 3.5)
+        zone_pts = [c for c in candidates if c["lactate"] < 3.5]
+        if len(zone_pts) < _BREAK_MIN_POINTS_LT1:
+            return None
+    else:  # LT2
+        # Only use points in the LT2-relevant range (lactate > 1.5)
+        zone_pts = [c for c in candidates if c["lactate"] > 1.5]
+        if len(zone_pts) < _BREAK_MIN_POINTS_LT2:
+            return None
+
+    lactates = [c["lactate"] for c in zone_pts]
+
+    # Smooth if enough points
+    if len(lactates) >= 3:
+        smoothed = _smooth(lactates)
+    else:
+        smoothed = lactates[:]
+
+    baseline_window = smoothed[: min(4, len(smoothed))]
+    baseline = min(baseline_window)
+
+    if name == "LT1":
+        # Method: first sustained rise above baseline + 0.5 mmol (Faude 2009)
+        # For cross-session data, we also require the detected lactate >= 1.7 mmol
+        # (physiological floor — LT1 below 1.7 is implausible for running).
+        _LT1_MIN_LACTATE = 1.7
+        break_idx = None
+        for idx in range(1, len(smoothed)):
+            value = smoothed[idx]
+            next_val = smoothed[idx + 1] if idx + 1 < len(smoothed) else value
+            if value >= baseline + 0.5 and value >= _LT1_MIN_LACTATE and next_val >= value - 0.25:
+                break_idx = idx
+                break
+        if break_idx is None:
+            return None
+
+        # Confidence based on: number of points, weight of break point, clarity
+        n = len(zone_pts)
+        pt = zone_pts[break_idx]
+        rise = smoothed[break_idx] - baseline
+        # More points + clearer rise + higher weight = more confidence
+        conf = min(0.92, 0.45 + n * 0.06 + rise * 0.12)
+        conf *= min(1.0, 0.6 + pt["weight"] * 0.4)
+        conf = round(max(0.25, min(0.95, conf)), 2)
+
+        return {
+            "lactate": pt["lactate"],
+            "pace_seconds_per_km": pt["pace_seconds_per_km"],
+            "power_watts": pt["power_watts"],
+            "heart_rate": pt["heart_rate"],
+            "confidence": conf,
+            "method": "accumulated_baseline_rise",
+            "n_points": n,
+        }
+
+    else:  # LT2
+        # Physiological floor: LT2 below 2.8 mmol is implausible
+        _LT2_MIN_LACTATE = 2.8
+
+        # Method 1: sustained acceleration (baseline_rise logic for LT2)
+        accel_idx = None
+        for idx in range(1, len(smoothed)):
+            value = smoothed[idx]
+            prev = smoothed[idx - 1] if idx > 0 else value
+            next_val = smoothed[idx + 1] if idx + 1 < len(smoothed) else value
+            is_candidate = value >= 4.0 or (
+                idx > 1
+                and value >= max(3.2, baseline + 1.4)
+                and (value - prev) >= 0.45
+            )
+            if is_candidate and next_val >= value - 0.5:
+                accel_idx = idx
+                break
+
+        # Method 2: ModDmax on accumulated points
+        # Uses index position as X-axis (points sorted by lactate), since
+        # cross-session loads aren't monotonic with lactate.
+        moddmax_idx = None
+        if len(zone_pts) >= 4:
+            start_idx = 0
+            for idx in range(len(smoothed)):
+                if smoothed[idx] >= baseline + 0.5:
+                    start_idx = idx
+                    break
+            sub_lacs = smoothed[start_idx:]
+            n_sub = len(sub_lacs)
+            if n_sub >= 3:
+                # Linear line from first to last point
+                line = [
+                    sub_lacs[0] + (i / (n_sub - 1)) * (sub_lacs[-1] - sub_lacs[0])
+                    for i in range(n_sub)
+                ]
+                devs = [v - lv for v, lv in zip(sub_lacs, line)]
+                best_dev_idx = max(range(len(devs)), key=lambda i: devs[i])
+                if devs[best_dev_idx] > 0:
+                    moddmax_idx = start_idx + best_dev_idx
+
+        # Pick the best detection
+        best_idx = None
+        if accel_idx is not None and moddmax_idx is not None:
+            # Agreement between methods → higher confidence
+            if abs(accel_idx - moddmax_idx) <= 1:
+                best_idx = accel_idx  # they agree
+            else:
+                best_idx = accel_idx  # acceleration is primary
+        elif accel_idx is not None:
+            best_idx = accel_idx
+        elif moddmax_idx is not None:
+            best_idx = moddmax_idx
+
+        if best_idx is None:
+            return None
+
+        pt = zone_pts[best_idx]
+        # Reject if detected lactate is below physiological floor for LT2
+        if pt["lactate"] < _LT2_MIN_LACTATE:
+            return None
+
+        n = len(zone_pts)
+        # Agreement bonus
+        agreement = 1.0 if (accel_idx is not None and moddmax_idx is not None and abs(accel_idx - moddmax_idx) <= 1) else 0.7
+        conf = min(0.92, 0.40 + n * 0.05 + agreement * 0.15)
+        conf *= min(1.0, 0.6 + pt["weight"] * 0.4)
+        conf = round(max(0.25, min(0.95, conf)), 2)
+
+        return {
+            "lactate": pt["lactate"],
+            "pace_seconds_per_km": pt["pace_seconds_per_km"],
+            "power_watts": pt["power_watts"],
+            "heart_rate": pt["heart_rate"],
+            "confidence": conf,
+            "method": "accumulated_break",
+            "n_points": n,
+        }
+
+
+def determine_threshold_anchor_status(
+    real_thresholds: Optional[dict[str, Any]],
+    individual_thresholds: Optional[dict[str, Any]],
+    thresholds: list[dict[str, Any]],
+    stage_count: int = 0,
+    dynamic_thresholds: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Determine anchor status per threshold: anclado (2.0/4.0) vs detectado.
+
+    Uses accumulated points from the dynamic engine to detect curve breaks.
+    Each threshold is independent. The dynamic engine's scoring (quality,
+    recency, protocol) is preserved through point_weight.
+    """
+    # Get accumulated points from dynamic engine
+    dyn_points = []
+    if dynamic_thresholds:
+        acute = dynamic_thresholds.get("acute", {})
+        dyn_points = acute.get("points_used", [])
+
+    # Detect curve breaks on accumulated data
+    lt1_break = _detect_curve_break_accumulated(dyn_points, "LT1")
+    lt2_break = _detect_curve_break_accumulated(dyn_points, "LT2")
+
+    # Also check per-session detection (from structured tests)
+    # A good single test can also detect thresholds
+    lt1_session_detected = False
+    lt2_session_detected = False
+    if real_thresholds:
+        dq = real_thresholds.get("data_quality", {})
+        # LT REAL (highest quality — all gates passed)
+        if real_thresholds.get("lt1_real") and dq.get("sufficient"):
+            lt1_session_detected = True
+        if real_thresholds.get("lt2_real") and dq.get("sufficient"):
+            lt2_session_detected = True
+        # Detection candidate from per-session analysis
+        lt1_det = real_thresholds.get("lt1_detection", {}) or {}
+        lt1_cand = lt1_det.get("candidate_threshold")
+        if lt1_cand and lt1_cand.get("confidence", 0) >= _BREAK_MIN_CONFIDENCE:
+            lt1_session_detected = True
+        lt2_det = real_thresholds.get("lt2_detection", {}) or {}
+        lt2_cand = lt2_det.get("candidate_threshold")
+        if lt2_cand and lt2_cand.get("confidence", 0) >= _BREAK_MIN_CONFIDENCE:
+            lt2_session_detected = True
+
+    # Individual thresholds (consolidated — multiple tests)
+    lt1_consolidated = False
+    lt2_consolidated = False
+    if individual_thresholds:
+        ind_quality = individual_thresholds.get("data_quality", {})
+        if individual_thresholds.get("lt1_individual") and ind_quality.get("sufficient"):
+            lt1_consolidated = True
+        if individual_thresholds.get("lt2_individual") and ind_quality.get("sufficient"):
+            lt2_consolidated = True
+
+    # Determine status per threshold
+    def _status(name: str, consolidated: bool, session_detected: bool, accum_break: Optional[dict]) -> str:
+        if consolidated:
+            return "consolidado"
+        if session_detected:
+            return "detectado"
+        if accum_break and accum_break["confidence"] >= _BREAK_MIN_CONFIDENCE:
+            return "detectado"
+        return "anclado"
+
+    lt1_status = _status("LT1", lt1_consolidated, lt1_session_detected, lt1_break)
+    lt2_status = _status("LT2", lt2_consolidated, lt2_session_detected, lt2_break)
+
+    # Build message
+    _labels = {"anclado": "Anclado", "detectado": "Detectado", "consolidado": "Consolidado"}
+    if lt1_status == lt2_status:
+        msg_short, msg, source = _anchor_message_v2(lt1_status, len(dyn_points))
+    else:
+        lt1_label = _labels.get(lt1_status, lt1_status)
+        lt2_label = _labels.get(lt2_status, lt2_status)
+        msg_short = f"LT1 {lt1_label} · LT2 {lt2_label}"
+        parts = []
+        if lt1_status == "anclado":
+            parts.append("LT1 anclado a 2.0 mmol (referencia estándar)")
+        elif lt1_status == "detectado":
+            parts.append("LT1 detectado en tu curva de lactato")
+        elif lt1_status == "consolidado":
+            parts.append("LT1 consolidado con múltiples tests")
+        if lt2_status == "anclado":
+            parts.append("LT2 anclado a 4.0 mmol (referencia estándar)")
+        elif lt2_status == "detectado":
+            parts.append("LT2 detectado en tu curva de lactato")
+        elif lt2_status == "consolidado":
+            parts.append("LT2 consolidado con múltiples tests")
+        msg = ". ".join(parts) + "."
+        source = "mixed"
+
+    return {
+        "status": lt1_status if lt1_status == lt2_status else "mixed",
+        "lt1_status": lt1_status,
+        "lt2_status": lt2_status,
+        "lt1_break": lt1_break,
+        "lt2_break": lt2_break,
+        "anchor_source": source,
+        "message_short": msg_short,
+        "message_athlete": msg,
+    }
+
+
+def _anchor_message_v2(status: str, n_points: int) -> tuple[str, str, str]:
+    """Return (message_short, message_athlete, anchor_source) for a uniform status."""
+    if status == "consolidado":
+        return ("Consolidado", "Umbrales consolidados con múltiples tests. Máxima fiabilidad.", "individual")
+    if status == "detectado":
+        return ("Detectado", (
+            "Umbrales detectados en tu curva de lactato acumulada. "
+            "Se refinan con cada nueva medición."
+        ), "curve_break")
+    # anclado
+    if n_points > 0:
+        return ("Anclado", (
+            f"Zonas ancladas a referencia estándar (2.0 y 4.0 mmol/L) con "
+            f"{n_points} mediciones. A medida que acumules más datos "
+            "detectaremos dónde están tus umbrales reales."
+        ), "standard_2_4")
+    return ("Anclado", (
+        "Zonas ancladas a referencia estándar (2.0 y 4.0 mmol/L). "
+        "Cuando tengamos datos de tus tests, personalizaremos tus umbrales."
+    ), "standard_2_4")
+
+
+def _interpolate_at_lactate(
+    measurement_log: list[dict[str, Any]],
+    target_lactate: float,
+) -> Optional[dict[str, Any]]:
+    """Interpolate pace/HR/power at a given lactate from measurement data.
+
+    Uses linear interpolation between the two bracketing points.
+    Returns a dict with pace_seconds_per_km, heart_rate, power_watts, lactate.
+    """
+    # Sort by lactate ascending, filter valid entries
+    points = sorted(
+        [p for p in measurement_log if p.get("lactate_mmol") and p["lactate_mmol"] > 0],
+        key=lambda p: p["lactate_mmol"],
+    )
+    if len(points) < 2:
+        return None
+
+    # Find bracketing pair
+    lower = None
+    upper = None
+    for i in range(len(points) - 1):
+        if points[i]["lactate_mmol"] <= target_lactate <= points[i + 1]["lactate_mmol"]:
+            lower = points[i]
+            upper = points[i + 1]
+            break
+
+    if lower is None or upper is None:
+        # Target outside range — extrapolation not reliable
+        return None
+
+    lac_range = upper["lactate_mmol"] - lower["lactate_mmol"]
+    if lac_range < 0.01:
+        t = 0.5
+    else:
+        t = (target_lactate - lower["lactate_mmol"]) / lac_range
+
+    def _lerp(key: str) -> Optional[float]:
+        a = lower.get(key)  # type: ignore[union-attr]
+        b = upper.get(key)  # type: ignore[union-attr]
+        if a is not None and b is not None:
+            return round(a + t * (b - a), 1)
+        return None
+
+    hr = _lerp("heart_rate_avg")
+    return {
+        "lactate": target_lactate,
+        "pace_seconds_per_km": _lerp("pace_seconds_per_km"),
+        "heart_rate": round(hr) if hr is not None else None,
+        "power_watts": _lerp("power_watts"),
+    }
+
+
+def _weighted_interpolate_at_lactate(
+    points: list[dict[str, Any]],
+    target_lactate: float,
+) -> Optional[dict[str, Any]]:
+    """Weighted interpolation at a target lactate from dynamic engine points.
+
+    Uses point_weight from the dynamic engine for weighted averaging.
+    Selects up to 4 closest points on each side of the target lactate,
+    then does a weight-aware linear interpolation.
+    """
+    valid = []
+    for p in points:
+        lac = p.get("contextualized_lactate") or p.get("raw_lactate")
+        if not lac or lac <= 0:
+            continue
+        valid.append({
+            "lac": lac,
+            "pace": p.get("pace_seconds_per_km"),
+            "power": p.get("power_watts"),
+            "hr": p.get("heart_rate"),
+            "weight": p.get("point_weight", 1.0),
+        })
+    if len(valid) < 2:
+        return None
+
+    # Split into lower and upper brackets
+    lower = sorted([v for v in valid if v["lac"] <= target_lactate], key=lambda v: -v["lac"])[:4]
+    upper = sorted([v for v in valid if v["lac"] >= target_lactate], key=lambda v: v["lac"])[:4]
+
+    if not lower or not upper:
+        return None
+
+    # Weighted average of lower bracket
+    def _wavg(pts: list[dict], key: str) -> Optional[float]:
+        vals = [(p[key], p["weight"]) for p in pts if p[key] is not None]
+        if not vals:
+            return None
+        total_w = sum(w for _, w in vals)
+        if total_w < 0.001:
+            return sum(v for v, _ in vals) / len(vals)
+        return sum(v * w for v, w in vals) / total_w
+
+    def _wavg_lac(pts: list[dict]) -> float:
+        total_w = sum(p["weight"] for p in pts)
+        if total_w < 0.001:
+            return sum(p["lac"] for p in pts) / len(pts)
+        return sum(p["lac"] * p["weight"] for p in pts) / total_w
+
+    lower_lac = _wavg_lac(lower)
+    upper_lac = _wavg_lac(upper)
+
+    lac_range = upper_lac - lower_lac
+    if lac_range < 0.01:
+        t = 0.5
+    else:
+        t = (target_lactate - lower_lac) / lac_range
+
+    def _interp(key: str) -> Optional[float]:
+        low_val = _wavg(lower, key)
+        up_val = _wavg(upper, key)
+        if low_val is not None and up_val is not None:
+            return round(low_val + t * (up_val - low_val), 1)
+        return low_val or up_val
+
+    pace = _interp("pace")
+    hr = _interp("hr")
+    power = _interp("power")
+
+    return {
+        "pace_seconds_per_km": pace,
+        "heart_rate": round(hr) if hr is not None else None,
+        "power_watts": power,
+    }
+
+
+def _dyn_translate_lactate_to_metrics(
+    dynamic_thresholds: Optional[dict[str, Any]],
+    target_lactate: float,
+    ref_key: Optional[str] = None,
+) -> Optional[dict[str, Any]]:
+    """Use the dynamic engine to translate a lactate value into pace/HR/power.
+
+    First tries the pre-computed reference (if ref_key matches), then falls back
+    to interpolating from the accumulated points_used.
+    """
+    if not dynamic_thresholds:
+        return None
+    acute = dynamic_thresholds.get("acute", {})
+
+    # Check pre-computed references (2mmol, 4mmol, practical_lt1, practical_lt2)
+    if ref_key:
+        ref = acute.get(ref_key)
+        if ref and ref.get("estimated_pace_seconds_per_km"):
+            return {
+                "pace_seconds_per_km": round(ref["estimated_pace_seconds_per_km"], 1),
+                "power_watts": ref.get("estimated_power_watts"),
+                "heart_rate": round(ref["estimated_hr_at_target"]) if ref.get("estimated_hr_at_target") else None,
+                "confidence": ref.get("confidence_score", 0.5),
+                "n_points": ref.get("number_of_points_used", 0),
+            }
+
+    # Fallback: weighted interpolation from accumulated points
+    # Uses point_weight from the dynamic engine to properly reflect recent data
+    pts = acute.get("points_used", [])
+    if len(pts) < 2:
+        return None
+    result = _weighted_interpolate_at_lactate(pts, target_lactate)
+    if result:
+        return {
+            "pace_seconds_per_km": result.get("pace_seconds_per_km"),
+            "power_watts": result.get("power_watts"),
+            "heart_rate": result.get("heart_rate"),
+            "confidence": 0.45,
+            "n_points": len(pts),
+        }
+    return None
+
+
+def _build_anchor_thresholds(
+    anchor_status: dict[str, Any],
+    measurement_log: list[dict[str, Any]],
+    real_thresholds: Optional[dict[str, Any]],
+    individual_thresholds: Optional[dict[str, Any]],
+    original_thresholds: list[dict[str, Any]],
+    dynamic_thresholds: Optional[dict[str, Any]] = None,
+) -> list[dict[str, Any]]:
+    """Build the thresholds list that the athlete sees.
+
+    Simple logic per threshold:
+    - consolidado: LT Individual value
+    - detectado: curve break lactate + dynamic engine for pace/HR
+    - anclado: 2.0/4.0 mmol + dynamic engine for pace/HR
+    """
+    anchored: list[dict[str, Any]] = []
+
+    for name, ref_lactate, ref_key, ind_key, real_key in [
+        ("LT1", 2.0, "reference_2mmol", "lt1_individual", "lt1_real"),
+        ("LT2", 4.0, "reference_4mmol", "lt2_individual", "lt2_real"),
+    ]:
+        status = anchor_status.get(f"{name.lower()}_status", "anclado")
+        curve_break = anchor_status.get(f"{name.lower()}_break")
+        result = _resolve_threshold_v2(
+            name, status, ref_lactate, ref_key, ind_key, real_key,
+            curve_break, individual_thresholds, real_thresholds,
+            dynamic_thresholds, measurement_log, original_thresholds,
+        )
+        if result:
+            anchored.append(result)
+
+    return anchored if anchored else original_thresholds
+
+
+def _resolve_threshold_v2(
+    name: str,
+    status: str,
+    ref_lactate: float,
+    ref_key: str,
+    ind_key: str,
+    real_key: str,
+    curve_break: Optional[dict[str, Any]],
+    individual_thresholds: Optional[dict[str, Any]],
+    real_thresholds: Optional[dict[str, Any]],
+    dynamic_thresholds: Optional[dict[str, Any]],
+    measurement_log: list[dict[str, Any]],
+    original_thresholds: list[dict[str, Any]],
+) -> Optional[dict[str, Any]]:
+    """Resolve a single threshold to its final visible value."""
+
+    # ── Consolidado: LT Individual (multiple tests confirmed) ──
+    if status == "consolidado" and individual_thresholds:
+        ind = individual_thresholds.get(ind_key)
+        if ind:
+            return {
+                "name": name, "lactate": ind.get("lactate"),
+                "pace_seconds_per_km": ind.get("pace_seconds_per_km"),
+                "power_watts": ind.get("power_watts"),
+                "heart_rate": ind.get("heart_rate"),
+                "method": "individual_threshold", "confidence": ind.get("confidence", 0.9),
+                "rationale": f"{name} consolidado con múltiples tests.",
+                "methods_compared": [], "power_source": ind.get("power_source"),
+                "agreement_score": ind.get("agreement_score", 0.0),
+                "evidence_level": "consolidado",
+            }
+
+    # ── Detectado: curve break found ──
+    # Lactate comes from curve detection; pace/HR from dynamic engine
+    if status == "detectado":
+        detected_lactate = None
+        detected_conf = 0.7
+
+        # Priority: LT REAL > accumulated break > session candidate
+        if real_thresholds and real_thresholds.get(real_key):
+            rt = real_thresholds[real_key]
+            detected_lactate = rt.get("lactate")
+            detected_conf = rt.get("confidence", 0.85)
+        elif curve_break:
+            detected_lactate = curve_break.get("lactate")
+            detected_conf = curve_break.get("confidence", 0.7)
+        else:
+            # Session detection candidate
+            det_key = "lt1_detection" if name == "LT1" else "lt2_detection"
+            if real_thresholds:
+                det = real_thresholds.get(det_key, {}) or {}
+                cand = det.get("candidate_threshold")
+                if cand:
+                    detected_lactate = cand.get("lactate")
+                    detected_conf = cand.get("confidence", 0.7)
+
+        if detected_lactate:
+            # Translate to pace/HR via dynamic engine
+            metrics = _dyn_translate_lactate_to_metrics(dynamic_thresholds, detected_lactate)
+            pace = metrics["pace_seconds_per_km"] if metrics else None
+            power = metrics["power_watts"] if metrics else None
+            hr = metrics["heart_rate"] if metrics else None
+            dyn_msg = ""
+            if not metrics or not pace:
+                # Fallback: use values from detection itself
+                if curve_break and curve_break.get("pace_seconds_per_km"):
+                    pace = curve_break.get("pace_seconds_per_km")
+                    power = curve_break.get("power_watts")
+                    hr = curve_break.get("heart_rate")
+                    dyn_msg = ""
+                elif not pace:
+                    # Can't produce useful threshold without pace — fall through
+                    # to anclado, which interpolates at a standard lactate level
+                    pass
+            else:
+                dyn_msg = " Ritmo/FC calculados con tus mediciones acumuladas."
+
+            if pace:
+                return {
+                    "name": name, "lactate": detected_lactate,
+                    "pace_seconds_per_km": pace,
+                    "power_watts": power,
+                    "heart_rate": hr,
+                    "method": "curve_break", "confidence": detected_conf,
+                    "rationale": f"{name} detectado en tu curva de lactato a {detected_lactate:.2f} mmol.{dyn_msg}",
+                    "methods_compared": [], "power_source": None,
+                    "agreement_score": 0.0,
+                    "evidence_level": "detectado",
+                }
+
+    # ── Anclado: reference at 2.0/4.0 mmol ──
+    # Use dynamic engine to get pace/HR at standard lactate
+    metrics = _dyn_translate_lactate_to_metrics(dynamic_thresholds, ref_lactate, ref_key=ref_key)
+    if metrics and metrics.get("pace_seconds_per_km") and metrics.get("n_points", 0) >= 2:
+        return {
+            "name": name, "lactate": ref_lactate,
+            "pace_seconds_per_km": metrics["pace_seconds_per_km"],
+            "power_watts": metrics.get("power_watts"),
+            "heart_rate": metrics.get("heart_rate"),
+            "method": f"reference_{ref_lactate:.0f}mmol",
+            "confidence": round(min(metrics.get("confidence", 0.5), 0.5), 2),
+            "rationale": f"Anclado a {ref_lactate:.1f} mmol/L (referencia estándar). Se actualizará con más datos.",
+            "methods_compared": [], "power_source": None,
+            "agreement_score": 0.0, "evidence_level": "anclado",
+        }
+
+    # Fallback: simple interpolation from measurement_log
+    interp = _interpolate_at_lactate(measurement_log, ref_lactate)
+    if interp and interp.get("pace_seconds_per_km"):
+        return {
+            "name": name, "lactate": ref_lactate,
+            "pace_seconds_per_km": interp["pace_seconds_per_km"],
+            "power_watts": interp.get("power_watts"),
+            "heart_rate": interp.get("heart_rate"),
+            "method": f"reference_{ref_lactate:.0f}mmol", "confidence": 0.4,
+            "rationale": f"Anclado a {ref_lactate:.1f} mmol/L (referencia estándar).",
+            "methods_compared": [], "power_source": None,
+            "agreement_score": 0.0, "evidence_level": "anclado",
+        }
+
+    # Last resort: original threshold from session analysis
+    for t in original_thresholds:
+        if t.get("name") == name:
+            result = dict(t)
+            result["evidence_level"] = "anclado"
+            return result
+    return None
+
 
 
 def _method_family(method: str) -> str:
@@ -1182,6 +1898,24 @@ def _detect_real_thresholds(session: AthleteSession) -> dict[str, Any]:
 
     lt1_result = _aggregate_threshold("LT1", method_outputs)
     lt2_result = _aggregate_threshold("LT2", method_outputs)
+
+    # B1b — Filtro por rango de lactato (mismo criterio que _thresholds_from_session)
+    if candidates:
+        all_lac = [c["lactate"] for c in candidates]
+        if max(all_lac) < 2.5 and lt2_result.lactate is not None:
+            lt2_result = ThresholdResult(
+                name="LT2", lactate=None, pace_seconds_per_km=None, power_watts=None,
+                heart_rate=None, power_source=None, method="insufficient_range",
+                confidence=0.0, rationale="Lactato máximo insuficiente para detectar LT2.",
+                methods_compared=[], agreement_score=0.0, evidence_level="low",
+            )
+        if min(all_lac) > 3.5 and lt1_result.lactate is not None:
+            lt1_result = ThresholdResult(
+                name="LT1", lactate=None, pace_seconds_per_km=None, power_watts=None,
+                heart_rate=None, power_source=None, method="insufficient_range",
+                confidence=0.0, rationale="Lactato mínimo demasiado alto para detectar LT1.",
+                methods_compared=[], agreement_score=0.0, evidence_level="low",
+            )
 
     # B2 — Validación LT1 < LT2 en umbrales reales
     if (
@@ -2132,7 +2866,7 @@ def _discipline_view(
         "power_source": power_source,
         "latest_snapshot_date": latest_snapshot.snapshot_date if latest_snapshot else None,
         "thresholds": thresholds,
-        "zones": _estimate_zones(threshold_objects, discipline),
+        "zones": [],  # recomputed below after anchor status is determined
         "estimates": [
             {
                 "estimate_type": item.estimate_type,
@@ -2183,28 +2917,78 @@ def _discipline_view(
                 if latest_snapshot and latest_snapshot.power_source == "interpolated_from_running"
                 else []
             ),
-        "dynamic_thresholds": latest_snapshot.payload.get("dynamic_thresholds") if latest_snapshot else None,
+        # Dynamic thresholds come from the MOST RECENT snapshot (not latest_snapshot
+        # which filters by lt1/lt2_lactate). Quick measurements create snapshots with
+        # updated dynamic data even if they don't detect thresholds.
+        "dynamic_thresholds": (
+            discipline_snapshots[-1].payload.get("dynamic_thresholds")
+            if discipline_snapshots
+            else None
+        ),
         "power_source_views": None,
         "real_thresholds": None,
         "individual_thresholds": None,
     }
-    # Extract real_thresholds from the most recent snapshot that has them
+    # Extract real_thresholds from the snapshot with the BEST detection data
+    # (highest stage_count with detection candidates), not just the latest.
     real_thresholds = None
     individual_thresholds = None
+    latest_stage_count = 0
     if discipline_snapshots:
         sorted_snapshots = sorted(discipline_snapshots, key=lambda s: s.snapshot_date)
+        best_rt = None
+        best_rt_stages = 0
         for snapshot in reversed(sorted_snapshots):
             snap_payload = snapshot.payload or {}
             individual = snap_payload.get("individual_thresholds")
             if individual and individual_thresholds is None:
                 individual_thresholds = individual
             rt = snap_payload.get("real_thresholds")
-            if rt and (rt.get("lt1_real") or rt.get("lt2_real")):
-                real_thresholds = rt
-            if real_thresholds is not None and individual_thresholds is not None:
-                break
+            if rt:
+                dq = rt.get("data_quality") or {}
+                sc = dq.get("stage_count", 0)
+                # Prefer the snapshot with the most stages (best test)
+                if sc > best_rt_stages:
+                    best_rt = rt
+                    best_rt_stages = sc
+                # Also check for confirmed real thresholds (always wins)
+                if rt.get("lt1_real") or rt.get("lt2_real"):
+                    best_rt = rt
+                    best_rt_stages = max(best_rt_stages, sc)
+                    break  # Confirmed real always takes priority
+        real_thresholds = best_rt
+        latest_stage_count = best_rt_stages
     payload["individual_thresholds"] = individual_thresholds
     payload["real_thresholds"] = _merge_real_threshold_states(real_thresholds, individual_thresholds)
+
+    # ── Threshold anchor status ────────────────────────────────────────────
+    _dyn = payload.get("dynamic_thresholds")
+    anchor_status = determine_threshold_anchor_status(
+        real_thresholds=real_thresholds,
+        individual_thresholds=individual_thresholds,
+        thresholds=thresholds,
+        stage_count=latest_stage_count,
+        dynamic_thresholds=_dyn,
+    )
+    payload["threshold_anchor_status"] = anchor_status
+
+    # Replace visible thresholds based on anchor status
+    # Original physiological thresholds stay in payload["_raw_thresholds"] for internal use
+    payload["_raw_thresholds"] = thresholds
+    _mlog = payload.get("measurement_log", [])
+    athlete_thresholds = _build_anchor_thresholds(
+        anchor_status=anchor_status,
+        measurement_log=_mlog,
+        real_thresholds=real_thresholds,
+        individual_thresholds=individual_thresholds,
+        original_thresholds=thresholds,
+        dynamic_thresholds=_dyn,
+    )
+    payload["thresholds"] = athlete_thresholds
+
+    # Rebuild zones from anchor-adjusted thresholds
+    anchored_threshold_objects = [_threshold_result_from_payload(item) for item in athlete_thresholds]
+    payload["zones"] = _estimate_zones(anchored_threshold_objects, discipline)
     # ── Swain VO2max estimation ──────────────────────────────────────────
     from app.services.physiological_engine import estimate_vo2max_swain
     swain_vo2max = None
@@ -2520,6 +3304,11 @@ def _needs_recalculation(athlete: Athlete, snapshots: list[PhysiologicalSnapshot
 
 
 def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
+    # Expire any cached Athlete instance so the joinedload below picks up
+    # newly-added sessions (e.g. quick measurements added after a prior query).
+    _cached = db.get(Athlete, athlete_id)
+    if _cached is not None:
+        db.expire(_cached)
     athlete = db.scalar(
         select(Athlete)
         .options(
@@ -2534,10 +3323,14 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
     db.execute(delete(DerivedMetric).where(DerivedMetric.athlete_id == athlete_id))
     db.execute(delete(PerformanceEstimate).where(PerformanceEstimate.athlete_id == athlete_id))
     # Preserve interpolated snapshots (managed by interpolation endpoint, not recalculation)
+    # Use or_() with is_(None) to correctly handle NULL power_source values in SQL.
     db.execute(
         delete(PhysiologicalSnapshot).where(
             PhysiologicalSnapshot.athlete_id == athlete_id,
-            PhysiologicalSnapshot.power_source != "interpolated_from_running",
+            db_or(
+                PhysiologicalSnapshot.power_source != "interpolated_from_running",
+                PhysiologicalSnapshot.power_source.is_(None),
+            ),
         )
     )
 
@@ -2564,7 +3357,7 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
         _lt1_lactate = _lt1_phys.get("lactate") if _lt1_phys else None
         analysis["dynamic_thresholds"] = build_dynamic_threshold_payload(
             athlete=athlete,
-            sessions=[current for current in athlete.sessions if current.performed_at.date() <= session.performed_at.date()],
+            sessions=[current for current in athlete.sessions if current.performed_at.date() <= session.performed_at.date() and not getattr(current, "is_draft", False)],
             snapshots=prior_snapshots,
             discipline=session.discipline,
             as_of=session.performed_at.date(),
@@ -2576,7 +3369,7 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
             physiological_lt1_lactate_mmol=float(_lt1_lactate) if _lt1_lactate is not None else None,
         )
         analysis["individual_thresholds"] = _build_individual_thresholds(
-            sessions=[current for current in athlete.sessions if current.performed_at.date() <= session.performed_at.date()],
+            sessions=[current for current in athlete.sessions if current.performed_at.date() <= session.performed_at.date() and not getattr(current, "is_draft", False)],
             discipline=session.discipline,
             power_source=_normalized_power_source(session),
         )
@@ -3082,7 +3875,7 @@ def dynamic_thresholds_payload(
 
     return build_dynamic_threshold_payload(
         athlete=athlete,
-        sessions=athlete.sessions,
+        sessions=[s for s in athlete.sessions if not getattr(s, "is_draft", False)],
         snapshots=snapshots,
         discipline=resolved_discipline,
         as_of=resolved_as_of,

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -23,6 +23,7 @@ class Session(Base):
     comments: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     sprint_protocol: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     """Protocol duration for VLamax sprint tests: '15s' or '30s'. When set, overrides auto-detection."""
+    is_draft: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     athlete = relationship("Athlete", back_populates="sessions")

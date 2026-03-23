@@ -1,5 +1,5 @@
-import { FormEvent, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 
 type LoginMode = "coach" | "athlete";
@@ -58,8 +58,19 @@ const stepIndicatorStyle: React.CSSProperties = {
 };
 
 export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
+  const [searchParams] = useSearchParams();
+  const planFromUrl = searchParams.get("plan");
+
   const [mode, setMode] = useState<LoginMode | null>(defaultMode ?? null);
   const [authView, setAuthView] = useState<AuthView>(defaultMode ? "login" : "select");
+
+  // If ?plan= is in the URL, jump straight to athlete registration
+  useEffect(() => {
+    if (planFromUrl && !defaultMode) {
+      setMode("athlete");
+      setAuthView("athlete-step1");
+    }
+  }, [planFromUrl, defaultMode]);
   const copy = useMemo(() => (mode ? MODE_COPY[mode] : null), [mode]);
 
   // Login
@@ -249,12 +260,10 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
           <div className="lf-view lf-view-select">
             <p className="lf-subtitle">Inicia sesión como entrenador o accede al portal de atleta.</p>
             <div className="lf-mode-selector">
-              {/* COACH — hidden for now
               <button type="button" className="lf-mode-btn" onClick={() => selectMode("coach")}>
                 <strong>Entrenador</strong>
                 <small>Laboratorio y planificación</small>
               </button>
-              */}
               <button type="button" className="lf-mode-btn" onClick={() => selectMode("athlete")}>
                 <strong>Atleta</strong>
                 <small>Portal personal</small>
@@ -264,11 +273,9 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
               <button type="button" className="lf-link-btn" onClick={() => { setAuthView("athlete-step1"); setAthError(null); }}>
                 Crear cuenta de atleta
               </button>
-              {/* COACH — hidden for now
               <button type="button" className="lf-link-btn" onClick={() => setAuthView("register")}>
                 Crear cuenta de entrenador
               </button>
-              */}
               <Link to="/virtual-ride" className="lf-link-btn">Virtual Ride</Link>
             </div>
           </div>
@@ -300,13 +307,11 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
               <button type="button" className="lf-link-btn" onClick={() => { setAuthView("forgot"); setForgotError(null); setForgotSuccess(false); }}>
                 ¿Olvidaste tu contraseña?
               </button>
-              {/* COACH — hidden for now
               {mode === "coach" && (
                 <button type="button" className="lf-link-btn" onClick={() => { setAuthView("register"); setRegError(null); }}>
                   Crear cuenta de entrenador
                 </button>
               )}
-              */}
               {mode === "athlete" && (
                 <button type="button" className="lf-link-btn" onClick={() => { setAuthView("athlete-step1"); setAthError(null); }}>
                   Crear cuenta de atleta

@@ -53,7 +53,46 @@ def _session_density(session: AthleteSession) -> float:
     return total_work / total
 
 
-def _interval_duration_score(duration_seconds: int) -> float:
+def _interval_duration_score(duration_seconds: int, discipline: str = "running") -> float:
+    """Score interval duration — optimal ranges differ by discipline.
+
+    Running:  4-8 min optimal (steady-state ~2 min, 4 min ensures lactate equilibrium)
+    Cycling:  5-12 min optimal (power meter steady-state; Coggan/Newell protocols 5-8 min)
+    Swimming: 2.5-6 min optimal (shorter stages: 5-7×200m or 5×400m protocols)
+    """
+    disc = (discipline or "running").lower()
+
+    if disc in ("ciclismo", "cycling"):
+        if duration_seconds < 150:
+            return 0.35
+        if duration_seconds < 240:
+            return 0.55
+        if duration_seconds <= 360:
+            return 0.82
+        if duration_seconds <= 720:
+            return 0.95
+        if duration_seconds <= 900:
+            return 0.88
+        if duration_seconds <= 1200:
+            return 0.74
+        return 0.55
+
+    if disc in ("natacion", "natación", "swimming"):
+        if duration_seconds < 90:
+            return 0.38
+        if duration_seconds < 150:
+            return 0.68
+        if duration_seconds <= 240:
+            return 0.92
+        if duration_seconds <= 360:
+            return 0.90
+        if duration_seconds <= 480:
+            return 0.75
+        if duration_seconds <= 720:
+            return 0.60
+        return 0.45
+
+    # Running (default)
     if duration_seconds < 120:
         return 0.42
     if duration_seconds < 180:
@@ -71,8 +110,8 @@ def _interval_duration_score(duration_seconds: int) -> float:
     return 0.5
 
 
-def _interval_protocol_score(interval: SessionInterval) -> float:
-    duration_score = _interval_duration_score(interval.duration_seconds)
+def _interval_protocol_score(interval: SessionInterval, discipline: str = "running") -> float:
+    duration_score = _interval_duration_score(interval.duration_seconds, discipline)
     rest_ratio = (interval.rest_seconds or 0) / max(interval.duration_seconds, 1)
     if rest_ratio <= 0.15:
         rest_score = 1.0
@@ -300,7 +339,7 @@ def _accumulated_fatigue_penalty(session: AthleteSession, interval: SessionInter
 
 def _session_context_score(session: AthleteSession, interval: SessionInterval) -> float:
     density = _session_density(session)
-    protocol_score = _interval_protocol_score(interval)
+    protocol_score = _interval_protocol_score(interval, session.discipline)
     fatigue_penalty = _accumulated_fatigue_penalty(session, interval)
     # Only apply generic order_penalty for incremental sessions;
     # for repeated bouts, fatigue_penalty handles the order effect
@@ -421,7 +460,7 @@ def _collect_points(
                     "duration_seconds": interval.duration_seconds,
                     "rest_seconds": interval.rest_seconds,
                     "density": round(_session_density(session), 3),
-                    "protocol_score": _interval_protocol_score(interval),
+                    "protocol_score": _interval_protocol_score(interval, session.discipline),
                     "raw_lactate": round(sample.lactate_mmol, 2),
                     "baseline_lactate": baseline_value,
                     "baseline_source": baseline_source,

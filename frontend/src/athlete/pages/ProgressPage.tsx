@@ -3,17 +3,35 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { useAthleteData } from "../context/AthleteDataContext";
 import { useExplainer } from "../explainer/MetricExplainerContext";
 import { SimpleLactateCurve } from "../components/SimpleLactateCurve";
+import type { ScatterPoint } from "../components/SimpleLactateCurve";
+import { ThresholdAnchorBanner } from "../components/ThresholdAnchorBanner";
 import { MicroContent } from "../components/MicroContent";
 import { disciplineLabel, formatTrendValue, formatPace, formatEstimateValue, formatSecondsToClock } from "../utils/formatters";
 import { buildWeeklyVolumeByDiscipline, allSessionsDeduped } from "../utils/training";
-import type { Estimate } from "../../types";
+import type { Estimate, MeasurementLog } from "../../types";
 
 /* ── Race prediction helpers ───────────────────────────── */
 const RACE_DISTANCES: Record<string, number> = { "5K": 5, "10K": 10, HM: 21.0975, "Maratón": 42.195 };
+const SWIM_DISTANCES: Record<string, number> = { "100m": 100, "200m": 200, "400m": 400, "1500m": 1500 };
+const RACE_TYPES = new Set(["5K", "10K", "HM", "Maratón"]);
+const SWIM_RACE_TYPES = new Set(["100m", "200m", "400m", "1500m"]);
+const METABOLIC_TYPES = new Set(["VO2max", "VLAMAX", "FTP", "CSS"]);
 
 function raceTime(paceSkm: number | null | undefined, distKm: number) {
   if (typeof paceSkm !== "number" || !Number.isFinite(paceSkm)) return null;
   return formatSecondsToClock(paceSkm * distKm);
+}
+
+function swimTime(totalSeconds: number) {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = Math.round(totalSeconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+function formatSwimPace(sPer100m: number) {
+  const mins = Math.floor(sPer100m / 60);
+  const secs = Math.round(sPer100m % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}/100m`;
 }
 
 /* ── Engagement helpers ─────────────────────────────────── */
@@ -51,7 +69,11 @@ export function ProgressPage() {
   const activeBlock = data.analysis?.active_focus_block;
   const snapshots = data.disciplineSnapshots;
   const selectedSnapshot = data.selectedSnapshot;
-  const selectedPredictions = selectedSnapshot?.view.estimates?.slice(0, 4) ?? [];
+  const allEstimates = selectedSnapshot?.view.estimates ?? [];
+  const raceEstimates = allEstimates.filter((e) =>
+    RACE_TYPES.has(e.estimate_type) || SWIM_RACE_TYPES.has(e.estimate_type)
+  );
+  const metabolicEstimates = allEstimates.filter((e) => METABOLIC_TYPES.has(e.estimate_type));
 
   const allSessions = useMemo(() => allSessionsDeduped(data.analysis), [data.analysis]);
   const weeklyVolume12 = useMemo(() => buildWeeklyVolumeByDiscipline(allSessions, 12), [allSessions]);
@@ -69,40 +91,127 @@ export function ProgressPage() {
   const selectedView = selectedSnapshot?.view;
   const lt1Th = selectedView?.thresholds?.find((t) => t.name === "LT1");
   const lt2Th = selectedView?.thresholds?.find((t) => t.name === "LT2");
-  const lt1Hr = lt1Th?.heart_rate ?? null;
-  const lt2Hr = lt2Th?.heart_rate ?? null;
 
-  // Extract real lactate curve data with contextual lactate from curve_history (HR axis)
+  // Determine primary axis: pace for running/natación, power for ciclismo
+  const isPaceDisc = trendDiscipline === "running" || trendDiscipline === "natación";
+  const isPowerDisc = trendDiscipline === "ciclismo";
+
+  // LT1/LT2 on the primary axis
+  const lt1X = isPaceDisc ? (lt1Th?.pace_seconds_per_km ?? null)
+    : isPowerDisc ? (lt1Th?.power_watts ?? null)
+    : (lt1Th?.heart_rate ?? null);
+  const lt2X = isPaceDisc ? (lt2Th?.pace_seconds_per_km ?? null)
+    : isPowerDisc ? (lt2Th?.power_watts ?? null)
+    : (lt2Th?.heart_rate ?? null);
+
+  // Real LT1/LT2 on primary axis
+  const indiv = selectedView?.individual_thresholds;
+  const real = selectedView?.real_thresholds;
+  const realLt1X = isPaceDisc
+    ? (indiv?.lt1_individual?.pace_seconds_per_km ?? real?.lt1_real?.pace_seconds_per_km ?? null)
+    : isPowerDisc
+      ? (indiv?.lt1_individual?.power_watts ?? real?.lt1_real?.power_watts ?? null)
+      : (indiv?.lt1_individual?.heart_rate ?? real?.lt1_real?.heart_rate ?? null);
+  const realLt2X = isPaceDisc
+    ? (indiv?.lt2_individual?.pace_seconds_per_km ?? real?.lt2_real?.pace_seconds_per_km ?? null)
+    : isPowerDisc
+      ? (indiv?.lt2_individual?.power_watts ?? real?.lt2_real?.power_watts ?? null)
+      : (indiv?.lt2_individual?.heart_rate ?? real?.lt2_real?.heart_rate ?? null);
+
+  // X-axis configuration
+  const curveXLabel = isPaceDisc ? "Ritmo (min/km)" : isPowerDisc ? "Potencia (W)" : "FC (bpm)";
+  const curveReversed = isPaceDisc; // pace: high value = slow = left
+  const curveKey = isPaceDisc ? "pace" : isPowerDisc ? "power" : "hr";
+  const xTickFmt = isPaceDisc ? (v: number) => formatPace(v) : undefined;
+
+  // All measurement log entries
+  const allMeasurements = useMemo(() => {
+    const views = data.analysis?.discipline_views ?? {};
+    const disc = data.selectedDiscipline;
+    const view = views[disc];
+    if (!view?.measurement_log) return [];
+    return view.measurement_log;
+  }, [data.analysis?.discipline_views, data.selectedDiscipline]);
+
+  // Date range for scatter filter
+  const [scatterMonths, setScatterMonths] = useState(6);
+  const scatterDateCutoff = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - scatterMonths);
+    return d.toISOString().slice(0, 10);
+  }, [scatterMonths]);
+
+  // Build scatter points on primary axis
+  const scatterPoints: ScatterPoint[] = useMemo(() => {
+    return allMeasurements
+      .filter((m: MeasurementLog) => {
+        if (m.lactate_mmol == null || m.lactate_mmol <= 0) return false;
+        if (m.session_date < scatterDateCutoff) return false;
+        if (isPaceDisc) return m.pace_seconds_per_km != null && m.pace_seconds_per_km > 0;
+        if (isPowerDisc) return m.power_watts != null && m.power_watts > 0;
+        return m.heart_rate_avg != null;
+      })
+      .map((m: MeasurementLog) => ({
+        xVal: isPaceDisc ? m.pace_seconds_per_km! : isPowerDisc ? m.power_watts! : Math.round(m.heart_rate_avg!),
+        hr: m.heart_rate_avg ?? null,
+        lactate: m.lactate_mmol,
+        session_date: m.session_date,
+        session_id: m.session_id,
+      }));
+  }, [allMeasurements, scatterDateCutoff, isPaceDisc, isPowerDisc]);
+
+  // Build interval_id → HR lookup from measurement_log
+  const hrByInterval = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const m of (selectedView?.measurement_log ?? [])) {
+      if (m.heart_rate_avg != null) map.set(m.interval_id, m.heart_rate_avg);
+    }
+    return map;
+  }, [selectedView?.measurement_log]);
+
+  // Extract real curve data on primary axis from curve_history
   const realCurveData = useMemo(() => {
-    // Prefer curve_history.hr which has contextual_lactate, fall back to measurement_log
-    const curveHr = selectedView?.curve_history?.hr;
-    if (curveHr && curveHr.length >= 3) {
+    const curveData = selectedView?.curve_history?.[curveKey];
+    if (curveData && curveData.length >= 3) {
       const peakVal = selectedView?.measured_vlamax?.peak_lactate;
-      return curveHr
+      return curveData
         .filter((p) => typeof p.x === "number" && typeof p.lactate === "number")
         .map((p) => ({
-          hr: Math.round(p.x),
+          xVal: isPaceDisc ? p.x : Math.round(p.x),
+          hr: hrByInterval.get(p.interval_id) ?? null,
           lactate: p.lactate,
           contextual_lactate: typeof p.contextual_lactate === "number" ? p.contextual_lactate : undefined,
           is_peak: peakVal != null && Math.abs(p.lactate - peakVal) < 0.05,
         }))
-        .sort((a, b) => a.hr - b.hr);
+        .sort((a, b) => isPaceDisc ? b.xVal - a.xVal : a.xVal - b.xVal);
     }
     // Fallback: measurement_log
     const log = selectedView?.measurement_log ?? [];
     const points = log
-      .filter((entry) => entry.heart_rate_avg != null && entry.lactate_mmol != null && entry.lactate_mmol > 0)
-      .map((entry) => ({ hr: Math.round(entry.heart_rate_avg!), lactate: entry.lactate_mmol }))
-      .sort((a, b) => a.hr - b.hr);
+      .filter((entry) => {
+        if (entry.lactate_mmol == null || entry.lactate_mmol <= 0) return false;
+        if (isPaceDisc) return entry.pace_seconds_per_km != null && entry.pace_seconds_per_km > 0;
+        if (isPowerDisc) return entry.power_watts != null && entry.power_watts > 0;
+        return entry.heart_rate_avg != null;
+      })
+      .map((entry) => ({
+        xVal: isPaceDisc ? entry.pace_seconds_per_km! : isPowerDisc ? entry.power_watts! : Math.round(entry.heart_rate_avg!),
+        hr: entry.heart_rate_avg ?? null,
+        lactate: entry.lactate_mmol,
+      }))
+      .sort((a, b) => isPaceDisc ? b.xVal - a.xVal : a.xVal - b.xVal);
     return points.length >= 3 ? points : undefined;
-  }, [selectedView?.curve_history?.hr, selectedView?.measurement_log, selectedView?.measured_vlamax]);
+  }, [selectedView?.curve_history, selectedView?.measurement_log, selectedView?.measured_vlamax, curveKey, isPaceDisc, isPowerDisc, hrByInterval]);
 
-  // Derive maxHr from real data or thresholds instead of hardcoding
-  const maxHr = useMemo(() => {
-    if (realCurveData?.length) return Math.max(...realCurveData.map((p) => p.hr)) + 10;
-    if (typeof lt2Hr === "number") return Math.round(lt2Hr + 25);
-    return 190;
-  }, [realCurveData, lt2Hr]);
+  // maxX for fallback mock curve
+  const maxX = useMemo(() => {
+    if (realCurveData?.length) {
+      const vals = realCurveData.map((p) => p.xVal);
+      return isPaceDisc ? Math.min(...vals) - 10 : Math.max(...vals) + 10;
+    }
+    if (typeof lt2X === "number") return isPaceDisc ? lt2X - 30 : lt2X + 30;
+    return isPaceDisc ? 240 : isPowerDisc ? 350 : 190;
+  }, [realCurveData, lt2X, isPaceDisc, isPowerDisc]);
 
   // Build overlay chips (LT1/LT2 values + confidence)
   const curveOverlays = useMemo(() => {
@@ -188,6 +297,8 @@ export function ProgressPage() {
           </button>
         ))}
       </div>
+
+      <ThresholdAnchorBanner anchorStatus={selectedView?.threshold_anchor_status} />
 
       {/* ── Engagement Stats Row ───────────────────────── */}
       <div className="ath-engagement-row">
@@ -292,15 +403,37 @@ export function ProgressPage() {
 
       {/* ── Simplified Lactate Curve ────────────────────── */}
       <section className="ath-trend-section">
-        <h3 className="ath-section-title">Tu curva de lactato — {disciplineLabel(trendDiscipline)}</h3>
+        <div className="ath-curve-header">
+          <h3 className="ath-section-title" style={{ margin: 0 }}>Tu curva de lactato — {disciplineLabel(trendDiscipline)}</h3>
+          {allMeasurements.length > 0 && (
+            <div className="ath-scatter-range">
+              {[3, 6, 12].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  className={`ath-scatter-range__btn ${scatterMonths === m ? "active" : ""}`}
+                  onClick={() => setScatterMonths(m)}
+                >
+                  {m}m
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {realCurveData ? (
           <SimpleLactateCurve
-            lt1Hr={typeof lt1Hr === "number" ? lt1Hr : null}
-            lt2Hr={typeof lt2Hr === "number" ? lt2Hr : null}
-            maxHr={maxHr}
+            lt1X={typeof lt1X === "number" ? lt1X : null}
+            lt2X={typeof lt2X === "number" ? lt2X : null}
+            maxX={maxX}
             dataPoints={realCurveData}
             overlays={curveOverlays}
             peakLactate={peakLactate}
+            scatterPoints={scatterPoints}
+            realLt1X={typeof realLt1X === "number" ? realLt1X : null}
+            realLt2X={typeof realLt2X === "number" ? realLt2X : null}
+            xLabel={curveXLabel}
+            reversed={curveReversed}
+            xTickFormatter={xTickFmt}
           />
         ) : (
           <p style={{ color: "var(--ath-text-muted, #888)", fontSize: "0.9rem", padding: "24px 0" }}>
@@ -314,23 +447,28 @@ export function ProgressPage() {
         </MicroContent>
       </section>
 
-      {/* ── Predictions ────────────────────────────────── */}
-      {selectedPredictions.length > 0 && (
+      {/* ── Race Predictions ────────────────────────────── */}
+      {raceEstimates.length > 0 && (
         <section className="ath-predictions">
-          <h3 className="ath-section-title">Referencias estimadas</h3>
+          <h3 className="ath-section-title">
+            {data.selectedDiscipline === "natación" ? "Tiempos estimados" : "Referencias de carrera"}
+          </h3>
           <div className="ath-predictions-grid">
-            {selectedPredictions.map((estimate: Estimate) => {
+            {raceEstimates.map((estimate: Estimate) => {
               const distKm = RACE_DISTANCES[estimate.estimate_type];
-              const hasPaces = distKm && estimate.unit === "s/km" && estimate.ritmo_objetivo;
+              const isRunning = distKm && estimate.unit === "s/km" && estimate.ritmo_objetivo;
+              const isSwim = SWIM_RACE_TYPES.has(estimate.estimate_type) && estimate.unit === "s_total";
               return (
                 <div key={estimate.estimate_type} className="ath-prediction-card">
                   <span className="ath-prediction-type">{estimate.estimate_type}</span>
                   <strong className="ath-prediction-value">
-                    {hasPaces
+                    {isRunning
                       ? raceTime(estimate.ritmo_objetivo, distKm) ?? formatEstimateValue(estimate)
-                      : formatEstimateValue(estimate)}
+                      : isSwim
+                        ? swimTime(estimate.value)
+                        : formatEstimateValue(estimate)}
                   </strong>
-                  {hasPaces ? (
+                  {isRunning ? (
                     <div className="ath-prediction-paces">
                       <span className="ath-prediction-pace-row">
                         <span className="ath-prediction-pace-label">Techo</span>
@@ -345,6 +483,21 @@ export function ProgressPage() {
                         <span>{raceTime(estimate.ritmo_seguro, distKm) ?? "-"}</span>
                       </span>
                     </div>
+                  ) : isSwim && estimate.ritmo_objetivo ? (
+                    <div className="ath-prediction-paces">
+                      <span className="ath-prediction-pace-row">
+                        <span className="ath-prediction-pace-label">Techo</span>
+                        <span>{estimate.ritmo_techo ? formatSwimPace(estimate.ritmo_techo) : "-"}</span>
+                      </span>
+                      <span className="ath-prediction-pace-row objetivo">
+                        <span className="ath-prediction-pace-label">Objetivo</span>
+                        <span>{formatSwimPace(estimate.ritmo_objetivo)}</span>
+                      </span>
+                      <span className="ath-prediction-pace-row">
+                        <span className="ath-prediction-pace-label">Seguro</span>
+                        <span>{estimate.ritmo_seguro ? formatSwimPace(estimate.ritmo_seguro) : "-"}</span>
+                      </span>
+                    </div>
                   ) : null}
                   {estimate.reliability_label && (
                     <span className="ath-prediction-reliability">{estimate.reliability_label}</span>
@@ -352,6 +505,28 @@ export function ProgressPage() {
                 </div>
               );
             })}
+          </div>
+        </section>
+      )}
+
+      {/* ── Metabolic Markers ──────────────────────────── */}
+      {metabolicEstimates.length > 0 && (
+        <section className="ath-predictions">
+          <h3 className="ath-section-title">Marcadores metabólicos</h3>
+          <div className="ath-predictions-grid">
+            {metabolicEstimates.map((estimate: Estimate) => (
+              <div key={estimate.estimate_type} className="ath-prediction-card">
+                <span className="ath-prediction-type">{estimate.estimate_type}</span>
+                <strong className="ath-prediction-value">
+                  {estimate.estimate_type === "CSS" && estimate.unit === "s/100m"
+                    ? formatSwimPace(estimate.value)
+                    : formatEstimateValue(estimate)}
+                </strong>
+                {estimate.reliability_label && (
+                  <span className="ath-prediction-reliability">{estimate.reliability_label}</span>
+                )}
+              </div>
+            ))}
           </div>
         </section>
       )}

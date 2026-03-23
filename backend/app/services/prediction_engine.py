@@ -1356,6 +1356,225 @@ def _cycling_estimates(
     return estimates
 
 
+# ── Swimming prediction constants ─────────────────────────────────────────
+# Pool race distances in meters
+_SWIM_DISTANCE_M: dict[str, int] = {
+    "100m": 100,
+    "200m": 200,
+    "400m": 400,
+    "1500m": 1500,
+}
+
+# CSS (Critical Swim Speed) ≈ pace sustainable at LT2.
+# Race pace relative to CSS by distance (Dekerle et al. 2002, Wakayoshi 1992):
+#   100m: ~110-115% CSS, 200m: ~105-108%, 400m: ~100-103%, 1500m: ~96-99%
+_SWIM_CSS_FACTOR: dict[str, float] = {
+    "100m": 1.12,
+    "200m": 1.06,
+    "400m": 1.015,
+    "1500m": 0.975,
+}
+
+_SWIM_CONFIDENCE_PENALTY: dict[str, float] = {
+    "100m": 0.06,
+    "200m": 0.04,
+    "400m": 0.02,
+    "1500m": 0.03,
+}
+
+_SWIM_BASE_SPREAD: dict[str, float] = {
+    "100m": 0.04,
+    "200m": 0.03,
+    "400m": 0.025,
+    "1500m": 0.035,
+}
+
+
+def _swimming_prediction_inputs(
+    thresholds: list[Any],
+    dynamic_thresholds: Optional[dict[str, Any]],
+    snapshots: list[PhysiologicalSnapshot],
+    discipline: str,
+    power_source: Optional[str],
+    history_depth: int,
+) -> Optional[dict[str, Any]]:
+    lt1 = _find_threshold(thresholds, "LT1")
+    lt2 = _find_threshold(thresholds, "LT2")
+    lt2_pace = _threshold_attr(lt2, "pace_seconds_per_km")
+    if lt2_pace is None:
+        return None
+
+    anchors: list[dict[str, Any]] = []
+    weighted_sources: list[tuple[float, float, str]] = []
+
+    lt2_confidence = float(_threshold_attr(lt2, "confidence") or 0.55)
+    anchors.append({
+        "label": "LT2 fisiológico",
+        "value": round(float(lt2_pace), 1),
+        "unit": "s/km",
+        "confidence": round(lt2_confidence, 2),
+    })
+    weighted_sources.append((float(lt2_pace), max(0.25, lt2_confidence), "lt2_fisiologico"))
+
+    chronic = (dynamic_thresholds or {}).get("chronic") or {}
+    practical_lt2 = chronic.get("practical_lt2") or {}
+    practical_pace = practical_lt2.get("estimated_pace_seconds_per_km")
+    practical_confidence = float(practical_lt2.get("confidence_score") or practical_lt2.get("reliability_score") or 0.0)
+    if practical_pace is not None:
+        anchors.append({
+            "label": "LT2 práctico crónico",
+            "value": round(float(practical_pace), 1),
+            "unit": "s/km",
+            "confidence": round(practical_confidence, 2),
+        })
+        weighted_sources.append((float(practical_pace), max(0.2, practical_confidence), "lt2_practico_cronico"))
+
+    total_weight = sum(w for _, w, _ in weighted_sources)
+    reference_pace = sum(v * w for v, w, _ in weighted_sources) / max(total_weight, 1e-6)
+    # CSS in s/100m — convert from s/km
+    css_s_per_100m = reference_pace / 10.0
+
+    agreement = _agreement_score([v for v, _, _ in weighted_sources], reference_pace)
+    lt2_history = [
+        snapshot.lt2_pace_seconds_per_km
+        for snapshot in snapshots
+        if snapshot.discipline == discipline
+        and snapshot.lt2_pace_seconds_per_km is not None
+    ]
+    lt2_history.append(float(lt2_pace))
+    stability = _historical_stability([v for v in lt2_history if v is not None])
+    history_score = round(_clamp(0.28 + min(history_depth, 6) * 0.1, 0.28, 0.88), 2)
+
+    cautions: list[str] = []
+    lt1_pace = _threshold_attr(lt1, "pace_seconds_per_km")
+    if lt1_pace is not None and lt2_pace:
+        ratio = float(lt2_pace) / float(lt1_pace) if float(lt1_pace) > 0 else 0.88
+        endurance_score = round(_clamp((ratio - 0.82) / 0.12, 0.0, 1.0), 2)
+    else:
+        endurance_score = 0.52
+        cautions.append("Sin LT1 comparable, el perfil de resistencia se estima con prudencia.")
+
+    if history_depth < 3:
+        cautions.append("Histórico corto para afinar predicciones de natación.")
+
+    base_confidence = round(
+        _clamp(
+            mean([item["confidence"] for item in anchors]) * 0.48
+            + stability * 0.2
+            + agreement * 0.17
+            + history_score * 0.15,
+            0.38,
+            0.88,
+        ),
+        2,
+    )
+
+    return {
+        "css_s_per_100m": round(css_s_per_100m, 1),
+        "reference_pace": round(reference_pace, 1),
+        "agreement_score": agreement,
+        "stability_score": stability,
+        "history_score": history_score,
+        "endurance_score": endurance_score,
+        "base_confidence": base_confidence,
+        "anchors": anchors,
+        "cautions": cautions,
+        "lt1_missing": lt1_pace is None,
+    }
+
+
+def _swimming_estimates(
+    athlete: Athlete,
+    snapshot_date: date,
+    power_source: Optional[str],
+    history_depth: int,
+    inputs: dict[str, Any],
+) -> list[dict[str, Any]]:
+    css = inputs["css_s_per_100m"]  # s/100m
+    estimates: list[dict[str, Any]] = []
+
+    # CSS estimate card
+    estimates.append(
+        _estimate_payload(
+            estimate_type="CSS",
+            discipline="natación",
+            power_source=power_source,
+            value=css,
+            unit="s/100m",
+            confidence=_clamp(inputs["base_confidence"], 0.40, 0.90),
+            snapshot_date=snapshot_date,
+            variables_used=["lt2_pace", "practical_lt2_chronic_pace", "history_depth"],
+            evidence_points=history_depth,
+            explanation="CSS (Critical Swim Speed) derivada de LT2 fisiológico y LT2 práctico crónico.",
+            spread=0.03,
+            method_used="lt2_css_proxy_v1",
+            primary_anchor="lt2_blended_reference",
+            agreement_score=inputs["agreement_score"],
+            range_summary="CSS equivale al ritmo sostenible en umbral anaeróbico en natación.",
+            calculation_steps=[
+                "Se toma LT2 como ancla principal del ritmo sostenible.",
+                "CSS (Dekerle 2002) ≈ ritmo en umbral anaeróbico.",
+            ],
+            cautions=list(inputs["cautions"]),
+            anchors=list(inputs["anchors"]),
+            confidence_factors=[],
+        )
+    )
+
+    # Race time predictions per distance
+    for estimate_type, distance_m in _SWIM_DISTANCE_M.items():
+        factor = _SWIM_CSS_FACTOR[estimate_type]
+        # Race pace in s/100m — faster than CSS for short, slower for long
+        race_pace_100m = css / factor  # lower = faster
+        race_time_seconds = race_pace_100m * distance_m / 100.0
+
+        spread = _SWIM_BASE_SPREAD[estimate_type]
+        confidence = inputs["base_confidence"] - _SWIM_CONFIDENCE_PENALTY[estimate_type]
+        confidence = round(_clamp(confidence, 0.35, 0.88), 2)
+
+        # Three-pace system: techo/objetivo/seguro (in s/100m, lower = faster)
+        rt_objetivo = race_pace_100m
+        rt_techo = race_pace_100m * (1 - spread * 0.8)
+        rt_seguro = race_pace_100m * (1 + spread * 1.2)
+
+        estimates.append(
+            _estimate_payload(
+                estimate_type=estimate_type,
+                discipline="natación",
+                power_source=power_source,
+                value=round(race_time_seconds, 1),
+                unit="s_total",
+                confidence=confidence,
+                snapshot_date=snapshot_date,
+                variables_used=["css", "lt2_pace", "history_depth"],
+                evidence_points=history_depth,
+                explanation=(
+                    f"Tiempo estimado en {estimate_type}: {round(race_time_seconds, 1)}s "
+                    f"a ritmo {round(race_pace_100m, 1)} s/100m "
+                    f"(CSS × {factor:.0%})."
+                ),
+                spread=spread,
+                method_used="css_race_factor_v1",
+                primary_anchor="css_from_lt2",
+                agreement_score=inputs["agreement_score"],
+                range_summary=f"Factor CSS: {estimate_type} ≈ {factor:.0%} del CSS.",
+                calculation_steps=[
+                    f"CSS = {round(css, 1)} s/100m desde LT2.",
+                    f"Ritmo {estimate_type} = CSS / {factor} = {round(race_pace_100m, 1)} s/100m.",
+                    f"Tiempo total = {round(race_time_seconds, 1)}s.",
+                ],
+                cautions=list(inputs["cautions"]),
+                anchors=list(inputs["anchors"]),
+                confidence_factors=[],
+                ritmo_techo=round(rt_techo, 1),
+                ritmo_objetivo=round(rt_objetivo, 1),
+                ritmo_seguro=round(rt_seguro, 1),
+            )
+        )
+
+    return estimates
+
+
 def build_performance_estimates(
     athlete: Athlete,
     discipline: str,
@@ -1410,6 +1629,25 @@ def build_performance_estimates(
             power_source=power_source,
             history_depth=max(1, history_depth),
             inputs=cycling_inputs,
+        )
+
+    if normalized_discipline == "natación":
+        swimming_inputs = _swimming_prediction_inputs(
+            thresholds=thresholds,
+            dynamic_thresholds=dynamic_thresholds,
+            snapshots=snapshots,
+            discipline=normalized_discipline,
+            power_source=power_source,
+            history_depth=history_depth,
+        )
+        if not swimming_inputs:
+            return []
+        return _swimming_estimates(
+            athlete=athlete,
+            snapshot_date=snapshot_date,
+            power_source=power_source,
+            history_depth=max(1, history_depth),
+            inputs=swimming_inputs,
         )
 
     return []

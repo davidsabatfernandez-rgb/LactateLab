@@ -19,6 +19,7 @@ class UserRead(BaseModel):
     role: str
     full_name: str
     athlete_id: Optional[int] = None
+    plan_tier: str = "free"
 
     model_config = {"from_attributes": True}
 
@@ -76,6 +77,7 @@ class AthleteRegisterRequest(BaseModel):
     email: EmailStr
     password: str
     full_name: str
+    plan_tier: Optional[str] = "free"  # "free", "lactate", "pro", "pro_plus", "elite"
     # Questionnaire
     sex: str  # "M" or "F"
     weight_kg: float
@@ -99,6 +101,18 @@ class PendingUserRead(BaseModel):
     full_name: str
     role: str
     created_at: str
+
+    model_config = {"from_attributes": True}
+
+
+class UpdatePlanRequest(BaseModel):
+    plan_tier: str  # "free", "lactate", "pro", "pro_plus", "elite"
+
+
+class PlanInfoRead(BaseModel):
+    plan_tier: str
+    plan_name: str
+    features: dict
 
     model_config = {"from_attributes": True}
 

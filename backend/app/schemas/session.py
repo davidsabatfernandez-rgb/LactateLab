@@ -55,6 +55,7 @@ class SessionIntervalCreate(SessionIntervalBase):
 
 
 class SessionIntervalUpdate(BaseModel):
+    duration_seconds: Optional[int] = Field(default=None, gt=0)
     rest_seconds: Optional[int] = Field(default=None, ge=0)
     rest_type: Optional[str] = None
     heart_rate_avg: Optional[int] = Field(default=None, ge=0)
@@ -90,6 +91,7 @@ class SessionBase(BaseModel):
 
 
 class SessionCreate(SessionBase):
+    is_draft: bool = False
     intervals: list[SessionIntervalCreate]
 
 
@@ -104,10 +106,12 @@ class SessionUpdate(BaseModel):
     temperature_c: Optional[float] = None
     comments: Optional[str] = None
     sprint_protocol: Optional[str] = None
+    is_draft: Optional[bool] = None
 
 
 class SessionRead(SessionBase):
     id: int
+    is_draft: bool = False
     intervals: list[SessionIntervalRead] = []
 
     model_config = {"from_attributes": True}

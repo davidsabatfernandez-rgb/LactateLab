@@ -2599,6 +2599,7 @@ function FunctionalThresholdsEditor({ athlete, token }: { athlete: Athlete; toke
   const [rftpaPace, setRftpaPace] = useState(secondsToPace(athlete.ftpa_running_pace));
   const [cssPace, setCssPace] = useState(secondsToPace(athlete.css_swimming_pace));
   const [hrRest, setHrRest] = useState(athlete.hr_rest?.toString() ?? "");
+  const [hrMax, setHrMax] = useState(athlete.training_hr_max?.toString() ?? "");
   const [thresholdMode, setThresholdMode] = useState(athlete.threshold_mode ?? "lactate");
   const [vo2maxVal, setVo2maxVal] = useState(athlete.vo2max_ml_kg_min?.toString() ?? "");
   const [saving, setSaving] = useState(false);
@@ -2703,6 +2704,21 @@ function FunctionalThresholdsEditor({ athlete, token }: { athlete: Athlete; toke
           style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
         />
         {savedField === "hr_rest" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
+      </label>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FC Máxima (bpm)</span>
+        <input
+          type="number"
+          placeholder="Sin dato"
+          min="100"
+          max="230"
+          value={hrMax}
+          onChange={(e) => setHrMax(e.target.value)}
+          onBlur={() => { const v = parseInt(hrMax, 10); saveField("training_hr_max", isNaN(v) ? null : v); }}
+          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+        />
+        {savedField === "training_hr_max" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
       </label>
     </div>
   );

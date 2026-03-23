@@ -369,6 +369,7 @@ export function LactateDemo() {
   const [hrRest, setHrRest] = useState("52");
   const [peakLac, setPeakLac] = useState("");
   const [showResult, setShowResult] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const result = useMemo(
     () => (showResult ? analyze(rows, mode, parseInt(hrMax) || 0, parseInt(hrRest) || 0, parseFloat(peakLac) || 0) : null),
@@ -464,6 +465,22 @@ export function LactateDemo() {
         <div className="ld-container">
           {/* ── Input panel ── */}
           <div className="ld-input">
+            {!expanded ? (
+              /* ── Collapsed: single CTA button ── */
+              <div className="ld-collapsed">
+                <div className="ld-collapsed__icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d26a36" strokeWidth="1.6" strokeLinecap="round">
+                    <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+                  </svg>
+                </div>
+                <p className="ld-collapsed__text">{t("demo_collapsed_text")}</p>
+                <button type="button" className="lp-btn-solid lp-btn--accent ld-collapsed__btn" onClick={() => setExpanded(true)}>
+                  + {t("demo_collapsed_cta")}
+                </button>
+              </div>
+            ) : (
+              /* ── Expanded: full form ── */
+              <>
             {/* Mode toggle */}
             <div className="ld-mode">
               <span className="ld-mode__label">{t("demo_input_mode")}</span>
@@ -570,6 +587,8 @@ export function LactateDemo() {
               <button type="button" className="lp-btn-solid ld-analyze" onClick={() => setShowResult(true)}>
                 {t("demo_analyze")}
               </button>
+            )}
+              </>
             )}
           </div>
 

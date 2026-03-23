@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import {
   ResponsiveContainer,
-  LineChart,
+  ComposedChart,
   Line,
+  Scatter,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -12,10 +13,19 @@ import {
 } from "recharts";
 
 type DataPoint = {
-  hr: number;
+  xVal: number;       // generic X value (pace s/km, power W, or HR bpm)
+  hr?: number | null;
   lactate: number;
   contextual_lactate?: number | null;
   is_peak?: boolean;
+};
+
+export type ScatterPoint = {
+  xVal: number;
+  hr?: number | null;
+  lactate: number;
+  session_date: string;
+  session_id: number;
 };
 
 type OverlayChip = {
@@ -32,52 +42,86 @@ type RefLine = {
 };
 
 type SimpleLactateCurveProps = {
-  lt1Hr: number | null;
-  lt2Hr: number | null;
-  maxHr: number | null;
+  lt1X: number | null;
+  lt2X: number | null;
+  maxX?: number | null;
   dataPoints?: DataPoint[];
   overlays?: OverlayChip[];
   references?: RefLine[];
   peakLactate?: number | null;
   xLabel?: string;
+  xAxisKey?: string;
+  reversed?: boolean;           // true for pace (high value = slow = left)
+  xTickFormatter?: (v: number) => string;
+  scatterPoints?: ScatterPoint[];
+  realLt1X?: number | null;
+  realLt2X?: number | null;
+  // Legacy HR-based props (mapped internally)
+  lt1Hr?: number | null;
+  lt2Hr?: number | null;
+  maxHr?: number | null;
+  realLt1Hr?: number | null;
+  realLt2Hr?: number | null;
 };
 
-/** Generate a realistic exponential lactate curve from HR landmarks. */
+/** Generate a realistic exponential lactate curve from landmarks. */
 function generateMockCurve(
-  lt1Hr: number,
-  lt2Hr: number,
-  maxHr: number
+  lt1: number,
+  lt2: number,
+  max: number,
+  reversed: boolean,
 ): DataPoint[] {
-  const minHr = Math.round(lt1Hr - 30);
+  const minVal = reversed ? max : Math.round(lt1 - 30);
+  const maxVal = reversed ? Math.round(lt1 + 30) : max;
   const points: DataPoint[] = [];
   const steps = 12;
-  const hrStep = (maxHr - minHr) / (steps - 1);
+  const step = (maxVal - minVal) / (steps - 1);
 
   for (let i = 0; i < steps; i++) {
-    const hr = Math.round(minHr + i * hrStep);
+    const x = Math.round(minVal + i * step);
+    // For reversed (pace), lower x = faster = higher lactate
+    const effectiveX = reversed ? maxVal - (x - minVal) : x;
+    const eLt1 = reversed ? maxVal - (lt1 - minVal) : lt1;
+    const eLt2 = reversed ? maxVal - (lt2 - minVal) : lt2;
+    const eMax = reversed ? 0 : max;
     let lactate: number;
-    if (hr <= lt1Hr) {
-      lactate = 0.8 + 0.4 * ((hr - minHr) / (lt1Hr - minHr));
-    } else if (hr <= lt2Hr) {
-      const t = (hr - lt1Hr) / (lt2Hr - lt1Hr);
+    if (effectiveX <= eLt1) {
+      lactate = 0.8 + 0.4 * ((effectiveX - (reversed ? 0 : minVal)) / Math.abs(eLt1 - (reversed ? 0 : minVal)) || 1);
+    } else if (effectiveX <= eLt2) {
+      const t = (effectiveX - eLt1) / (eLt2 - eLt1 || 1);
       lactate = 1.2 + t * 2.0 + t * t * 0.8;
     } else {
-      const t = (hr - lt2Hr) / (maxHr - lt2Hr);
+      const t = (effectiveX - eLt2) / ((reversed ? maxVal : eMax) - eLt2 || 1);
       lactate = 4.0 + t * 4.0 + t * t * 2.5;
     }
     lactate = Math.round((lactate + (Math.random() - 0.5) * 0.15) * 100) / 100;
-    points.push({ hr, lactate: Math.max(0.5, lactate) });
+    points.push({ xVal: x, lactate: Math.max(0.5, lactate) });
   }
   return points;
 }
 
-function CurveTooltip({ active, payload }: any) {
+function CurveTooltip({ active, payload, xFormatter }: any) {
   if (!active || !payload?.length) return null;
-  const d = payload[0].payload as DataPoint;
+  const d = payload[0].payload;
+  const lac = d.lactate ?? d.scatterLactate;
+  if (typeof lac !== "number") return null;
+  const xDisp = xFormatter ? xFormatter(d.xVal) : `${d.xVal}`;
+  const hrDisp = typeof d.hr === "number" ? `${Math.round(d.hr)} bpm` : null;
+  if (d._isScatter) {
+    return (
+      <div className="ath-curve-tooltip">
+        <span className="ath-curve-tooltip-hr">{xDisp}</span>
+        {hrDisp && <span className="ath-curve-tooltip-ctx">{hrDisp}</span>}
+        <span className="ath-curve-tooltip-lac">{lac.toFixed(2)} mmol/L</span>
+        <span className="ath-curve-tooltip-ctx" style={{ opacity: 0.7, fontSize: 10 }}>{d.session_date}</span>
+      </div>
+    );
+  }
   return (
     <div className="ath-curve-tooltip">
-      <span className="ath-curve-tooltip-hr">{d.hr} bpm</span>
-      <span className="ath-curve-tooltip-lac">{d.lactate.toFixed(2)} mmol/L</span>
+      <span className="ath-curve-tooltip-hr">{xDisp}</span>
+      {hrDisp && <span className="ath-curve-tooltip-ctx">{hrDisp}</span>}
+      <span className="ath-curve-tooltip-lac">{lac.toFixed(2)} mmol/L</span>
       {d.contextual_lactate != null && (
         <span className="ath-curve-tooltip-ctx">{d.contextual_lactate.toFixed(2)} mmol/L ctx</span>
       )}
@@ -98,33 +142,105 @@ function PeakDot(props: any) {
   );
 }
 
+function ScatterDot(props: any) {
+  const { cx, cy } = props;
+  if (typeof cx !== "number" || typeof cy !== "number") return null;
+  return (
+    <circle cx={cx} cy={cy} r={3.5} fill="var(--ath-accent, #6366f1)" fillOpacity={0.18} stroke="var(--ath-accent, #6366f1)" strokeWidth={0.5} strokeOpacity={0.3} />
+  );
+}
+
 export function SimpleLactateCurve({
-  lt1Hr,
-  lt2Hr,
-  maxHr,
+  lt1X: lt1XProp,
+  lt2X: lt2XProp,
+  maxX: maxXProp,
   dataPoints,
   overlays = [],
   references = [],
   peakLactate,
   xLabel = "FC (bpm)",
+  xAxisKey = "xVal",
+  reversed = false,
+  xTickFormatter,
+  scatterPoints = [],
+  realLt1X: realLt1XProp,
+  realLt2X: realLt2XProp,
+  // Legacy HR props
+  lt1Hr,
+  lt2Hr,
+  maxHr,
+  realLt1Hr,
+  realLt2Hr,
 }: SimpleLactateCurveProps) {
-  const effectiveLt1 = lt1Hr ?? 140;
-  const effectiveLt2 = lt2Hr ?? 165;
-  const effectiveMax = maxHr ?? 190;
+  // Resolve: prefer new generic props, fall back to legacy HR props
+  const lt1Val = lt1XProp ?? lt1Hr ?? 140;
+  const lt2Val = lt2XProp ?? lt2Hr ?? 165;
+  const maxVal = maxXProp ?? maxHr ?? 190;
+  const realLt1Val = realLt1XProp ?? realLt1Hr ?? null;
+  const realLt2Val = realLt2XProp ?? realLt2Hr ?? null;
 
   const data = useMemo(() => {
-    if (dataPoints && dataPoints.length >= 3) return dataPoints;
-    return generateMockCurve(effectiveLt1, effectiveLt2, effectiveMax);
-  }, [dataPoints, effectiveLt1, effectiveLt2, effectiveMax]);
+    if (dataPoints && dataPoints.length >= 3) {
+      // Group points by xVal and average lactate to remove staircase artifacts
+      const grouped = new Map<number, { lactates: number[]; ctxs: number[]; peak: boolean }>();
+      for (const p of dataPoints) {
+        const key = p.xVal;
+        const g = grouped.get(key) ?? { lactates: [], ctxs: [], peak: false };
+        g.lactates.push(p.lactate);
+        if (typeof p.contextual_lactate === "number") g.ctxs.push(p.contextual_lactate);
+        if (p.is_peak) g.peak = true;
+        grouped.set(key, g);
+      }
+      const smoothed: DataPoint[] = [];
+      for (const [xv, g] of grouped) {
+        const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+        smoothed.push({
+          xVal: xv,
+          lactate: Math.round(avg(g.lactates) * 100) / 100,
+          contextual_lactate: g.ctxs.length ? Math.round(avg(g.ctxs) * 100) / 100 : undefined,
+          is_peak: g.peak,
+        });
+      }
+      return smoothed.sort((a, b) => reversed ? b.xVal - a.xVal : a.xVal - b.xVal);
+    }
+    return generateMockCurve(lt1Val, lt2Val, maxVal, reversed);
+  }, [dataPoints, lt1Val, lt2Val, maxVal, reversed]);
+
+  const mergedData = useMemo(() => {
+    const main = data.map((d) => ({ ...d, _isScatter: false }));
+    const scatter = scatterPoints.map((s) => ({
+      xVal: s.xVal,
+      hr: s.hr ?? null,
+      lactate: undefined as number | undefined,
+      scatterLactate: s.lactate,
+      session_date: s.session_date,
+      session_id: s.session_id,
+      _isScatter: true,
+    }));
+    return { main, scatter };
+  }, [data, scatterPoints]);
 
   const hasContextual = data.some((d) => d.contextual_lactate != null);
-  const hrMin = Math.min(...data.map((d) => d.hr));
-  const hrMax = Math.max(...data.map((d) => d.hr));
-  const lacMax = Math.max(...data.map((d) => d.lactate));
+
+  const allXs = [...data.map((d) => d.xVal), ...scatterPoints.map((s) => s.xVal)];
+  const allLactates = [...data.map((d) => d.lactate), ...scatterPoints.map((s) => s.lactate)];
+  const xMin = allXs.length ? Math.min(...allXs) : 100;
+  const xMax = allXs.length ? Math.max(...allXs) : 200;
+  const lacMax = allLactates.length ? Math.max(...allLactates) : 8;
+
+  const hasScatter = scatterPoints.length > 0;
+  const hasRealLt1 = typeof realLt1Val === "number";
+  const hasRealLt2 = typeof realLt2Val === "number";
+
+  // For reversed (pace), domain goes high→low so curve rises left→right
+  const domain: [number, number] = reversed ? [xMax, xMin] : [xMin, xMax];
+
+  // Zone boundaries: for reversed axis, lt1 > lt2 in value (slower pace)
+  const zoneStart = reversed ? xMax : xMin;
+  const zoneEnd = reversed ? xMin : xMax;
 
   return (
     <div className="ath-curve-wrap">
-      {/* Overlay chips */}
       {overlays.length > 0 && (
         <div className="ath-curve-overlays">
           {overlays.map((o) => (
@@ -136,11 +252,8 @@ export function SimpleLactateCurve({
         </div>
       )}
 
-      <ResponsiveContainer width="100%" height={240}>
-        <LineChart
-          data={data}
-          margin={{ top: 12, right: 16, bottom: 4, left: -8 }}
-        >
+      <ResponsiveContainer width="100%" height={260}>
+        <ComposedChart margin={{ top: 12, right: 16, bottom: 4, left: -8 }}>
           <CartesianGrid
             strokeDasharray="3 3"
             stroke="var(--ath-border)"
@@ -148,13 +261,13 @@ export function SimpleLactateCurve({
           />
 
           {/* Zone coloring */}
-          <ReferenceArea x1={hrMin} x2={effectiveLt1} fill="var(--ath-green)" fillOpacity={0.06} />
-          <ReferenceArea x1={effectiveLt1} x2={effectiveLt2} fill="var(--ath-amber)" fillOpacity={0.06} />
-          <ReferenceArea x1={effectiveLt2} x2={hrMax} fill="var(--ath-red)" fillOpacity={0.06} />
+          <ReferenceArea x1={zoneStart} x2={lt1Val} fill="var(--ath-green)" fillOpacity={0.06} />
+          <ReferenceArea x1={lt1Val} x2={lt2Val} fill="var(--ath-amber)" fillOpacity={0.06} />
+          <ReferenceArea x1={lt2Val} x2={zoneEnd} fill="var(--ath-red)" fillOpacity={0.06} />
 
           {/* LT1 line */}
           <ReferenceLine
-            x={effectiveLt1}
+            x={lt1Val}
             stroke="var(--ath-green)"
             strokeDasharray="6 3"
             strokeWidth={1.5}
@@ -163,14 +276,33 @@ export function SimpleLactateCurve({
 
           {/* LT2 line */}
           <ReferenceLine
-            x={effectiveLt2}
+            x={lt2Val}
             stroke="var(--ath-red)"
             strokeDasharray="6 3"
             strokeWidth={1.5}
             label={{ value: "LT2", position: "top", fill: "var(--ath-red)", fontSize: 11, fontWeight: 600 }}
           />
 
-          {/* Extra reference lines (dynamic thresholds, real thresholds) */}
+          {hasRealLt1 && (
+            <ReferenceLine
+              x={realLt1Val!}
+              stroke="#166534"
+              strokeDasharray="3 2"
+              strokeWidth={1.2}
+              label={{ value: "LT1r", position: "insideTopLeft", fill: "#166534", fontSize: 9, fontWeight: 500 }}
+            />
+          )}
+
+          {hasRealLt2 && (
+            <ReferenceLine
+              x={realLt2Val!}
+              stroke="#9a3412"
+              strokeDasharray="3 2"
+              strokeWidth={1.2}
+              label={{ value: "LT2r", position: "insideTopRight", fill: "#9a3412", fontSize: 9, fontWeight: 500 }}
+            />
+          )}
+
           {references.map((ref) => (
             <ReferenceLine
               key={ref.label}
@@ -182,7 +314,6 @@ export function SimpleLactateCurve({
             />
           ))}
 
-          {/* Peak lactate horizontal line */}
           {peakLactate != null && (
             <ReferenceLine
               y={peakLactate}
@@ -194,16 +325,20 @@ export function SimpleLactateCurve({
           )}
 
           <XAxis
-            dataKey="hr"
+            dataKey={xAxisKey}
             type="number"
-            domain={[hrMin, hrMax]}
+            domain={domain}
+            reversed={reversed}
             tick={{ fontSize: 11, fill: "var(--ath-text-muted)" }}
             tickLine={false}
             axisLine={{ stroke: "var(--ath-border)" }}
             label={{ value: xLabel, position: "insideBottomRight", offset: -2, fontSize: 10, fill: "var(--ath-text-muted)" }}
+            allowDuplicatedCategory={false}
+            tickFormatter={xTickFormatter}
           />
 
           <YAxis
+            yAxisId={0}
             domain={[0, Math.ceil(lacMax + 1)]}
             tick={{ fontSize: 11, fill: "var(--ath-text-muted)" }}
             tickLine={false}
@@ -212,12 +347,23 @@ export function SimpleLactateCurve({
             label={{ value: "Lactato (mmol/L)", angle: -90, position: "insideLeft", offset: 14, fontSize: 10, fill: "var(--ath-text-muted)" }}
           />
 
-          <Tooltip content={<CurveTooltip />} />
+          <Tooltip content={<CurveTooltip xFormatter={xTickFormatter} />} />
 
-          {/* Measured lactate */}
+          {hasScatter && (
+            <Scatter
+              data={mergedData.scatter}
+              dataKey="scatterLactate"
+              yAxisId={0}
+              shape={<ScatterDot />}
+              isAnimationActive={false}
+            />
+          )}
+
           <Line
-            type="monotone"
+            data={mergedData.main}
+            type="natural"
             dataKey="lactate"
+            yAxisId={0}
             stroke="var(--ath-text)"
             strokeWidth={2.5}
             name="Lactato medido"
@@ -225,11 +371,12 @@ export function SimpleLactateCurve({
             activeDot={{ r: 5, fill: "var(--ath-accent)", stroke: "var(--ath-bg-card)", strokeWidth: 2 }}
           />
 
-          {/* Contextual lactate */}
           {hasContextual && (
             <Line
-              type="monotone"
+              data={mergedData.main}
+              type="natural"
               dataKey="contextual_lactate"
+              yAxisId={0}
               stroke="#d26a36"
               strokeWidth={2}
               strokeDasharray="4 2"
@@ -238,10 +385,9 @@ export function SimpleLactateCurve({
               connectNulls
             />
           )}
-        </LineChart>
+        </ComposedChart>
       </ResponsiveContainer>
 
-      {/* Legend */}
       <div className="ath-curve-legend">
         <span className="ath-curve-legend__item">
           <span className="ath-curve-legend__dot" style={{ background: "var(--ath-text)" }} />
@@ -251,6 +397,24 @@ export function SimpleLactateCurve({
           <span className="ath-curve-legend__item">
             <span className="ath-curve-legend__dot" style={{ background: "#d26a36" }} />
             Lactato contextual
+          </span>
+        )}
+        {hasScatter && (
+          <span className="ath-curve-legend__item">
+            <span className="ath-curve-legend__dot" style={{ background: "var(--ath-accent, #6366f1)", opacity: 0.3, borderRadius: "50%" }} />
+            Todas las muestras
+          </span>
+        )}
+        {hasRealLt1 && (
+          <span className="ath-curve-legend__item">
+            <span className="ath-curve-legend__dot" style={{ background: "#166534" }} />
+            LT1 real
+          </span>
+        )}
+        {hasRealLt2 && (
+          <span className="ath-curve-legend__item">
+            <span className="ath-curve-legend__dot" style={{ background: "#9a3412" }} />
+            LT2 real
           </span>
         )}
         {peakLactate != null && (
