@@ -48,6 +48,16 @@ const tabs = [
     ),
   },
   {
+    id: "fitness",
+    path: "/athlete/fitness",
+    label: "Fitness",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+      </svg>
+    ),
+  },
+  {
     id: "tests",
     path: "/athlete/tests",
     label: "Tests",
@@ -100,6 +110,19 @@ const secondaryTabs = [
     ),
   },
 ];
+
+const cycleTab = {
+  id: "cycle",
+  path: "/athlete/cycle",
+  label: "Ciclo",
+  icon: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+      <path d="M16 16c-1.5 2-3.5 3-5.5 2.5S7 16 7.5 14" />
+    </svg>
+  ),
+};
 
 const allTabs = [...tabs, ...secondaryTabs];
 
@@ -184,6 +207,13 @@ export function SideNav({ fullName, onLogout, themeMode, onToggleTheme }: Props)
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const [moreOpen, setMoreOpen] = useState(false);
+  const data = useAthleteDataSafe();
+
+  // Show cycle tab only for female athletes
+  const athleteSex = data?.analysis?.athlete?.sex?.toLowerCase() ?? "";
+  const isFemale = ["female", "f", "mujer", "femenino"].includes(athleteSex);
+  const activeTabs = isFemale ? [...tabs, cycleTab] : tabs;
+  const activeAllTabs = isFemale ? [...tabs, cycleTab, ...secondaryTabs] : allTabs;
 
   // Check if any secondary tab is active (to highlight "Más" button)
   const secondaryActive = secondaryTabs.some((t) => currentPath.startsWith(t.path));
@@ -198,7 +228,7 @@ export function SideNav({ fullName, onLogout, themeMode, onToggleTheme }: Props)
 
       {/* Desktop: show all tabs */}
       <div className="ath-side-nav-links ath-side-nav-links--desktop">
-        {allTabs.map((tab) => {
+        {activeAllTabs.map((tab) => {
           const active = currentPath.startsWith(tab.path);
           return (
             <button
@@ -216,7 +246,7 @@ export function SideNav({ fullName, onLogout, themeMode, onToggleTheme }: Props)
 
       {/* Mobile: show primary tabs + "Más" button */}
       <div className="ath-side-nav-links ath-side-nav-links--mobile">
-        {tabs.map((tab) => {
+        {activeTabs.map((tab) => {
           const active = currentPath.startsWith(tab.path);
           return (
             <button

@@ -76,6 +76,9 @@ class Athlete(Base):
     planned_sessions = relationship("PlannedSession", back_populates="athlete", cascade="all, delete-orphan", order_by="PlannedSession.scheduled_date.asc()")
     targets = relationship("AthleteTarget", back_populates="athlete", cascade="all, delete-orphan", order_by="AthleteTarget.target_date.desc()")
     training_zone_sets = relationship("TrainingZoneSet", back_populates="athlete", cascade="all, delete-orphan")
+    cycle_preferences = relationship("MenstrualCyclePreferences", uselist=False, back_populates="athlete", cascade="all, delete-orphan")
+    cycle_logs = relationship("MenstrualCycleLog", back_populates="athlete", cascade="all, delete-orphan", order_by="MenstrualCycleLog.cycle_start_date.desc()")
+    daily_cycle_logs = relationship("MenstrualDailyLog", back_populates="athlete", cascade="all, delete-orphan", order_by="MenstrualDailyLog.log_date.desc()")
 
     @property
     def strava_connected(self) -> bool:

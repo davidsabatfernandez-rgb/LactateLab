@@ -2271,14 +2271,33 @@ html { scroll-behavior: smooth; }
 @media (max-width: 700px) {
   .lp-mobile__inner {
     grid-template-columns: 1fr;
-    gap: 36px;
+    gap: 28px;
   }
   .lp-mobile__text { text-align: center; }
   .lp-mobile__text .lp-h2 { text-align: center !important; }
   .lp-mobile__features { display: inline-flex; flex-direction: column; text-align: left; }
   .lp-mobile__badges { justify-content: center; }
   .lp-mobile__phone { order: -1; }
-  .lp-mobile__frame { width: 200px; }
+
+  /* Remove phone frame on mobile — show content as flat card */
+  .lp-mobile__frame {
+    width: 100%;
+    max-width: 360px;
+    background: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .lp-mobile__notch { display: none; }
+  .lp-mobile__screen {
+    background: var(--c-bg);
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    padding: 20px 16px 16px;
+    margin-top: 0;
+    min-height: auto;
+  }
 }
 
 
@@ -2347,7 +2366,7 @@ html { scroll-behavior: smooth; }
 
 .lp-journey__step-dot--done {
   border-color: var(--c-accent);
-  background: rgba(210,106,54,0.08);
+  background: #fdf3ec;
 }
 
 .lp-journey__step-dot--done .lp-journey__step-num {

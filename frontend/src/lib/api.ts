@@ -840,6 +840,38 @@ export const api = {
       { token, method: "POST" },
     ),
 
+  // ── Menstrual Cycle ──
+  cycleDashboard: (token: string, athleteId: number) =>
+    request<import("../types").CycleDashboard>(`/menstrual-cycle/athletes/${athleteId}/dashboard`, { token }),
+  cycleCreatePreferences: (token: string, athleteId: number, data: Record<string, unknown>) =>
+    request<import("../types").CyclePreferences>(`/menstrual-cycle/athletes/${athleteId}/preferences`, {
+      token,
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  cycleUpdatePreferences: (token: string, athleteId: number, data: Record<string, unknown>) =>
+    request<import("../types").CyclePreferences>(`/menstrual-cycle/athletes/${athleteId}/preferences`, {
+      token,
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  cycleLogPeriod: (token: string, athleteId: number, data: { cycle_start_date: string; period_end_date?: string; notes?: string }) =>
+    request<import("../types").CycleLog>(`/menstrual-cycle/athletes/${athleteId}/cycles`, {
+      token,
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  cycleListLogs: (token: string, athleteId: number) =>
+    request<import("../types").CycleLog[]>(`/menstrual-cycle/athletes/${athleteId}/cycles`, { token }),
+  cycleDailyLog: (token: string, athleteId: number, data: Record<string, unknown>) =>
+    request<import("../types").CycleDailyLog>(`/menstrual-cycle/athletes/${athleteId}/daily-logs`, {
+      token,
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  cycleListDailyLogs: (token: string, athleteId: number, days?: number) =>
+    request<import("../types").CycleDailyLog[]>(`/menstrual-cycle/athletes/${athleteId}/daily-logs?days=${days ?? 60}`, { token }),
+
   // ── Beta Signup (public, no auth) ──
   betaSignup: (email: string) =>
     request<{ status: string }>("/beta-signup", {

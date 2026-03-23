@@ -1642,3 +1642,72 @@ export type CoachPlan = {
   duration_weeks: number;
   days: CoachPlanDay[];
 };
+
+// ── Menstrual cycle ──
+
+export type CyclePreferences = {
+  id: number;
+  athlete_id: number;
+  is_active: boolean;
+  tracking_goal: string | null;
+  average_cycle_length_days: number | null;
+  average_period_length_days: number | null;
+  cycles_are_regular: boolean | null;
+  uses_hormonal_contraception: boolean;
+  contraception_type: string | null;
+  last_period_start_date: string | null;
+  notify_phase_change: boolean;
+  share_with_coach: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CycleLog = {
+  id: number;
+  athlete_id: number;
+  cycle_start_date: string;
+  cycle_end_date: string | null;
+  period_end_date: string | null;
+  cycle_length_days: number | null;
+  period_length_days: number | null;
+  is_predicted: boolean;
+  notes: string | null;
+  created_at: string;
+};
+
+export type CycleDailyLog = {
+  id: number;
+  athlete_id: number;
+  log_date: string;
+  flow_intensity: string | null;
+  cramps_level: number | null;
+  energy_level: number | null;
+  mood: string | null;
+  bloating: boolean;
+  headache: boolean;
+  breast_tenderness: boolean;
+  back_pain: boolean;
+  acne: boolean;
+  sleep_quality: number | null;
+  appetite: string | null;
+  exercise_tolerance: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export type CyclePhase = {
+  phase: string;
+  phase_label: string;
+  day_of_cycle: number;
+  cycle_day_total: number;
+  next_period_date: string | null;
+  confidence: number;
+  training_tips: string[];
+};
+
+export type CycleDashboard = {
+  preferences: CyclePreferences | null;
+  current_phase: CyclePhase | null;
+  recent_cycles: CycleLog[];
+  recent_daily_logs: CycleDailyLog[];
+};

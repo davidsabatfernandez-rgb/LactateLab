@@ -19,6 +19,8 @@ import { SettingsPage } from "./athlete/pages/SettingsPage";
 import { ObjectivesPage } from "./athlete/pages/ObjectivesPage";
 import { MyTestsPage } from "./athlete/pages/MyTestsPage";
 import { ZonesPage } from "./athlete/pages/ZonesPage";
+import { CyclePage } from "./athlete/pages/CyclePage";
+import { FitnessPage } from "./athlete/pages/FitnessPage";
 import { AthleteTargetsPage } from "./pages/AthleteTargetsPage";
 import { AthletesPage } from "./pages/AthletesPage";
 import { CoachDashboardPage } from "./pages/CoachDashboardPage";
@@ -364,8 +366,8 @@ export default function App() {
 
   if (authUser?.role === "athlete") {
     return (
-      <AthleteLayout onLogout={handleLogout} fullName={authUser.full_name} themeMode={themeMode} onToggleTheme={() => setThemeMode((c) => (c === "dark" ? "light" : "dark"))}>
-        <AthleteDataProvider user={authUser} token={token}>
+      <AthleteDataProvider user={authUser} token={token}>
+        <AthleteLayout onLogout={handleLogout} fullName={authUser.full_name} themeMode={themeMode} onToggleTheme={() => setThemeMode((c) => (c === "dark" ? "light" : "dark"))}>
           <MetricExplainerProvider>
             <Routes>
               <Route path="/athlete/today" element={<TodayPage />} />
@@ -390,14 +392,16 @@ export default function App() {
                   <MyTestsPage />
                 </PlanGate>
               } />
+              <Route path="/athlete/fitness" element={<FitnessPage />} />
+              <Route path="/athlete/cycle" element={<CyclePage />} />
               <Route path="/athlete/objectives" element={<ObjectivesPage />} />
               <Route path="/athlete/settings" element={<SettingsPage />} />
               <Route path="*" element={<TodayPage />} />
             </Routes>
             <MetricExplainer />
           </MetricExplainerProvider>
-        </AthleteDataProvider>
-      </AthleteLayout>
+        </AthleteLayout>
+      </AthleteDataProvider>
     );
   }
 

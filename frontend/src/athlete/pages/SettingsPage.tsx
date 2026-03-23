@@ -367,7 +367,7 @@ export function SettingsPage() {
       <section className="ath-settings-section">
         <h2 className="ath-section-title">Tu plan</h2>
 
-        <div className="ath-plan-current">
+        <div className="ath-plan-current" style={{ borderLeftColor: PLAN_COLORS[currentPlan] }}>
           <span className={`ath-plan-badge ath-plan-badge--${currentPlan}`}>
             {PLAN_FEATURES[currentPlan]?.name ?? "Gratis"}
           </span>
