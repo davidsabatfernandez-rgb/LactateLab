@@ -42,11 +42,43 @@ const INITIAL_ONBOARDING: OnboardingData = {
   last_period_start_date: "",
 };
 
+/* Helper: calculate avg cycle length from period dates */
+function calcCycleLengthFromDates(dates: string[]): number | null {
+  const sorted = dates.filter(Boolean).map((d) => new Date(d + "T00:00:00").getTime()).sort((a, b) => a - b);
+  if (sorted.length < 2) return null;
+  const diffs: number[] = [];
+  for (let i = 1; i < sorted.length; i++) {
+    diffs.push(Math.round((sorted[i] - sorted[i - 1]) / 86400000));
+  }
+  return Math.round(diffs.reduce((s, v) => s + v, 0) / diffs.length);
+}
+
 function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) => void }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<OnboardingData>(INITIAL_ONBOARDING);
+  /* Dates of last periods for auto-calculation */
+  const [periodDates, setPeriodDates] = useState<string[]>(["", "", ""]);
 
   const set = (key: keyof OnboardingData, val: unknown) => setForm((f) => ({ ...f, [key]: val }));
+
+  const setPeriodDate = (idx: number, val: string) => {
+    setPeriodDates((prev) => { const n = [...prev]; n[idx] = val; return n; });
+  };
+
+  /* Auto-calc cycle length when dates change */
+  const autoLength = calcCycleLengthFromDates(periodDates);
+
+  /* When entering step 4, sync autoLength into form + set last_period_start_date */
+  const goToStep4 = () => {
+    const filled = periodDates.filter(Boolean).sort();
+    if (autoLength && autoLength >= 18 && autoLength <= 50) {
+      set("average_cycle_length_days", autoLength);
+    }
+    if (filled.length > 0) {
+      set("last_period_start_date", filled[filled.length - 1]);
+    }
+    setStep(4);
+  };
 
   const steps = [
     // Step 0: Welcome
@@ -54,18 +86,18 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
       <div className="ath-cycle-onboard-icon">🌸</div>
       <h2>Seguimiento del ciclo menstrual</h2>
       <p>Registra tu ciclo para recibir recomendaciones de entrenamiento personalizadas basadas en tu fase hormonal.</p>
-      <p className="ath-cycle-onboard-note">Toda la información es privada y opcional. Puedes desactivarlo en cualquier momento.</p>
+      <p className="ath-cycle-onboard-note">Toda la informacion es privada y opcional. Puedes desactivarlo en cualquier momento.</p>
       <button className="ath-cycle-btn-primary" onClick={() => setStep(1)}>Empezar</button>
     </div>,
 
     // Step 1: Goal
     <div key="goal" className="ath-cycle-onboard-step">
-      <h3>¿Qué quieres conseguir?</h3>
+      <h3>¿Que quieres conseguir?</h3>
       <div className="ath-cycle-options">
         {[
-          { val: "period_tracking", label: "Seguir mi periodo", desc: "Saber cuándo llega y cuánto dura" },
+          { val: "period_tracking", label: "Seguir mi periodo", desc: "Saber cuando llega y cuanto dura" },
           { val: "performance_sync", label: "Sincronizar con entrenamiento", desc: "Adaptar mi entreno a cada fase" },
-          { val: "symptom_awareness", label: "Entender mis síntomas", desc: "Registrar cómo me siento día a día" },
+          { val: "symptom_awareness", label: "Entender mis sintomas", desc: "Registrar como me siento dia a dia" },
           { val: "all", label: "Todo lo anterior", desc: "Experiencia completa" },
         ].map((o) => (
           <button
@@ -79,41 +111,46 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
         ))}
       </div>
       <div className="ath-cycle-nav-btns">
-        <button className="ath-cycle-btn-secondary" onClick={() => setStep(0)}>Atrás</button>
+        <button className="ath-cycle-btn-secondary" onClick={() => setStep(0)}>Atras</button>
         <button className="ath-cycle-btn-primary" onClick={() => setStep(2)}>Siguiente</button>
       </div>
     </div>,
 
-    // Step 2: Cycle details
+    // Step 2: Period dates (auto-calculate cycle length)
     <div key="cycle" className="ath-cycle-onboard-step">
-      <h3>Cuéntanos sobre tu ciclo</h3>
+      <h3>Fechas de tus ultimas reglas</h3>
+      <p className="ath-cycle-onboard-note">Introduce las fechas de inicio de tus ultimas 2-3 reglas. Calcularemos la duracion de tu ciclo automaticamente.</p>
       <label className="ath-cycle-field">
-        <span>Duración media del ciclo (días)</span>
-        <input
-          type="number"
-          min={18}
-          max={45}
-          value={form.average_cycle_length_days}
-          onChange={(e) => set("average_cycle_length_days", Number(e.target.value))}
-        />
+        <span>Ultima regla (la mas reciente)</span>
+        <input type="date" value={periodDates[0]} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setPeriodDate(0, e.target.value)} />
       </label>
       <label className="ath-cycle-field">
-        <span>Duración media del periodo (días)</span>
-        <input
-          type="number"
-          min={1}
-          max={12}
-          value={form.average_period_length_days}
-          onChange={(e) => set("average_period_length_days", Number(e.target.value))}
-        />
+        <span>Penultima regla</span>
+        <input type="date" value={periodDates[1]} max={periodDates[0] || new Date().toISOString().slice(0, 10)} onChange={(e) => setPeriodDate(1, e.target.value)} />
+      </label>
+      <label className="ath-cycle-field">
+        <span>Anterior (opcional)</span>
+        <input type="date" value={periodDates[2]} max={periodDates[1] || periodDates[0] || new Date().toISOString().slice(0, 10)} onChange={(e) => setPeriodDate(2, e.target.value)} />
+      </label>
+      {autoLength && (
+        <div className="ath-cycle-auto-result">
+          Tu ciclo dura aproximadamente <strong>{autoLength} dias</strong>
+        </div>
+      )}
+      {!autoLength && periodDates[0] && !periodDates[1] && (
+        <p className="ath-cycle-onboard-note">Anade al menos una fecha mas para calcular tu ciclo, o pasa al siguiente paso y usaremos 28 dias por defecto.</p>
+      )}
+      <label className="ath-cycle-field">
+        <span>Duracion media del periodo (dias de sangrado)</span>
+        <input type="number" min={1} max={12} value={form.average_period_length_days} onChange={(e) => set("average_period_length_days", Number(e.target.value))} />
       </label>
       <label className="ath-cycle-field">
         <span>¿Tus ciclos son regulares?</span>
         <div className="ath-cycle-toggle-row">
           {[
-            { val: true, label: "Sí" },
+            { val: true, label: "Si" },
             { val: false, label: "No" },
-            { val: null, label: "No sé" },
+            { val: null, label: "No se" },
           ].map((o) => (
             <button
               key={String(o.val)}
@@ -126,18 +163,18 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
         </div>
       </label>
       <div className="ath-cycle-nav-btns">
-        <button className="ath-cycle-btn-secondary" onClick={() => setStep(1)}>Atrás</button>
-        <button className="ath-cycle-btn-primary" onClick={() => setStep(3)}>Siguiente</button>
+        <button className="ath-cycle-btn-secondary" onClick={() => setStep(1)}>Atras</button>
+        <button className="ath-cycle-btn-primary" disabled={!periodDates[0]} onClick={() => setStep(3)}>Siguiente</button>
       </div>
     </div>,
 
     // Step 3: Contraception
     <div key="contra" className="ath-cycle-onboard-step">
-      <h3>Anticoncepción hormonal</h3>
+      <h3>Anticoncepcion hormonal</h3>
       <label className="ath-cycle-field">
-        <span>¿Usas anticoncepción hormonal?</span>
+        <span>¿Usas anticoncepcion hormonal?</span>
         <div className="ath-cycle-toggle-row">
-          <button className={`ath-cycle-toggle ${form.uses_hormonal_contraception ? "selected" : ""}`} onClick={() => set("uses_hormonal_contraception", true)}>Sí</button>
+          <button className={`ath-cycle-toggle ${form.uses_hormonal_contraception ? "selected" : ""}`} onClick={() => set("uses_hormonal_contraception", true)}>Si</button>
           <button className={`ath-cycle-toggle ${!form.uses_hormonal_contraception ? "selected" : ""}`} onClick={() => set("uses_hormonal_contraception", false)}>No</button>
         </div>
       </label>
@@ -146,43 +183,202 @@ function OnboardingWizard({ onComplete }: { onComplete: (data: OnboardingData) =
           <span>Tipo</span>
           <select value={form.contraception_type} onChange={(e) => set("contraception_type", e.target.value)}>
             <option value="none">Selecciona...</option>
-            <option value="pill">Píldora</option>
+            <option value="pill">Pildora</option>
             <option value="iud_hormonal">DIU hormonal</option>
             <option value="iud_copper">DIU de cobre</option>
             <option value="implant">Implante</option>
             <option value="patch">Parche</option>
             <option value="ring">Anillo</option>
-            <option value="injection">Inyección</option>
+            <option value="injection">Inyeccion</option>
           </select>
         </label>
       )}
       <div className="ath-cycle-nav-btns">
-        <button className="ath-cycle-btn-secondary" onClick={() => setStep(2)}>Atrás</button>
-        <button className="ath-cycle-btn-primary" onClick={() => setStep(4)}>Siguiente</button>
+        <button className="ath-cycle-btn-secondary" onClick={() => setStep(2)}>Atras</button>
+        <button className="ath-cycle-btn-primary" onClick={goToStep4}>Siguiente</button>
       </div>
     </div>,
 
-    // Step 4: Last period
-    <div key="last" className="ath-cycle-onboard-step">
-      <h3>¿Cuándo empezó tu último periodo?</h3>
-      <label className="ath-cycle-field">
-        <span>Fecha de inicio</span>
-        <input
-          type="date"
-          value={form.last_period_start_date}
-          max={new Date().toISOString().slice(0, 10)}
-          onChange={(e) => set("last_period_start_date", e.target.value)}
-        />
-      </label>
-      <p className="ath-cycle-onboard-note">Si no lo recuerdas exactamente, pon una fecha aproximada. Se irá ajustando con el tiempo.</p>
+    // Step 4: Confirmation
+    <div key="confirm" className="ath-cycle-onboard-step">
+      <h3>Todo listo</h3>
+      <div className="ath-cycle-summary">
+        <div className="ath-cycle-summary-row">
+          <span>Ultima regla</span>
+          <strong>{form.last_period_start_date ? new Date(form.last_period_start_date + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : "—"}</strong>
+        </div>
+        <div className="ath-cycle-summary-row">
+          <span>Duracion del ciclo</span>
+          <strong>{form.average_cycle_length_days} dias {autoLength ? "(calculado)" : "(por defecto)"}</strong>
+        </div>
+        <div className="ath-cycle-summary-row">
+          <span>Periodo</span>
+          <strong>{form.average_period_length_days} dias</strong>
+        </div>
+      </div>
+      <p className="ath-cycle-onboard-note">Se ira ajustando automaticamente conforme registres mas ciclos.</p>
       <div className="ath-cycle-nav-btns">
-        <button className="ath-cycle-btn-secondary" onClick={() => setStep(3)}>Atrás</button>
+        <button className="ath-cycle-btn-secondary" onClick={() => setStep(3)}>Atras</button>
         <button className="ath-cycle-btn-primary" disabled={!form.last_period_start_date} onClick={() => onComplete(form)}>Finalizar</button>
       </div>
     </div>,
   ];
 
   return <div className="ath-cycle-onboarding">{steps[step]}</div>;
+}
+
+/* ── Cycle Calendar ──────────────────────────────────────────── */
+
+const WEEKDAY_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
+const MONTH_LABELS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+type CalendarDayInfo = {
+  date: Date;
+  day: number;
+  isToday: boolean;
+  phase: "period" | "follicular" | "ovulation" | "luteal" | "predicted" | null;
+};
+
+function buildCalendarMonth(year: number, month: number, cycles: Array<{ cycle_start_date: string; period_length_days?: number | null; cycle_length_days?: number | null }>, avgCycle: number, avgPeriod: number): CalendarDayInfo[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  // Monday-based: 0=Mon, 6=Sun
+  const startPad = (firstDay.getDay() + 6) % 7;
+
+  // Build a set of period dates and predicted dates from cycles
+  const periodDates = new Set<string>();
+  const predictedDates = new Set<string>();
+  const ovulationDates = new Set<string>();
+  const follicularDates = new Set<string>();
+  const lutealDates = new Set<string>();
+
+  for (const c of cycles) {
+    const start = new Date(c.cycle_start_date + "T00:00:00");
+    const pLen = c.period_length_days ?? avgPeriod;
+    const cLen = c.cycle_length_days ?? avgCycle;
+    // Period days
+    for (let d = 0; d < pLen; d++) {
+      const dt = new Date(start);
+      dt.setDate(dt.getDate() + d);
+      periodDates.add(dt.toISOString().slice(0, 10));
+    }
+    // Follicular phase: after period to ovulation
+    const ovDay = Math.round(cLen * 0.48); // ~day 14 of 28
+    for (let d = pLen; d < ovDay - 1; d++) {
+      const dt = new Date(start);
+      dt.setDate(dt.getDate() + d);
+      follicularDates.add(dt.toISOString().slice(0, 10));
+    }
+    // Ovulation: ~2 days
+    for (let d = ovDay - 1; d <= ovDay + 1; d++) {
+      const dt = new Date(start);
+      dt.setDate(dt.getDate() + d);
+      ovulationDates.add(dt.toISOString().slice(0, 10));
+    }
+    // Luteal: after ovulation to end of cycle
+    for (let d = ovDay + 2; d < cLen; d++) {
+      const dt = new Date(start);
+      dt.setDate(dt.getDate() + d);
+      lutealDates.add(dt.toISOString().slice(0, 10));
+    }
+  }
+
+  // Predict next period from most recent cycle
+  if (cycles.length > 0) {
+    const sorted = [...cycles].sort((a, b) => a.cycle_start_date > b.cycle_start_date ? -1 : 1);
+    const last = sorted[0];
+    const lastStart = new Date(last.cycle_start_date + "T00:00:00");
+    const cLen = last.cycle_length_days ?? avgCycle;
+    const nextStart = new Date(lastStart);
+    nextStart.setDate(nextStart.getDate() + cLen);
+    // Only if next start is in future or current month
+    for (let d = 0; d < avgPeriod; d++) {
+      const dt = new Date(nextStart);
+      dt.setDate(dt.getDate() + d);
+      const key = dt.toISOString().slice(0, 10);
+      if (!periodDates.has(key)) predictedDates.add(key);
+    }
+  }
+
+  const days: CalendarDayInfo[] = [];
+  // Pad
+  for (let i = 0; i < startPad; i++) {
+    days.push({ date: new Date(year, month, 0), day: 0, isToday: false, phase: null });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(year, month, d);
+    const key = dt.toISOString().slice(0, 10);
+    let phase: CalendarDayInfo["phase"] = null;
+    if (periodDates.has(key)) phase = "period";
+    else if (ovulationDates.has(key)) phase = "ovulation";
+    else if (follicularDates.has(key)) phase = "follicular";
+    else if (lutealDates.has(key)) phase = "luteal";
+    else if (predictedDates.has(key)) phase = "predicted";
+    days.push({ date: dt, day: d, isToday: dt.getTime() === today.getTime(), phase });
+  }
+  return days;
+}
+
+function CycleCalendar({ cycles, avgCycle, avgPeriod }: { cycles: Array<{ cycle_start_date: string; period_length_days?: number | null; cycle_length_days?: number | null }>; avgCycle: number; avgPeriod: number }) {
+  const now = new Date();
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+
+  const days = useMemo(
+    () => buildCalendarMonth(viewYear, viewMonth, cycles, avgCycle, avgPeriod),
+    [viewYear, viewMonth, cycles, avgCycle, avgPeriod],
+  );
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
+    else setViewMonth((m) => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
+    else setViewMonth((m) => m + 1);
+  };
+
+  return (
+    <div className="ath-cycle-calendar-card">
+      <h3>Calendario</h3>
+      <div className="ath-cycle-cal-nav">
+        <button type="button" onClick={prevMonth}>←</button>
+        <span>{MONTH_LABELS[viewMonth]} {viewYear}</span>
+        <button type="button" onClick={nextMonth}>→</button>
+      </div>
+      <div className="ath-cycle-cal-weekdays">
+        {WEEKDAY_LABELS.map((w) => <span key={w}>{w}</span>)}
+      </div>
+      <div className="ath-cycle-cal-grid">
+        {days.map((d, i) => (
+          <div
+            key={i}
+            className={[
+              "ath-cycle-cal-day",
+              d.day === 0 && "ath-cycle-cal-day--empty",
+              d.isToday && "ath-cycle-cal-day--today",
+              d.phase === "period" && "ath-cycle-cal-day--period",
+              d.phase === "ovulation" && "ath-cycle-cal-day--ovulation",
+              d.phase === "follicular" && "ath-cycle-cal-day--follicular",
+              d.phase === "luteal" && "ath-cycle-cal-day--luteal",
+              d.phase === "predicted" && "ath-cycle-cal-day--predicted",
+            ].filter(Boolean).join(" ")}
+          >
+            {d.day > 0 ? d.day : ""}
+          </div>
+        ))}
+      </div>
+      <div className="ath-cycle-cal-legend">
+        <div className="ath-cycle-cal-legend-item"><div className="ath-cycle-cal-legend-dot" style={{ background: "#fecaca" }} />Periodo</div>
+        <div className="ath-cycle-cal-legend-item"><div className="ath-cycle-cal-legend-dot" style={{ background: "#d1fae5" }} />Folicular</div>
+        <div className="ath-cycle-cal-legend-item"><div className="ath-cycle-cal-legend-dot" style={{ background: "#e9d5ff" }} />Ovulacion</div>
+        <div className="ath-cycle-cal-legend-item"><div className="ath-cycle-cal-legend-dot" style={{ background: "#fef3c7" }} />Lutea</div>
+        <div className="ath-cycle-cal-legend-item"><div className="ath-cycle-cal-legend-dot" style={{ border: "1.5px dashed #fca5a5", background: "transparent" }} />Previsto</div>
+      </div>
+    </div>
+  );
 }
 
 /* ── Phase ring ────────────────────────────────────────────── */
@@ -520,6 +716,33 @@ export function CyclePage() {
 
   const phase = dashboard.current_phase;
 
+  /* Period arrival confirmation: show when today is within ±2 days of next_period_date */
+  const periodConfirmWindow = useMemo(() => {
+    if (!phase?.next_period_date) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const predicted = new Date(phase.next_period_date + "T00:00:00");
+    const diffDays = Math.round((today.getTime() - predicted.getTime()) / 86400000);
+    // Show from 1 day before to 3 days after predicted date
+    if (diffDays >= -1 && diffDays <= 3) return { diffDays, predicted };
+    return null;
+  }, [phase]);
+
+  const [periodConfirmDismissed, setPeriodConfirmDismissed] = useState(false);
+
+  const handleConfirmPeriodArrival = async () => {
+    if (!athleteId || !token) return;
+    setSaving(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      await api.cycleLogPeriod(token, athleteId, { cycle_start_date: today });
+      setPeriodConfirmDismissed(true);
+      await loadDashboard();
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="ath-cycle-page">
       <header className="ath-cycle-header">
@@ -533,6 +756,27 @@ export function CyclePage() {
           </button>
         </div>
       </header>
+
+      {/* Period arrival confirmation banner */}
+      {periodConfirmWindow && !periodConfirmDismissed && (
+        <div className="ath-cycle-confirm-banner">
+          <div className="ath-cycle-confirm-icon">🩸</div>
+          <div className="ath-cycle-confirm-text">
+            <strong>
+              {periodConfirmWindow.diffDays < 0
+                ? "Tu periodo deberia llegar manana"
+                : periodConfirmWindow.diffDays === 0
+                  ? "Hoy es el dia previsto de tu periodo"
+                  : `Tu periodo estaba previsto hace ${periodConfirmWindow.diffDays} dia${periodConfirmWindow.diffDays > 1 ? "s" : ""}`}
+            </strong>
+            <span>¿Te ha bajado?</span>
+          </div>
+          <div className="ath-cycle-confirm-actions">
+            <button className="ath-cycle-btn-primary" onClick={handleConfirmPeriodArrival}>Si, hoy</button>
+            <button className="ath-cycle-btn-secondary" onClick={() => setPeriodConfirmDismissed(true)}>Todavia no</button>
+          </div>
+        </div>
+      )}
 
       {/* Phase ring + info */}
       {phase && (
@@ -566,6 +810,13 @@ export function CyclePage() {
           </ul>
         </div>
       )}
+
+      {/* Calendar */}
+      <CycleCalendar
+        cycles={dashboard.recent_cycles}
+        avgCycle={dashboard.preferences.average_cycle_length_days ?? 28}
+        avgPeriod={dashboard.preferences.average_period_length_days ?? 5}
+      />
 
       {/* Recent cycles */}
       {dashboard.recent_cycles.length > 0 && (

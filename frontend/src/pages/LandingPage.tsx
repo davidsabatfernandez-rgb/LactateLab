@@ -2111,7 +2111,7 @@ function LandingInner() {
 
             <div className="lp-plans5">
               {/* 1. Free */}
-              <div className="lp-plans5__card">
+              <div className="lp-plans5__card lp-plans5__card--free">
                 <span className="lp-plans5__name">{t("p5_free_name")}</span>
                 <span className="lp-plans5__price">{t("p5_free_price")}</span>
                 <p className="lp-plans5__desc">{t("p5_free_desc")}</p>
@@ -2121,7 +2121,7 @@ function LandingInner() {
               </div>
 
               {/* 2. Lactate Lab */}
-              <div className="lp-plans5__card">
+              <div className="lp-plans5__card lp-plans5__card--lab">
                 <span className="lp-plans5__name">{t("p5_lab_name")}</span>
                 <span className="lp-plans5__price">{t("p5_lab_price")}<small className="lp-plans5__period">{t("p5_lab_period")}</small></span>
                 <p className="lp-plans5__desc">{t("p5_lab_desc")}</p>
@@ -2131,7 +2131,7 @@ function LandingInner() {
               </div>
 
               {/* 3. Plan Completo */}
-              <div className="lp-plans5__card">
+              <div className="lp-plans5__card lp-plans5__card--pro">
                 <span className="lp-plans5__name">{t("p5_ai_name")}</span>
                 <span className="lp-plans5__price">{t("p5_ai_price")}<small className="lp-plans5__period">{t("p5_ai_period")}</small></span>
                 <p className="lp-plans5__desc">{t("p5_ai_desc")}</p>

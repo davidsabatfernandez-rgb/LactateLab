@@ -313,7 +313,7 @@ const FEATURES_ES: FeatureRow[] = [
   { key: "f_engine",    category: "planning", values: { free: D,            lactate: D,            pro: "Supervisado",  pro_plus: "Supervisado", elite: "Dedicado por tu especialista" } },
   { key: "f_calendar",  category: "planning", values: { free: D,            lactate: D,            pro: V,             pro_plus: V,            elite: V } },
   { key: "f_garmin",    category: "planning", values: { free: D,            lactate: D,            pro: V,             pro_plus: V,            elite: V } },
-  { key: "f_block_sel", category: "planning", values: { free: D,            lactate: D,            pro: "Automatica",  pro_plus: "Automatica", elite: "Personalizada" } },
+  { key: "f_block_sel", category: "planning", values: { free: D,            lactate: D,            pro: "Automática",  pro_plus: "Automática", elite: "Personalizada" } },
   { key: "f_dose",      category: "planning", values: { free: D,            lactate: D,            pro: V,             pro_plus: V,            elite: V } },
   { key: "f_meso_lib",  category: "planning", values: { free: D,            lactate: D,            pro: V,             pro_plus: V,            elite: "Personalizada" } },
   // Support
@@ -597,6 +597,15 @@ function ComparePlansInner() {
               >
                 {formatPrice(p.monthlyPrice, cycle, lang)}
               </span>
+              {cycle !== "monthly" && p.monthlyPrice > 0 && (
+                <span className="cp-plan-card__equiv">
+                  {(() => {
+                    const discount = cycle === "quarterly" ? 0.9 : 0.8;
+                    const equiv = p.monthlyPrice * discount;
+                    return `€${equiv.toFixed(2).replace(".", ",")}${tx(lang, "per_month")}`;
+                  })()}
+                </span>
+              )}
               <p className="cp-plan-card__desc">{tx(lang, DESC_KEYS[p.id])}</p>
               <button
                 className={`cp-plan-card__cta ${p.highlighted ? "cp-plan-card__cta--pop" : ""}`}

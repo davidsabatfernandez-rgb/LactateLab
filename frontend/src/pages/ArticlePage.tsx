@@ -51,6 +51,10 @@ function ArticleInner() {
   const { t } = useLang();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [slug]);
+
   const article = slug ? ALL_ARTICLES[slug] : null;
 
   /* Dynamic SEO for each article */

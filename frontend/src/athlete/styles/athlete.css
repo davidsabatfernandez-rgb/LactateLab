@@ -11182,6 +11182,178 @@
   margin: 0 0 16px;
 }
 
+/* Auto-calculated cycle length result */
+.ath-cycle-auto-result {
+  background: var(--ath-green-bg);
+  border: 1px solid var(--ath-green);
+  border-radius: var(--ath-radius-sm);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--ath-green);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+/* Confirmation summary */
+.ath-cycle-summary {
+  background: var(--ath-bg-subtle);
+  border: 1px solid var(--ath-border);
+  border-radius: var(--ath-radius-sm);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.ath-cycle-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 0.85rem;
+}
+.ath-cycle-summary-row span { color: var(--ath-text-secondary); }
+.ath-cycle-summary-row strong { color: var(--ath-text); }
+.ath-cycle-summary-row + .ath-cycle-summary-row {
+  border-top: 1px solid var(--ath-border);
+}
+
+/* Period arrival confirmation banner */
+.ath-cycle-confirm-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  border-radius: var(--ath-radius-md);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+.ath-cycle-confirm-icon { font-size: 1.5rem; flex-shrink: 0; }
+.ath-cycle-confirm-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ath-cycle-confirm-text strong {
+  font-size: 0.88rem;
+  color: #991b1b;
+}
+.ath-cycle-confirm-text span {
+  font-size: 0.8rem;
+  color: #b91c1c;
+}
+.ath-cycle-confirm-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Cycle calendar */
+.ath-cycle-calendar-card {
+  background: var(--ath-bg-card);
+  border: 1px solid var(--ath-border);
+  border-radius: var(--ath-radius-md);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.ath-cycle-calendar-card h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ath-text);
+  margin: 0 0 14px;
+}
+.ath-cycle-cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.ath-cycle-cal-nav span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ath-text);
+}
+.ath-cycle-cal-nav button {
+  background: none;
+  border: 1px solid var(--ath-border);
+  border-radius: var(--ath-radius-sm);
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  color: var(--ath-text-secondary);
+  cursor: pointer;
+}
+.ath-cycle-cal-nav button:hover { background: var(--ath-bg-hover); }
+.ath-cycle-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  margin-bottom: 4px;
+}
+.ath-cycle-cal-weekdays span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ath-text-muted);
+  text-transform: uppercase;
+}
+.ath-cycle-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.ath-cycle-cal-day {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ath-text);
+  cursor: default;
+}
+.ath-cycle-cal-day--empty { visibility: hidden; }
+.ath-cycle-cal-day--today {
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1.5px var(--ath-accent);
+}
+.ath-cycle-cal-day--period {
+  background: #fecaca;
+  color: #991b1b;
+}
+.ath-cycle-cal-day--ovulation {
+  background: #e9d5ff;
+  color: #6b21a8;
+}
+.ath-cycle-cal-day--follicular {
+  background: #d1fae5;
+  color: #065f46;
+}
+.ath-cycle-cal-day--luteal {
+  background: #fef3c7;
+  color: #92400e;
+}
+.ath-cycle-cal-day--predicted {
+  border: 1.5px dashed #fca5a5;
+}
+.ath-cycle-cal-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.ath-cycle-cal-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--ath-text-secondary);
+}
+.ath-cycle-cal-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .ath-cycle-phase-card {
@@ -11195,4 +11367,28 @@
   .ath-cycle-toggle-row {
     flex-wrap: wrap;
   }
+  .ath-cycle-confirm-banner {
+    flex-direction: column;
+    text-align: center;
+  }
+  .ath-cycle-confirm-actions {
+    width: 100%;
+    justify-content: center;
+  }
 }
+
+/* Dark mode overrides for cycle */
+:root[data-theme="dark"] .ath-cycle-confirm-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+:root[data-theme="dark"] .ath-cycle-confirm-text strong { color: #fca5a5; }
+:root[data-theme="dark"] .ath-cycle-confirm-text span { color: #f87171; }
+:root[data-theme="dark"] .ath-cycle-auto-result {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+:root[data-theme="dark"] .ath-cycle-cal-day--period { background: rgba(254, 202, 202, 0.15); color: #fca5a5; }
+:root[data-theme="dark"] .ath-cycle-cal-day--ovulation { background: rgba(233, 213, 255, 0.15); color: #c4b5fd; }
+:root[data-theme="dark"] .ath-cycle-cal-day--follicular { background: rgba(209, 250, 229, 0.12); color: #6ee7b7; }
+:root[data-theme="dark"] .ath-cycle-cal-day--luteal { background: rgba(254, 243, 199, 0.12); color: #fcd34d; }
