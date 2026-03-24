@@ -23,12 +23,12 @@ function fmtKm(m: number) { const k = m / 1000; return k >= 100 ? `${Math.round(
 function fmtDate(d: string) { return new Date(d + "T00:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric" }); }
 function isToday(d: string) { return d === new Date().toISOString().slice(0, 10); }
 
-/* ── Activity-count color scale ── */
+/* ── Activity-count color scale (green / blue / dark) ── */
 const ACT_COLORS = {
   0: "transparent",
-  1: "rgba(210,106,54,0.35)",
-  2: "rgba(210,106,54,0.62)",
-  3: "rgba(210,106,54,0.90)",
+  1: "#7cc576",   // green
+  2: "#5ba4cf",   // blue
+  3: "#4a4a4a",   // dark gray
 };
 function actCountColor(n: number): string {
   if (n <= 0) return ACT_COLORS[0];
@@ -219,19 +219,44 @@ export function FitnessPage() {
 
   const hasCustomZones = zoneSets.some((zs) => zs.zones.length > 0 && zs.zones.some((z) => z.hr_lower != null));
 
-  /* ── Calendar (60 days) ── */
-  const calendar = useMemo(() => {
-    const out: { date: string; count: number; sports: string[] }[] = [];
-    const now = new Date();
-    for (let i = 59; i >= 0; i--) {
-      const d = new Date(now); d.setDate(d.getDate() - i);
-      const ds = d.toISOString().slice(0, 10);
-      const dayActs = effectiveActivities.filter((a) => a.started_at?.slice(0, 10) === ds);
-      const sports = [...new Set(dayActs.map((a) => a.sport_label || a.sport_type || ""))].filter(Boolean);
-      out.push({ date: ds, count: dayActs.length, sports });
+  /* ── Calendar — build per-day activity map ── */
+  const actByDate = useMemo(() => {
+    const map: Record<string, { count: number; sports: string[] }> = {};
+    for (const a of effectiveActivities) {
+      const ds = a.started_at?.slice(0, 10);
+      if (!ds) continue;
+      if (!map[ds]) map[ds] = { count: 0, sports: [] };
+      map[ds].count++;
+      const sport = a.sport_label || a.sport_type || "";
+      if (sport && !map[ds].sports.includes(sport)) map[ds].sports.push(sport);
     }
-    return out;
+    return map;
   }, [effectiveActivities]);
+
+  /* ── Build month grids (current + previous month) ── */
+  const calendarMonths = useMemo(() => {
+    const now = new Date();
+    const months: { year: number; month: number; label: string; days: { day: number; date: string; count: number; sports: string[]; isToday: boolean }[] }[] = [];
+    for (let offset = -1; offset <= 0; offset++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const label = d.toLocaleDateString("es-ES", { month: "short" }).replace(".", "") + " " + year;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const firstDow = (new Date(year, month, 1).getDay() + 6) % 7; // Mon=0
+      const days: typeof months[0]["days"] = [];
+      // Pad empty days
+      for (let p = 0; p < firstDow; p++) days.push({ day: 0, date: "", count: 0, sports: [], isToday: false });
+      const todayStr = now.toISOString().slice(0, 10);
+      for (let dd = 1; dd <= daysInMonth; dd++) {
+        const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+        const info = actByDate[ds];
+        days.push({ day: dd, date: ds, count: info?.count ?? 0, sports: info?.sports ?? [], isToday: ds === todayStr });
+      }
+      months.push({ year, month, label, days });
+    }
+    return months;
+  }, [actByDate]);
 
   /* ── Monthly summary (30d) ── */
   const monthly = useMemo(() => {
@@ -350,22 +375,7 @@ export function FitnessPage() {
 
   const noData = !effectiveActivities.length && !loadingTL && !effectiveTL;
 
-  /* ── Month labels for the 60-day calendar ── */
-  const calMonths = useMemo(() => {
-    if (!calendar.length) return [];
-    const months: { label: string; span: number }[] = [];
-    let cur = "";
-    for (const day of calendar) {
-      const m = new Date(day.date + "T00:00:00").toLocaleDateString("es-ES", { month: "short" });
-      if (m !== cur) {
-        months.push({ label: m, span: 1 });
-        cur = m;
-      } else {
-        months[months.length - 1].span++;
-      }
-    }
-    return months;
-  }, [calendar]);
+  const WEEKDAYS = ["L", "M", "X", "J", "V", "S", "D"];
 
   return (
     <div className="ath-page ath-fitness">
@@ -382,34 +392,40 @@ export function FitnessPage() {
       )}
 
       {!noData && (<>
-        {/* ═══ 1. Activity heatmap (60 days) + Summary cards ═══ */}
+        {/* ═══ 1. Activity calendar (2 months) + Summary cards ═══ */}
         <div className="fit-top-row">
           <div className="fit-heatmap">
-            <div className="fit-heatmap__head">
-              <span className="fit-heatmap__title">Actividad</span>
-              <div className="fit-heatmap__legend-scale">
-                <span className="fit-heatmap__scale-label">0</span>
-                <span className="fit-heatmap__scale-box" style={{ background: ACT_COLORS[1] }} />
-                <span className="fit-heatmap__scale-box" style={{ background: ACT_COLORS[2] }} />
-                <span className="fit-heatmap__scale-box" style={{ background: ACT_COLORS[3] }} />
-                <span className="fit-heatmap__scale-label">3+</span>
-              </div>
-            </div>
-            {/* Month labels row */}
-            <div className="fit-heatmap__months">
-              {calMonths.map((m, i) => (
-                <span key={i} className="fit-heatmap__month" style={{ gridColumn: `span ${m.span}` }}>{m.label}</span>
+            <div className="fit-heatmap__months-row">
+              {calendarMonths.map((m) => (
+                <div key={m.label} className="fit-heatmap__month-block">
+                  <span className="fit-heatmap__month-label">{m.label}</span>
+                  <div className="fit-heatmap__weekdays">
+                    {WEEKDAYS.map((w) => <span key={w}>{w}</span>)}
+                  </div>
+                  <div className="fit-heatmap__grid">
+                    {m.days.map((day, i) => (
+                      <div
+                        key={i}
+                        className={[
+                          "fit-heatmap__cell",
+                          day.day === 0 && "fit-heatmap__cell--empty",
+                          day.isToday && "fit-heatmap__cell--today",
+                          day.count > 0 && "fit-heatmap__cell--active",
+                        ].filter(Boolean).join(" ")}
+                        title={day.day > 0 ? `${fmtDate(day.date)} — ${day.count} actividad${day.count !== 1 ? "es" : ""}${day.sports.length ? ": " + day.sports.join(", ") : ""}` : ""}
+                        style={day.count > 0 ? { background: actCountColor(day.count) } : undefined}
+                      >
+                        {day.day > 0 ? day.day : ""}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
-            <div className="fit-heatmap__grid">
-              {calendar.map((day) => (
-                <div
-                  key={day.date}
-                  className={`fit-heatmap__cell ${isToday(day.date) ? "fit-heatmap__cell--today" : ""}`}
-                  title={`${fmtDate(day.date)} — ${day.count} actividad${day.count !== 1 ? "es" : ""}${day.sports.length ? ": " + day.sports.join(", ") : ""}`}
-                  style={{ background: actCountColor(day.count) }}
-                />
-              ))}
+            <div className="fit-heatmap__legend">
+              <span className="fit-heatmap__legend-item"><span className="fit-heatmap__legend-dot" style={{ background: ACT_COLORS[1] }} />1 actividad</span>
+              <span className="fit-heatmap__legend-item"><span className="fit-heatmap__legend-dot" style={{ background: ACT_COLORS[2] }} />2 actividades</span>
+              <span className="fit-heatmap__legend-item"><span className="fit-heatmap__legend-dot" style={{ background: ACT_COLORS[3] }} />3+ actividades</span>
             </div>
           </div>
 
