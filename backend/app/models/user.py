@@ -23,3 +23,11 @@ class User(Base):
 
     athletes = relationship("Athlete", back_populates="coach", foreign_keys="Athlete.coach_id")
     athlete_profile = relationship("Athlete", foreign_keys=[athlete_id])
+
+    @property
+    def is_coach(self) -> bool:
+        return self.role in ("coach", "coach_athlete")
+
+    @property
+    def is_athlete(self) -> bool:
+        return self.role in ("athlete", "coach_athlete")

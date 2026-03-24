@@ -542,7 +542,16 @@ export function LoginForm({ onLogin, defaultMode }: LoginFormProps) {
                 placeholder="Contraseña de Garmin Connect"
               />
             </label>
-            {athError && <p className="lf-error">{athError}</p>}
+            {athError && (
+              <div className="lf-error">
+                {athError}
+                {athError.toLowerCase().includes("ya existe") && (
+                  <button type="button" className="lf-link-btn" style={{ marginTop: 6, display: "block" }} onClick={() => { setAthError(null); setAuthView("login"); }}>
+                    Ir al login
+                  </button>
+                )}
+              </div>
+            )}
             <button
               type="button"
               className="lf-submit-btn"

@@ -170,12 +170,12 @@ def _resolve_target_athlete(db: Session, user: User, athlete_id: int) -> Athlete
     if athlete is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Athlete not found")
 
-    if user.role == "athlete":
+    if user.is_athlete:
         if user.athlete_id != athlete_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Athlete user can only access their own Garmin data")
         return athlete
 
-    if user.role == "coach":
+    if user.is_coach:
         return athlete
 
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Garmin beta is not available for this role")

@@ -257,16 +257,24 @@ export default function App() {
   async function handleLogin(email: string, password: string, mode: "coach" | "athlete") {
     const result = await api.login(email, password);
     const me = (await api.me(result.access_token)) as AuthUser;
-    if (mode === "athlete" && me.role !== "athlete") {
+    const isDual = me.role === "coach_athlete";
+    const isCoach = me.role === "coach" || isDual;
+    const isAthlete = me.role === "athlete" || isDual;
+    if (mode === "athlete" && !isAthlete) {
       throw new Error("Este acceso es solo para atletas.");
     }
-    if (mode === "coach" && me.role === "athlete") {
+    if (mode === "coach" && !isCoach) {
       throw new Error("Este acceso es para entrenador. Usa el acceso atleta.");
     }
     await setStoredToken(result.access_token);
     setAuthUser(me);
     setToken(result.access_token);
-    navigate(me.role === "athlete" ? "/athlete" : "/");
+    // Dual role: navigate based on chosen mode; single role: navigate based on role
+    if (isDual) {
+      navigate(mode === "athlete" ? "/athlete" : "/");
+    } else {
+      navigate(me.role === "athlete" ? "/athlete" : "/");
+    }
   }
 
   const handleLogout = useCallback(() => {
@@ -364,7 +372,9 @@ export default function App() {
     return <div className="loading">Cargando acceso...</div>;
   }
 
-  if (authUser?.role === "athlete") {
+  const showAthleteView = authUser?.role === "athlete" || (authUser?.role === "coach_athlete" && location.pathname.startsWith("/athlete"));
+
+  if (showAthleteView) {
     return (
       <AthleteDataProvider user={authUser} token={token}>
         <AthleteLayout onLogout={handleLogout} fullName={authUser.full_name} themeMode={themeMode} onToggleTheme={() => setThemeMode((c) => (c === "dark" ? "light" : "dark"))}>

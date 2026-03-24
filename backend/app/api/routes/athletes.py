@@ -59,7 +59,7 @@ def admin_cleanup_athlete(
     user: User = Depends(get_current_user),
 ):
     """Temporary admin endpoint to delete an athlete and all dependencies. Coach-only."""
-    if user.role != "coach":
+    if not user.is_coach:
         raise HTTPException(status_code=403, detail="Solo coaches pueden borrar atletas")
     from sqlalchemy import text
     tables = [
@@ -93,7 +93,7 @@ def admin_fix_user_athlete(
     user: User = Depends(get_current_user),
 ):
     """Fix orphaned user-athlete links. Requires coach role."""
-    if user.role != "coach":
+    if not user.is_coach:
         raise HTTPException(status_code=403, detail="Solo el entrenador puede ejecutar esta acción.")
     from sqlalchemy import text
     # Fix users pointing to deleted athletes — find their correct athlete by email
@@ -315,7 +315,7 @@ def create_athlete(payload: AthleteCreate, db: Session = Depends(get_db), user: 
         threshold_mode=payload.threshold_mode,
         vo2max_ml_kg_min=payload.vo2max_ml_kg_min,
         created_at=payload.created_at,
-        coach_id=user.id if user.role == "coach" else None,
+        coach_id=user.id if user.is_coach else None,
     )
     athlete.weights = [AthleteWeightHistory(**entry.model_dump()) for entry in payload.weights]
     db.add(athlete)

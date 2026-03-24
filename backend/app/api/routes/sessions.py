@@ -29,7 +29,7 @@ def list_sessions(
     athlete_id: Optional[int] = None,
 ):
     q = _session_query()
-    if user.role == "athlete":
+    if user.is_athlete:
         if not user.athlete_id:
             raise HTTPException(status_code=403, detail="Athlete profile not linked")
         q = q.where(AthleteSession.athlete_id == user.athlete_id)
@@ -42,7 +42,7 @@ def list_sessions(
 @router.post("", response_model=SessionRead, status_code=status.HTTP_201_CREATED)
 def create_session(payload: SessionCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     # Athletes can only create sessions for themselves
-    if user.role == "athlete":
+    if user.is_athlete:
         if not user.athlete_id or user.athlete_id != payload.athlete_id:
             raise HTTPException(status_code=403, detail="Cannot create session for another athlete")
     athlete = db.scalar(select(Athlete).where(Athlete.id == payload.athlete_id))

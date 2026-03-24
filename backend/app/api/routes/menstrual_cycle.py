@@ -32,7 +32,7 @@ def _resolve_athlete(db: Session, user: User, athlete_id: int) -> Athlete:
     athlete = db.scalar(select(Athlete).where(Athlete.id == athlete_id))
     if not athlete:
         raise HTTPException(status_code=404, detail="Athlete not found")
-    if user.role == "athlete" and user.athlete_id != athlete_id:
+    if user.is_athlete and user.athlete_id != athlete_id:
         raise HTTPException(status_code=403, detail="Access denied")
     return athlete
 

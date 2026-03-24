@@ -467,7 +467,7 @@ def submit_coach_feedback(
     Sets coach_feedback, coach_feedback_at, and execution_rating on the planned session.
     Only accessible by coach role.
     """
-    if current_user.role != "coach":
+    if not current_user.is_coach:
         raise HTTPException(status_code=403, detail="Solo el entrenador puede enviar feedback.")
     session = db.get(PlannedSession, session_id)
     if session is None:
@@ -1227,7 +1227,7 @@ def planned_session_lap_match(
         raise HTTPException(404, "Planned session not found")
 
     # Auth: athlete can only access own sessions
-    if user.role == "athlete":
+    if user.is_athlete:
         if not user.athlete_id or user.athlete_id != ps.athlete_id:
             raise HTTPException(403, "Access denied")
 

@@ -190,7 +190,7 @@ def invite_athlete(
     user: User = Depends(get_current_user),
 ) -> InviteAthleteResponse:
     """Coach creates a user account for an athlete."""
-    if user.role != "coach":
+    if not user.is_coach:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo los coaches pueden invitar atletas")
 
     athlete = db.scalar(select(Athlete).where(Athlete.id == payload.athlete_id))
@@ -220,7 +220,7 @@ def invite_athlete(
 @router.get("/pending-users", response_model=list[PendingUserRead])
 def pending_users(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """List users pending approval (coach only)."""
-    if user.role != "coach":
+    if not user.is_coach:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo los coaches pueden ver usuarios pendientes")
     rows = db.scalars(select(User).where(User.is_active == False).order_by(User.created_at.desc())).all()  # noqa: E712
     return [
@@ -235,7 +235,7 @@ def pending_users(db: Session = Depends(get_db), user: User = Depends(get_curren
 @router.patch("/users/{user_id}/activate", response_model=MessageResponse)
 def activate_user(user_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> MessageResponse:
     """Approve a pending user (coach only)."""
-    if user.role != "coach":
+    if not user.is_coach:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo los coaches pueden aprobar usuarios")
     target = db.scalar(select(User).where(User.id == user_id))
     if not target:
@@ -248,7 +248,7 @@ def activate_user(user_id: int, db: Session = Depends(get_db), user: User = Depe
 @router.delete("/users/{user_id}/reject", response_model=MessageResponse)
 def reject_user(user_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> MessageResponse:
     """Reject and delete a pending user (coach only)."""
-    if user.role != "coach":
+    if not user.is_coach:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo los coaches pueden rechazar usuarios")
     target = db.scalar(select(User).where(User.id == user_id))
     if not target:
@@ -256,13 +256,30 @@ def reject_user(user_id: int, db: Session = Depends(get_db), user: User = Depend
     if target.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No se puede rechazar un usuario ya activo")
     # If athlete role, also remove the athlete record
-    if target.role == "athlete" and target.athlete_id:
+    if target.is_athlete and target.athlete_id:
         athlete = db.scalar(select(Athlete).where(Athlete.id == target.athlete_id))
         if athlete:
             db.delete(athlete)
     db.delete(target)
     db.commit()
     return MessageResponse(message=f"Usuario {target.email} rechazado y eliminado")
+
+
+@router.patch("/users/{user_id}/make-coach-athlete", response_model=MessageResponse)
+def make_coach_athlete(
+    user_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> MessageResponse:
+    """Promote a user to coach_athlete role (dual access). Coach only."""
+    if not user.is_coach:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo coaches")
+    target = db.scalar(select(User).where(User.id == user_id))
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+    target.role = "coach_athlete"
+    db.commit()
+    return MessageResponse(message=f"Usuario {target.email} ahora es coach+atleta")
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -310,7 +327,7 @@ def change_password(
 @router.get("/me", response_model=UserRead)
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # Auto-fix orphaned athlete link: user points to deleted athlete
-    if user.role == "athlete" and user.athlete_id:
+    if user.is_athlete and user.athlete_id:
         athlete = db.scalar(select(Athlete).where(Athlete.id == user.athlete_id))
         if athlete is None:
             import logging
@@ -354,12 +371,12 @@ def strava_start(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> StravaConnectStartResponse:
-    if user.role == "athlete":
+    if user.is_athlete:
         if not user.athlete_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Athlete user is not linked to an athlete profile")
         target_athlete_id = user.athlete_id
         effective_return_path = return_path or "/athlete"
-    elif user.role == "coach":
+    elif user.is_coach:
         if athlete_id is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Coach must specify athlete_id to test Strava connection")
         target_athlete_id = athlete_id
@@ -449,11 +466,11 @@ def strava_test_connect(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> StravaTestConnectResponse:
-    if user.role == "athlete":
+    if user.is_athlete:
         if not user.athlete_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Athlete user is not linked to an athlete profile")
         target_athlete_id = user.athlete_id
-    elif user.role == "coach":
+    elif user.is_coach:
         if payload.athlete_id is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Coach must specify athlete_id for manual Strava test connection")
         target_athlete_id = payload.athlete_id

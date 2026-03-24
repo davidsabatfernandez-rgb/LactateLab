@@ -121,7 +121,7 @@ def _resolve_target_athlete(db: Session, user: User, athlete_id: int) -> Athlete
     athlete = db.scalar(select(Athlete).where(Athlete.id == athlete_id))
     if athlete is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Athlete not found")
-    if user.role == "athlete" and user.athlete_id != athlete_id:
+    if user.is_athlete and user.athlete_id != athlete_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot access another athlete's calendar")
     return athlete
 
