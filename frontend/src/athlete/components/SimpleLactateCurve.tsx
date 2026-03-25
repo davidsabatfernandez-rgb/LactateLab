@@ -146,7 +146,7 @@ function ScatterDot(props: any) {
   const { cx, cy } = props;
   if (typeof cx !== "number" || typeof cy !== "number") return null;
   return (
-    <circle cx={cx} cy={cy} r={3.5} fill="var(--ath-accent, #6366f1)" fillOpacity={0.18} stroke="var(--ath-accent, #6366f1)" strokeWidth={0.5} strokeOpacity={0.3} />
+    <circle cx={cx} cy={cy} r={4} fill="var(--ath-accent, #6366f1)" fillOpacity={0.25} stroke="var(--ath-accent, #6366f1)" strokeWidth={0.7} strokeOpacity={0.4} />
   );
 }
 
@@ -217,8 +217,12 @@ export function SimpleLactateCurve({
       session_id: s.session_id,
       _isScatter: true,
     }));
-    return { main, scatter };
-  }, [data, scatterPoints]);
+    // Build faded background curve from scatter points sorted by load
+    const scatterCurve = [...scatterPoints]
+      .sort((a, b) => reversed ? b.xVal - a.xVal : a.xVal - b.xVal)
+      .map((s) => ({ xVal: s.xVal, bgLactate: s.lactate }));
+    return { main, scatter, scatterCurve };
+  }, [data, scatterPoints, reversed]);
 
   const hasContextual = data.some((d) => d.contextual_lactate != null);
 
@@ -349,6 +353,24 @@ export function SimpleLactateCurve({
 
           <Tooltip content={<CurveTooltip xFormatter={xTickFormatter} />} />
 
+          {/* Background curve from all scatter measurements */}
+          {hasScatter && mergedData.scatterCurve.length >= 2 && (
+            <Line
+              data={mergedData.scatterCurve}
+              type="natural"
+              dataKey="bgLactate"
+              yAxisId={0}
+              stroke="var(--ath-accent, #6366f1)"
+              strokeWidth={2}
+              strokeOpacity={0.15}
+              dot={false}
+              activeDot={false}
+              isAnimationActive={false}
+              name="_bg"
+              legendType="none"
+            />
+          )}
+
           {hasScatter && (
             <Scatter
               data={mergedData.scatter}
@@ -401,8 +423,8 @@ export function SimpleLactateCurve({
         )}
         {hasScatter && (
           <span className="ath-curve-legend__item">
-            <span className="ath-curve-legend__dot" style={{ background: "var(--ath-accent, #6366f1)", opacity: 0.3, borderRadius: "50%" }} />
-            Todas las muestras
+            <span className="ath-curve-legend__dot" style={{ background: "var(--ath-accent, #6366f1)", opacity: 0.35, borderRadius: "50%" }} />
+            Muestras acumuladas
           </span>
         )}
         {hasRealLt1 && (

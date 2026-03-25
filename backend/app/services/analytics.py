@@ -882,11 +882,13 @@ def _thresholds_from_session(session: AthleteSession) -> list[ThresholdResult]:
 
 
 _REAL_MIN_CONFIDENCE = 0.75
-_REAL_MIN_STAGES = 5
+_REAL_MIN_STAGES = 7
 _REAL_MIN_MONOTONICITY = 0.60
 _REAL_MIN_AGREEMENT = 0.62
 _REAL_MIN_PROTOCOL_SCORE = 0.68
 _REAL_MIN_SIGNAL_SCORE = 0.70
+_REAL_MIN_COVERAGE = 0.70              # min ratio sampled/total intervals
+_REAL_MAX_THRESHOLD_ZONE_DROP = 0.55   # max drop (mmol) in 2.5-5.0 zone
 _REAL_CANDIDATE_STRONG_MIN_CONFIDENCE = 0.72
 _INDIVIDUAL_MAX_SAMPLE_DELAY_SECONDS = 60
 _INDIVIDUAL_MIN_SUPPORT_SESSIONS = 6
@@ -895,7 +897,7 @@ _INDIVIDUAL_PROGRESS_TOLERANCE_RATIO = 0.01
 _INDIVIDUAL_MIN_AGREEMENT = 0.62
 _INDIVIDUAL_MIN_CONFIDENCE = 0.78
 _INDIVIDUAL_RULESET_VERSION = 2
-_REAL_RULESET_VERSION = 3
+_REAL_RULESET_VERSION = 4
 
 # ── Threshold anchor system (simplified) ─────────────────────────────────
 # Two states per threshold: "anclado" (2.0/4.0 mmol) or "detectado" (curve break).
@@ -906,8 +908,8 @@ _REAL_RULESET_VERSION = 3
 # Each threshold (LT1, LT2) is evaluated independently.
 
 _BREAK_MIN_CONFIDENCE = 0.70   # Minimum confidence to promote from anchored → detected
-_BREAK_MIN_POINTS_LT1 = 3     # Minimum points near LT1 zone (lactate < 3.0)
-_BREAK_MIN_POINTS_LT2 = 3     # Minimum points near LT2 zone (lactate > 2.5)
+_BREAK_MIN_POINTS_LT1 = 2     # Minimum points near LT1 zone (lactate < 3.5)
+_BREAK_MIN_POINTS_LT2 = 2     # Minimum points near LT2 zone (lactate > 1.5)
 
 
 def _detect_curve_break_accumulated(
@@ -1873,6 +1875,35 @@ def _detect_real_thresholds(session: AthleteSession) -> dict[str, Any]:
             f"Señal insuficiente para umbral individual "
             f"(signal_score {signal_score:.0%}, mínimo {_REAL_MIN_SIGNAL_SCORE:.0%})"
         )
+
+    # G-COV — Sampling coverage: ratio of sampled vs total intervals
+    total_intervals = len(session.intervals)
+    coverage = usable_stage_count / total_intervals if total_intervals > 0 else 0.0
+    result["data_quality"]["sampling_coverage"] = round(coverage, 2)
+    if coverage < _REAL_MIN_COVERAGE:
+        quality_gate_passed = False
+        result["data_quality"]["reason"] = (
+            f"Cobertura de muestreo insuficiente "
+            f"({usable_stage_count}/{total_intervals} = {coverage:.0%}, mínimo {_REAL_MIN_COVERAGE:.0%})"
+        )
+
+    # G-DROP — Threshold zone drop: a drop >0.55 mmol in the 2.5-5.0 zone
+    # signals unreliable data (measurement error, clearance during rest, etc.)
+    if candidates:
+        lactates = [c["lactate"] for c in candidates]
+        max_tz_drop = 0.0
+        for i in range(1, len(lactates)):
+            drop = lactates[i - 1] - lactates[i]
+            if drop > max_tz_drop and 2.5 <= lactates[i - 1] <= 5.0:
+                max_tz_drop = drop
+        result["data_quality"]["max_threshold_zone_drop"] = round(max_tz_drop, 2)
+        if max_tz_drop > _REAL_MAX_THRESHOLD_ZONE_DROP:
+            quality_gate_passed = False
+            result["data_quality"]["reason"] = (
+                f"Caída de {max_tz_drop:.2f} mmol en zona de umbral (2.5-5.0) "
+                f"supera el máximo tolerable ({_REAL_MAX_THRESHOLD_ZONE_DROP} mmol)"
+            )
+
     if quality_gate_passed:
         result["data_quality"]["sufficient"] = True
         result["data_quality"]["reason"] = "Datos suficientes para estimación conservadora"
