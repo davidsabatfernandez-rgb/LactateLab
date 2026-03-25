@@ -160,34 +160,104 @@ export function ProgressPage() {
       }));
   }, [allMeasurements, scatterDateCutoff, isPaceDisc, isPowerDisc]);
 
-  // Build interval_id → HR lookup from measurement_log
-  const hrByInterval = useMemo(() => {
-    const map = new Map<number, number>();
+  // Build interval_id → full metrics lookup from measurement_log
+  const metricsByInterval = useMemo(() => {
+    const map = new Map<number, { hr: number | null; pace: number | null; power: number | null }>();
     for (const m of (selectedView?.measurement_log ?? [])) {
-      if (m.heart_rate_avg != null) map.set(m.interval_id, m.heart_rate_avg);
+      map.set(m.interval_id, {
+        hr: m.heart_rate_avg ?? null,
+        pace: m.pace_seconds_per_km ?? null,
+        power: m.power_watts ?? null,
+      });
     }
     return map;
   }, [selectedView?.measurement_log]);
 
+  // Legacy compat
+  const hrByInterval = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const [id, m] of metricsByInterval) {
+      if (m.hr != null) map.set(id, m.hr);
+    }
+    return map;
+  }, [metricsByInterval]);
+
   // Extract real curve data on primary axis from curve_history
-  const realCurveData = useMemo(() => {
+  // Split by session: latest test = main curve, other sessions = background curves
+  const { realCurveData, backgroundCurves } = useMemo(() => {
     const curveData = selectedView?.curve_history?.[curveKey];
+    const mlog = selectedView?.measurement_log ?? [];
+    const peakVal = selectedView?.measured_vlamax?.peak_lactate;
+
+    // Build session_date → session_type lookup from measurement_log
+    const sessionTypeByDate = new Map<string, string>();
+    for (const m of mlog) {
+      if (m.session_date && m.session_type) sessionTypeByDate.set(m.session_date, m.session_type);
+    }
+
     if (curveData && curveData.length >= 3) {
-      const peakVal = selectedView?.measured_vlamax?.peak_lactate;
-      return curveData
-        .filter((p) => typeof p.x === "number" && typeof p.lactate === "number")
-        .map((p) => ({
+      // Group points by session_date
+      const bySession = new Map<string, typeof curveData>();
+      for (const p of curveData) {
+        if (typeof p.x !== "number" || typeof p.lactate !== "number") continue;
+        const key = p.session_date ?? "unknown";
+        const arr = bySession.get(key) ?? [];
+        arr.push(p);
+        bySession.set(key, arr);
+      }
+
+      // Find the latest test incremental with ≥5 points (main curve)
+      let mainSessionDate: string | null = null;
+      const sortedDates = [...bySession.keys()].sort().reverse();
+      for (const date of sortedDates) {
+        const pts = bySession.get(date)!;
+        const sType = sessionTypeByDate.get(date) ?? "";
+        if (sType.includes("test") && pts.length >= 5) {
+          mainSessionDate = date;
+          break;
+        }
+      }
+      // Fallback: latest session with ≥5 points
+      if (!mainSessionDate) {
+        for (const date of sortedDates) {
+          if ((bySession.get(date)?.length ?? 0) >= 5) { mainSessionDate = date; break; }
+        }
+      }
+
+      const toPoint = (p: any) => {
+        const metrics = metricsByInterval.get(p.interval_id);
+        return {
           xVal: isPaceDisc ? p.x : Math.round(p.x),
-          hr: hrByInterval.get(p.interval_id) ?? null,
-          lactate: p.lactate,
+          hr: metrics?.hr ?? null,
+          pace: metrics?.pace ?? null,
+          power: metrics?.power ?? null,
+          lactate: p.lactate as number,
           contextual_lactate: typeof p.contextual_lactate === "number" ? p.contextual_lactate : undefined,
           is_peak: peakVal != null && Math.abs(p.lactate - peakVal) < 0.05,
-        }))
-        .sort((a, b) => isPaceDisc ? b.xVal - a.xVal : a.xVal - b.xVal);
+        };
+      };
+
+      const sortFn = (a: { xVal: number }, b: { xVal: number }) => isPaceDisc ? b.xVal - a.xVal : a.xVal - b.xVal;
+
+      const main = mainSessionDate
+        ? bySession.get(mainSessionDate)!.map(toPoint).sort(sortFn)
+        : undefined;
+
+      // Background: all OTHER sessions with ≥2 points, each as its own curve
+      const bg: Array<Array<{ xVal: number; lactate: number }>> = [];
+      for (const [date, pts] of bySession) {
+        if (date === mainSessionDate || pts.length < 2) continue;
+        bg.push(
+          pts.map((p) => ({ xVal: isPaceDisc ? p.x : Math.round(p.x), lactate: p.lactate }))
+            .sort(sortFn)
+        );
+      }
+
+      return { realCurveData: main, backgroundCurves: bg };
     }
+
     // Fallback: measurement_log
-    const log = selectedView?.measurement_log ?? [];
-    const points = log
+    const points = mlog
       .filter((entry) => {
         if (entry.lactate_mmol == null || entry.lactate_mmol <= 0) return false;
         if (isPaceDisc) return entry.pace_seconds_per_km != null && entry.pace_seconds_per_km > 0;
@@ -200,8 +270,8 @@ export function ProgressPage() {
         lactate: entry.lactate_mmol,
       }))
       .sort((a, b) => isPaceDisc ? b.xVal - a.xVal : a.xVal - b.xVal);
-    return points.length >= 3 ? points : undefined;
-  }, [selectedView?.curve_history, selectedView?.measurement_log, selectedView?.measured_vlamax, curveKey, isPaceDisc, isPowerDisc, hrByInterval]);
+    return { realCurveData: points.length >= 3 ? points : undefined, backgroundCurves: [] };
+  }, [selectedView?.curve_history, selectedView?.measurement_log, selectedView?.measured_vlamax, curveKey, isPaceDisc, isPowerDisc, metricsByInterval]);
 
   // maxX for fallback mock curve
   const maxX = useMemo(() => {
@@ -424,11 +494,14 @@ export function ProgressPage() {
           <SimpleLactateCurve
             lt1X={typeof lt1X === "number" ? lt1X : null}
             lt2X={typeof lt2X === "number" ? lt2X : null}
+            lt1Lactate={lt1Th?.lactate ?? null}
+            lt2Lactate={lt2Th?.lactate ?? null}
             maxX={maxX}
             dataPoints={realCurveData}
             overlays={curveOverlays}
             peakLactate={peakLactate}
             scatterPoints={scatterPoints}
+            backgroundCurves={backgroundCurves}
             realLt1X={typeof realLt1X === "number" ? realLt1X : null}
             realLt2X={typeof realLt2X === "number" ? realLt2X : null}
             xLabel={curveXLabel}

@@ -198,22 +198,111 @@ def seed() -> None:
                     (3, 720, 240, "easy", 161, 168, None, 281, None, 93, 8, "LT2", 4.0, 75, "tras 75s"),
                 ],
             ),
+            # ── Marta Vidal: test incremental running (8 escalones, curva limpia) ──
             (
                 athletes[2],
                 Session(
                     athlete_id=athletes[2].id,
-                    performed_at=datetime(2026, 1, 28, 7, 30),
-                    discipline="triatlón",
-                    session_type="VO2max",
-                    goal="Transición bike-run con bloques duros.",
-                    surface="mixto",
-                    temperature_c=14,
-                    comments="Fatiga acumulada previa relevante.",
+                    performed_at=datetime(2026, 1, 15, 8, 0),
+                    discipline="running",
+                    session_type="test incremental",
+                    goal="Mapear curva de lactato running inicial.",
+                    surface="pista",
+                    temperature_c=12,
+                    comments="8×1200m incrementos de 10s/km, muestra a 45s.",
                 ),
                 [
-                    (1, 300, 120, "easy", 150, 158, None, 235, None, 90, 5, "LT2", 2.8, 60, "tras 60s"),
-                    (2, 240, 90, "easy", 164, 172, 255, None, 280, 182, 8, "VO2max", 5.2, 40, "tras 40s"),
-                    (3, 240, 90, "easy", 167, 175, 250, None, 286, 183, 9, "VO2max", 5.7, 40, "tras 40s"),
+                    (1, 300, 60, "walk", 132, 138, 370, None, None, 170, 2, "aeróbico", 0.9, 45, "tras 45s"),
+                    (2, 300, 60, "walk", 140, 146, 355, None, None, 172, 3, "aeróbico", 1.1, 45, "tras 45s"),
+                    (3, 300, 60, "walk", 148, 154, 340, None, None, 174, 3, "aeróbico", 1.3, 45, "tras 45s"),
+                    (4, 300, 60, "walk", 155, 162, 325, None, None, 176, 4, "LT1", 1.7, 45, "tras 45s"),
+                    (5, 300, 60, "walk", 162, 169, 310, None, None, 178, 5, "LT1", 2.4, 45, "tras 45s"),
+                    (6, 300, 60, "walk", 170, 176, 295, None, None, 180, 6, "LT2", 3.3, 45, "tras 45s"),
+                    (7, 300, 60, "walk", 176, 183, 280, None, None, 182, 8, "LT2", 4.8, 45, "tras 45s"),
+                    (8, 300, 60, "walk", 182, 190, 265, None, None, 185, 9, "VO2max", 7.2, 45, "tras 45s"),
+                ],
+            ),
+            # ── Marta: sesión LT1 running con mediciones sueltas ──
+            (
+                athletes[2],
+                Session(
+                    athlete_id=athletes[2].id,
+                    performed_at=datetime(2026, 2, 5, 7, 30),
+                    discipline="running",
+                    session_type="sesión LT1",
+                    goal="6×5' LT1 con muestra en intervalos 2 y 5.",
+                    surface="asfalto",
+                    temperature_c=10,
+                    comments="Muestreo parcial para seguimiento.",
+                ),
+                [
+                    (1, 300, 60, "jog", 148, 153, 342, None, None, 174, 3, "LT1", None, None, None),
+                    (2, 300, 60, "jog", 150, 155, 338, None, None, 175, 3, "LT1", 1.5, 30, "tras 30s"),
+                    (3, 300, 60, "jog", 151, 156, 336, None, None, 175, 4, "LT1", None, None, None),
+                    (4, 300, 60, "jog", 152, 157, 335, None, None, 176, 4, "LT1", None, None, None),
+                    (5, 300, 60, "jog", 153, 158, 334, None, None, 176, 4, "LT1", 1.6, 30, "tras 30s"),
+                    (6, 300, 60, "jog", 154, 159, 333, None, None, 176, 4, "LT1", None, None, None),
+                ],
+            ),
+            # ── Marta: sesión LT2 running con mediciones ──
+            (
+                athletes[2],
+                Session(
+                    athlete_id=athletes[2].id,
+                    performed_at=datetime(2026, 2, 20, 8, 0),
+                    discipline="running",
+                    session_type="sesión LT2",
+                    goal="4×8' LT2 con muestra post cada intervalo.",
+                    surface="asfalto",
+                    temperature_c=14,
+                    comments="Bloques umbral con toma completa.",
+                ),
+                [
+                    (1, 480, 180, "jog", 168, 174, 298, None, None, 180, 6, "LT2", 3.1, 45, "tras 45s"),
+                    (2, 480, 180, "jog", 171, 177, 295, None, None, 181, 7, "LT2", 3.4, 45, "tras 45s"),
+                    (3, 480, 180, "jog", 173, 179, 293, None, None, 181, 7, "LT2", 3.6, 45, "tras 45s"),
+                    (4, 480, 180, "jog", 175, 182, 290, None, None, 182, 8, "LT2", 3.9, 45, "tras 45s"),
+                ],
+            ),
+            # ── Marta: test incremental ciclismo (7 escalones) ──
+            (
+                athletes[2],
+                Session(
+                    athlete_id=athletes[2].id,
+                    performed_at=datetime(2026, 2, 28, 8, 0),
+                    discipline="ciclismo",
+                    session_type="test incremental",
+                    goal="Curva de lactato en rodillo.",
+                    surface="indoor",
+                    temperature_c=20,
+                    comments="7×5' incrementos de 30W, muestra a 45s.",
+                ),
+                [
+                    (1, 300, 60, "easy", 120, 128, None, 130, None, 85, 2, "aeróbico", 0.8, 45, "tras 45s"),
+                    (2, 300, 60, "easy", 132, 140, None, 160, None, 87, 3, "aeróbico", 1.0, 45, "tras 45s"),
+                    (3, 300, 60, "easy", 144, 152, None, 190, None, 89, 4, "LT1", 1.5, 45, "tras 45s"),
+                    (4, 300, 60, "easy", 155, 163, None, 220, None, 91, 5, "LT1", 2.3, 45, "tras 45s"),
+                    (5, 300, 60, "easy", 164, 172, None, 250, None, 93, 7, "LT2", 3.5, 45, "tras 45s"),
+                    (6, 300, 60, "easy", 172, 180, None, 280, None, 95, 8, "LT2", 5.4, 45, "tras 45s"),
+                    (7, 300, 60, "easy", 179, 188, None, 310, None, 97, 9, "VO2max", 8.1, 45, "tras 45s"),
+                ],
+            ),
+            # ── Marta: transición bike-run con bloques duros ──
+            (
+                athletes[2],
+                Session(
+                    athlete_id=athletes[2].id,
+                    performed_at=datetime(2026, 3, 10, 7, 30),
+                    discipline="running",
+                    session_type="sesión LT1",
+                    goal="Rodaje LT1 post-bici con muestra de control.",
+                    surface="asfalto",
+                    temperature_c=16,
+                    comments="30' continuo a ritmo LT1 con muestras al inicio y final.",
+                ),
+                [
+                    (1, 900, 0, "none", 150, 156, 340, None, None, 175, 3, "LT1", 1.4, 45, "tras 45s"),
+                    (2, 900, 0, "none", 153, 159, 336, None, None, 176, 4, "LT1", 1.7, 45, "tras 45s"),
                 ],
             ),
         ]
@@ -234,12 +323,13 @@ def seed() -> None:
                     rpe=rpe,
                     purpose=purpose,
                 )
-                interval.lactate_sample = LactateSample(
-                    lactate_mmol=lactate,
-                    sample_delay_seconds=delay,
-                    sample_timing_label=label,
-                    sampling_notes="Muestra capilar lóbulo oreja.",
-                )
+                if lactate is not None:
+                    interval.lactate_sample = LactateSample(
+                        lactate_mmol=lactate,
+                        sample_delay_seconds=delay,
+                        sample_timing_label=label,
+                        sampling_notes="Muestra capilar lóbulo oreja.",
+                    )
                 session.intervals.append(interval)
             db.add(session)
 

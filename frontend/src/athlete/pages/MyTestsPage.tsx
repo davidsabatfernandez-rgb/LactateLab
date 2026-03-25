@@ -4,6 +4,164 @@ import { api } from "../../lib/api";
 import type { SessionSummary, SessionAnalysis, CurvePoint, Threshold, ConfidenceItem, DynamicThresholds, DynamicReference, DisciplineView } from "../../types";
 import { ThresholdAnchorBanner } from "../components/ThresholdAnchorBanner";
 
+/* ── Weather helper ── */
+type WeatherData = {
+  temperature: number;
+  humidity: number;
+  wind_speed: number;
+  wind_direction: number;
+  apparent_temperature: number;
+  precipitation: number;
+  summary: string;
+};
+
+async function fetchWeather(lat: number, lon: number, date: string): Promise<WeatherData | string> {
+  const today = new Date().toISOString().slice(0, 10);
+  const diffDays = (new Date(today).getTime() - new Date(date).getTime()) / 86400000;
+
+  // Open-Meteo archive goes back ~80 years, forecast up to 16 days
+  const isHistorical = date < today;
+  const isFuture = date > today;
+
+  if (isFuture && diffDays < -16) return "Fecha demasiado lejana en el futuro para obtener meteorología.";
+
+  try {
+    let url: string;
+    if (isHistorical) {
+      url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${date}&end_date=${date}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,apparent_temperature,precipitation&timezone=auto`;
+    } else {
+      url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&start_date=${date}&end_date=${date}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,apparent_temperature,precipitation&timezone=auto`;
+    }
+
+    const res = await fetch(url);
+    if (!res.ok) return `Error obteniendo meteorología (${res.status}).`;
+    const data = await res.json();
+    const h = data.hourly;
+    if (!h?.temperature_2m?.length) return "Sin datos meteorológicos para esta fecha.";
+
+    // Use values around midday (index 10-14, ~10h-14h)
+    const midIdx = Math.min(12, h.temperature_2m.length - 1);
+    const slice = (arr: number[]) => {
+      const start = Math.max(0, midIdx - 2);
+      const end = Math.min(arr.length, midIdx + 3);
+      const s = arr.slice(start, end).filter((v: number) => v != null);
+      return s.length ? s.reduce((a: number, b: number) => a + b, 0) / s.length : arr[midIdx];
+    };
+
+    const temp = Math.round(slice(h.temperature_2m) * 10) / 10;
+    const humidity = Math.round(slice(h.relative_humidity_2m));
+    const wind = Math.round(slice(h.wind_speed_10m) * 10) / 10;
+    const windDir = Math.round(slice(h.wind_direction_10m));
+    const apparent = Math.round(slice(h.apparent_temperature) * 10) / 10;
+    const precip = Math.round(h.precipitation.reduce((a: number, b: number) => a + (b ?? 0), 0) * 10) / 10;
+
+    const windLabel = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(windDir / 45) % 8];
+    const summary = `${temp}°C (ST ${apparent}°C), ${humidity}% hum, viento ${wind} km/h ${windLabel}${precip > 0 ? `, ${precip}mm lluvia` : ""}`;
+
+    return { temperature: temp, humidity, wind_speed: wind, wind_direction: windDir, apparent_temperature: apparent, precipitation: precip, summary };
+  } catch {
+    return "Error de conexión al obtener meteorología.";
+  }
+}
+
+function WeatherButton({ date, onWeatherFetched }: { date: string; onWeatherFetched: (text: string) => void }) {
+  const [mode, setMode] = useState<null | "choosing" | "manual" | "loading">(null);
+  const [manualLocation, setManualLocation] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+
+  async function handleFetch(lat: number, lon: number) {
+    setMode("loading");
+    setError(null);
+    const w = await fetchWeather(lat, lon, date);
+    if (typeof w === "string") {
+      setError(w);
+      setMode(null);
+    } else {
+      setResult(w.summary);
+      onWeatherFetched(w.summary);
+      setMode(null);
+    }
+  }
+
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      setError("Geolocalización no disponible en este navegador.");
+      return;
+    }
+    setMode("loading");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => handleFetch(pos.coords.latitude, pos.coords.longitude),
+      () => { setError("Permiso de ubicación denegado."); setMode(null); },
+      { timeout: 10000 }
+    );
+  }
+
+  async function useManualLocation() {
+    if (!manualLocation.trim()) return;
+    setMode("loading");
+    setError(null);
+    try {
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(manualLocation)}&count=1&language=es`);
+      const data = await res.json();
+      if (!data.results?.length) {
+        setError(`No se encontró "${manualLocation}".`);
+        setMode("manual");
+        return;
+      }
+      const { latitude, longitude } = data.results[0];
+      await handleFetch(latitude, longitude);
+    } catch {
+      setError("Error buscando ubicación.");
+      setMode("manual");
+    }
+  }
+
+  if (result) {
+    return <span className="ath-weather-result">🌤 {result}</span>;
+  }
+
+  if (mode === "loading") {
+    return <span className="ath-weather-loading">Obteniendo meteo...</span>;
+  }
+
+  if (mode === "manual") {
+    return (
+      <div className="ath-weather-manual">
+        <input
+          type="text"
+          placeholder="Ciudad o lugar..."
+          value={manualLocation}
+          onChange={(e) => setManualLocation(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), useManualLocation())}
+          className="ath-weather-manual__input"
+          autoFocus
+        />
+        <button type="button" className="ath-weather-manual__go" onClick={useManualLocation}>Buscar</button>
+        <button type="button" className="ath-weather-manual__cancel" onClick={() => setMode(null)}>✕</button>
+        {error && <span className="ath-weather-error">{error}</span>}
+      </div>
+    );
+  }
+
+  if (mode === "choosing") {
+    return (
+      <div className="ath-weather-choose">
+        <button type="button" className="ath-weather-choose__btn" onClick={useCurrentLocation}>📍 Mi ubicación</button>
+        <button type="button" className="ath-weather-choose__btn" onClick={() => setMode("manual")}>✏️ Otra ubicación</button>
+        <button type="button" className="ath-weather-manual__cancel" onClick={() => setMode(null)}>✕</button>
+        {error && <span className="ath-weather-error">{error}</span>}
+      </div>
+    );
+  }
+
+  return (
+    <button type="button" className="ath-weather-btn" onClick={() => setMode("choosing")} title="Añadir meteorología">
+      🌤
+    </button>
+  );
+}
+
 /* ── Helpers ── */
 function paceToSeconds(pace: string): number | null {
   const m = pace.match(/^(\d+):(\d{1,2})$/);
@@ -28,6 +186,15 @@ function formatDate(iso: string): string {
 /* ── Types ── */
 type DurationUnit = "min" | "km";
 
+type FeelingScore = "" | "1" | "2" | "3" | "4" | "5";
+const FEELING_OPTIONS: { value: FeelingScore; emoji: string; label: string }[] = [
+  { value: "1", emoji: "😫", label: "Muy mal" },
+  { value: "2", emoji: "😟", label: "Mal" },
+  { value: "3", emoji: "😐", label: "Normal" },
+  { value: "4", emoji: "😊", label: "Bien" },
+  { value: "5", emoji: "😁", label: "Muy bien" },
+];
+
 type StepRow = {
   zone_tag: string;
   duration_min: string;
@@ -36,14 +203,16 @@ type StepRow = {
   power: string;
   hr: string;
   hr_max: string;
+  cadence: string;
   lactate: string;
+  feeling: FeelingScore;
   note: string;
 };
 
 type Discipline = "running" | "ciclismo" | "natación";
 
 const ZONE_TAGS = ["LT1", "LT2", "VO2", "ANC", "REC", "BASE", "TEMPO", ""];
-const EMPTY_ROW: StepRow = { zone_tag: "", duration_min: "", rest_min: "", pace: "", power: "", hr: "", hr_max: "", lactate: "", note: "" };
+const EMPTY_ROW: StepRow = { zone_tag: "", duration_min: "", rest_min: "", pace: "", power: "", hr: "", hr_max: "", cadence: "", lactate: "", feeling: "", note: "" };
 
 /* ── Mini curve SVG ── */
 function MiniCurve({ points }: { points: CurvePoint[] }) {
@@ -185,6 +354,7 @@ type EditableInterval = {
   pace: string;
   power: string;
   hr: string;
+  cadence: string;
   duration: string;
   rest: string;
   note: string;
@@ -230,6 +400,7 @@ function TestDetail({ sessionId, onClose, onDeleted }: { sessionId: number; onCl
       pace: iv.pace_seconds_per_km ? secondsToPace(iv.pace_seconds_per_km) : "",
       power: iv.power_watts?.toString() ?? "",
       hr: iv.heart_rate_avg?.toString() ?? "",
+      cadence: iv.cadence?.toString() ?? "",
       duration: iv.duration_seconds ? (iv.duration_seconds / 60).toFixed(0) : "",
       rest: iv.rest_seconds ? (iv.rest_seconds / 60).toFixed(0) : "",
       note: iv.notes ?? "",
@@ -243,7 +414,7 @@ function TestDetail({ sessionId, onClose, onDeleted }: { sessionId: number; onCl
 
   function addEditRow() {
     const nextIndex = editRows.length > 0 ? Math.max(...editRows.map((r) => r.order_index)) + 1 : 1;
-    setEditRows((prev) => [...prev, { id: 0, order_index: nextIndex, lactate: "", pace: "", power: "", hr: "", duration: "", rest: "", note: "" }]);
+    setEditRows((prev) => [...prev, { id: 0, order_index: nextIndex, lactate: "", pace: "", power: "", hr: "", cadence: "", duration: "", rest: "", note: "" }]);
   }
 
   function removeEditRow(i: number) {
@@ -271,12 +442,14 @@ function TestDetail({ sessionId, onClose, onDeleted }: { sessionId: number; onCl
         if (row.id === 0) {
           // New interval — POST
           if (isNaN(lacVal) || lacVal <= 0) continue; // skip empty new rows
+          const cadNewVal = parseInt(row.cadence) || undefined;
           await api.addInterval(token, sessionId, {
             order_index: row.order_index,
             duration_seconds: durSec,
             rest_seconds: restSec,
             rest_type: "passive",
             heart_rate_avg: hrVal,
+            cadence: cadNewVal,
             pace_seconds_per_km: usePace ? paceVal : undefined,
             power_watts: !usePace ? powerVal : undefined,
             purpose: "threshold_work",
@@ -295,6 +468,8 @@ function TestDetail({ sessionId, onClose, onDeleted }: { sessionId: number; onCl
           if (paceVal) intervalPayload.pace_seconds_per_km = paceVal;
           if (powerVal) intervalPayload.power_watts = powerVal;
           if (hrVal) intervalPayload.heart_rate_avg = hrVal;
+          const cadVal = parseInt(row.cadence) || undefined;
+          if (cadVal) intervalPayload.cadence = cadVal;
           if (durSec) intervalPayload.duration_seconds = durSec;
           if (restSec !== undefined) intervalPayload.rest_seconds = restSec;
           if (!isNaN(lacVal) && lacVal > 0) {
@@ -409,6 +584,7 @@ function TestDetail({ sessionId, onClose, onDeleted }: { sessionId: number; onCl
                 <span>Lactato</span>
                 <span>{usePace ? "Ritmo" : "Potencia"}</span>
                 <span>FC</span>
+                <span>Cad</span>
                 <span>Dur (min)</span>
                 <span>Desc (min)</span>
                 <span></span>
@@ -423,6 +599,7 @@ function TestDetail({ sessionId, onClose, onDeleted }: { sessionId: number; onCl
                     <input type="text" value={row.power} onChange={(e) => updateEditRow(i, "power", e.target.value)} placeholder="W" />
                   )}
                   <input type="text" value={row.hr} onChange={(e) => updateEditRow(i, "hr", e.target.value)} placeholder="bpm" />
+                  <input type="text" value={row.cadence} onChange={(e) => updateEditRow(i, "cadence", e.target.value)} placeholder="cad" />
                   <input type="text" value={row.duration} onChange={(e) => updateEditRow(i, "duration", e.target.value)} placeholder="min" />
                   <input type="text" value={row.rest} onChange={(e) => updateEditRow(i, "rest", e.target.value)} placeholder="min" />
                   <button type="button" className="ath-tests-form__remove" onClick={() => removeEditRow(i)} title="Quitar">&times;</button>
@@ -527,9 +704,11 @@ function SingleMeasurementForm({ onCreated }: { onCreated: () => void }) {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [context, setContext] = useState("");
   const [lactate, setLactate] = useState("");
+  const [basalLactate, setBasalLactate] = useState("");
   const [pace, setPace] = useState("");
   const [power, setPower] = useState("");
   const [hr, setHr] = useState("");
+  const [cadence, setCadence] = useState("");
   const [duration, setDuration] = useState("");
   const [zone, setZone] = useState("");
   const [note, setNote] = useState("");
@@ -551,12 +730,29 @@ function SingleMeasurementForm({ onCreated }: { onCreated: () => void }) {
     const paceVal = usePace ? paceToSeconds(pace) : undefined;
     const powerVal = !usePace ? (parseFloat(power) || undefined) : undefined;
     const hrVal = parseInt(hr) || undefined;
+    const cadenceVal = parseInt(cadence) || undefined;
     const durMin = parseFloat(duration);
     const durSeconds = !isNaN(durMin) && durMin > 0 ? Math.round(durMin * 60) : 300;
     const purpose = zone || "training_sample";
 
     // Auto-detect draft: lactate is required, everything else optional
     const isDraft = !paceVal && !powerVal && !hrVal && (!durMin || isNaN(durMin));
+
+    // Basal interval if provided
+    const basalLac = parseFloat(basalLactate);
+    const basalInterval = !isNaN(basalLac) && basalLac > 0 ? [{
+      order_index: 0,
+      duration_seconds: 0,
+      rest_seconds: 0,
+      rest_type: "none" as const,
+      purpose: "basal",
+      notes: "Lactato basal",
+      lactate_sample: {
+        lactate_mmol: basalLac,
+        sample_delay_seconds: 0,
+        sample_timing_label: "basal",
+      },
+    }] : [];
 
     setSubmitting(true);
     try {
@@ -567,12 +763,13 @@ function SingleMeasurementForm({ onCreated }: { onCreated: () => void }) {
         session_type: "training_lactate",
         goal: context || "Medición de lactato en entrenamiento",
         is_draft: isDraft,
-        intervals: [{
+        intervals: [...basalInterval, {
           order_index: 1,
           duration_seconds: durSeconds,
           rest_seconds: 0,
           rest_type: "none",
           heart_rate_avg: hrVal,
+          cadence: cadenceVal,
           pace_seconds_per_km: discipline === "running" ? paceVal : undefined,
           power_watts: discipline === "ciclismo" ? powerVal : undefined,
           purpose,
@@ -611,7 +808,10 @@ function SingleMeasurementForm({ onCreated }: { onCreated: () => void }) {
         </label>
         <label>
           <span>Fecha</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div className="ath-tests-form__date-row">
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <WeatherButton date={date} onWeatherFetched={(w) => setNote((prev) => prev ? `${prev} | Meteo: ${w}` : `Meteo: ${w}`)} />
+          </div>
         </label>
       </div>
 
@@ -657,6 +857,17 @@ function SingleMeasurementForm({ onCreated }: { onCreated: () => void }) {
           <span>Duración (min)</span>
           <input type="text" placeholder="5" value={duration} onChange={(e) => setDuration(e.target.value)} />
         </label>
+        <label className="ath-tests-single__field">
+          <span>Cadencia</span>
+          <input type="text" placeholder={discipline === "ciclismo" ? "90 rpm" : "180 ppm"} value={cadence} onChange={(e) => setCadence(e.target.value)} />
+        </label>
+      </div>
+
+      <div className="ath-tests-form__basal">
+        <label className="ath-tests-single__field">
+          <span>Lactato basal (opcional)</span>
+          <input type="text" inputMode="decimal" placeholder="0.9" value={basalLactate} onChange={(e) => setBasalLactate(e.target.value)} />
+        </label>
       </div>
 
       <label className="ath-tests-single__context">
@@ -679,6 +890,177 @@ function SingleMeasurementForm({ onCreated }: { onCreated: () => void }) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   ALL-OUT SPRINT TEST FORM — for VLamax determination
+   ══════════════════════════════════════════════════════════════ */
+function AllOutForm({ onCreated }: { onCreated: () => void }) {
+  const { user, token } = useAthleteData();
+  const [discipline, setDiscipline] = useState<Discipline>("running");
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [duration, setDuration] = useState<"15" | "30">("30");
+  const [load, setLoad] = useState(""); // pace, watts, or pace/100m
+  const [hrMax, setHrMax] = useState("");
+  const [hrAvg, setHrAvg] = useState("");
+  const [cadence, setCadence] = useState("");
+  const [lactate, setLactate] = useState("");
+  const [basalLactate, setBasalLactate] = useState("");
+  const [note, setNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadLabel = discipline === "ciclismo" ? "Potencia (W)" : discipline === "natación" ? "Ritmo (/100m)" : "Ritmo (/km)";
+  const loadPlaceholder = discipline === "ciclismo" ? "800" : discipline === "natación" ? "1:10" : "2:50";
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    const lac = parseFloat(lactate);
+    if (isNaN(lac) || lac <= 0) {
+      setError("Introduce el valor de lactato post-esfuerzo.");
+      return;
+    }
+
+    const usePace = discipline !== "ciclismo";
+    const paceVal = usePace ? paceToSeconds(load) : undefined;
+    const powerVal = discipline === "ciclismo" ? (parseFloat(load) || undefined) : undefined;
+    const hrMaxVal = parseInt(hrMax) || undefined;
+    const hrAvgVal = parseInt(hrAvg) || undefined;
+    const cadenceVal = parseInt(cadence) || undefined;
+    const durSec = parseInt(duration);
+
+    // Basal interval
+    const basalLac = parseFloat(basalLactate);
+    const basalInterval = !isNaN(basalLac) && basalLac > 0 ? [{
+      order_index: 0,
+      duration_seconds: 0,
+      rest_seconds: 0,
+      rest_type: "none" as const,
+      purpose: "basal",
+      notes: "Lactato basal",
+      lactate_sample: {
+        lactate_mmol: basalLac,
+        sample_delay_seconds: 0,
+        sample_timing_label: "basal",
+      },
+    }] : [];
+
+    setSubmitting(true);
+    try {
+      await api.createSession(token, {
+        athlete_id: user.athlete_id,
+        performed_at: `${date}T10:00:00`,
+        discipline,
+        session_type: "allout_sprint",
+        goal: `All-Out ${duration}" sprint — VLamax`,
+        comments: note || undefined,
+        is_draft: false,
+        intervals: [...basalInterval, {
+          order_index: 1,
+          duration_seconds: durSec,
+          rest_seconds: 0,
+          rest_type: "none",
+          heart_rate_avg: hrAvgVal,
+          heart_rate_max: hrMaxVal,
+          cadence: cadenceVal,
+          pace_seconds_per_km: discipline === "running" ? paceVal : undefined,
+          power_watts: discipline === "ciclismo" ? powerVal : undefined,
+          purpose: "allout",
+          notes: note || undefined,
+          lactate_sample: {
+            lactate_mmol: lac,
+            sample_delay_seconds: 60,
+            sample_timing_label: "1min post allout",
+          },
+        }],
+      });
+      onCreated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error guardando el test.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form className="ath-tests-form ath-tests-form--single" onSubmit={handleSubmit}>
+      <h3>Test All-Out Sprint</h3>
+      <p className="ath-tests-form__hint">
+        Esfuerzo máximo de {duration}" para determinar VLamax. Toma el lactato 1 minuto después del esfuerzo.
+      </p>
+
+      <div className="ath-tests-form__top">
+        <label>
+          <span>Disciplina</span>
+          <select value={discipline} onChange={(e) => setDiscipline(e.target.value as Discipline)}>
+            <option value="running">Running</option>
+            <option value="ciclismo">Ciclismo</option>
+            <option value="natación">Natación</option>
+          </select>
+        </label>
+        <label>
+          <span>Fecha</span>
+          <div className="ath-tests-form__date-row">
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <WeatherButton date={date} onWeatherFetched={(w) => setNote((prev) => prev ? `${prev} | Meteo: ${w}` : `Meteo: ${w}`)} />
+          </div>
+        </label>
+      </div>
+
+      {/* Duration selector */}
+      <div className="ath-tests-form__duration-toggle">
+        <span>Duración:</span>
+        <button type="button" className={`ath-tests-form__dur-opt ${duration === "15" ? "active" : ""}`} onClick={() => setDuration("15")}>15"</button>
+        <button type="button" className={`ath-tests-form__dur-opt ${duration === "30" ? "active" : ""}`} onClick={() => setDuration("30")}>30"</button>
+      </div>
+
+      <div className="ath-tests-single__main">
+        <label className="ath-tests-single__field ath-tests-single__field--lac">
+          <span>Lactato post (mmol/L)</span>
+          <input type="text" inputMode="decimal" placeholder="12.5" value={lactate} onChange={(e) => setLactate(e.target.value)} autoFocus />
+        </label>
+        <label className="ath-tests-single__field">
+          <span>{loadLabel}</span>
+          <input type="text" placeholder={loadPlaceholder} value={load} onChange={(e) => setLoad(e.target.value)} />
+        </label>
+      </div>
+
+      <div className="ath-tests-single__extra">
+        <label className="ath-tests-single__field">
+          <span>FC Máx (bpm)</span>
+          <input type="text" placeholder="195" value={hrMax} onChange={(e) => setHrMax(e.target.value)} />
+        </label>
+        <label className="ath-tests-single__field">
+          <span>FC Media (bpm)</span>
+          <input type="text" placeholder="185" value={hrAvg} onChange={(e) => setHrAvg(e.target.value)} />
+        </label>
+        <label className="ath-tests-single__field">
+          <span>Cadencia</span>
+          <input type="text" placeholder={discipline === "ciclismo" ? "120 rpm" : "200 ppm"} value={cadence} onChange={(e) => setCadence(e.target.value)} />
+        </label>
+      </div>
+
+      <div className="ath-tests-form__basal">
+        <label className="ath-tests-single__field">
+          <span>Lactato basal (opcional)</span>
+          <input type="text" inputMode="decimal" placeholder="0.9" value={basalLactate} onChange={(e) => setBasalLactate(e.target.value)} />
+        </label>
+      </div>
+
+      <label className="ath-tests-single__context">
+        <span>Nota (opcional)</span>
+        <input type="text" placeholder="Ej: sprint en pista, viento a favor..." value={note} onChange={(e) => setNote(e.target.value)} />
+      </label>
+
+      {error && <p className="ath-tests-error">{error}</p>}
+
+      <button type="submit" className="ath-tests-form__submit" disabled={submitting}>
+        {submitting ? "Guardando..." : "Guardar All-Out"}
+      </button>
+    </form>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
    MANUAL TEST FORM — incremental lactate test
    ══════════════════════════════════════════════════════════════ */
 function ManualTestForm({ onCreated }: { onCreated: () => void }) {
@@ -693,7 +1075,8 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
   const [sessionNote, setSessionNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(true); // Always show duration/pace/HR
+  const [basalLactate, setBasalLactate] = useState("");
 
   const usePace = discipline !== "ciclismo";
 
@@ -748,7 +1131,7 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
     };
   }, [rows]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent, forceDraft = false) {
     e.preventDefault();
     setError(null);
 
@@ -757,8 +1140,8 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
       return !isNaN(lac) && lac > 0;
     });
 
-    if (rowsWithLactate.length < 3) {
-      setError("Necesitas al menos 3 puntos con lactato para el análisis. Puedes dejar los demás campos vacíos y rellenarlos después.");
+    if (rowsWithLactate.length < 1) {
+      setError("Necesitas al menos 1 punto con lactato.");
       return;
     }
 
@@ -769,6 +1152,7 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
         const rawDur = parseFloat(r.duration_min);
         const hr = parseInt(r.hr) || undefined;
         const hrMax = parseInt(r.hr_max) || undefined;
+        const cadenceVal = parseInt(r.cadence) || undefined;
         const paceVal = usePace ? paceToSeconds(r.pace) : undefined;
         const powerVal = !usePace ? (parseFloat(r.power) || undefined) : undefined;
         const purpose = r.zone_tag ? r.zone_tag.toLowerCase().replace("vo2", "VO2max").replace("anc", "anaerobic") : "threshold_work";
@@ -793,10 +1177,11 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
           rest_type: "passive",
           heart_rate_avg: hr,
           heart_rate_max: hrMax,
+          cadence: cadenceVal,
           pace_seconds_per_km: discipline === "running" ? paceVal : undefined,
           power_watts: discipline === "ciclismo" ? powerVal : undefined,
           purpose,
-          notes: r.note || undefined,
+          notes: [r.note, r.feeling ? `RPE:${r.feeling}` : ""].filter(Boolean).join(" ") || undefined,
           lactate_sample: {
             lactate_mmol: lac,
             sample_delay_seconds: 30,
@@ -807,9 +1192,26 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
       })
       .filter(Boolean);
 
-    // Auto-detect draft: if no pace/power/HR in any row → draft
+    // Auto-detect draft: <3 points or no pace/power/HR → draft
     const hasPerformanceData = rows.some((r) => r.pace || r.power || r.hr);
-    const isDraft = !hasPerformanceData;
+    const isDraft = forceDraft || !hasPerformanceData || rowsWithLactate.length < 3;
+
+    // Build basal interval if basalLactate is set
+    const basalLac = parseFloat(basalLactate);
+    const basalInterval = !isNaN(basalLac) && basalLac > 0 ? [{
+      order_index: 0,
+      duration_seconds: 0,
+      rest_seconds: 0,
+      rest_type: "none" as const,
+      purpose: "basal",
+      notes: "Lactato basal",
+      lactate_sample: {
+        lactate_mmol: basalLac,
+        sample_delay_seconds: 0,
+        sample_timing_label: "basal",
+        sampling_notes: "Lactato basal en reposo",
+      },
+    }] : [];
 
     setSubmitting(true);
     try {
@@ -821,7 +1223,7 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
         goal: context || (rows.some((r) => r.zone_tag) ? `Lactato: ${rows.filter((r) => r.zone_tag).map((r) => r.zone_tag).join(", ")}` : "Test de lactato"),
         comments: sessionNote || undefined,
         is_draft: isDraft,
-        intervals,
+        intervals: [...basalInterval, ...intervals],
       });
       onCreated();
     } catch (err) {
@@ -849,7 +1251,10 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
         </label>
         <label>
           <span>Fecha</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div className="ath-tests-form__date-row">
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <WeatherButton date={date} onWeatherFetched={(w) => setSessionNote((prev) => prev ? `${prev} | Meteo: ${w}` : `Meteo: ${w}`)} />
+          </div>
         </label>
       </div>
 
@@ -929,6 +1334,20 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
                 )}
                 <input type="text" placeholder="FC med" value={row.hr} onChange={(e) => updateRow(i, "hr", e.target.value)} className="ath-tests-form__input ath-tests-form__input--sm" />
                 <input type="text" placeholder="FC max" value={row.hr_max} onChange={(e) => updateRow(i, "hr_max", e.target.value)} className="ath-tests-form__input ath-tests-form__input--sm" />
+                <input type="text" placeholder="Cad." value={row.cadence} onChange={(e) => updateRow(i, "cadence", e.target.value)} className="ath-tests-form__input ath-tests-form__input--sm" />
+                <div className="ath-tests-form__feeling">
+                  {FEELING_OPTIONS.map((f) => (
+                    <button
+                      key={f.value}
+                      type="button"
+                      className={`ath-tests-form__feeling-btn ${row.feeling === f.value ? "active" : ""}`}
+                      onClick={() => updateRow(i, "feeling", row.feeling === f.value ? "" : f.value)}
+                      title={f.label}
+                    >
+                      {f.emoji}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -941,11 +1360,14 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
         <button type="button" className="ath-tests-form__add" onClick={addRow}>
           + Punto
         </button>
-        {!showAdvanced && !hasAdvancedData && (
-          <button type="button" className="ath-tests-form__add" onClick={() => setShowAdvanced(true)}>
-            Duración / ritmo / FC
-          </button>
-        )}
+      </div>
+
+      {/* Lactato basal */}
+      <div className="ath-tests-form__basal">
+        <label className="ath-tests-single__field">
+          <span>Lactato basal (opcional)</span>
+          <input type="text" inputMode="decimal" placeholder="0.9" value={basalLactate} onChange={(e) => setBasalLactate(e.target.value)} />
+        </label>
       </div>
 
       <label className="ath-tests-single__context">
@@ -959,9 +1381,14 @@ function ManualTestForm({ onCreated }: { onCreated: () => void }) {
 
       {error && <p className="ath-tests-error">{error}</p>}
 
-      <button type="submit" className="ath-tests-form__submit" disabled={submitting}>
-        {submitting ? "Analizando..." : "Guardar y analizar"}
-      </button>
+      <div className="ath-tests-form__submit-group">
+        <button type="submit" className="ath-tests-form__submit" disabled={submitting}>
+          {submitting ? "Guardando..." : "Guardar y analizar"}
+        </button>
+        <button type="button" className="ath-tests-form__submit ath-tests-form__submit--draft" disabled={submitting} onClick={(e) => handleSubmit(e as any, true)}>
+          Guardar borrador
+        </button>
+      </div>
     </form>
   );
 }
@@ -1856,7 +2283,7 @@ function CurrentThresholds({ disciplineViews, sessions, onSelectSession }: {
 /* ══════════════════════════════════════════════════════════════
    MY TESTS PAGE
    ══════════════════════════════════════════════════════════════ */
-type TestFormMode = null | "incremental" | "single";
+type TestFormMode = null | "incremental" | "single" | "allout";
 
 export function MyTestsPage() {
   const { user, token, analysis } = useAthleteData();
@@ -1929,6 +2356,9 @@ export function MyTestsPage() {
               <button className="ath-tests__new-btn ath-tests__new-btn--alt" onClick={() => setShowForm("single")}>
                 + Medición rápida
               </button>
+              <button className="ath-tests__new-btn ath-tests__new-btn--allout" onClick={() => setShowForm("allout")}>
+                + All-Out
+              </button>
             </>
           )}
         </div>
@@ -1938,6 +2368,7 @@ export function MyTestsPage() {
 
       {showForm === "incremental" && <ManualTestForm onCreated={handleCreated} />}
       {showForm === "single" && <SingleMeasurementForm onCreated={handleCreated} />}
+      {showForm === "allout" && <AllOutForm onCreated={handleCreated} />}
 
       <TestConsiderations open={showConsiderations} onToggle={() => setShowConsiderations(!showConsiderations)} />
 

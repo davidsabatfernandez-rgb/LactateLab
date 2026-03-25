@@ -15,6 +15,8 @@ import {
 type DataPoint = {
   xVal: number;       // generic X value (pace s/km, power W, or HR bpm)
   hr?: number | null;
+  pace?: number | null;       // pace s/km (always available for cross-ref)
+  power?: number | null;      // watts
   lactate: number;
   contextual_lactate?: number | null;
   is_peak?: boolean;
@@ -54,6 +56,9 @@ type SimpleLactateCurveProps = {
   reversed?: boolean;           // true for pace (high value = slow = left)
   xTickFormatter?: (v: number) => string;
   scatterPoints?: ScatterPoint[];
+  backgroundCurves?: Array<Array<{ xVal: number; lactate: number }>>;
+  lt1Lactate?: number | null;   // lactate mmol at LT1 (for threshold dot)
+  lt2Lactate?: number | null;   // lactate mmol at LT2 (for threshold dot)
   realLt1X?: number | null;
   realLt2X?: number | null;
   // Legacy HR-based props (mapped internally)
@@ -100,30 +105,37 @@ function generateMockCurve(
   return points;
 }
 
+function fmtPace(sPerKm: number): string {
+  const m = Math.floor(sPerKm / 60);
+  const s = Math.round(sPerKm % 60);
+  return `${m}:${s.toString().padStart(2, "0")}/km`;
+}
+
 function CurveTooltip({ active, payload, xFormatter }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   const lac = d.lactate ?? d.scatterLactate;
   if (typeof lac !== "number") return null;
   const xDisp = xFormatter ? xFormatter(d.xVal) : `${d.xVal}`;
-  const hrDisp = typeof d.hr === "number" ? `${Math.round(d.hr)} bpm` : null;
-  if (d._isScatter) {
-    return (
-      <div className="ath-curve-tooltip">
-        <span className="ath-curve-tooltip-hr">{xDisp}</span>
-        {hrDisp && <span className="ath-curve-tooltip-ctx">{hrDisp}</span>}
-        <span className="ath-curve-tooltip-lac">{lac.toFixed(2)} mmol/L</span>
-        <span className="ath-curve-tooltip-ctx" style={{ opacity: 0.7, fontSize: 10 }}>{d.session_date}</span>
-      </div>
-    );
-  }
+  const hrVal = typeof d.hr === "number" ? Math.round(d.hr) : null;
+  const paceVal = typeof d.pace === "number" && d.pace > 0 ? d.pace : null;
+  const powerVal = typeof d.power === "number" && d.power > 0 ? Math.round(d.power) : null;
+
   return (
     <div className="ath-curve-tooltip">
-      <span className="ath-curve-tooltip-hr">{xDisp}</span>
-      {hrDisp && <span className="ath-curve-tooltip-ctx">{hrDisp}</span>}
-      <span className="ath-curve-tooltip-lac">{lac.toFixed(2)} mmol/L</span>
-      {d.contextual_lactate != null && (
-        <span className="ath-curve-tooltip-ctx">{d.contextual_lactate.toFixed(2)} mmol/L ctx</span>
+      <span className="ath-curve-tooltip-lac" style={{ fontSize: 14, fontWeight: 700 }}>
+        {lac.toFixed(2)} mmol/L
+      </span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 4 }}>
+        {paceVal && <span className="ath-curve-tooltip-ctx">🏃 {fmtPace(paceVal)}</span>}
+        {powerVal && <span className="ath-curve-tooltip-ctx">⚡ {powerVal} W</span>}
+        {hrVal && <span className="ath-curve-tooltip-ctx">♥ {hrVal} bpm</span>}
+      </div>
+      {d._isScatter && d.session_date && (
+        <span className="ath-curve-tooltip-ctx" style={{ opacity: 0.6, fontSize: 10, marginTop: 3 }}>{d.session_date}</span>
+      )}
+      {!d._isScatter && d.contextual_lactate != null && d.contextual_lactate !== lac && (
+        <span className="ath-curve-tooltip-ctx" style={{ opacity: 0.6 }}>{d.contextual_lactate.toFixed(2)} mmol/L ctx</span>
       )}
     </div>
   );
@@ -150,6 +162,33 @@ function ScatterDot(props: any) {
   );
 }
 
+function ThresholdDot(props: any) {
+  const { cx, cy, payload, lt1X, lt2X, xFormatter } = props;
+  if (typeof cx !== "number" || typeof cy !== "number" || !payload) return null;
+  const x = payload.xVal;
+  // Find nearest threshold — tolerance scales with value magnitude
+  const tol = Math.max(1, Math.abs(x) * 0.015); // 1.5% of value
+  const isLt1 = lt1X != null && Math.abs(x - lt1X) < tol;
+  const isLt2 = lt2X != null && Math.abs(x - lt2X) < tol;
+  if (!isLt1 && !isLt2) {
+    // Normal dot
+    return <circle cx={cx} cy={cy} r={3.5} fill="var(--ath-text)" fillOpacity={0.7} stroke="var(--ath-bg-card, #fff)" strokeWidth={1.5} />;
+  }
+  const color = isLt1 ? "var(--ath-green, #22c55e)" : "var(--ath-red, #ef4444)";
+  const label = isLt1 ? "LT1" : "LT2";
+  const xDisp = xFormatter ? xFormatter(x) : `${x}`;
+  const hrDisp = typeof payload.hr === "number" ? ` · ${Math.round(payload.hr)} bpm` : "";
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={9} fill={color} fillOpacity={0.12} stroke={color} strokeWidth={2} />
+      <circle cx={cx} cy={cy} r={4.5} fill={color} />
+      <text x={cx} y={cy - 15} textAnchor="middle" fontSize={9.5} fill={color} fontWeight={700}>
+        {label} · {xDisp}{hrDisp}
+      </text>
+    </g>
+  );
+}
+
 export function SimpleLactateCurve({
   lt1X: lt1XProp,
   lt2X: lt2XProp,
@@ -163,6 +202,9 @@ export function SimpleLactateCurve({
   reversed = false,
   xTickFormatter,
   scatterPoints = [],
+  backgroundCurves = [],
+  lt1Lactate,
+  lt2Lactate,
   realLt1X: realLt1XProp,
   realLt2X: realLt2XProp,
   // Legacy HR props
@@ -226,8 +268,9 @@ export function SimpleLactateCurve({
 
   const hasContextual = data.some((d) => d.contextual_lactate != null);
 
-  const allXs = [...data.map((d) => d.xVal), ...scatterPoints.map((s) => s.xVal)];
-  const allLactates = [...data.map((d) => d.lactate), ...scatterPoints.map((s) => s.lactate)];
+  const bgFlat = backgroundCurves.flat();
+  const allXs = [...data.map((d) => d.xVal), ...scatterPoints.map((s) => s.xVal), ...bgFlat.map((p) => p.xVal)];
+  const allLactates = [...data.map((d) => d.lactate), ...scatterPoints.map((s) => s.lactate), ...bgFlat.map((p) => p.lactate)];
   const xMin = allXs.length ? Math.min(...allXs) : 100;
   const xMax = allXs.length ? Math.max(...allXs) : 200;
   const lacMax = allLactates.length ? Math.max(...allLactates) : 8;
@@ -353,23 +396,24 @@ export function SimpleLactateCurve({
 
           <Tooltip content={<CurveTooltip xFormatter={xTickFormatter} />} />
 
-          {/* Background curve from all scatter measurements */}
-          {hasScatter && mergedData.scatterCurve.length >= 2 && (
+          {/* Background curves: one per training session */}
+          {backgroundCurves.map((curve, idx) => (
             <Line
-              data={mergedData.scatterCurve}
+              key={`bg-${idx}`}
+              data={curve.map((p) => ({ xVal: p.xVal, bgLac: p.lactate }))}
               type="natural"
-              dataKey="bgLactate"
+              dataKey="bgLac"
               yAxisId={0}
               stroke="var(--ath-accent, #6366f1)"
-              strokeWidth={2}
-              strokeOpacity={0.15}
+              strokeWidth={1.2}
+              strokeOpacity={0.12}
               dot={false}
               activeDot={false}
               isAnimationActive={false}
-              name="_bg"
+              name={`_bg${idx}`}
               legendType="none"
             />
-          )}
+          ))}
 
           {hasScatter && (
             <Scatter
@@ -389,8 +433,8 @@ export function SimpleLactateCurve({
             stroke="var(--ath-text)"
             strokeWidth={2.5}
             name="Lactato medido"
-            dot={<PeakDot />}
-            activeDot={{ r: 5, fill: "var(--ath-accent)", stroke: "var(--ath-bg-card)", strokeWidth: 2 }}
+            dot={<ThresholdDot lt1X={lt1Val} lt2X={lt2Val} xFormatter={xTickFormatter} />}
+            activeDot={{ r: 6, fill: "var(--ath-accent)", stroke: "var(--ath-bg-card)", strokeWidth: 2 }}
           />
 
           {hasContextual && (
