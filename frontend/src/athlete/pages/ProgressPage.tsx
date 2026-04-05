@@ -239,6 +239,16 @@ export function ProgressPage() {
 
       const sortFn = (a: { xVal: number }, b: { xVal: number }) => isPaceDisc ? b.xVal - a.xVal : a.xVal - b.xVal;
 
+      // If no single session qualifies, pick the one with the most points
+      if (!mainSessionDate) {
+        let bestDate: string | null = null;
+        let bestCount = 0;
+        for (const [date, pts] of bySession) {
+          if (pts.length > bestCount) { bestCount = pts.length; bestDate = date; }
+        }
+        if (bestDate && bestCount >= 3) mainSessionDate = bestDate;
+      }
+
       const main = mainSessionDate
         ? bySession.get(mainSessionDate)!.map(toPoint).sort(sortFn)
         : undefined;

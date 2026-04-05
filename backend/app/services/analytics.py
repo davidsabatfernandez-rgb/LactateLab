@@ -371,7 +371,7 @@ def _curve_points(session: AthleteSession, metric: str) -> list[dict[str, Any]]:
                 "lactate": sample.lactate_mmol,
                 "contextual_lactate": sample.contextual_lactate or sample.lactate_mmol,
                 "label": f"Bloque {interval.order_index}",
-                "session_date": session.performed_at.isoformat(),
+                "session_date": session.performed_at.date().isoformat(),
                 "power_source": _normalized_power_source(session),
                 "is_peak": peak_lactate is not None and sample.lactate_mmol == peak_lactate,
             }
