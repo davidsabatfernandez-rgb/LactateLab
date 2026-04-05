@@ -780,6 +780,98 @@ export const api = {
       `/athlete-health/athletes/${athleteId}/wellness-checkins?days=${days}`, { token },
     ),
 
+  // ── Behavior Journal ──
+  submitBehaviorJournal: (token: string, athleteId: number, payload: Record<string, unknown>) =>
+    request(`/athlete-health/athletes/${athleteId}/behavior-journal`, { token, method: "POST", body: JSON.stringify(payload) }),
+  behaviorJournal: (token: string, athleteId: number, days = 28) =>
+    request<Array<Record<string, unknown>>>(`/athlete-health/athletes/${athleteId}/behavior-journal?days=${days}`, { token }),
+  deleteBehaviorJournal: (token: string, athleteId: number, entryDate: string) =>
+    request(`/athlete-health/athletes/${athleteId}/behavior-journal/${entryDate}`, { token, method: "DELETE" }),
+  behaviorPreferences: (token: string, athleteId: number) =>
+    request<Record<string, boolean>>(`/athlete-health/athletes/${athleteId}/behavior-preferences`, { token }),
+  updateBehaviorPreferences: (token: string, athleteId: number, payload: Record<string, boolean>) =>
+    request<Record<string, boolean>>(`/athlete-health/athletes/${athleteId}/behavior-preferences`, { token, method: "PUT", body: JSON.stringify(payload) }),
+  behaviorStreak: (token: string, athleteId: number) =>
+    request<{ current_streak: number; longest_streak: number; total_entries: number }>(`/athlete-health/athletes/${athleteId}/behavior-journal/streak`, { token }),
+  behaviorWeeklySummary: (token: string, athleteId: number) =>
+    request<Array<{ behavior: string; days_active: number; total_days: number }>>(`/athlete-health/athletes/${athleteId}/behavior-journal/weekly-summary`, { token }),
+
+  // ── Custom Behaviors ──
+  createCustomBehavior: (token: string, athleteId: number, payload: { name: string; emoji?: string; category?: string }) =>
+    request(`/athlete-health/athletes/${athleteId}/custom-behaviors`, { token, method: "POST", body: JSON.stringify(payload) }),
+  customBehaviors: (token: string, athleteId: number) =>
+    request<Array<{ id: number; athlete_id: number; name: string; emoji: string; category: string; is_active: boolean }>>(`/athlete-health/athletes/${athleteId}/custom-behaviors`, { token }),
+  deleteCustomBehavior: (token: string, athleteId: number, behaviorId: number) =>
+    request(`/athlete-health/athletes/${athleteId}/custom-behaviors/${behaviorId}`, { token, method: "DELETE" }),
+  submitCustomBehaviorLog: (token: string, athleteId: number, payload: { log_date: string; custom_behavior_id: number; value: boolean }) =>
+    request(`/athlete-health/athletes/${athleteId}/custom-behavior-logs`, { token, method: "POST", body: JSON.stringify(payload) }),
+  customBehaviorLogs: (token: string, athleteId: number, days = 28) =>
+    request<Array<{ id: number; custom_behavior_id: number; log_date: string; value: boolean }>>(`/athlete-health/athletes/${athleteId}/custom-behavior-logs?days=${days}`, { token }),
+
+  // ── Nutrition ──
+  submitNutritionLog: (token: string, athleteId: number, data: Record<string, unknown>) =>
+    request<Record<string, unknown>>(`/athlete-health/athletes/${athleteId}/nutrition-log`, { token, method: "POST", body: JSON.stringify(data) }),
+  nutritionLogs: (token: string, athleteId: number, days = 28) =>
+    request<Record<string, unknown>[]>(`/athlete-health/athletes/${athleteId}/nutrition-log?days=${days}`, { token }),
+  deleteNutritionLog: (token: string, athleteId: number, logDate: string) =>
+    request(`/athlete-health/athletes/${athleteId}/nutrition-log/${logDate}`, { token, method: "DELETE" }),
+  nutritionPresets: (token: string, athleteId: number) =>
+    request<{ presets: Array<{ key: string; label: string; emoji: string; carbs_g: number; protein_g: number; fat_g: number; calories_kcal: number }> }>(`/athlete-health/athletes/${athleteId}/nutrition-presets`, { token }),
+
+  // ── Correlations ──
+  behaviorCorrelations: (token: string, athleteId: number, windowDays = 90, minConfidence = "low") =>
+    request<Array<{
+      behavior_key: string; behavior_label: string; behavior_emoji: string;
+      outcome_metric: string; outcome_label: string;
+      sample_size_with: number; sample_size_without: number;
+      mean_with: number; mean_without: number;
+      effect_pct: number; effect_direction: string; confidence: string;
+      p_value: number | null; lag_days: number; narrative: string;
+    }>>(`/athlete-health/athletes/${athleteId}/behavior-correlations?window_days=${windowDays}&min_confidence=${minConfidence}`, { token }),
+  behaviorCorrelationDetail: (token: string, athleteId: number, behaviorKey: string) =>
+    request<Array<Record<string, unknown>>>(`/athlete-health/athletes/${athleteId}/behavior-correlations/${behaviorKey}`, { token }),
+  refreshCorrelations: (token: string, athleteId: number) =>
+    request<{ refreshed: number }>(`/athlete-health/athletes/${athleteId}/behavior-correlations/refresh`, { token, method: "POST" }),
+  behaviorInsights: (token: string, athleteId: number) =>
+    request<{
+      top_positive: Array<Record<string, unknown>>;
+      top_negative: Array<Record<string, unknown>>;
+      data_completeness_pct: number;
+      total_days_tracked: number;
+      min_days_remaining: number | null;
+    }>(`/athlete-health/athletes/${athleteId}/behavior-insights`, { token }),
+  behaviorDigest: (token: string, athleteId: number, type: "weekly" | "monthly" = "weekly") =>
+    request<Record<string, unknown>>(`/athlete-health/athletes/${athleteId}/behavior-digest?digest_type=${type}`, { token }),
+  coachBehaviorAggregations: (token: string) =>
+    request<{ aggregations: Array<Record<string, unknown>>; total_athletes: number }>(`/athlete-health/coach/behavior-aggregations`, { token }),
+
+  // ── AI Coach ──
+  aiCoachChat: (
+    token: string,
+    athleteId: number,
+    message: string,
+  ) =>
+    request<{ response: string; context_summary: string }>(
+      `/athlete-health/athletes/${athleteId}/ai-coach/chat`,
+      {
+        token,
+        method: "POST",
+        body: JSON.stringify({ message }),
+      },
+    ),
+
+  aiCoachHistory: (token: string, athleteId: number) =>
+    request<{ messages: Array<{ role: "user" | "assistant"; content: string; created_at: string }> }>(
+      `/athlete-health/athletes/${athleteId}/ai-coach/history`,
+      { token },
+    ),
+
+  aiCoachClearHistory: (token: string, athleteId: number) =>
+    request<{ deleted: number }>(
+      `/athlete-health/athletes/${athleteId}/ai-coach/history`,
+      { token, method: "DELETE" },
+    ),
+
   // ── Science Advisor ──
   scienceAdvisorAsk: (token: string, body: { question: string; athlete_id?: number; discipline?: string }) =>
     request("/science-advisor/ask", { token, method: "POST", body: JSON.stringify(body) }),
@@ -872,6 +964,193 @@ export const api = {
   cycleListDailyLogs: (token: string, athleteId: number, days?: number) =>
     request<import("../types").CycleDailyLog[]>(`/menstrual-cycle/athletes/${athleteId}/daily-logs?days=${days ?? 60}`, { token }),
 
+  // ── Recovery Score ──
+  recoveryScore: (token: string, athleteId: number, targetDate?: string) =>
+    request<{
+      score: number | null;
+      zone: string | null;
+      zone_label: string | null;
+      components: Record<string, unknown> | null;
+      has_objective_data: boolean;
+      target_date: string;
+    }>(`/athlete-health/athletes/${athleteId}/recovery-score${targetDate ? `?target_date=${targetDate}` : ""}`, { token }),
+
+  // ── Health Alerts ──
+  healthAlerts: (token: string, athleteId: number, days = 1) =>
+    request<Array<{
+      metric: string;
+      metric_label: string;
+      severity: string;
+      current_value: number;
+      baseline_value: number | null;
+      deviation_pct: number;
+      message: string;
+      icon: string;
+      created_date: string;
+    }>>(`/athlete-health/athletes/${athleteId}/health-alerts?days=${days}`, { token }),
+
+  healthAlertHistory: (token: string, athleteId: number, days = 14) =>
+    request<{
+      athlete_id: number;
+      days: number;
+      history: Array<{
+        date: string;
+        alerts: Array<{
+          metric: string;
+          metric_label: string;
+          severity: string;
+          current_value: number;
+          baseline_value: number | null;
+          deviation_pct: number;
+          message: string;
+          icon: string;
+          created_date: string;
+        }>;
+      }>;
+    }>(`/athlete-health/athletes/${athleteId}/health-alert-history?days=${days}`, { token }),
+
+  coachHealthAlerts: (token: string) =>
+    request<{
+      athletes: Array<{
+        athlete_id: number;
+        athlete_name: string;
+        alerts: Array<{
+          metric: string;
+          metric_label: string;
+          severity: string;
+          current_value: number;
+          baseline_value: number | null;
+          deviation_pct: number;
+          message: string;
+          icon: string;
+          created_date: string;
+        }>;
+      }>;
+    }>("/athlete-health/coach/health-alerts", { token }),
+
+  // ── Strain Coach ──
+  strainScore: (token: string, athleteId: number, targetDate?: string) =>
+    request<{
+      score: number;
+      zone: string;
+      zone_label: string;
+      components: {
+        active_energy_kcal: number;
+        energy_strain: number;
+        exercise_minutes: number;
+        exercise_bonus: number;
+        steps: number;
+        activities_count: number;
+        baseline_energy_kcal: number;
+      };
+      target_date: string;
+    }>(`/athlete-health/athletes/${athleteId}/strain-score${targetDate ? `?target_date=${targetDate}` : ""}`, { token }),
+
+  strainTarget: (token: string, athleteId: number, targetDate?: string) =>
+    request<{
+      target_min: number;
+      target_max: number;
+      zone: string;
+      zone_label: string;
+      recommendation: string;
+      recovery_score: number | null;
+      has_planned_session: boolean;
+      target_date: string;
+    }>(`/athlete-health/athletes/${athleteId}/strain-target${targetDate ? `?target_date=${targetDate}` : ""}`, { token }),
+
+  strainHistory: (token: string, athleteId: number, days = 7) =>
+    request<{ date: string; score: number; zone: string; zone_label: string }[]>(
+      `/athlete-health/athletes/${athleteId}/strain-history?days=${days}`,
+      { token },
+    ),
+
+  // ── Sleep Coach ──
+  sleepCoach: (token: string, athleteId: number, targetDate?: string) =>
+    request<{
+      base_need_hours: number;
+      strain_adjustment_min: number;
+      debt_hours: number;
+      nap_credit_min: number;
+      total_need_hours: number;
+      actual_hours: number | null;
+      deficit_hours: number | null;
+      recommendation: string;
+      target_date: string;
+    }>(`/athlete-health/athletes/${athleteId}/sleep-coach${targetDate ? `?target_date=${targetDate}` : ""}`, { token }),
+
+  sleepPerformance: (token: string, athleteId: number, targetDate?: string) =>
+    request<{
+      score: number | null;
+      efficiency_pct: number | null;
+      consistency_score: number | null;
+      debt_hours: number | null;
+      breakdown: { deep_pct: number; rem_pct: number; light_pct: number; awake_pct: number } | null;
+      target_date: string;
+    }>(`/athlete-health/athletes/${athleteId}/sleep-performance${targetDate ? `?target_date=${targetDate}` : ""}`, { token }),
+
+  sleepHistory: (token: string, athleteId: number, days = 7) =>
+    request<{ date: string; sleep_hours: number | null; deep_sleep_hours: number | null; rem_sleep_hours: number | null; score: number | null; efficiency_pct: number | null }[]>(
+      `/athlete-health/athletes/${athleteId}/sleep-history?days=${days}`,
+      { token },
+    ),
+
+  // ── Sleep Analytics (enhanced) ──
+  sleepAnalytics: (token: string, athleteId: number, targetDate?: string) =>
+    request<{
+      date: string;
+      total_hours: number | null;
+      stages: { deep_hours: number; deep_pct: number; rem_hours: number; rem_pct: number; light_hours: number; light_pct: number; awake_hours: number; awake_pct: number } | null;
+      efficiency_pct: number | null;
+      performance_score: number | null;
+      consistency: { score: number | null; avg_bedtime: string | null; avg_waketime: string | null; variability_min: number | null } | null;
+      debt: { accumulated_hours: number; trend: string } | null;
+      vs_baseline: { total_vs_avg_pct: number | null; deep_vs_avg_pct: number | null; rem_vs_avg_pct: number | null } | null;
+    }>(`/athlete-health/athletes/${athleteId}/sleep-analytics${targetDate ? `?target_date=${targetDate}` : ""}`, { token }),
+
+  sleepAnalyticsHistory: (token: string, athleteId: number, days = 14) =>
+    request<Array<{
+      date: string;
+      total_hours: number;
+      stages: { deep_hours: number; deep_pct: number; rem_hours: number; rem_pct: number; light_hours: number; light_pct: number; awake_hours: number; awake_pct: number };
+      efficiency_pct: number;
+      performance_score: number;
+      vs_baseline: { total_vs_avg_pct: number | null; deep_vs_avg_pct: number | null; rem_vs_avg_pct: number | null } | null;
+    }>>(`/athlete-health/athletes/${athleteId}/sleep-analytics-history?days=${days}`, { token }),
+
+  sleepAnalyticsSummary: (token: string, athleteId: number, days = 7) =>
+    request<{
+      avg_hours: number | null;
+      avg_efficiency: number | null;
+      avg_deep_pct: number | null;
+      avg_rem_pct: number | null;
+      consistency_score: number | null;
+      total_debt_hours: number;
+      performance_trend: string;
+      days_with_data: number;
+    }>(`/athlete-health/athletes/${athleteId}/sleep-analytics-summary?days=${days}`, { token }),
+
+  // ── Performance Reports ──
+  weeklyReport: (token: string, athleteId: number, weekStart?: string) =>
+    request<Record<string, unknown>>(
+      `/athlete-health/athletes/${athleteId}/reports/weekly${weekStart ? `?week_start=${weekStart}` : ""}`,
+      { token },
+    ),
+  monthlyReport: (token: string, athleteId: number, yearMonth?: string) =>
+    request<Record<string, unknown>>(
+      `/athlete-health/athletes/${athleteId}/reports/monthly${yearMonth ? `?year_month=${yearMonth}` : ""}`,
+      { token },
+    ),
+  availableReports: (token: string, athleteId: number) =>
+    request<{
+      reports: Array<{
+        type: string;
+        start: string;
+        end: string;
+        label: string;
+        year_month?: string;
+      }>;
+    }>(`/athlete-health/athletes/${athleteId}/reports/available`, { token }),
+
   // ── Beta Signup (public, no auth) ──
   betaSignup: (email: string) =>
     request<{ status: string }>("/beta-signup", {
@@ -888,5 +1167,90 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ plan_tier }),
     }),
+
+  // ── Nutrition Module ──
+  searchFood: (token: string, athleteId: number, query: string, limit = 10) =>
+    request<{ items: import("../athlete/utils/nutritionTypes").FoodItemType[]; source: string }>(
+      `/nutrition/athletes/${athleteId}/food-search?q=${encodeURIComponent(query)}&limit=${limit}`,
+      { token },
+    ),
+
+  addFoodItem: (token: string, athleteId: number, data: Record<string, unknown>) =>
+    request<import("../athlete/utils/nutritionTypes").FoodItemType>(
+      `/nutrition/athletes/${athleteId}/food-library`,
+      { token, method: "POST", body: JSON.stringify(data) },
+    ),
+
+  foodLibrary: (token: string, athleteId: number, query = "", limit = 20) =>
+    request<import("../athlete/utils/nutritionTypes").FoodItemType[]>(
+      `/nutrition/athletes/${athleteId}/food-library?q=${encodeURIComponent(query)}&limit=${limit}`,
+      { token },
+    ),
+
+  parseFood: (token: string, athleteId: number, text: string, mealType?: string) =>
+    request<{ items: import("../athlete/utils/nutritionTypes").ParsedFoodItemType[]; needs_clarification: boolean }>(
+      `/nutrition/athletes/${athleteId}/parse-food`,
+      { token, method: "POST", body: JSON.stringify({ text, meal_type: mealType }) },
+    ),
+
+  logMeal: (token: string, athleteId: number, data: Record<string, unknown>) =>
+    request<import("../athlete/utils/nutritionTypes").MealLogType>(
+      `/nutrition/athletes/${athleteId}/meals`,
+      { token, method: "POST", body: JSON.stringify(data) },
+    ),
+
+  getMeals: (token: string, athleteId: number, date: string) =>
+    request<import("../athlete/utils/nutritionTypes").MealLogType[]>(
+      `/nutrition/athletes/${athleteId}/meals?date=${date}`,
+      { token },
+    ),
+
+  mealHistory: (token: string, athleteId: number, days = 7) =>
+    request<import("../athlete/utils/nutritionTypes").MealLogType[]>(
+      `/nutrition/athletes/${athleteId}/meals/history?days=${days}`,
+      { token },
+    ),
+
+  deleteMeal: (token: string, athleteId: number, mealId: number) =>
+    request<void>(
+      `/nutrition/athletes/${athleteId}/meals/${mealId}`,
+      { token, method: "DELETE" },
+    ),
+
+  nutritionDailySummary: (token: string, athleteId: number, date: string) =>
+    request<import("../athlete/utils/nutritionTypes").DailyNutritionSummaryType>(
+      `/nutrition/athletes/${athleteId}/daily-summary?date=${date}`,
+      { token },
+    ),
+
+  nutritionTargets: (token: string, athleteId: number) =>
+    request<import("../athlete/utils/nutritionTypes").NutritionTargetType>(
+      `/nutrition/athletes/${athleteId}/targets`,
+      { token },
+    ),
+
+  updateNutritionTargets: (token: string, athleteId: number, data: Record<string, unknown>) =>
+    request<import("../athlete/utils/nutritionTypes").NutritionTargetType>(
+      `/nutrition/athletes/${athleteId}/targets`,
+      { token, method: "PUT", body: JSON.stringify(data) },
+    ),
+
+  autoCalculateTargets: (token: string, athleteId: number) =>
+    request<import("../athlete/utils/nutritionTypes").NutritionTargetType>(
+      `/nutrition/athletes/${athleteId}/targets/auto-calculate`,
+      { token, method: "POST" },
+    ),
+
+  nutritionRecommendations: (token: string, athleteId: number) =>
+    request<{ recommendations: import("../athlete/utils/nutritionTypes").NutritionRecommendationType[]; context: string }>(
+      `/nutrition/athletes/${athleteId}/recommendations`,
+      { token },
+    ),
+
+  mealSuggestions: (token: string, athleteId: number, mealType: string) =>
+    request<{ suggestions: import("../athlete/utils/nutritionTypes").MealSuggestionType[]; has_enough_data: boolean }>(
+      `/nutrition/athletes/${athleteId}/meal-suggestions?meal_type=${mealType}`,
+      { token },
+    ),
 
 };

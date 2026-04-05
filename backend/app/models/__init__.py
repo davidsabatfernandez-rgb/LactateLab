@@ -1,1 +1,1 @@
-from . import athlete, beta_signup, coach_template, field_test, garmin_activity, health_sample, menstrual_cycle, metrics, planned_session, session, training_zone, user, wellness_checkin  # noqa: F401
+from . import athlete, behavior_correlation, behavior_journal, beta_signup, chat_message, coach_template, field_test, garmin_activity, health_sample, menstrual_cycle, metrics, nutrition, nutrition_log, planned_session, session, training_zone, user, wellness_checkin  # noqa: F401
