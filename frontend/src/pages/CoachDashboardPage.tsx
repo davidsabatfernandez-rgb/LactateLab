@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { api } from "../lib/api";
 import { buildTargetObjective } from "../lib/targetCatalog";
+import { CoachBehaviorAggregations } from "../athlete/components/CoachBehaviorAggregations";
 import {
   ResolvedTrainingThreshold,
   resolveAnalysisDisciplineView,
@@ -655,6 +656,9 @@ export function CoachDashboardPage({ athletes, token }: CoachDashboardPageProps)
         </div>
       )}
 
+      {/* ── Health anomaly alerts ──────────────────────── */}
+      <CoachHealthAlertsBanner token={token} />
+
       {/* ── Athlete grid ─────────────────────────────────── */}
       <div className="cd-grid">
         {filteredCards.map((card) => (
@@ -681,6 +685,9 @@ export function CoachDashboardPage({ athletes, token }: CoachDashboardPageProps)
           onClose={() => setCompareOpen(false)}
         />
       )}
+
+      {/* ── Cross-athlete behavior aggregations ──────────── */}
+      <CoachBehaviorAggregations token={token} />
     </div>
   );
 }
@@ -843,6 +850,70 @@ function AthleteCardComponent({
             Reporte
           </Link>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Coach Health Alerts Banner ─────────────────────────────── */
+function CoachHealthAlertsBanner({ token }: { token: string }) {
+  const [data, setData] = useState<{
+    athletes: Array<{
+      athlete_id: number;
+      athlete_name: string;
+      alerts: Array<{
+        metric: string;
+        metric_label: string;
+        severity: string;
+        current_value: number;
+        baseline_value: number | null;
+        deviation_pct: number;
+        message: string;
+        icon: string;
+        created_date: string;
+      }>;
+    }>;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.coachHealthAlerts(token).then((result) => {
+      if (!cancelled) setData(result);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [token]);
+
+  if (!data || data.athletes.length === 0) return null;
+
+  const totalAlerts = data.athletes.reduce((s, a) => s + a.alerts.length, 0);
+  const hasCritical = data.athletes.some((a) => a.alerts.some((al) => al.severity === "critical"));
+
+  return (
+    <div className={`cd-health-alerts-banner ${hasCritical ? "cd-health-critical" : "cd-health-warn"}`}>
+      <div className="cd-health-alerts-header">
+        <span className="cd-health-alerts-icon">{hasCritical ? "\u26a0\ufe0f" : "\u{1f7e1}"}</span>
+        <span className="cd-health-alerts-title">
+          Alertas de salud: {totalAlerts} {totalAlerts === 1 ? "alerta" : "alertas"} en {data.athletes.length} {data.athletes.length === 1 ? "atleta" : "atletas"}
+        </span>
+      </div>
+      <div className="cd-health-alerts-list">
+        {data.athletes.map((athlete) => (
+          <div key={athlete.athlete_id} className="cd-health-alert-athlete">
+            <Link to={`/athletes/${athlete.athlete_id}`} className="cd-health-alert-name">
+              {athlete.athlete_name}
+            </Link>
+            <div className="cd-health-alert-chips">
+              {athlete.alerts.map((a) => (
+                <span
+                  key={a.metric}
+                  className={`cd-health-alert-chip cd-health-chip-${a.severity}`}
+                >
+                  {a.icon} {a.metric_label}: {a.current_value}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

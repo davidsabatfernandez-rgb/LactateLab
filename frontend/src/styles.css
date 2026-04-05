@@ -18291,6 +18291,92 @@ h4 {
   text-decoration: underline;
 }
 
+/* ── Coach Health Alerts Banner ───────────────────────────── */
+.cd-health-alerts-banner {
+  margin: 0 20px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.cd-health-critical {
+  border-left: 3px solid #ef4444;
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.cd-health-warn {
+  border-left: 3px solid #f97316;
+  background: rgba(249, 115, 22, 0.04);
+}
+
+.cd-health-alerts-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cd-health-alerts-icon {
+  font-size: 16px;
+}
+
+.cd-health-alerts-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cd-health-alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cd-health-alert-athlete {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cd-health-alert-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  min-width: 80px;
+}
+
+.cd-health-alert-name:hover {
+  text-decoration: underline;
+}
+
+.cd-health-alert-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cd-health-alert-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.cd-health-chip-warning {
+  background: rgba(249, 115, 22, 0.12);
+  color: #c2410c;
+}
+
+.cd-health-chip-critical {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
 /* ── Grid ─────────────────────────────────────────────────── */
 .cd-grid {
   display: grid;

@@ -7,6 +7,7 @@ import { TimeRangeSelector, type TimeRange } from "../../components/athlete/Time
 import { InsightCard } from "../../components/athlete/InsightCard";
 import JetLagAssistant from "../components/JetLagAssistant";
 import MetricCompareModal from "../components/MetricCompareModal";
+import { SleepAnalyticsCard } from "../components/SleepAnalyticsCard";
 import { useExplainer } from "../explainer/MetricExplainerContext";
 import { averageNumericSeries, stressLabel, restingHrLabel } from "../utils/wellness";
 import { formatDate } from "../utils/formatters";
@@ -223,6 +224,9 @@ export function RecoveryPage() {
           </span>
         </button>
       </div>
+
+      {/* ── Sleep Analytics ───────────────────────────── */}
+      <SleepAnalyticsCard token={data.token} athleteId={data.user.athlete_id!} />
 
       {/* ── Cross-Metric Comparisons ────────────────────── */}
       <section className="ath-cross-comparisons">

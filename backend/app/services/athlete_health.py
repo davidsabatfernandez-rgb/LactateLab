@@ -1046,6 +1046,163 @@ def _merge_apple_health(
     return health_days, health_metrics
 
 
+def compute_recovery_score(db: Session, athlete_id: int, target_date: date | None = None) -> dict[str, Any]:
+    """
+    Compute a composite recovery score (0-100) combining:
+    - Wellness check-in (subjective): fatigue, soreness, mood, sleep_quality (each 1-5)
+    - HRV (objective): compared to athlete's 30-day baseline
+    - Resting HR (objective): compared to athlete's 30-day baseline
+
+    Weights: 40% wellness, 35% HRV, 25% resting HR
+    """
+    from app.models.wellness_checkin import WellnessCheckIn
+
+    if target_date is None:
+        target_date = date.today()
+
+    # 1. Wellness component (0-100)
+    wellness = db.scalar(
+        select(WellnessCheckIn).where(
+            WellnessCheckIn.athlete_id == athlete_id,
+            WellnessCheckIn.check_date == target_date,
+        )
+    )
+    wellness_score = 0.0
+    wellness_avg = 0.0
+    has_wellness = False
+    if wellness:
+        has_wellness = True
+        vals = [getattr(wellness, f, None) for f in ("fatigue", "soreness", "mood", "sleep_quality")]
+        valid = [v for v in vals if v is not None]
+        if valid:
+            wellness_avg = sum(valid) / len(valid)
+            wellness_score = (wellness_avg - 1) / 4 * 100  # 1->0, 5->100
+
+    # 2. HRV component (0-100)
+    hrv_score = 50.0
+    hrv_value = None
+    hrv_baseline = None
+    has_hrv = False
+
+    today_hrv = _get_health_metric(db, athlete_id, target_date, "hrv")
+    if today_hrv is not None:
+        has_hrv = True
+        hrv_value = today_hrv
+        hrv_baseline = _get_health_baseline(db, athlete_id, target_date, "hrv", days=30)
+        if hrv_baseline and hrv_baseline > 0:
+            ratio = hrv_value / hrv_baseline
+            hrv_score = max(0, min(100, (ratio - 0.8) / 0.4 * 100))
+        else:
+            hrv_score = 50.0
+
+    # 3. Resting HR component (0-100) — lower is better
+    rhr_score = 50.0
+    rhr_value = None
+    rhr_baseline = None
+    has_rhr = False
+
+    today_rhr = _get_health_metric(db, athlete_id, target_date, "resting_hr")
+    if today_rhr is not None:
+        has_rhr = True
+        rhr_value = today_rhr
+        rhr_baseline = _get_health_baseline(db, athlete_id, target_date, "resting_hr", days=30)
+        if rhr_baseline and rhr_baseline > 0:
+            ratio = today_rhr / rhr_baseline
+            rhr_score = max(0, min(100, (1.15 - ratio) / 0.3 * 100))
+        else:
+            rhr_score = 50.0
+
+    # 4. Combine with adaptive weights
+    has_objective = has_hrv or has_rhr
+
+    if has_wellness and has_objective:
+        w_wellness, w_hrv, w_rhr = 0.40, 0.35, 0.25
+    elif has_wellness:
+        w_wellness, w_hrv, w_rhr = 1.0, 0.0, 0.0
+    elif has_objective:
+        w_wellness, w_hrv, w_rhr = 0.0, 0.6, 0.4
+    else:
+        return {
+            "score": None,
+            "zone": None,
+            "zone_label": None,
+            "components": None,
+            "has_objective_data": False,
+            "target_date": target_date.isoformat(),
+        }
+
+    # Redistribute weight if one objective metric is missing
+    if not has_hrv and w_hrv > 0:
+        w_wellness += w_hrv * 0.5
+        w_rhr += w_hrv * 0.5
+        w_hrv = 0.0
+    if not has_rhr and w_rhr > 0:
+        w_wellness += w_rhr * 0.5
+        w_hrv += w_rhr * 0.5
+        w_rhr = 0.0
+
+    total = round(wellness_score * w_wellness + hrv_score * w_hrv + rhr_score * w_rhr)
+    total = max(0, min(100, total))
+
+    if total >= 67:
+        zone, zone_label = "green", "Recuperado"
+    elif total >= 34:
+        zone, zone_label = "yellow", "Moderado"
+    else:
+        zone, zone_label = "red", "Fatigado"
+
+    return {
+        "score": total,
+        "zone": zone,
+        "zone_label": zone_label,
+        "components": {
+            "wellness": {"score": round(wellness_score, 1), "raw_avg": round(wellness_avg, 2), "weight": w_wellness},
+            "hrv": {"score": round(hrv_score, 1), "value": hrv_value, "baseline": hrv_baseline, "weight": w_hrv},
+            "resting_hr": {"score": round(rhr_score, 1), "value": rhr_value, "baseline": rhr_baseline, "weight": w_rhr},
+        },
+        "has_objective_data": has_objective,
+        "target_date": target_date.isoformat(),
+    }
+
+
+def _get_health_metric(db: Session, athlete_id: int, target_date: date, metric_key: str) -> float | None:
+    """Get a single health metric value for a date from HealthSample."""
+    sample = db.scalar(
+        select(HealthSample).where(
+            HealthSample.athlete_id == athlete_id,
+            HealthSample.sample_date == target_date,
+        )
+    )
+    if sample is None:
+        return None
+    if metric_key == "hrv":
+        return float(sample.hrv_sdnn) if sample.hrv_sdnn is not None else None
+    if metric_key == "resting_hr":
+        return float(sample.resting_hr) if sample.resting_hr is not None else None
+    return None
+
+
+def _get_health_baseline(db: Session, athlete_id: int, target_date: date, metric_key: str, days: int = 30) -> float | None:
+    """Get rolling average of a metric over the last N days (excluding target_date)."""
+    from sqlalchemy import func as sa_func
+    start = target_date - timedelta(days=days)
+    if metric_key == "hrv":
+        col = HealthSample.hrv_sdnn
+    elif metric_key == "resting_hr":
+        col = HealthSample.resting_hr
+    else:
+        return None
+    result = db.scalar(
+        select(sa_func.avg(col)).where(
+            HealthSample.athlete_id == athlete_id,
+            HealthSample.sample_date >= start,
+            HealthSample.sample_date < target_date,
+            col.isnot(None),
+        )
+    )
+    return float(result) if result is not None else None
+
+
 def _humanize_metric_label(value: Any) -> str | None:
     if not isinstance(value, str):
         return None

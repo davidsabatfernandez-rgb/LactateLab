@@ -79,6 +79,13 @@ class Athlete(Base):
     cycle_preferences = relationship("MenstrualCyclePreferences", uselist=False, back_populates="athlete", cascade="all, delete-orphan")
     cycle_logs = relationship("MenstrualCycleLog", back_populates="athlete", cascade="all, delete-orphan", order_by="MenstrualCycleLog.cycle_start_date.desc()")
     daily_cycle_logs = relationship("MenstrualDailyLog", back_populates="athlete", cascade="all, delete-orphan", order_by="MenstrualDailyLog.log_date.desc()")
+    behavior_journal_entries = relationship("BehaviorJournalEntry", back_populates="athlete", cascade="all, delete-orphan", order_by="BehaviorJournalEntry.entry_date.desc()")
+    behavior_preferences = relationship("BehaviorPreferences", uselist=False, back_populates="athlete", cascade="all, delete-orphan")
+    custom_behaviors = relationship("CustomBehavior", back_populates="athlete", cascade="all, delete-orphan")
+    nutrition_logs = relationship("NutritionLog", back_populates="athlete", cascade="all, delete-orphan", order_by="NutritionLog.log_date.desc()")
+    food_items = relationship("FoodItem", back_populates="athlete", cascade="all, delete-orphan")
+    meal_logs_detailed = relationship("MealLog", back_populates="athlete", cascade="all, delete-orphan", order_by="MealLog.log_date.desc()")
+    nutrition_targets = relationship("NutritionTarget", uselist=False, back_populates="athlete", cascade="all, delete-orphan")
 
     @property
     def strava_connected(self) -> bool:

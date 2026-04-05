@@ -9,6 +9,12 @@ import { LactateStepInput, type LactateSubmission } from "../components/LactateS
 import { MicroContent } from "../components/MicroContent";
 import { useExplainer } from "../explainer/MetricExplainerContext";
 import { ActivityInsightsModal } from "../components/ActivityInsightsModal";
+import { BehaviorJournalSection } from "../components/BehaviorJournalSection";
+import { NutritionQuickLog } from "../components/NutritionQuickLog";
+import { RecoveryScoreCard } from "../components/RecoveryScoreCard";
+import { StrainCoachCard } from "../components/StrainCoachCard";
+import { SleepCoachCard } from "../components/SleepCoachCard";
+import { HealthAlertsCard } from "../components/HealthAlertsCard";
 import { stressLabel } from "../utils/wellness";
 import { formatSleepDuration, disciplineLabel } from "../utils/formatters";
 import { resolveTrainingThreshold } from "../../lib/trainingThresholds";
@@ -39,6 +45,7 @@ export function TodayPage() {
   const [wellnessValues, setWellnessValues] = useState<WellnessCheckEntry>({});
   const [wellnessSaved, setWellnessSaved] = useState(false);
   const [showActivityInsights, setShowActivityInsights] = useState(false);
+  const [behaviorJournalSaved, setBehaviorJournalSaved] = useState(false);
 
   const todayLabel = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
 
@@ -889,8 +896,41 @@ export function TodayPage() {
       {wellnessSaved && (
         <div className="ath-checkin-done">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ath-green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Check-in registrado — media {wellnessCheckAverage(wellnessValues).toFixed(1)}/5
+          {behaviorJournalSaved
+            ? `Check-in registrado — media ${wellnessCheckAverage(wellnessValues).toFixed(1)}/5`
+            : "Check-in registrado — completa tus hábitos para ver tu puntuación"
+          }
         </div>
+      )}
+
+      {/* Health Alerts — most prominent, before recovery score */}
+      {data.user?.athlete_id && (
+        <HealthAlertsCard token={data.token} athleteId={data.user.athlete_id} />
+      )}
+
+      {/* Recovery Score — gated until behavior journal is saved */}
+      {wellnessSaved && data.user?.athlete_id && (
+        <RecoveryScoreCard token={data.token} athleteId={data.user.athlete_id} gated={!behaviorJournalSaved} />
+      )}
+
+      {/* Strain Coach */}
+      {wellnessSaved && data.user?.athlete_id && (
+        <StrainCoachCard token={data.token} athleteId={data.user.athlete_id} />
+      )}
+
+      {/* Sleep Coach */}
+      {wellnessSaved && data.user?.athlete_id && (
+        <SleepCoachCard token={data.token} athleteId={data.user.athlete_id} />
+      )}
+
+      {/* ── Behavior Journal ── */}
+      {data.user?.athlete_id && (
+        <BehaviorJournalSection token={data.token} athleteId={data.user.athlete_id} onSavedChange={setBehaviorJournalSaved} />
+      )}
+
+      {/* ── Nutrition Quick Log ── */}
+      {data.user?.athlete_id && (
+        <NutritionQuickLog token={data.token} athleteId={data.user.athlete_id} />
       )}
 
       {/* Today's completed activities */}

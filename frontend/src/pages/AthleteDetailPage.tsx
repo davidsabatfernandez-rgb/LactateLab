@@ -24,6 +24,8 @@ import { PhysiologyReportPreview } from "../components/PhysiologyReportPreview";
 import { TrainingZonesEditor, TrainingZonesDisplay, suggestZonesFromProfile } from "../components/TrainingZonesEditor";
 import "../components/training-zones.css";
 import { BetaImplementations } from "../components/BetaImplementations";
+import { BehaviorJournalSection } from "../athlete/components/BehaviorJournalSection";
+import { InsightsPage } from "../athlete/pages/InsightsPage";
 import "../components/beta-implementations.css";
 import { api } from "../lib/api";
 import { buildTargetObjective, targetCategoryLabel, targetCategoryOptions } from "../lib/targetCatalog";
@@ -6428,6 +6430,12 @@ export function AthleteDetailPage({ analysis, token, onSaved }: AthleteDetailPag
           </div>
         </details>
       </section>
+
+      {/* Behavior Journal (read-only for coach) */}
+      <BehaviorJournalSection token={token} athleteId={analysis.athlete.id} readOnly />
+
+      {/* Behavior Insights (read-only for coach) */}
+      <InsightsPage token={token} athleteId={analysis.athlete.id} readOnly />
     </div>
   );
 }
