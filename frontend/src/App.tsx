@@ -21,6 +21,9 @@ import { MyTestsPage } from "./athlete/pages/MyTestsPage";
 import { ZonesPage } from "./athlete/pages/ZonesPage";
 import { CyclePage } from "./athlete/pages/CyclePage";
 import { FitnessPage } from "./athlete/pages/FitnessPage";
+import { InsightsPage } from "./athlete/pages/InsightsPage";
+import { ReportsPage } from "./athlete/pages/ReportsPage";
+import { NutritionPage } from "./athlete/pages/NutritionPage";
 import { AthleteTargetsPage } from "./pages/AthleteTargetsPage";
 import { AthletesPage } from "./pages/AthletesPage";
 import { CoachDashboardPage } from "./pages/CoachDashboardPage";
@@ -377,7 +380,7 @@ export default function App() {
   if (showAthleteView) {
     return (
       <AthleteDataProvider user={authUser} token={token}>
-        <AthleteLayout onLogout={handleLogout} fullName={authUser.full_name} themeMode={themeMode} onToggleTheme={() => setThemeMode((c) => (c === "dark" ? "light" : "dark"))}>
+        <AthleteLayout onLogout={handleLogout} fullName={authUser.full_name} themeMode={themeMode} onToggleTheme={() => setThemeMode((c) => (c === "dark" ? "light" : "dark"))} token={token} athleteId={authUser.athlete_id}>
           <MetricExplainerProvider>
             <Routes>
               <Route path="/athlete/today" element={<TodayPage />} />
@@ -405,6 +408,9 @@ export default function App() {
               <Route path="/athlete/fitness" element={<FitnessPage />} />
               <Route path="/athlete/cycle" element={<CyclePage />} />
               <Route path="/athlete/objectives" element={<ObjectivesPage />} />
+              <Route path="/athlete/insights" element={<InsightsPage />} />
+              <Route path="/athlete/reports" element={<ReportsPage />} />
+              <Route path="/athlete/nutrition" element={<NutritionPage />} />
               <Route path="/athlete/settings" element={<SettingsPage />} />
               <Route path="*" element={<TodayPage />} />
             </Routes>
