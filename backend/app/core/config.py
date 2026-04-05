@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     access_token_algorithm: str = "HS256"
     cors_origins_raw: str = Field(default="http://localhost:5173,http://127.0.0.1:5173,capacitor://localhost,https://localhost", alias="CORS_ORIGINS")
     openrouter_api_key: str = ""
-    openrouter_model: str = "google/gemma-3-12b-it:free"
+    openrouter_model: str = "anthropic/claude-sonnet-4-6"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     dynamic_lt1_delta_from_baseline: float = 0.45
     dynamic_practical_lt1_target_mmol: float = 1.6
@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     google_calendar_client_id: str = ""
     google_calendar_client_secret: str = ""
     google_calendar_redirect_uri: str = "http://localhost:8000/api/auth/google-calendar/callback"
+    fatsecret_consumer_key: str = ""
+    fatsecret_consumer_secret: str = ""
 
     @field_validator("jwt_secret", mode="after")
     @classmethod
