@@ -3192,6 +3192,7 @@ def _discipline_view(
 
     # ── Curve Insights from latest snapshot ──────────────────────────────
     payload["curve_insights"] = (latest_snapshot.payload or {}).get("curve_insights") if latest_snapshot else None
+    payload["ai_advisory"] = (latest_snapshot.payload or {}).get("ai_advisory") if latest_snapshot else None
 
     return payload
 
@@ -3373,7 +3374,9 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
         .where(PhysiologicalSnapshot.athlete_id == athlete.id)
         .order_by(PhysiologicalSnapshot.snapshot_date)
     ).all())
-    for session in sorted(athlete.sessions, key=lambda current: current.performed_at):
+    _sorted_sessions = sorted(athlete.sessions, key=lambda current: current.performed_at)
+    _last_session_id = _sorted_sessions[-1].id if _sorted_sessions else None
+    for session in _sorted_sessions:
         analysis = analyze_session(session)
         # Extraer LT2 fisiológico de la sesión actual para anclar el LT2 práctico dinámico.
         # El LT2 fisiológico se calcula por forma de curva (inflexión), mientras que el
@@ -3437,6 +3440,24 @@ def recalculate_athlete(db: Session, athlete_id: int) -> dict[str, Any]:
             days_since_previous=_ci_days_since,
             vlamax_level=_ci_vlamax,
         )
+
+        # AI advisory — only for the latest session to avoid N LLM calls
+        if session.id == _last_session_id and not getattr(session, "is_draft", False):
+            try:
+                from app.services.ai_advisory import generate_curve_advisory
+                _rt = analysis.get("real_thresholds") or {}
+                _dq = _rt.get("data_quality") if isinstance(_rt, dict) else None
+                ai_adv = generate_curve_advisory(
+                    curve_insights=analysis.get("curve_insights"),
+                    thresholds=analysis.get("thresholds", []),
+                    data_quality=_dq,
+                    days_since_previous=_ci_days_since,
+                    discipline=session.discipline,
+                )
+                if ai_adv:
+                    analysis["ai_advisory"] = ai_adv
+            except Exception as _adv_err:
+                logger.warning("AI advisory skipped: %s", _adv_err)
 
         thresholds = [_threshold_result_from_payload(item) for item in analysis["thresholds"]]
         snapshot = PhysiologicalSnapshot(

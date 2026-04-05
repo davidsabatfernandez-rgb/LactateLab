@@ -786,6 +786,7 @@ export type DisciplineView = {
     explanation: string[];
   } | null;
   curve_insights?: CurveInsights | null;
+  ai_advisory?: { bullets: string[]; generated_at: string } | null;
   threshold_anchor_status?: {
     status: "anclado" | "detectado" | "consolidado" | "mixed";
     lt1_status: "anclado" | "detectado" | "consolidado";
