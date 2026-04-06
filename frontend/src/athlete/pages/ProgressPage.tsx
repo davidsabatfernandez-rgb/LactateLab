@@ -600,26 +600,51 @@ export function ProgressPage() {
       )}
 
       {/* ── Metabolic Markers ──────────────────────────── */}
-      {metabolicEstimates.length > 0 && (
-        <section className="ath-predictions">
-          <h3 className="ath-section-title">Marcadores metabólicos</h3>
-          <div className="ath-predictions-grid">
-            {metabolicEstimates.map((estimate: Estimate) => (
-              <div key={estimate.estimate_type} className="ath-prediction-card">
-                <span className="ath-prediction-type">{estimate.estimate_type}</span>
-                <strong className="ath-prediction-value">
-                  {estimate.estimate_type === "CSS" && estimate.unit === "s/100m"
-                    ? formatSwimPace(estimate.value)
-                    : formatEstimateValue(estimate)}
-                </strong>
-                {estimate.reliability_label && (
-                  <span className="ath-prediction-reliability">{estimate.reliability_label}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {metabolicEstimates.length > 0 && (() => {
+        const athlete = data.analysis?.athlete;
+        const manualOverrides: Record<string, { value: string; label: string } | null> = {
+          FTP: athlete?.ftp_cycling_watts ? { value: `${athlete.ftp_cycling_watts} W`, label: "manual" } : null,
+          CSS: athlete?.css_swimming_pace ? { value: formatSwimPace(athlete.css_swimming_pace), label: "manual" } : null,
+          VO2max: athlete?.vo2max_ml_kg_min ? { value: `${athlete.vo2max_ml_kg_min} ml/kg/min`, label: "manual" } : null,
+        };
+        return (
+          <section className="ath-predictions">
+            <h3 className="ath-section-title">Marcadores metabólicos</h3>
+            <div className="ath-predictions-grid">
+              {metabolicEstimates.map((estimate: Estimate) => {
+                const manual = manualOverrides[estimate.estimate_type];
+                return (
+                  <div key={estimate.estimate_type} className="ath-prediction-card">
+                    <span className="ath-prediction-type">{estimate.estimate_type}</span>
+                    {manual ? (
+                      <>
+                        <strong className="ath-prediction-value">{manual.value}</strong>
+                        <span className="ath-prediction-reliability" style={{ color: "var(--ath-accent, #60a5fa)" }}>manual</span>
+                        <span style={{ fontSize: "0.7rem", opacity: 0.5, marginTop: 2 }}>
+                          Est: {estimate.estimate_type === "CSS" && estimate.unit === "s/100m"
+                            ? formatSwimPace(estimate.value)
+                            : formatEstimateValue(estimate)}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <strong className="ath-prediction-value">
+                          {estimate.estimate_type === "CSS" && estimate.unit === "s/100m"
+                            ? formatSwimPace(estimate.value)
+                            : formatEstimateValue(estimate)}
+                        </strong>
+                        {estimate.reliability_label && (
+                          <span className="ath-prediction-reliability">{estimate.reliability_label}</span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ── 12-week volume ─────────────────────────────── */}
       <section className="ath-volume-section">
