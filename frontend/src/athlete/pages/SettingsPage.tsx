@@ -271,15 +271,31 @@ function PhysiologicalSettings({ athleteId, token, initialHrMax, initialFtp, ini
   const [hrMax, setHrMax] = useState(initialHrMax?.toString() ?? "");
   const [ftp, setFtp] = useState(initialFtp?.toString() ?? "");
   const [css, setCss] = useState(secondsToPace(initialCss));
-  const [savedField, setSavedField] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
-  async function saveField(field: string, value: unknown) {
+  const hasChanges =
+    (parseInt(hrMax, 10) || null) !== initialHrMax ||
+    (parseInt(ftp, 10) || null) !== initialFtp ||
+    (paceToSeconds(css) || null) !== initialCss;
+
+  async function saveAll() {
+    setSaving(true);
     try {
-      await api.updateAthlete(token, athleteId, { [field]: value ?? null });
-      setSavedField(field);
-      setTimeout(() => setSavedField(null), 2000);
+      const hrMaxVal = parseInt(hrMax, 10);
+      const ftpVal = parseInt(ftp, 10);
+      const cssVal = paceToSeconds(css);
+      await api.updateAthlete(token, athleteId, {
+        training_hr_max: isNaN(hrMaxVal) ? null : hrMaxVal,
+        ftp_cycling_watts: isNaN(ftpVal) ? null : ftpVal,
+        css_swimming_pace: cssVal,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     } catch (e) {
-      console.error(`Failed to save ${field}:`, e);
+      console.error("Failed to save physiological settings:", e);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -298,9 +314,7 @@ function PhysiologicalSettings({ athleteId, token, initialHrMax, initialFtp, ini
             placeholder="ej. 195"
             value={hrMax}
             onChange={(e) => setHrMax(e.target.value)}
-            onBlur={() => { const v = parseInt(hrMax, 10); saveField("training_hr_max", isNaN(v) ? null : v); }}
           />
-          {savedField === "training_hr_max" && <span style={{ fontSize: 12, color: "var(--ath-green, #22c55e)" }}>Guardado</span>}
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 140, flex: 1 }}>
           <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FTP Ciclismo (W)</span>
@@ -312,9 +326,7 @@ function PhysiologicalSettings({ athleteId, token, initialHrMax, initialFtp, ini
             placeholder="ej. 250"
             value={ftp}
             onChange={(e) => setFtp(e.target.value)}
-            onBlur={() => { const v = parseInt(ftp, 10); saveField("ftp_cycling_watts", isNaN(v) ? null : v); }}
           />
-          {savedField === "ftp_cycling_watts" && <span style={{ fontSize: 12, color: "var(--ath-green, #22c55e)" }}>Guardado</span>}
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 140, flex: 1 }}>
           <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>CSS Natación (min:ss/100m)</span>
@@ -324,10 +336,18 @@ function PhysiologicalSettings({ athleteId, token, initialHrMax, initialFtp, ini
             placeholder="ej. 1:45"
             value={css}
             onChange={(e) => setCss(e.target.value)}
-            onBlur={() => { const v = paceToSeconds(css); saveField("css_swimming_pace", v); }}
           />
-          {savedField === "css_swimming_pace" && <span style={{ fontSize: 12, color: "var(--ath-green, #22c55e)" }}>Guardado</span>}
         </label>
+      </div>
+      <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 12 }}>
+        <button
+          className="ath-settings-save-btn"
+          disabled={!hasChanges || saving}
+          onClick={saveAll}
+        >
+          {saving ? "Guardando..." : "Aplicar cambios"}
+        </button>
+        {saved && <span style={{ fontSize: 13, color: "var(--ath-green, #22c55e)", fontWeight: 500 }}>Cambios guardados</span>}
       </div>
     </section>
   );

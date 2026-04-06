@@ -5968,6 +5968,26 @@
 .ath-settings-input::placeholder {
   color: var(--ath-text-muted);
 }
+.ath-settings-save-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: var(--ath-radius-sm);
+  font-family: var(--ath-font);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--ath-accent);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.ath-settings-save-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.ath-settings-save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .ath-settings-connect-btn {
   margin-top: 4px;
   padding: 10px 20px;
