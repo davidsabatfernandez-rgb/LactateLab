@@ -243,27 +243,52 @@ const DEFAULT_METRICS: MetricToggle[] = [
   { key: "training_effect", label: "Training Effect", description: "Efecto aeróbico y anaeróbico de la sesión", garmin: true, apple: false },
 ];
 
-function PhysiologicalSettings({ athleteId, token, initialHrMax }: { athleteId: number; token: string; initialHrMax: number | null }) {
-  const [hrMax, setHrMax] = useState(initialHrMax?.toString() ?? "");
-  const [saved, setSaved] = useState(false);
+function secondsToPace(s: number | null | undefined): string {
+  if (!s || s <= 0) return "";
+  const mins = Math.floor(s / 60);
+  const secs = Math.round(s % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
 
-  async function saveHrMax() {
-    const v = parseInt(hrMax, 10);
+function paceToSeconds(pace: string): number | null {
+  const parts = pace.split(":");
+  if (parts.length !== 2) return null;
+  const mins = parseInt(parts[0], 10);
+  const secs = parseInt(parts[1], 10);
+  if (isNaN(mins) || isNaN(secs)) return null;
+  return mins * 60 + secs;
+}
+
+type PhysiologicalSettingsProps = {
+  athleteId: number;
+  token: string;
+  initialHrMax: number | null;
+  initialFtp: number | null;
+  initialCss: number | null;
+};
+
+function PhysiologicalSettings({ athleteId, token, initialHrMax, initialFtp, initialCss }: PhysiologicalSettingsProps) {
+  const [hrMax, setHrMax] = useState(initialHrMax?.toString() ?? "");
+  const [ftp, setFtp] = useState(initialFtp?.toString() ?? "");
+  const [css, setCss] = useState(secondsToPace(initialCss));
+  const [savedField, setSavedField] = useState<string | null>(null);
+
+  async function saveField(field: string, value: unknown) {
     try {
-      await api.updateAthlete(token, athleteId, { training_hr_max: isNaN(v) ? null : v });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      await api.updateAthlete(token, athleteId, { [field]: value ?? null });
+      setSavedField(field);
+      setTimeout(() => setSavedField(null), 2000);
     } catch (e) {
-      console.error("Failed to save HR max:", e);
+      console.error(`Failed to save ${field}:`, e);
     }
   }
 
   return (
     <section className="ath-settings-section">
       <h2 className="ath-section-title">Datos fisiológicos</h2>
-      <p className="ath-settings-desc">Tu frecuencia cardíaca máxima se usa para escalar las gráficas de lactato y personalizar las zonas.</p>
-      <div style={{ display: "flex", gap: 12, alignItems: "flex-end", maxWidth: 280 }}>
-        <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+      <p className="ath-settings-desc">Estos valores se usan para personalizar tus zonas de entrenamiento, escalar gráficas y mejorar las estimaciones de rendimiento.</p>
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", maxWidth: 600 }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 140, flex: 1 }}>
           <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FC Máxima (bpm)</span>
           <input
             type="number"
@@ -273,10 +298,36 @@ function PhysiologicalSettings({ athleteId, token, initialHrMax }: { athleteId: 
             placeholder="ej. 195"
             value={hrMax}
             onChange={(e) => setHrMax(e.target.value)}
-            onBlur={saveHrMax}
+            onBlur={() => { const v = parseInt(hrMax, 10); saveField("training_hr_max", isNaN(v) ? null : v); }}
           />
+          {savedField === "training_hr_max" && <span style={{ fontSize: 12, color: "var(--ath-green, #22c55e)" }}>Guardado</span>}
         </label>
-        {saved && <span style={{ fontSize: 12, color: "var(--ath-green, #22c55e)", paddingBottom: 6 }}>Guardado</span>}
+        <label style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 140, flex: 1 }}>
+          <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FTP Ciclismo (W)</span>
+          <input
+            type="number"
+            className="ath-settings-input"
+            min="50"
+            max="600"
+            placeholder="ej. 250"
+            value={ftp}
+            onChange={(e) => setFtp(e.target.value)}
+            onBlur={() => { const v = parseInt(ftp, 10); saveField("ftp_cycling_watts", isNaN(v) ? null : v); }}
+          />
+          {savedField === "ftp_cycling_watts" && <span style={{ fontSize: 12, color: "var(--ath-green, #22c55e)" }}>Guardado</span>}
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 140, flex: 1 }}>
+          <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>CSS Natación (min:ss/100m)</span>
+          <input
+            type="text"
+            className="ath-settings-input"
+            placeholder="ej. 1:45"
+            value={css}
+            onChange={(e) => setCss(e.target.value)}
+            onBlur={() => { const v = paceToSeconds(css); saveField("css_swimming_pace", v); }}
+          />
+          {savedField === "css_swimming_pace" && <span style={{ fontSize: 12, color: "var(--ath-green, #22c55e)" }}>Guardado</span>}
+        </label>
       </div>
     </section>
   );
@@ -423,6 +474,8 @@ export function SettingsPage() {
           athleteId={data.user.athlete_id}
           token={data.token}
           initialHrMax={data.analysis?.athlete?.training_hr_max ?? null}
+          initialFtp={data.analysis?.athlete?.ftp_cycling_watts ?? null}
+          initialCss={data.analysis?.athlete?.css_swimming_pace ?? null}
         />
       )}
 
