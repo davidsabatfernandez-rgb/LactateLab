@@ -136,6 +136,7 @@ export function ProgressPage() {
 
   // Date range for scatter filter
   const [scatterMonths, setScatterMonths] = useState(6);
+  const [expandedEstimate, setExpandedEstimate] = useState<string | null>(null);
   const scatterDateCutoff = useMemo(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - scatterMonths);
@@ -614,7 +615,11 @@ export function ProgressPage() {
               {metabolicEstimates.map((estimate: Estimate) => {
                 const manual = manualOverrides[estimate.estimate_type];
                 return (
-                  <div key={estimate.estimate_type} className="ath-prediction-card">
+                  <div
+                    key={estimate.estimate_type}
+                    className="ath-prediction-card ath-prediction-card--clickable"
+                    onClick={() => setExpandedEstimate(expandedEstimate === estimate.estimate_type ? null : estimate.estimate_type)}
+                  >
                     <span className="ath-prediction-type">{estimate.estimate_type}</span>
                     {manual ? (
                       <>
@@ -642,6 +647,92 @@ export function ProgressPage() {
                 );
               })}
             </div>
+
+            {/* Expanded estimate detail */}
+            {expandedEstimate && (() => {
+              const est = metabolicEstimates.find((e) => e.estimate_type === expandedEstimate);
+              if (!est) return null;
+              const manual = manualOverrides[est.estimate_type];
+              return (
+                <div className="ath-estimate-detail">
+                  <div className="ath-estimate-detail-header">
+                    <strong>{est.estimate_type} — De dónde sale</strong>
+                    <button onClick={() => setExpandedEstimate(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ath-text-muted)", fontSize: "1rem" }}>✕</button>
+                  </div>
+
+                  {manual && (
+                    <div className="ath-estimate-detail-row">
+                      <span className="ath-estimate-detail-label">Valor manual (Ajustes)</span>
+                      <span className="ath-estimate-detail-value" style={{ color: "var(--ath-accent)" }}>{manual.value}</span>
+                    </div>
+                  )}
+
+                  <div className="ath-estimate-detail-row">
+                    <span className="ath-estimate-detail-label">Estimado por el motor</span>
+                    <span className="ath-estimate-detail-value">
+                      {est.estimate_type === "CSS" && est.unit === "s/100m" ? formatSwimPace(est.value) : formatEstimateValue(est)}
+                    </span>
+                  </div>
+
+                  {est.method_used && (
+                    <div className="ath-estimate-detail-row">
+                      <span className="ath-estimate-detail-label">Método</span>
+                      <span className="ath-estimate-detail-value">{est.method_used}</span>
+                    </div>
+                  )}
+
+                  {est.inputs_summary && (
+                    <div className="ath-estimate-detail-row">
+                      <span className="ath-estimate-detail-label">Basado en</span>
+                      <span className="ath-estimate-detail-value">{est.inputs_summary}</span>
+                    </div>
+                  )}
+
+                  {est.evidence_points != null && (
+                    <div className="ath-estimate-detail-row">
+                      <span className="ath-estimate-detail-label">Puntos de evidencia</span>
+                      <span className="ath-estimate-detail-value">{est.evidence_points}</span>
+                    </div>
+                  )}
+
+                  <div className="ath-estimate-detail-row">
+                    <span className="ath-estimate-detail-label">Confianza</span>
+                    <span className="ath-estimate-detail-value">{Math.round(est.confidence * 100)}% ({est.reliability_label})</span>
+                  </div>
+
+                  {est.lower_bound != null && est.upper_bound != null && (
+                    <div className="ath-estimate-detail-row">
+                      <span className="ath-estimate-detail-label">Rango</span>
+                      <span className="ath-estimate-detail-value">{est.lower_bound} – {est.upper_bound} {est.unit}</span>
+                    </div>
+                  )}
+
+                  {est.variables_used?.length > 0 && (
+                    <div className="ath-estimate-detail-row">
+                      <span className="ath-estimate-detail-label">Variables usadas</span>
+                      <span className="ath-estimate-detail-value">{est.variables_used.join(", ")}</span>
+                    </div>
+                  )}
+
+                  {est.calculation_steps && est.calculation_steps.length > 0 && (
+                    <div className="ath-estimate-detail-steps">
+                      <span className="ath-estimate-detail-label">Pasos de cálculo</span>
+                      <ol style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: "0.75rem", opacity: 0.8 }}>
+                        {est.calculation_steps.map((step, i) => <li key={i}>{step}</li>)}
+                      </ol>
+                    </div>
+                  )}
+
+                  {est.cautions && est.cautions.length > 0 && (
+                    <div className="ath-estimate-detail-cautions">
+                      {est.cautions.map((c, i) => (
+                        <p key={i} style={{ margin: "4px 0", fontSize: "0.75rem", color: "var(--ath-amber, #d97706)" }}>⚠ {c}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </section>
         );
       })()}

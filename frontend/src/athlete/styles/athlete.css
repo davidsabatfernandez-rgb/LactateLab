@@ -1358,6 +1358,56 @@
 .ath-prediction-card:hover {
   box-shadow: var(--ath-shadow-md);
 }
+.ath-prediction-card--clickable {
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.ath-prediction-card--clickable:hover {
+  border-color: var(--ath-accent, #60a5fa);
+}
+
+/* Estimate detail panel */
+.ath-estimate-detail {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--ath-bg-card);
+  border: 1px solid var(--ath-border);
+  border-radius: var(--ath-radius-md);
+  box-shadow: var(--ath-shadow-sm);
+}
+.ath-estimate-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+}
+.ath-estimate-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+  font-size: 0.8rem;
+}
+.ath-estimate-detail-row:last-child {
+  border-bottom: none;
+}
+.ath-estimate-detail-label {
+  color: var(--ath-text-muted);
+  font-size: 0.75rem;
+}
+.ath-estimate-detail-value {
+  font-weight: 500;
+  text-align: right;
+  max-width: 60%;
+}
+.ath-estimate-detail-steps {
+  padding: 8px 0;
+}
+.ath-estimate-detail-cautions {
+  padding: 4px 0;
+}
 
 .ath-prediction-type {
   font-size: 10px;
