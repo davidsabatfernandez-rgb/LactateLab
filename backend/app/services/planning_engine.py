@@ -821,7 +821,7 @@ def _next_target_summary(athlete: Athlete, discipline: str) -> Optional[dict[str
     return {
         "objective": next_target.objective,
         "discipline": next_target.discipline,
-        "target_date": next_target.target_date.isoformat() if hasattr(next_target.target_date, "isoformat") else next_target.target_date,
+        "target_date": next_target.target_date,
         "distance_label": next_target.distance_label,
         "priority_level": next_target.priority_level,
         "target_metric": target_metric,
@@ -1585,7 +1585,10 @@ def recommend_next_mesocycle(db: Session, athlete_id: int, discipline: Optional[
     today = date.today()
     days_to_target = None
     if next_target and next_target.get("target_date"):
-        days_to_target = (next_target["target_date"] - today).days
+        target_date_value = next_target["target_date"]
+        if isinstance(target_date_value, str):
+            target_date_value = date.fromisoformat(target_date_value)
+        days_to_target = (target_date_value - today).days
 
     recent_sessions = [session for session in sessions if (today - session.performed_at.date()).days <= 42]
     structure, work_weeks, recovery_weeks = _estimate_level(len(recent_sessions))
