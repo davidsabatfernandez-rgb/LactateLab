@@ -2605,123 +2605,155 @@ function FunctionalThresholdsEditor({ athlete, token }: { athlete: Athlete; toke
   const [thresholdMode, setThresholdMode] = useState(athlete.threshold_mode ?? "lactate");
   const [vo2maxVal, setVo2maxVal] = useState(athlete.vo2max_ml_kg_min?.toString() ?? "");
   const [saving, setSaving] = useState(false);
-  const [savedField, setSavedField] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  async function saveField(field: string, value: unknown) {
+  const initialFtp = athlete.ftp_cycling_watts ?? null;
+  const initialFtpa = athlete.ftpa_running_pace ?? null;
+  const initialCss = athlete.css_swimming_pace ?? null;
+  const initialHrRest = athlete.hr_rest ?? null;
+  const initialHrMax = athlete.training_hr_max ?? null;
+  const initialMode = athlete.threshold_mode ?? "lactate";
+  const initialVo2 = athlete.vo2max_ml_kg_min ?? null;
+
+  const parsedFtp = (() => { const v = parseInt(ftpWatts, 10); return isNaN(v) ? null : v; })();
+  const parsedFtpa = paceToSeconds(rftpaPace);
+  const parsedCss = paceToSeconds(cssPace);
+  const parsedHrRest = (() => { const v = parseInt(hrRest, 10); return isNaN(v) ? null : v; })();
+  const parsedHrMax = (() => { const v = parseInt(hrMax, 10); return isNaN(v) ? null : v; })();
+  const parsedVo2 = (() => { const v = parseFloat(vo2maxVal); return isNaN(v) ? null : v; })();
+
+  const hasChanges =
+    parsedFtp !== initialFtp ||
+    parsedFtpa !== initialFtpa ||
+    parsedCss !== initialCss ||
+    parsedHrRest !== initialHrRest ||
+    parsedHrMax !== initialHrMax ||
+    thresholdMode !== initialMode ||
+    parsedVo2 !== initialVo2;
+
+  async function saveAll() {
     setSaving(true);
-    setSavedField(null);
+    setSaveError(null);
     try {
-      await api.updateAthlete(token, athlete.id, { [field]: value || null });
-      setSavedField(field);
-      setTimeout(() => setSavedField(null), 2000);
-    } catch {
-      // Silently fail — field will keep its old value
+      await api.updateAthlete(token, athlete.id, {
+        threshold_mode: thresholdMode,
+        vo2max_ml_kg_min: parsedVo2,
+        ftp_cycling_watts: parsedFtp,
+        ftpa_running_pace: parsedFtpa,
+        css_swimming_pace: parsedCss,
+        hr_rest: parsedHrRest,
+        training_hr_max: parsedHrMax,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      console.error("Failed to save functional thresholds:", e);
+      setSaveError("No se pudieron guardar los cambios. Reintenta.");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="ad-functional-thresholds" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem", padding: "0.75rem 0" }}>
-      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>Modo de umbrales</span>
-        <select
-          value={thresholdMode}
-          onChange={(e) => {
-            const next = e.target.value;
-            setThresholdMode(next);
-            saveField("threshold_mode", next);
-          }}
-          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+    <div className="ad-functional-thresholds" style={{ padding: "0.75rem 0" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem" }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+          <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>Modo de umbrales</span>
+          <select
+            value={thresholdMode}
+            onChange={(e) => setThresholdMode(e.target.value)}
+            style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+          >
+            <option value="lactate">Lactato</option>
+            <option value="field_tests">Tests de campo</option>
+          </select>
+        </label>
+
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+          <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>VO2max (ml/kg/min)</span>
+          <input
+            type="number"
+            step="0.1"
+            min="15"
+            max="95"
+            placeholder="Opcional"
+            value={vo2maxVal}
+            onChange={(e) => setVo2maxVal(e.target.value)}
+            style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+          />
+        </label>
+
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+          <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FTP Ciclismo (W)</span>
+          <input
+            type="number"
+            placeholder="Sin dato"
+            value={ftpWatts}
+            onChange={(e) => setFtpWatts(e.target.value)}
+            style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+          />
+        </label>
+
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+          <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>rFTPa Running (mm:ss/km)</span>
+          <input
+            type="text"
+            placeholder="ej. 4:45"
+            value={rftpaPace}
+            onChange={(e) => setRftpaPace(e.target.value)}
+            style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+          />
+        </label>
+
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+          <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>CSS Natación (mm:ss/100m)</span>
+          <input
+            type="text"
+            placeholder="ej. 1:35"
+            value={cssPace}
+            onChange={(e) => setCssPace(e.target.value)}
+            style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+          />
+        </label>
+
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+          <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FC Reposo (bpm)</span>
+          <input
+            type="number"
+            placeholder="Sin dato"
+            value={hrRest}
+            onChange={(e) => setHrRest(e.target.value)}
+            style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+          />
+        </label>
+
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+          <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FC Máxima (bpm)</span>
+          <input
+            type="number"
+            placeholder="Sin dato"
+            min="100"
+            max="230"
+            value={hrMax}
+            onChange={(e) => setHrMax(e.target.value)}
+            style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
+          />
+        </label>
+      </div>
+
+      <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 12 }}>
+        <button
+          type="button"
+          className="primary-button"
+          disabled={!hasChanges || saving}
+          onClick={saveAll}
         >
-          <option value="lactate">Lactato</option>
-          <option value="field_tests">Tests de campo</option>
-        </select>
-        {savedField === "threshold_mode" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
-      </label>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>VO2max (ml/kg/min)</span>
-        <input
-          type="number"
-          step="0.1"
-          min="15"
-          max="95"
-          placeholder="Opcional"
-          value={vo2maxVal}
-          onChange={(e) => setVo2maxVal(e.target.value)}
-          onBlur={() => { const v = parseFloat(vo2maxVal); saveField("vo2max_ml_kg_min", isNaN(v) ? null : v); }}
-          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
-        />
-        {savedField === "vo2max_ml_kg_min" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
-      </label>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FTP Ciclismo (W)</span>
-        <input
-          type="number"
-          placeholder="Sin dato"
-          value={ftpWatts}
-          onChange={(e) => setFtpWatts(e.target.value)}
-          onBlur={() => { const v = parseInt(ftpWatts, 10); saveField("ftp_cycling_watts", isNaN(v) ? null : v); }}
-          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
-        />
-        {savedField === "ftp_cycling_watts" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
-      </label>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>rFTPa Running (mm:ss/km)</span>
-        <input
-          type="text"
-          placeholder="ej. 4:45"
-          value={rftpaPace}
-          onChange={(e) => setRftpaPace(e.target.value)}
-          onBlur={() => { const v = paceToSeconds(rftpaPace); saveField("ftpa_running_pace", v); }}
-          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
-        />
-        {savedField === "ftpa_running_pace" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
-      </label>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>CSS Natación (mm:ss/100m)</span>
-        <input
-          type="text"
-          placeholder="ej. 1:35"
-          value={cssPace}
-          onChange={(e) => setCssPace(e.target.value)}
-          onBlur={() => { const v = paceToSeconds(cssPace); saveField("css_swimming_pace", v); }}
-          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
-        />
-        {savedField === "css_swimming_pace" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
-      </label>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FC Reposo (bpm)</span>
-        <input
-          type="number"
-          placeholder="Sin dato"
-          value={hrRest}
-          onChange={(e) => setHrRest(e.target.value)}
-          onBlur={() => { const v = parseInt(hrRest, 10); saveField("hr_rest", isNaN(v) ? null : v); }}
-          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
-        />
-        {savedField === "hr_rest" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
-      </label>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-        <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>FC Máxima (bpm)</span>
-        <input
-          type="number"
-          placeholder="Sin dato"
-          min="100"
-          max="230"
-          value={hrMax}
-          onChange={(e) => setHrMax(e.target.value)}
-          onBlur={() => { const v = parseInt(hrMax, 10); saveField("training_hr_max", isNaN(v) ? null : v); }}
-          style={{ background: "var(--dk-surface)", border: "1px solid var(--dk-border)", borderRadius: 8, padding: "0.5rem 0.75rem", color: "inherit", fontSize: "0.9rem" }}
-        />
-        {savedField === "training_hr_max" && <small style={{ color: "var(--dk-green)" }}>Guardado</small>}
-      </label>
+          {saving ? "Guardando..." : "Aplicar cambios"}
+        </button>
+        {saved && <span style={{ fontSize: 13, color: "var(--dk-green)", fontWeight: 500 }}>Cambios guardados</span>}
+        {saveError && <span style={{ fontSize: 13, color: "var(--dk-red, #ef4444)" }}>{saveError}</span>}
+      </div>
     </div>
   );
 }
