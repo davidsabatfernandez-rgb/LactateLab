@@ -14,6 +14,8 @@ type PlanningCompactHeaderProps = {
   planningLt2: ResolvedTrainingThreshold | null;
   activeBlockLabel: string;
   onAthleteChange: (athleteId: string, discipline: string) => void;
+  showAllDisciplines?: boolean;
+  onToggleAllDisciplines?: () => void;
 };
 
 export function PlanningCompactHeader({
@@ -27,6 +29,8 @@ export function PlanningCompactHeader({
   planningLt2,
   activeBlockLabel,
   onAthleteChange,
+  showAllDisciplines,
+  onToggleAllDisciplines,
 }: PlanningCompactHeaderProps) {
   const nextTarget = visibleTargets[0] ?? null;
 
@@ -67,15 +71,28 @@ export function PlanningCompactHeader({
             <button
               key={discipline}
               type="button"
-              className={`planning-compact-disc-tab ${selectedDiscipline === discipline ? "active" : ""}`}
+              className={`planning-compact-disc-tab ${!showAllDisciplines && selectedDiscipline === discipline ? "active" : ""}`}
               onClick={() => {
                 if (!athleteId) return;
+                if (showAllDisciplines && onToggleAllDisciplines) {
+                  onToggleAllDisciplines();
+                }
                 onAthleteChange(athleteId, discipline);
               }}
             >
               {disciplineLabel(discipline)}
             </button>
           ))}
+          {availableDisciplines.length > 1 && onToggleAllDisciplines ? (
+            <button
+              type="button"
+              className={`planning-compact-disc-tab ${showAllDisciplines ? "active" : ""}`}
+              onClick={onToggleAllDisciplines}
+              title="Mostrar todas las disciplinas superpuestas en el calendario"
+            >
+              Todas
+            </button>
+          ) : null}
         </div>
       </div>
 

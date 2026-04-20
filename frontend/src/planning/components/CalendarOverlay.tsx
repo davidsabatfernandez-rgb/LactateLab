@@ -800,6 +800,8 @@ export function CalendarOverlay({
           planningLt2={compactHeader.planningLt2}
           activeBlockLabel={activeBlockLabel}
           onAthleteChange={updatePlanningRoute}
+          showAllDisciplines={showAllDisciplines}
+          onToggleAllDisciplines={onToggleAllDisciplines}
         />
       ) : (
         <button type="button" className="planning-calendar-overlay-close" onClick={closeCalendarPanel} aria-label="Cerrar calendario">
