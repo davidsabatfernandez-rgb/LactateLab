@@ -920,6 +920,19 @@ def build_prewritten_mesocycle_draft(
             template_usage_counts[template.template_id] += 1
             template_last_indices[template.template_id] = selected_index
             scheduled_date = resolved_start + timedelta(days=(week_index - 1) * 7 + slot.day_offset - 1)
+            session_total_duration_min: Optional[int] = None
+            if template.dose_ladder:
+                _step_map = {s.step: s for s in template.dose_ladder}
+                _ds = _step_map.get(selected_index)
+                if _ds is not None:
+                    if _ds.total_duration_min and _ds.total_duration_min > 0:
+                        session_total_duration_min = _ds.total_duration_min
+                    else:
+                        session_total_duration_min = (
+                            _ds.total_useful_time_min
+                            + template.calentamiento_min
+                            + template.enfriamiento_min
+                        )
             sessions.append(
                 {
                     "session_id": f"{discipline}-{block_type}-w{week_index}-d{slot.day_offset}-{template.template_id}",
@@ -951,6 +964,7 @@ def build_prewritten_mesocycle_draft(
                         "curve_direction": state.curve_direction,
                         "selected_example_index": selected_index if not template.dose_ladder else None,
                         "dose_step_index": selected_index if template.dose_ladder else None,
+                        "total_duration_min": session_total_duration_min,
                         "goal_horizon": state.goal_horizon,
                         "robustness": state.robustness,
                         "macro_phase": state.current_macro_phase,

@@ -579,21 +579,32 @@ export function formatDistanceCompact(distanceMeters?: number | null) {
 
 export function estimateMinutesFromDose(dose?: string | null) {
   if (!dose) return 0;
-  const rangeRepeat = dose.match(/(\d+)\s*x\s*(\d+)\s*-\s*(\d+)\s*'/i);
+  const normalized = dose.replace(/×/g, "x");
+  const rangeRepeat = normalized.match(/(\d+)\s*x\s*(\d+)\s*-\s*(\d+)\s*'/i);
   if (rangeRepeat) {
     return Number(rangeRepeat[1]) * Math.round((Number(rangeRepeat[2]) + Number(rangeRepeat[3])) / 2);
   }
-  const repeat = dose.match(/(\d+)\s*x\s*(\d+)\s*'/i);
+  const repeat = normalized.match(/(\d+)\s*x\s*(\d+)\s*'/i);
   if (repeat) {
     return Number(repeat[1]) * Number(repeat[2]);
   }
-  const range = dose.match(/(\d+)\s*-\s*(\d+)\s*'/);
+  const range = normalized.match(/(\d+)\s*-\s*(\d+)\s*'/);
   if (range) {
     return Math.round((Number(range[1]) + Number(range[2])) / 2);
   }
-  const single = dose.match(/(\d+)\s*'/);
+  const single = normalized.match(/(\d+)\s*'/);
   if (single) {
     return Number(single[1]);
+  }
+  // Fallback: parse km-based doses (e.g., "3x2km", "7km E") using ~5 min/km
+  // as a conservative estimate for running. Better than 0 min in totals.
+  const kmRepeat = normalized.match(/(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*km/i);
+  if (kmRepeat) {
+    return Math.round(Number(kmRepeat[1]) * Number(kmRepeat[2]) * 5);
+  }
+  const kmSingle = normalized.match(/(\d+(?:\.\d+)?)\s*km/i);
+  if (kmSingle) {
+    return Math.round(Number(kmSingle[1]) * 5);
   }
   return 0;
 }
