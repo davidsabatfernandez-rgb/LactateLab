@@ -579,20 +579,26 @@ export function formatDistanceCompact(distanceMeters?: number | null) {
 
 export function estimateMinutesFromDose(dose?: string | null) {
   if (!dose) return 0;
-  const normalized = dose.replace(/×/g, "x");
-  const rangeRepeat = normalized.match(/(\d+)\s*x\s*(\d+)\s*-\s*(\d+)\s*'/i);
+  // Normalize Unicode multiplication sign to ASCII "x" so regex match uniformly.
+  // Strip sprint intervals in seconds (e.g. "4x20''") before minute parsing —
+  // they're noise for a minutes total (80s ≈ 1.3 min, ignored on purpose).
+  const normalized = dose
+    .replace(/×/g, "x")
+    .replace(/\d+\s*x\s*\d+\s*''/gi, "")
+    .replace(/\d+\s*''/g, "");
+  const rangeRepeat = normalized.match(/(\d+)\s*x\s*(\d+)\s*-\s*(\d+)\s*'(?!')/i);
   if (rangeRepeat) {
     return Number(rangeRepeat[1]) * Math.round((Number(rangeRepeat[2]) + Number(rangeRepeat[3])) / 2);
   }
-  const repeat = normalized.match(/(\d+)\s*x\s*(\d+)\s*'/i);
+  const repeat = normalized.match(/(\d+)\s*x\s*(\d+)\s*'(?!')/i);
   if (repeat) {
     return Number(repeat[1]) * Number(repeat[2]);
   }
-  const range = normalized.match(/(\d+)\s*-\s*(\d+)\s*'/);
+  const range = normalized.match(/(\d+)\s*-\s*(\d+)\s*'(?!')/);
   if (range) {
     return Math.round((Number(range[1]) + Number(range[2])) / 2);
   }
-  const single = normalized.match(/(\d+)\s*'/);
+  const single = normalized.match(/(\d+)\s*'(?!')/);
   if (single) {
     return Number(single[1]);
   }
